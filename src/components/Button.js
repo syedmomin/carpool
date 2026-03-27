@@ -8,7 +8,7 @@ import { COLORS, GRADIENTS, RADIUS } from './theme';
 export const PrimaryButton = ({ title, onPress, style, loading, icon, colors }) => (
   <TouchableOpacity
     onPress={onPress}
-    disabled={loading}
+    disabled={!!loading}
     activeOpacity={0.85}
     style={[styles.container, style]}
   >

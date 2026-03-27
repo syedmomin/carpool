@@ -60,9 +60,9 @@ export default function MyRidesScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { borderColor: COLORS.danger + '50' }]}
-            onPress={() => Alert.alert('Cancel Ride', 'Kya aap yeh ride cancel karna chahte hain?', [
-              { text: 'Nahi', style: 'cancel' },
-              { text: 'Haan', style: 'destructive' },
+            onPress={() => Alert.alert('Cancel Ride', 'Are you sure you want to cancel this ride?', [
+              { text: 'No', style: 'cancel' },
+              { text: 'Yes', style: 'destructive' },
             ])}
           >
             <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
@@ -77,7 +77,7 @@ export default function MyRidesScreen({ navigation }) {
     <View style={styles.container}>
       <GradientHeader
         colors={GRADIENTS.teal}
-        title="Meri Rides"
+        title="My Rides"
         onBack={() => navigation.goBack()}
       >
         <View style={styles.headerStats}>
@@ -108,7 +108,11 @@ export default function MyRidesScreen({ navigation }) {
         contentContainerStyle={styles.listContent}
         renderItem={renderRide}
         ListEmptyComponent={
-          <EmptyState icon="car-sport-outline" title="Koi Ride Nahi" subtitle="Abhi tak koi ride post nahi ki. Pehli ride post karen!" />
+          <EmptyState
+            icon="car-sport-outline"
+            title="No Rides Found"
+            subtitle="You haven't posted any rides yet. Post your first ride!"
+          />
         }
       />
 

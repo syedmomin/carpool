@@ -1,9 +1,16 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, SectionHeader, StarRating, EmptyState, NotifBadge, StatsCard } from '../../components';
+import { COLORS, GRADIENTS, SectionHeader, NotifBadge } from '../../components';
+import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
+
+const NEARBY_MARKERS = [
+  { id: 1, latitude: 24.8700, longitude: 67.0300 },
+  { id: 2, latitude: 24.8500, longitude: 67.0600 },
+  { id: 3, latitude: 24.8900, longitude: 66.9800 },
+];
 
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, getMyRides, getVehicleByDriver, unreadCount } = useApp();
@@ -12,58 +19,58 @@ export default function DriverHomeScreen({ navigation }) {
   const activeRides = myRides.filter(r => r.status === 'active');
   const totalEarned = myRides.reduce((sum, r) => sum + (r.bookedSeats * r.pricePerSeat), 0);
 
-  const HEADER_STATS = [
-    { icon: 'car-sport-outline', value: activeRides.length,   label: 'Active Rides',  colors: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)'] },
-    { icon: 'people-outline',    value: myRides.reduce((s, r) => s + r.bookedSeats, 0), label: 'Passengers', colors: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)'] },
-    { icon: 'wallet-outline',    value: `Rs ${totalEarned.toLocaleString()}`, label: 'Earned', colors: [COLORS.accent + '60', COLORS.accent + '30'] },
-  ];
-
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <LinearGradient colors={GRADIENTS.teal} style={styles.header}>
-        <View style={styles.bgCircle} />
-        <View style={styles.headerTop}>
+    <View style={styles.container}>
+      {/* ── Map Header ── */}
+      <View style={styles.mapSection}>
+        <MapBackground markers={NEARBY_MARKERS} style={StyleSheet.absoluteFillObject} />
+
+        {/* Top Bar overlay */}
+        <View style={styles.mapTopBar}>
           <View>
-            <Text style={styles.greeting}>Driver Dashboard</Text>
-            <Text style={styles.userName}>{currentUser?.name}</Text>
+            <Text style={styles.mapGreeting}>Driver Dashboard</Text>
+            <Text style={styles.mapName}>{currentUser?.name}</Text>
           </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
-              <Ionicons name="notifications-outline" size={22} color="#fff" />
-              <NotifBadge count={unreadCount} />
+          <View style={styles.mapTopRight}>
+            <TouchableOpacity style={styles.mapIconBtn} onPress={() => navigation.navigate('Notifications')}>
+              <Ionicons name="notifications-outline" size={20} color={COLORS.textPrimary} />
+              {unreadCount > 0 && <NotifBadge count={unreadCount} />}
             </TouchableOpacity>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={14} color={COLORS.accent} />
+            <View style={styles.ratingPill}>
+              <Ionicons name="star" size={12} color={COLORS.accent} />
               <Text style={styles.ratingText}>{currentUser?.rating || '4.8'}</Text>
             </View>
           </View>
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsGrid}>
-          {HEADER_STATS.map((stat, i) => (
-            <View key={i} style={styles.statCard}>
-              <Ionicons name={stat.icon} size={20} color={i === 2 ? COLORS.accent : '#fff'} />
-              <Text style={[styles.statValue, i === 2 && { color: COLORS.accent }]}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+        {/* Stats strip */}
+        <View style={styles.statsStrip}>
+          {[
+            { icon: 'car-sport-outline', value: activeRides.length, label: 'Active', color: COLORS.primary },
+            { icon: 'people-outline', value: myRides.reduce((s, r) => s + r.bookedSeats, 0), label: 'Passengers', color: COLORS.secondary },
+            { icon: 'wallet-outline', value: `Rs ${totalEarned > 0 ? totalEarned.toLocaleString() : '0'}`, label: 'Earned', color: COLORS.accent },
+          ].map((s, i) => (
+            <View key={i} style={styles.statPill}>
+              <Ionicons name={s.icon} size={15} color={s.color} />
+              <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
             </View>
           ))}
         </View>
-      </LinearGradient>
+      </View>
 
-      <View style={styles.body}>
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Quick Actions */}
-        <SectionHeader title="Quick Actions" />
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           {[
-            { icon: 'add-circle-outline', label: 'Post Ride',  color: COLORS.primary, screen: 'PostRide' },
-            { icon: 'car-sport-outline',  label: 'My Rides',   color: COLORS.teal,    screen: 'MyRides' },
-            { icon: 'car-outline',        label: 'My Vehicle', color: COLORS.purple,  screen: 'VehicleSetup' },
-            { icon: 'star-outline',       label: 'Reviews',    color: COLORS.warning, screen: 'DriverProfile' },
+            { icon: 'add-circle-outline', label: 'Post Ride',  color: COLORS.primary,  screen: 'PostRide' },
+            { icon: 'car-sport-outline',  label: 'My Rides',   color: COLORS.teal,     screen: 'MyRides' },
+            { icon: 'car-outline',        label: 'My Vehicle', color: COLORS.purple,   screen: 'VehicleSetup' },
+            { icon: 'star-outline',       label: 'Reviews',    color: COLORS.warning,  screen: 'DriverProfile' },
           ].map((action, i) => (
             <TouchableOpacity key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)}>
-              <View style={[styles.actionIcon, { backgroundColor: action.color + '15' }]}>
+              <View style={[styles.actionIcon, { backgroundColor: action.color + '18' }]}>
                 <Ionicons name={action.icon} size={26} color={action.color} />
               </View>
               <Text style={styles.actionLabel}>{action.label}</Text>
@@ -74,7 +81,7 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Vehicle Card */}
         {myVehicle ? (
           <>
-            <SectionHeader title="Meri Gaari" onSeeAll={() => navigation.navigate('VehicleSetup')} />
+            <SectionHeader title="My Vehicle" onSeeAll={() => navigation.navigate('VehicleSetup')} />
             <TouchableOpacity style={styles.vehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <View style={styles.vehicleIconBox}>
                 <Ionicons name="car-sport" size={32} color={COLORS.primary} />
@@ -94,8 +101,8 @@ export default function DriverHomeScreen({ navigation }) {
           <TouchableOpacity style={styles.addVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
             <LinearGradient colors={['#eff6ff', '#dbeafe']} style={styles.addVehicleGrad}>
               <Ionicons name="add-circle-outline" size={40} color={COLORS.primary} />
-              <Text style={styles.addVehicleTitle}>Vehicle Add Karen</Text>
-              <Text style={styles.addVehicleSub}>Apni gaari, bus ya coaster register karen aur rides post karen</Text>
+              <Text style={styles.addVehicleTitle}>Add Your Vehicle</Text>
+              <Text style={styles.addVehicleSub}>Register your car, bus, or coaster and start posting rides</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -103,7 +110,7 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Recent Rides */}
         {myRides.length > 0 && (
           <>
-            <SectionHeader title="Meri Rides" onSeeAll={() => navigation.navigate('MyRides')} />
+            <SectionHeader title="My Rides" onSeeAll={() => navigation.navigate('MyRides')} />
             {myRides.slice(0, 2).map(ride => (
               <View key={ride.id} style={styles.rideCard}>
                 <View style={styles.rideCardLeft}>
@@ -123,40 +130,77 @@ export default function DriverHomeScreen({ navigation }) {
           </>
         )}
 
-        {/* Tips */}
+        {/* Tip */}
         <LinearGradient colors={['#fff8e1', '#fff3cd']} style={styles.tipCard}>
           <Ionicons name="bulb-outline" size={24} color={COLORS.accent} />
           <View style={styles.tipText}>
             <Text style={styles.tipTitle}>Pro Tip</Text>
-            <Text style={styles.tipSub}>Vehicle ki clear photos upload karne se 40% zyada bookings milti hain!</Text>
+            <Text style={styles.tipSub}>Uploading clear vehicle photos can increase bookings by 40%!</Text>
           </View>
         </LinearGradient>
-      </View>
-    </ScrollView>
+        <View style={{ height: 24 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: 55, paddingBottom: 24, paddingHorizontal: 20, position: 'relative', overflow: 'hidden' },
-  bgCircle: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting: { fontSize: 13, color: 'rgba(255,255,255,0.7)' },
-  userName: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  notifBtn: { position: 'relative' },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 4 },
-  ratingText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  statsGrid: { flexDirection: 'row', gap: 12 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: 14, alignItems: 'center', gap: 4 },
-  statValue: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
-  body: { padding: 20 },
+
+  // Map section
+  mapSection: {
+    height: 260,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  mapTopBar: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 52 : 40,
+    left: 16, right: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  mapGreeting: { fontSize: 12, color: '#fff', fontWeight: '500', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  mapName: { fontSize: 20, fontWeight: '800', color: '#fff', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  mapTopRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  mapIconBtn: {
+    width: 40, height: 40, backgroundColor: '#fff', borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', position: 'relative',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
+  },
+  ratingPill: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, gap: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
+  },
+  ratingText: { fontWeight: '700', fontSize: 13, color: COLORS.textPrimary },
+  statsStrip: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingVertical: 10, paddingHorizontal: 16, gap: 8,
+    borderTopLeftRadius: 16, borderTopRightRadius: 16,
+  },
+  statPill: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 5, backgroundColor: COLORS.lightGray, borderRadius: 10, paddingVertical: 8,
+  },
+  statVal: { fontSize: 13, fontWeight: '800' },
+  statLabel: { fontSize: 10, color: COLORS.gray },
+
+  // Body
+  body: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  actionCard: { width: '47%', backgroundColor: '#fff', borderRadius: 16, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  actionCard: {
+    width: '47%', backgroundColor: '#fff', borderRadius: 16, padding: 16, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
   actionIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   actionLabel: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  vehicleCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', marginBottom: 24,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
   vehicleIconBox: { width: 56, height: 56, borderRadius: 14, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   vehicleInfo: { flex: 1 },
   vehicleName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },

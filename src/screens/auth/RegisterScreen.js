@@ -22,7 +22,10 @@ export default function RegisterScreen({ navigation }) {
   const handleNext = () => {
     if (step === 0) { setStep(1); }
     else if (step === 1) {
-      if (!form.name || !form.phone || !form.password) { Alert.alert('Error', 'Sab required fields bharen!'); return; }
+      if (!form.name || !form.phone || !form.password) {
+        Alert.alert('Error', 'Please fill in all required fields!');
+        return;
+      }
       setStep(2);
     } else { handleRegister(); }
   };
@@ -31,7 +34,10 @@ export default function RegisterScreen({ navigation }) {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      login({ id: `user_${Date.now()}`, name: form.name, phone: form.phone, email: form.email, rating: 0, totalTrips: 0, verified: false }, role);
+      login(
+        { id: `user_${Date.now()}`, name: form.name, phone: form.phone, email: form.email, rating: 0, totalTrips: 0, verified: false },
+        role
+      );
       navigation.replace(role === 'driver' ? 'DriverTabs' : 'PassengerTabs');
     }, 1500);
   };
@@ -39,14 +45,21 @@ export default function RegisterScreen({ navigation }) {
   const renderStep = () => {
     if (step === 0) return (
       <View>
-        <Text style={styles.stepTitle}>Apna Role Chunein</Text>
-        <Text style={styles.stepSub}>Aap SafariShare pe kia karna chahte hain?</Text>
+        <Text style={styles.stepTitle}>Choose Your Role</Text>
+        <Text style={styles.stepSub}>What would you like to do on SafariShare?</Text>
         {[
-          { value: 'passenger', icon: 'person', label: 'Passenger', sub: 'Rides dhundho aur book karo', colors: GRADIENTS.primary },
-          { value: 'driver', icon: 'car-sport', label: 'Driver', sub: 'Rides post karo, income kamao', colors: GRADIENTS.teal },
+          { value: 'passenger', icon: 'person', label: 'Passenger', sub: 'Find and book rides', colors: GRADIENTS.primary },
+          { value: 'driver', icon: 'car-sport', label: 'Driver', sub: 'Post rides and earn money', colors: GRADIENTS.teal },
         ].map(r => (
-          <TouchableOpacity key={r.value} style={[styles.roleCard, role === r.value && styles.roleCardActive]} onPress={() => setRole(r.value)}>
-            <LinearGradient colors={role === r.value ? r.colors : [COLORS.bg, COLORS.bg]} style={styles.roleCardGrad}>
+          <TouchableOpacity
+            key={r.value}
+            style={[styles.roleCard, role === r.value && styles.roleCardActive]}
+            onPress={() => setRole(r.value)}
+          >
+            <LinearGradient
+              colors={role === r.value ? r.colors : [COLORS.bg, COLORS.bg]}
+              style={styles.roleCardGrad}
+            >
               <View style={[styles.roleIconBox, { backgroundColor: role === r.value ? 'rgba(255,255,255,0.2)' : COLORS.lightGray }]}>
                 <Ionicons name={r.icon} size={28} color={role === r.value ? '#fff' : COLORS.gray} />
               </View>
@@ -64,8 +77,8 @@ export default function RegisterScreen({ navigation }) {
     if (step === 1) return (
       <View>
         <Text style={styles.stepTitle}>Personal Details</Text>
-        <Text style={styles.stepSub}>Apni basic info bharen</Text>
-        <FormInput label="Poora Naam *" icon="person-outline" placeholder="e.g. Ahmad Raza" value={form.name} onChangeText={v => updateForm('name', v)} />
+        <Text style={styles.stepSub}>Fill in your basic information</Text>
+        <FormInput label="Full Name *" icon="person-outline" placeholder="e.g. Ahmad Raza" value={form.name} onChangeText={v => updateForm('name', v)} />
         <FormInput label="Phone Number *" icon="call-outline" placeholder="0300-1234567" value={form.phone} onChangeText={v => updateForm('phone', v)} keyboardType="phone-pad" />
         <FormInput label="Email (Optional)" icon="mail-outline" placeholder="ahmad@example.com" value={form.email} onChangeText={v => updateForm('email', v)} keyboardType="email-address" />
         <FormInput label="Password *" icon="lock-closed-outline" placeholder="Min 6 characters" value={form.password} onChangeText={v => updateForm('password', v)} secureTextEntry />
@@ -80,13 +93,16 @@ export default function RegisterScreen({ navigation }) {
         <LinearGradient colors={GRADIENTS.primary} style={styles.verifyIcon}>
           <Ionicons name="phone-portrait-outline" size={40} color="#fff" />
         </LinearGradient>
-        <Text style={styles.stepTitle}>OTP Verify Karen</Text>
-        <Text style={styles.verifyText}>{form.phone} pe 6-digit OTP bheja gaya hai</Text>
+        <Text style={styles.stepTitle}>Verify Phone Number</Text>
+        <Text style={styles.verifyText}>A 6-digit OTP has been sent to {form.phone}</Text>
         <OTPInput />
-        <Text style={styles.resendText}>OTP nahi mila? <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Resend</Text></Text>
+        <Text style={styles.resendText}>
+          Didn't receive OTP?{' '}
+          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Resend</Text>
+        </Text>
         <View style={styles.demoNote}>
           <Ionicons name="information-circle-outline" size={14} color={COLORS.primary} />
-          <Text style={styles.demoNoteText}>Demo mode: Direct register ho jayen</Text>
+          <Text style={styles.demoNoteText}>Demo mode: Register directly</Text>
         </View>
       </View>
     );
@@ -95,18 +111,26 @@ export default function RegisterScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
-        <TouchableOpacity onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}
+          style={styles.backBtn}
+        >
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account Banayein</Text>
+        <Text style={styles.headerTitle}>Create Account</Text>
         <Text style={styles.headerSub}>Step {step + 1} of {STEPS.length}</Text>
         <View style={styles.progressRow}>
           {STEPS.map((s, i) => (
             <View key={i} style={styles.progressStep}>
               <View style={[styles.progressDot, i <= step && styles.progressDotActive]}>
-                {i < step ? <Ionicons name="checkmark" size={12} color={COLORS.primary} /> : <Text style={[styles.progressNum, i === step && { color: COLORS.primary }]}>{i + 1}</Text>}
+                {i < step
+                  ? <Ionicons name="checkmark" size={12} color={COLORS.primary} />
+                  : <Text style={[styles.progressNum, i === step && { color: COLORS.primary }]}>{i + 1}</Text>
+                }
               </View>
-              {i < STEPS.length - 1 && <View style={[styles.progressLine, i < step && styles.progressLineActive]} />}
+              {i < STEPS.length - 1 && (
+                <View style={[styles.progressLine, i < step && styles.progressLineActive]} />
+              )}
             </View>
           ))}
         </View>
@@ -114,9 +138,18 @@ export default function RegisterScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {renderStep()}
-        <PrimaryButton title={step === STEPS.length - 1 ? 'Register Karen' : 'Aage'} onPress={handleNext} loading={loading} style={{ marginTop: 32 }} icon={step === STEPS.length - 1 ? 'checkmark-circle-outline' : 'arrow-forward-outline'} />
+        <PrimaryButton
+          title={step === STEPS.length - 1 ? 'Create Account' : 'Continue'}
+          onPress={handleNext}
+          loading={loading}
+          style={{ marginTop: 32 }}
+          icon={step === STEPS.length - 1 ? 'checkmark-circle-outline' : 'arrow-forward-outline'}
+        />
         <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
-          <Text style={styles.loginLinkText}>Pehle se account hai? <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Login Karen</Text></Text>
+          <Text style={styles.loginLinkText}>
+            Already have an account?{' '}
+            <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Sign In</Text>
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

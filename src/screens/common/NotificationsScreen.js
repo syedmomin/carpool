@@ -19,7 +19,7 @@ export default function NotificationsScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.primary}
         title="Notifications"
-        subtitle={unreadCount > 0 ? `${unreadCount} naye notifications` : undefined}
+        subtitle={unreadCount > 0 ? `${unreadCount} new notification${unreadCount !== 1 ? 's' : ''}` : undefined}
         onBack={() => navigation.goBack()}
       />
 
@@ -48,7 +48,7 @@ export default function NotificationsScreen({ navigation }) {
           );
         }}
         ListEmptyComponent={
-          <EmptyState icon="notifications-off-outline" title="Koi Notification Nahi" />
+          <EmptyState icon="notifications-off-outline" title="No Notifications" subtitle="You're all caught up!" />
         }
       />
     </View>

@@ -5,6 +5,7 @@ import { COLORS, RADIUS, SPACING } from './theme';
 
 // ─── Filter Chip (toggle) ────────────────────────────────────────────────────
 export const Chip = ({ label, icon, active, onPress, color, style }) => {
+  const isActive = !!active;
   const activeColor = color || COLORS.primary;
   return (
     <TouchableOpacity
@@ -12,7 +13,7 @@ export const Chip = ({ label, icon, active, onPress, color, style }) => {
       activeOpacity={0.75}
       style={[
         styles.chip,
-        active
+        isActive
           ? { backgroundColor: activeColor, borderColor: activeColor }
           : { backgroundColor: COLORS.white, borderColor: COLORS.border },
         style,
@@ -22,11 +23,11 @@ export const Chip = ({ label, icon, active, onPress, color, style }) => {
         <Ionicons
           name={icon}
           size={14}
-          color={active ? '#fff' : COLORS.gray}
+          color={isActive ? '#fff' : COLORS.gray}
           style={styles.chipIcon}
         />
       )}
-      <Text style={[styles.chipText, { color: active ? '#fff' : COLORS.gray }]}>
+      <Text style={[styles.chipText, { color: isActive ? '#fff' : COLORS.gray }]}>
         {label}
       </Text>
     </TouchableOpacity>

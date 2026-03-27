@@ -9,9 +9,9 @@ export default function BookingHistoryScreen({ navigation }) {
   const bookings = getMyBookings();
 
   const handleCancel = (bookingId) => {
-    Alert.alert('Booking Cancel Karen?', 'Kya aap yaqeen se cancel karna chahte hain?', [
-      { text: 'Nahi', style: 'cancel' },
-      { text: 'Haan, Cancel', style: 'destructive', onPress: () => cancelBooking(bookingId) },
+    Alert.alert('Cancel Booking?', 'Are you sure you want to cancel this booking?', [
+      { text: 'No', style: 'cancel' },
+      { text: 'Yes, Cancel', style: 'destructive', onPress: () => cancelBooking(bookingId) },
     ]);
   };
 
@@ -73,7 +73,11 @@ export default function BookingHistoryScreen({ navigation }) {
         contentContainerStyle={styles.listContent}
         renderItem={renderBooking}
         ListEmptyComponent={
-          <EmptyState icon="receipt-outline" title="Koi Booking Nahi" subtitle="Abhi tak koi ride book nahi ki. Pehli ride book karen!" />
+          <EmptyState
+            icon="receipt-outline"
+            title="No Bookings"
+            subtitle="You haven't booked any rides yet. Book your first ride!"
+          />
         }
       />
     </View>

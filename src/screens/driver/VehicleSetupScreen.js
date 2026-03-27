@@ -26,14 +26,15 @@ export default function VehicleSetupScreen({ navigation }) {
 
   const handleSave = () => {
     if (!form.type || !form.brand || !form.plateNumber || !form.totalSeats) {
-      Alert.alert('Error', 'Sab zaruri fields bharen!'); return;
+      Alert.alert('Error', 'Please fill all required fields!');
+      return;
     }
     setLoading(true);
     setTimeout(() => {
       registerVehicle({ ...form, totalSeats: parseInt(form.totalSeats), ac, wifi, images });
       setLoading(false);
-      Alert.alert('Mubarak!', 'Vehicle successfully register ho gaya!', [
-        { text: 'Theek Hai', onPress: () => navigation.goBack() },
+      Alert.alert('Congratulations!', 'Vehicle registered successfully!', [
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     }, 1000);
   };
@@ -48,11 +49,11 @@ export default function VehicleSetupScreen({ navigation }) {
   };
 
   const FIELDS = [
-    { key: 'brand',       label: 'Brand & Model *', placeholder: 'e.g. Toyota Corolla', icon: 'car-outline' },
-    { key: 'model',       label: 'Year',             placeholder: 'e.g. 2022',           icon: 'calendar-outline', type: 'numeric' },
-    { key: 'color',       label: 'Color',            placeholder: 'e.g. White',          icon: 'color-palette-outline' },
-    { key: 'plateNumber', label: 'Number Plate *',   placeholder: 'e.g. KHI-2022',       icon: 'card-outline' },
-    { key: 'totalSeats',  label: 'Total Seats *',    placeholder: 'e.g. 4',              icon: 'people-outline', type: 'numeric' },
+    { key: 'brand',       label: 'Brand & Model *',  placeholder: 'e.g. Toyota Corolla', icon: 'car-outline' },
+    { key: 'model',       label: 'Year',              placeholder: 'e.g. 2022',           icon: 'calendar-outline', type: 'numeric' },
+    { key: 'color',       label: 'Color',             placeholder: 'e.g. White',          icon: 'color-palette-outline' },
+    { key: 'plateNumber', label: 'Number Plate *',    placeholder: 'e.g. KHI-2022',       icon: 'card-outline' },
+    { key: 'totalSeats',  label: 'Total Seats *',     placeholder: 'e.g. 4',              icon: 'people-outline', type: 'numeric' },
   ];
 
   return (
@@ -60,8 +61,8 @@ export default function VehicleSetupScreen({ navigation }) {
       <View style={styles.container}>
         <GradientHeader
           colors={GRADIENTS.purple}
-          title={existing ? 'Vehicle Update' : 'Vehicle Register'}
-          subtitle="Gaari ki details aur photos add karen"
+          title={existing ? 'Update Vehicle' : 'Register Vehicle'}
+          subtitle="Add your vehicle details and photos"
           onBack={() => navigation.goBack()}
         />
 
@@ -84,19 +85,22 @@ export default function VehicleSetupScreen({ navigation }) {
 
           {/* Photos */}
           <Text style={styles.sectionTitle}>Vehicle Photos</Text>
-          <Text style={styles.photoHint}>Clear photos upload karne se zyada bookings milti hain</Text>
+          <Text style={styles.photoHint}>Uploading clear photos helps you get more bookings</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosScroll}>
             {images.map((img, i) => (
               <View key={i} style={styles.photoWrapper}>
                 <Image source={{ uri: img }} style={styles.photo} />
-                <TouchableOpacity style={styles.photoDeleteBtn} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
+                <TouchableOpacity
+                  style={styles.photoDeleteBtn}
+                  onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}
+                >
                   <Ionicons name="close-circle" size={22} color={COLORS.danger} />
                 </TouchableOpacity>
               </View>
             ))}
             <TouchableOpacity style={styles.addPhotoBtn} onPress={addSampleImage}>
               <Ionicons name="camera-outline" size={28} color={COLORS.primary} />
-              <Text style={styles.addPhotoText}>Photo Add</Text>
+              <Text style={styles.addPhotoText}>Add Photo</Text>
             </TouchableOpacity>
           </ScrollView>
 
@@ -122,7 +126,7 @@ export default function VehicleSetupScreen({ navigation }) {
           </View>
 
           <PrimaryButton
-            title={existing ? 'Update Karen' : 'Register Karen'}
+            title={existing ? 'Update Vehicle' : 'Register Vehicle'}
             onPress={handleSave}
             loading={loading}
             icon="checkmark-circle-outline"

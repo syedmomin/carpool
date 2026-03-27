@@ -31,12 +31,12 @@ export default function SplashScreen({ navigation }) {
 
       <Animated.View style={[styles.textContainer, { opacity: textAnim }]}>
         <Text style={styles.appName}>SafariShare</Text>
-        <Text style={styles.tagline}>Pakistan ka Apna Ride Sharing</Text>
+        <Text style={styles.tagline}>Your Smart Ride Sharing App</Text>
       </Animated.View>
 
       <View style={styles.bottomRow}>
         <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.5)" />
-        <Text style={styles.bottomText}>Karachi • Lahore • Islamabad • Larkana</Text>
+        <Text style={styles.bottomText}>Karachi • Lahore • Islamabad • Hyderabad</Text>
       </View>
     </LinearGradient>
   );

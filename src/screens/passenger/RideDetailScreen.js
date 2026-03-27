@@ -25,8 +25,8 @@ export default function RideDetailScreen({ navigation, route }) {
 
   const handleBook = () => {
     Alert.alert(
-      'Booking Confirm Karen',
-      `${selectedSeats} seat(s) × Rs ${ride.pricePerSeat?.toLocaleString()} = Rs ${(selectedSeats * ride.pricePerSeat)?.toLocaleString()}\n\nKya aap confirm karte hain?`,
+      'Confirm Booking',
+      `${selectedSeats} seat(s) × Rs ${ride.pricePerSeat?.toLocaleString()} = Rs ${(selectedSeats * ride.pricePerSeat)?.toLocaleString()}\n\nWould you like to confirm?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -115,7 +115,7 @@ export default function RideDetailScreen({ navigation, route }) {
             </View>
             <TouchableOpacity
               style={styles.callBtn}
-              onPress={() => Alert.alert('Call', `${driver?.name} ko call karna chahte hain?`)}
+              onPress={() => Alert.alert('Call Driver', `Would you like to call ${driver?.name}?`)}
             >
               <LinearGradient colors={GRADIENTS.secondary} style={styles.callBtnGrad}>
                 <Ionicons name="call" size={18} color="#fff" />

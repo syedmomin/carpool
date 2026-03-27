@@ -7,10 +7,34 @@ import { COLORS, PrimaryButton } from '../../components';
 const { width, height } = Dimensions.get('window');
 
 const SLIDES = [
-  { id: '1', icon: 'search-outline',          title: 'Ride Dhundho Asaani Se',       subtitle: 'Karachi se Lahore, Hyderabad se Larkana — jahan bhi jao, ride mile aasaan.',      bg: ['#1a73e8', '#0d47a1'] },
-  { id: '2', icon: 'car-sport-outline',        title: 'Driver? Apni Seat Share Karo', subtitle: 'Apni gaari, bus ya coaster mein khali seats share karo aur extra income kamao.',   bg: ['#00897b', '#00695c'] },
-  { id: '3', icon: 'shield-checkmark-outline', title: 'Safe & Verified',              subtitle: 'Har driver CNIC verified hai. Real reviews, ratings aur secure booking.',          bg: ['#7b1fa2', '#4a148c'] },
-  { id: '4', icon: 'wallet-outline',           title: 'Sasta Safar',                 subtitle: 'Bus se bhi sasta! Share karo expenses aur enjoy karo comfortable journey.',        bg: ['#f57c00', '#e65100'] },
+  {
+    id: '1',
+    icon: 'search-outline',
+    title: 'Find Rides Easily',
+    subtitle: 'From Karachi to Lahore, Hyderabad to Larkana — wherever you go, find a ride in seconds.',
+    bg: ['#1a73e8', '#0d47a1'],
+  },
+  {
+    id: '2',
+    icon: 'car-sport-outline',
+    title: 'Share Your Empty Seats',
+    subtitle: 'Share empty seats in your car, bus, or coaster and earn extra income on every trip.',
+    bg: ['#00897b', '#00695c'],
+  },
+  {
+    id: '3',
+    icon: 'shield-checkmark-outline',
+    title: 'Safe & Verified',
+    subtitle: 'Every driver is CNIC verified. Real reviews, ratings and secure booking guaranteed.',
+    bg: ['#7b1fa2', '#4a148c'],
+  },
+  {
+    id: '4',
+    icon: 'wallet-outline',
+    title: 'Affordable Journeys',
+    subtitle: 'Even cheaper than the bus! Share expenses and enjoy a comfortable, affordable journey.',
+    bg: ['#f57c00', '#e65100'],
+  },
 ];
 
 export default function OnboardingScreen({ navigation }) {
@@ -51,8 +75,13 @@ export default function OnboardingScreen({ navigation }) {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
-        onMomentumScrollEnd={e => setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
+        onMomentumScrollEnd={e =>
+          setCurrentIndex(Math.round(e.nativeEvent.contentOffset.x / width))
+        }
       />
 
       <View style={styles.bottomContainer}>
@@ -72,7 +101,7 @@ export default function OnboardingScreen({ navigation }) {
         </View>
 
         <PrimaryButton
-          title={currentIndex === SLIDES.length - 1 ? 'Shuru Karen!' : 'Agla'}
+          title={currentIndex === SLIDES.length - 1 ? 'Get Started!' : 'Next'}
           onPress={handleNext}
           icon={currentIndex === SLIDES.length - 1 ? 'rocket-outline' : 'arrow-forward-outline'}
           colors={SLIDES[currentIndex].bg}

@@ -12,11 +12,11 @@ export default function BookingConfirmScreen({ navigation, route }) {
   const driver = getDriverById(ride?.driverId);
 
   const TICKET_ROWS = [
-    { label: 'Date',          value: ride?.date,                                      icon: 'calendar-outline' },
-    { label: 'Seats',         value: `${seats} seat(s)`,                              icon: 'people-outline' },
-    { label: 'Driver',        value: driver?.name,                                    icon: 'person-outline' },
-    { label: 'Total Amount',  value: `Rs ${(seats * ride?.pricePerSeat)?.toLocaleString()}`, icon: 'wallet-outline', highlight: true },
-    { label: 'Payment',       value: 'Cash on Board',                                 icon: 'cash-outline' },
+    { label: 'Date',         value: ride?.date,                                           icon: 'calendar-outline' },
+    { label: 'Seats',        value: `${seats} seat(s)`,                                  icon: 'people-outline' },
+    { label: 'Driver',       value: driver?.name,                                         icon: 'person-outline' },
+    { label: 'Total Amount', value: `Rs ${(seats * ride?.pricePerSeat)?.toLocaleString()}`, icon: 'wallet-outline', highlight: true },
+    { label: 'Payment',      value: 'Cash on Board',                                     icon: 'cash-outline' },
   ];
 
   return (
@@ -25,8 +25,8 @@ export default function BookingConfirmScreen({ navigation, route }) {
         <View style={styles.successIcon}>
           <Ionicons name="checkmark-circle" size={70} color="#fff" />
         </View>
-        <Text style={styles.successTitle}>Booking Confirm!</Text>
-        <Text style={styles.successSub}>Aapki seat book ho gayi hai</Text>
+        <Text style={styles.successTitle}>Booking Confirmed!</Text>
+        <Text style={styles.successSub}>Your seat has been successfully booked</Text>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.body}>
@@ -86,17 +86,17 @@ export default function BookingConfirmScreen({ navigation, route }) {
         {/* Info Box */}
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.infoText}>Driver aapko departure se 1 ghante pehle call karega. Pickup point par time par pahunchein.</Text>
+          <Text style={styles.infoText}>The driver will call you 1 hour before departure. Please arrive at the pickup point on time.</Text>
         </View>
 
         <PrimaryButton
-          title="My Bookings Dekho"
+          title="View My Bookings"
           onPress={() => navigation.navigate('BookingHistory')}
           icon="receipt-outline"
           style={{ marginBottom: 12 }}
         />
         <GhostButton
-          title="Home Ja'o"
+          title="Go to Home"
           onPress={() => navigation.navigate('PassengerHome')}
         />
         <View style={{ height: 24 }} />

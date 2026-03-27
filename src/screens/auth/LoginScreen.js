@@ -25,7 +25,7 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = () => {
     if (!phone || !password) {
-      Alert.alert('Error', 'Phone aur password dono bharen!');
+      Alert.alert('Error', 'Please enter your phone number and password.');
       return;
     }
     setLoading(true);
@@ -55,12 +55,12 @@ export default function LoginScreen({ navigation }) {
           <Ionicons name="car-sport" size={36} color="#fff" />
         </View>
         <Text style={styles.headerTitle}>SafariShare</Text>
-        <Text style={styles.headerSub}>Dobara Swagat Hai!</Text>
+        <Text style={styles.headerSub}>Welcome Back!</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {/* Role Toggle */}
-        <Text style={styles.fieldLabel}>Aap kia hain?</Text>
+        <Text style={styles.fieldLabel}>Select Your Role</Text>
         <TabPills
           tabs={ROLE_TABS}
           activeTab={role}
@@ -87,7 +87,7 @@ export default function LoginScreen({ navigation }) {
         <FormInput
           label="Password"
           icon="lock-closed-outline"
-          placeholder="Password dalein"
+          placeholder="Enter your password"
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPass}
@@ -96,21 +96,21 @@ export default function LoginScreen({ navigation }) {
         />
 
         <TouchableOpacity style={styles.forgotBtn}>
-          <Text style={styles.forgotText}>Password bhool gaye?</Text>
+          <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
-        <PrimaryButton title="Login Karen" onPress={handleLogin} loading={loading} style={{ marginTop: 8 }} />
+        <PrimaryButton title="Sign In" onPress={handleLogin} loading={loading} style={{ marginTop: 8 }} />
 
-        <DividerText label="ya" style={styles.divider} />
+        <DividerText label="or" style={styles.divider} />
 
         <GhostButton
-          title="Naya Account Banayein"
+          title="Create New Account"
           onPress={() => navigation.navigate('Register')}
         />
 
         <View style={styles.demoBox}>
           <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.demoText}>Demo: Koi bhi phone/password likhen aur login karen</Text>
+          <Text style={styles.demoText}>Demo: Enter any phone & password to sign in</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

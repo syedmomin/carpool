@@ -11,13 +11,13 @@ import { CITIES } from '../../data/mockData';
 const AMENITY_OPTIONS = ['AC', 'WiFi', 'Music', 'Water Bottle', 'Snacks', 'Blanket', 'Charging Port'];
 
 const FIELDS = [
-  { key: 'date',          label: 'Safar Ki Tarikh *',        icon: 'calendar-outline', placeholder: '2026-03-30' },
-  { key: 'departureTime', label: 'Rawangi Ka Waqt *',        icon: 'time-outline',     placeholder: 'e.g. 08:00 AM' },
-  { key: 'arrivalTime',   label: 'Pahunchne Ka Waqt',        icon: 'time-outline',     placeholder: 'e.g. 02:00 PM' },
-  { key: 'pricePerSeat',  label: 'Har Seat Ka Kiraaya (Rs) *',icon: 'cash-outline',    placeholder: 'e.g. 1500', type: 'numeric' },
-  { key: 'seats',         label: 'Available Seats *',        icon: 'people-outline',   placeholder: 'e.g. 3', type: 'numeric' },
-  { key: 'pickupPoint',   label: 'Pickup Location',          icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
-  { key: 'dropPoint',     label: 'Drop Location',            icon: 'flag-outline',     placeholder: 'e.g. Larkana Adda' },
+  { key: 'date',          label: 'Travel Date *',         icon: 'calendar-outline', placeholder: '2026-03-30' },
+  { key: 'departureTime', label: 'Departure Time *',       icon: 'time-outline',     placeholder: 'e.g. 08:00 AM' },
+  { key: 'arrivalTime',   label: 'Estimated Arrival',      icon: 'time-outline',     placeholder: 'e.g. 02:00 PM' },
+  { key: 'pricePerSeat',  label: 'Price Per Seat (Rs) *',  icon: 'cash-outline',     placeholder: 'e.g. 1500', type: 'numeric' },
+  { key: 'seats',         label: 'Available Seats *',      icon: 'people-outline',   placeholder: 'e.g. 3', type: 'numeric' },
+  { key: 'pickupPoint',   label: 'Pickup Location',        icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
+  { key: 'dropPoint',     label: 'Drop Location',          icon: 'flag-outline',     placeholder: 'e.g. Larkana Bus Stop' },
 ];
 
 export default function PostRideScreen({ navigation }) {
@@ -35,19 +35,30 @@ export default function PostRideScreen({ navigation }) {
 
   const handlePost = () => {
     if (!form.from || !form.to || !form.date || !form.departureTime || !form.pricePerSeat || !form.seats) {
-      Alert.alert('Error', 'Sab zaruri fields bharen!'); return;
+      Alert.alert('Error', 'Please fill all required fields!');
+      return;
     }
     if (!vehicle) {
-      Alert.alert('Vehicle Chahiye', 'Pehle apna vehicle register karen.', [
-        { text: 'Vehicle Add Karo', onPress: () => navigation.navigate('VehicleSetup') },
+      Alert.alert('Vehicle Required', 'Please register your vehicle first.', [
+        { text: 'Add Vehicle', onPress: () => navigation.navigate('VehicleSetup') },
         { text: 'Cancel', style: 'cancel' },
-      ]); return;
+      ]);
+      return;
     }
     setLoading(true);
     setTimeout(() => {
-      postRide({ ...form, driverId: currentUser?.id, vehicleId: vehicle?.id, pricePerSeat: parseInt(form.pricePerSeat), totalSeats: parseInt(form.seats), amenities });
+      postRide({
+        ...form,
+        driverId: currentUser?.id,
+        vehicleId: vehicle?.id,
+        pricePerSeat: parseInt(form.pricePerSeat),
+        totalSeats: parseInt(form.seats),
+        amenities,
+      });
       setLoading(false);
-      Alert.alert('Mubarak!', 'Aapki ride successfully post ho gayi!', [{ text: 'My Rides Dekho', onPress: () => navigation.navigate('MyRides') }]);
+      Alert.alert('Congratulations!', 'Your ride has been posted successfully!', [
+        { text: 'View My Rides', onPress: () => navigation.navigate('MyRides') },
+      ]);
     }, 1200);
   };
 
@@ -58,8 +69,8 @@ export default function PostRideScreen({ navigation }) {
       <View style={styles.container}>
         <GradientHeader
           colors={GRADIENTS.teal}
-          title="Ride Post Karen"
-          subtitle="Apna route share karen, passengers milenge"
+          title="Post a Ride"
+          subtitle="Share your route and find passengers"
           onBack={() => navigation.goBack()}
         />
 
@@ -74,7 +85,7 @@ export default function PostRideScreen({ navigation }) {
           ) : (
             <TouchableOpacity style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <Ionicons name="warning-outline" size={20} color={COLORS.accent} />
-              <Text style={styles.noVehicleText}>Vehicle register karein pehle →</Text>
+              <Text style={styles.noVehicleText}>Please register your vehicle first →</Text>
             </TouchableOpacity>
           )}
 
@@ -83,7 +94,7 @@ export default function PostRideScreen({ navigation }) {
           <View style={styles.routeRow}>
             <TouchableOpacity style={styles.cityBtn} onPress={() => { setCityModal('from'); setCitySearch(''); }}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
-              <Text style={[styles.cityBtnText, !form.from && styles.placeholder]}>{form.from || 'Kahan Se?'}</Text>
+              <Text style={[styles.cityBtnText, !form.from && styles.placeholder]}>{form.from || 'Leaving From?'}</Text>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { update('from', form.to); update('to', form.from); }} style={styles.swapBtn}>
@@ -91,7 +102,7 @@ export default function PostRideScreen({ navigation }) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.cityBtn} onPress={() => { setCityModal('to'); setCitySearch(''); }}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
-              <Text style={[styles.cityBtnText, !form.to && styles.placeholder]}>{form.to || 'Kahan Tak?'}</Text>
+              <Text style={[styles.cityBtnText, !form.to && styles.placeholder]}>{form.to || 'Going To?'}</Text>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
             </TouchableOpacity>
           </View>
@@ -113,7 +124,7 @@ export default function PostRideScreen({ navigation }) {
           <FormInput
             label="Note / Description"
             icon="document-text-outline"
-            placeholder="e.g. 1 stop Hyderabad mein, AC on rahega..."
+            placeholder="e.g. 1 stop in Hyderabad, AC will be on..."
             value={form.description}
             onChangeText={v => update('description', v)}
             multiline
@@ -121,7 +132,7 @@ export default function PostRideScreen({ navigation }) {
           />
 
           {/* Amenities */}
-          <Text style={styles.sectionTitle}>Sahulat (Amenities)</Text>
+          <Text style={styles.sectionTitle}>Amenities</Text>
           <View style={styles.amenitiesGrid}>
             {AMENITY_OPTIONS.map(a => (
               <Chip
@@ -135,7 +146,7 @@ export default function PostRideScreen({ navigation }) {
           </View>
 
           <PrimaryButton
-            title="Ride Post Karen"
+            title="Post Ride"
             onPress={handlePost}
             loading={loading}
             icon="rocket-outline"
@@ -149,13 +160,13 @@ export default function PostRideScreen({ navigation }) {
         <Modal visible={!!cityModal} animationType="slide" onRequestClose={() => setCityModal(null)}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{cityModal === 'from' ? 'Rawangi City' : 'Manzil City'}</Text>
+              <Text style={styles.modalTitle}>{cityModal === 'from' ? 'Departure City' : 'Destination City'}</Text>
               <TouchableOpacity onPress={() => setCityModal(null)}>
                 <Ionicons name="close" size={24} color={COLORS.textPrimary} />
               </TouchableOpacity>
             </View>
             <SearchInput
-              placeholder="City search karen..."
+              placeholder="Search city..."
               value={citySearch}
               onChangeText={setCitySearch}
               onClear={() => setCitySearch('')}

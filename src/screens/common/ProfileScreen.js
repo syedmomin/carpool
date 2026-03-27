@@ -8,8 +8,8 @@ import { useApp } from '../../context/AppContext';
 const MENU_ITEMS = [
   { section: 'Account', items: [
     { icon: 'person-outline',      label: 'Edit Profile',      screen: null, color: COLORS.primary },
-    { icon: 'card-outline',        label: 'CNIC Verify',       screen: null, color: COLORS.secondary },
-    { icon: 'lock-closed-outline', label: 'Password Change',   screen: null, color: COLORS.purple },
+    { icon: 'card-outline',        label: 'CNIC Verification', screen: null, color: COLORS.secondary },
+    { icon: 'lock-closed-outline', label: 'Change Password',   screen: null, color: COLORS.purple },
   ]},
   { section: 'Activity', items: [
     { icon: 'receipt-outline',      label: 'Booking History', screen: 'BookingHistory', color: COLORS.primary },
@@ -31,9 +31,9 @@ export default function ProfileScreen({ navigation }) {
   const headerColors = userRole === 'driver' ? GRADIENTS.teal : GRADIENTS.primary;
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Kya aap logout karna chahte hain?', [
-      { text: 'Nahi', style: 'cancel' },
-      { text: 'Haan, Logout', style: 'destructive', onPress: () => { logout(); navigation.replace('Login'); } },
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Yes, Logout', style: 'destructive', onPress: () => { logout(); navigation.replace('Login'); } },
     ]);
   };
 

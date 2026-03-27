@@ -51,7 +51,7 @@ export default function SearchScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ride Dhundho</Text>
+        <Text style={styles.headerTitle}>Find a Ride</Text>
       </View>
 
       {/* Search Form */}
@@ -59,7 +59,7 @@ export default function SearchScreen({ navigation, route }) {
         <View style={styles.searchRow}>
           <TouchableOpacity style={styles.cityInput} onPress={() => { setCityModal('from'); setCitySearch(''); }}>
             <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
-            <Text style={[styles.cityInputText, !from && styles.placeholder]}>{from || 'Kahan se?'}</Text>
+            <Text style={[styles.cityInputText, !from && styles.placeholder]}>{from || 'Leaving from?'}</Text>
             <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
           </TouchableOpacity>
           <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
@@ -67,7 +67,7 @@ export default function SearchScreen({ navigation, route }) {
           </TouchableOpacity>
           <TouchableOpacity style={styles.cityInput} onPress={() => { setCityModal('to'); setCitySearch(''); }}>
             <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
-            <Text style={[styles.cityInputText, !to && styles.placeholder]}>{to || 'Kahan tak?'}</Text>
+            <Text style={[styles.cityInputText, !to && styles.placeholder]}>{to || 'Going to?'}</Text>
             <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
           </TouchableOpacity>
         </View>
@@ -84,7 +84,10 @@ export default function SearchScreen({ navigation, route }) {
 
       {/* Results */}
       <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>{results.length} rides mile {from && to ? `(${from} → ${to})` : ''}</Text>
+        <Text style={styles.resultsCount}>
+          {results.length} ride{results.length !== 1 ? 's' : ''} found
+          {from && to ? ` (${from} → ${to})` : ''}
+        </Text>
         <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>
       </View>
 
@@ -101,7 +104,11 @@ export default function SearchScreen({ navigation, route }) {
           />
         )}
         ListEmptyComponent={
-          <EmptyState icon="car-outline" title="Koi Ride Nahi Mili" subtitle="Is route pe koi ride available nahi. Try different cities ya dates." />
+          <EmptyState
+            icon="car-outline"
+            title="No Rides Found"
+            subtitle="No rides available on this route. Try different cities or dates."
+          />
         }
       />
 
@@ -109,13 +116,13 @@ export default function SearchScreen({ navigation, route }) {
       <Modal visible={!!cityModal} animationType="slide" onRequestClose={() => setCityModal(null)}>
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{cityModal === 'from' ? 'Kahan Se?' : 'Kahan Tak?'}</Text>
+            <Text style={styles.modalTitle}>{cityModal === 'from' ? 'Leaving From' : 'Going To'}</Text>
             <TouchableOpacity onPress={() => setCityModal(null)}>
               <Ionicons name="close" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
           <SearchInput
-            placeholder="City ka naam likhen..."
+            placeholder="Search city..."
             value={citySearch}
             onChangeText={setCitySearch}
             onClear={() => setCitySearch('')}
@@ -125,7 +132,10 @@ export default function SearchScreen({ navigation, route }) {
             data={filteredCities}
             keyExtractor={item => item}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.cityItem} onPress={() => { cityModal === 'from' ? setFrom(item) : setTo(item); setCityModal(null); }}>
+              <TouchableOpacity
+                style={styles.cityItem}
+                onPress={() => { cityModal === 'from' ? setFrom(item) : setTo(item); setCityModal(null); }}
+              >
                 <Ionicons name="location-outline" size={18} color={COLORS.primary} />
                 <Text style={styles.cityItemText}>{item}</Text>
               </TouchableOpacity>
