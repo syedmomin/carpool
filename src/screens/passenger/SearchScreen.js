@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TextInput,
-  TouchableOpacity, FlatList, Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RideCard, EmptyState } from '../../components';
+import { COLORS, RideCard, EmptyState, Chip, SearchInput } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { CITIES } from '../../data/mockData';
 
@@ -14,29 +11,27 @@ export default function SearchScreen({ navigation, route }) {
   const { rides, getDriverById, getVehicleById } = useApp();
   const [from, setFrom] = useState(route.params?.from || '');
   const [to, setTo] = useState(route.params?.to || '');
-  const [date, setDate] = useState('');
   const [results, setResults] = useState([]);
   const [sort, setSort] = useState(0);
   const [showSortModal, setShowSortModal] = useState(false);
   const [filterAC, setFilterAC] = useState(false);
   const [filterVehicle, setFilterVehicle] = useState('');
-  const [cityModal, setCityModal] = useState(null); // 'from' | 'to'
+  const [cityModal, setCityModal] = useState(null);
   const [citySearch, setCitySearch] = useState('');
 
-  useEffect(() => {
-    doSearch();
-  }, [from, to, sort, filterAC, filterVehicle]);
+  useEffect(() => { doSearch(); }, [from, to, sort, filterAC, filterVehicle]);
 
   const doSearch = () => {
     let filtered = rides.filter(r =>
-      r.status === 'active' &&
-      r.bookedSeats < r.totalSeats &&
+      r.status === 'active' && r.bookedSeats < r.totalSeats &&
       (from ? r.from.toLowerCase().includes(from.toLowerCase()) : true) &&
       (to ? r.to.toLowerCase().includes(to.toLowerCase()) : true)
     );
-
     if (filterAC) filtered = filtered.filter(r => r.amenities?.includes('AC'));
-
+    if (filterVehicle) filtered = filtered.filter(r => {
+      const v = getVehicleById(r.vehicleId);
+      return v?.type === filterVehicle;
+    });
     switch (sort) {
       case 0: filtered.sort((a, b) => a.pricePerSeat - b.pricePerSeat); break;
       case 1: filtered.sort((a, b) => b.pricePerSeat - a.pricePerSeat); break;
@@ -46,11 +41,7 @@ export default function SearchScreen({ navigation, route }) {
     setResults(filtered);
   };
 
-  const swapCities = () => {
-    setFrom(to);
-    setTo(from);
-  };
-
+  const swapCities = () => { setFrom(to); setTo(from); };
   const filteredCities = CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
 
   return (
@@ -71,11 +62,9 @@ export default function SearchScreen({ navigation, route }) {
             <Text style={[styles.cityInputText, !from && styles.placeholder]}>{from || 'Kahan se?'}</Text>
             <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
           </TouchableOpacity>
-
           <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
             <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.cityInput} onPress={() => { setCityModal('to'); setCitySearch(''); }}>
             <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
             <Text style={[styles.cityInputText, !to && styles.placeholder]}>{to || 'Kahan tak?'}</Text>
@@ -85,37 +74,17 @@ export default function SearchScreen({ navigation, route }) {
 
         {/* Filters */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, filterAC && styles.filterChipActive]}
-            onPress={() => setFilterAC(!filterAC)}
-          >
-            <Ionicons name="snow-outline" size={14} color={filterAC ? '#fff' : COLORS.gray} />
-            <Text style={[styles.filterText, filterAC && { color: '#fff' }]}>AC</Text>
-          </TouchableOpacity>
-
+          <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
           {['Car', 'Hiace', 'Coaster', 'Bus'].map(v => (
-            <TouchableOpacity
-              key={v}
-              style={[styles.filterChip, filterVehicle === v && styles.filterChipActive]}
-              onPress={() => setFilterVehicle(filterVehicle === v ? '' : v)}
-            >
-              <Ionicons name="car-outline" size={14} color={filterVehicle === v ? '#fff' : COLORS.gray} />
-              <Text style={[styles.filterText, filterVehicle === v && { color: '#fff' }]}>{v}</Text>
-            </TouchableOpacity>
+            <Chip key={v} label={v} icon="car-outline" active={filterVehicle === v} onPress={() => setFilterVehicle(filterVehicle === v ? '' : v)} style={styles.filterChip} />
           ))}
-
-          <TouchableOpacity style={styles.filterChip} onPress={() => setShowSortModal(true)}>
-            <Ionicons name="funnel-outline" size={14} color={COLORS.gray} />
-            <Text style={styles.filterText}>Sort</Text>
-          </TouchableOpacity>
+          <Chip label="Sort" icon="funnel-outline" active={false} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
         </ScrollView>
       </View>
 
       {/* Results */}
       <View style={styles.resultsHeader}>
-        <Text style={styles.resultsCount}>
-          {results.length} rides mile {from && to ? `(${from} → ${to})` : ''}
-        </Text>
+        <Text style={styles.resultsCount}>{results.length} rides mile {from && to ? `(${from} → ${to})` : ''}</Text>
         <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>
       </View>
 
@@ -132,11 +101,7 @@ export default function SearchScreen({ navigation, route }) {
           />
         )}
         ListEmptyComponent={
-          <EmptyState
-            icon="car-outline"
-            title="Koi Ride Nahi Mili"
-            subtitle="Is route pe koi ride available nahi. Try different cities ya dates."
-          />
+          <EmptyState icon="car-outline" title="Koi Ride Nahi Mili" subtitle="Is route pe koi ride available nahi. Try different cities ya dates." />
         }
       />
 
@@ -149,29 +114,18 @@ export default function SearchScreen({ navigation, route }) {
               <Ionicons name="close" size={24} color={COLORS.textPrimary} />
             </TouchableOpacity>
           </View>
-          <View style={styles.citySearchBox}>
-            <Ionicons name="search-outline" size={18} color={COLORS.gray} />
-            <TextInput
-              style={styles.citySearchInput}
-              placeholder="City ka naam likhen..."
-              value={citySearch}
-              onChangeText={setCitySearch}
-              autoFocus
-              placeholderTextColor={COLORS.gray}
-            />
-          </View>
+          <SearchInput
+            placeholder="City ka naam likhen..."
+            value={citySearch}
+            onChangeText={setCitySearch}
+            onClear={() => setCitySearch('')}
+            style={styles.citySearch}
+          />
           <FlatList
             data={filteredCities}
             keyExtractor={item => item}
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.cityItem}
-                onPress={() => {
-                  if (cityModal === 'from') setFrom(item);
-                  else setTo(item);
-                  setCityModal(null);
-                }}
-              >
+              <TouchableOpacity style={styles.cityItem} onPress={() => { cityModal === 'from' ? setFrom(item) : setTo(item); setCityModal(null); }}>
                 <Ionicons name="location-outline" size={18} color={COLORS.primary} />
                 <Text style={styles.cityItemText}>{item}</Text>
               </TouchableOpacity>
@@ -186,11 +140,7 @@ export default function SearchScreen({ navigation, route }) {
           <View style={styles.sortSheet}>
             <Text style={styles.sortTitle}>Sort By</Text>
             {SORT_OPTIONS.map((opt, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.sortOption}
-                onPress={() => { setSort(i); setShowSortModal(false); }}
-              >
+              <TouchableOpacity key={i} style={styles.sortOption} onPress={() => { setSort(i); setShowSortModal(false); }}>
                 <Text style={[styles.sortOptionText, sort === i && { color: COLORS.primary, fontWeight: '700' }]}>{opt}</Text>
                 {sort === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
               </TouchableOpacity>
@@ -215,9 +165,7 @@ const styles = StyleSheet.create({
   placeholder: { color: COLORS.gray, fontWeight: '400' },
   swapBtn: { paddingHorizontal: 8 },
   filtersScroll: { flexDirection: 'row' },
-  filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8, gap: 4 },
-  filterChipActive: { backgroundColor: COLORS.primary },
-  filterText: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
+  filterChip: { marginRight: 8 },
   resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
   resultsCount: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   sortLabel: { fontSize: 12, color: COLORS.gray },
@@ -225,8 +173,7 @@ const styles = StyleSheet.create({
   modal: { flex: 1, backgroundColor: '#fff' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  citySearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, margin: 16, borderRadius: 12, paddingHorizontal: 12 },
-  citySearchInput: { flex: 1, paddingVertical: 12, paddingLeft: 8, fontSize: 15, color: COLORS.textPrimary },
+  citySearch: { margin: 16 },
   cityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
   cityItemText: { fontSize: 16, color: COLORS.textPrimary },
   sortOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

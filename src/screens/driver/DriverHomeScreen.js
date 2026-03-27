@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SectionHeader, StarRating, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, SectionHeader, StarRating, EmptyState, NotifBadge, StatsCard } from '../../components';
 import { useApp } from '../../context/AppContext';
 
 export default function DriverHomeScreen({ navigation }) {
@@ -12,10 +12,16 @@ export default function DriverHomeScreen({ navigation }) {
   const activeRides = myRides.filter(r => r.status === 'active');
   const totalEarned = myRides.reduce((sum, r) => sum + (r.bookedSeats * r.pricePerSeat), 0);
 
+  const HEADER_STATS = [
+    { icon: 'car-sport-outline', value: activeRides.length,   label: 'Active Rides',  colors: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)'] },
+    { icon: 'people-outline',    value: myRides.reduce((s, r) => s + r.bookedSeats, 0), label: 'Passengers', colors: ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)'] },
+    { icon: 'wallet-outline',    value: `Rs ${totalEarned.toLocaleString()}`, label: 'Earned', colors: [COLORS.accent + '60', COLORS.accent + '30'] },
+  ];
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={['#00897b', '#00695c']} style={styles.header}>
+      <LinearGradient colors={GRADIENTS.teal} style={styles.header}>
         <View style={styles.bgCircle} />
         <View style={styles.headerTop}>
           <View>
@@ -25,11 +31,7 @@ export default function DriverHomeScreen({ navigation }) {
           <View style={styles.headerRight}>
             <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
               <Ionicons name="notifications-outline" size={22} color="#fff" />
-              {unreadCount > 0 && (
-                <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>{unreadCount}</Text>
-                </View>
-              )}
+              <NotifBadge count={unreadCount} />
             </TouchableOpacity>
             <View style={styles.ratingBadge}>
               <Ionicons name="star" size={14} color={COLORS.accent} />
@@ -40,14 +42,10 @@ export default function DriverHomeScreen({ navigation }) {
 
         {/* Stats */}
         <View style={styles.statsGrid}>
-          {[
-            { icon: 'car-sport-outline', value: activeRides.length, label: 'Active Rides', color: '#fff' },
-            { icon: 'people-outline', value: myRides.reduce((s, r) => s + r.bookedSeats, 0), label: 'Passengers', color: '#fff' },
-            { icon: 'wallet-outline', value: `Rs ${totalEarned.toLocaleString()}`, label: 'Earned', color: COLORS.accent },
-          ].map((stat, i) => (
+          {HEADER_STATS.map((stat, i) => (
             <View key={i} style={styles.statCard}>
-              <Ionicons name={stat.icon} size={20} color={stat.color} />
-              <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+              <Ionicons name={stat.icon} size={20} color={i === 2 ? COLORS.accent : '#fff'} />
+              <Text style={[styles.statValue, i === 2 && { color: COLORS.accent }]}>{stat.value}</Text>
               <Text style={styles.statLabel}>{stat.label}</Text>
             </View>
           ))}
@@ -59,16 +57,12 @@ export default function DriverHomeScreen({ navigation }) {
         <SectionHeader title="Quick Actions" />
         <View style={styles.actionsGrid}>
           {[
-            { icon: 'add-circle-outline', label: 'Post Ride', color: '#1a73e8', screen: 'PostRide' },
-            { icon: 'car-sport-outline', label: 'My Rides', color: '#00897b', screen: 'MyRides' },
-            { icon: 'car-outline', label: 'My Vehicle', color: '#7b1fa2', screen: 'VehicleSetup' },
-            { icon: 'star-outline', label: 'Reviews', color: '#f57c00', screen: 'DriverProfile' },
+            { icon: 'add-circle-outline', label: 'Post Ride',  color: COLORS.primary, screen: 'PostRide' },
+            { icon: 'car-sport-outline',  label: 'My Rides',   color: COLORS.teal,    screen: 'MyRides' },
+            { icon: 'car-outline',        label: 'My Vehicle', color: COLORS.purple,  screen: 'VehicleSetup' },
+            { icon: 'star-outline',       label: 'Reviews',    color: COLORS.warning, screen: 'DriverProfile' },
           ].map((action, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.actionCard}
-              onPress={() => navigation.navigate(action.screen)}
-            >
+            <TouchableOpacity key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)}>
               <View style={[styles.actionIcon, { backgroundColor: action.color + '15' }]}>
                 <Ionicons name={action.icon} size={26} color={action.color} />
               </View>
@@ -120,9 +114,7 @@ export default function DriverHomeScreen({ navigation }) {
                       <Ionicons name="people-outline" size={12} color={COLORS.primary} />
                       <Text style={styles.metaBadgeText}>{ride.bookedSeats}/{ride.totalSeats}</Text>
                     </View>
-                    <Text style={styles.rideEarned}>
-                      Rs {(ride.bookedSeats * ride.pricePerSeat).toLocaleString()} earned
-                    </Text>
+                    <Text style={styles.rideEarned}>Rs {(ride.bookedSeats * ride.pricePerSeat).toLocaleString()} earned</Text>
                   </View>
                 </View>
                 <View style={[styles.statusDot, { backgroundColor: ride.bookedSeats < ride.totalSeats ? COLORS.secondary : COLORS.accent }]} />
@@ -153,8 +145,6 @@ const styles = StyleSheet.create({
   userName: { fontSize: 20, fontWeight: '800', color: '#fff' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   notifBtn: { position: 'relative' },
-  notifBadge: { position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: COLORS.danger, alignItems: 'center', justifyContent: 'center' },
-  notifBadgeText: { fontSize: 9, color: '#fff', fontWeight: '700' },
   ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 4 },
   ratingText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   statsGrid: { flexDirection: 'row', gap: 12 },

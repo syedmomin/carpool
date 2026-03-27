@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, FlatList, Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, FlatList, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RideCard, SectionHeader } from '../../components';
+import { COLORS, GRADIENTS, RideCard, SectionHeader, StatsCard, NotifBadge } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { POPULAR_ROUTES } from '../../data/mockData';
 
@@ -18,19 +15,18 @@ export default function PassengerHomeScreen({ navigation }) {
 
   const recentRides = rides.filter(r => r.status === 'active').slice(0, 3);
 
-  const handleSearch = () => {
-    navigation.navigate('Search', { from: fromCity, to: toCity });
-  };
+  const swapCities = () => { setFromCity(toCity); setToCity(fromCity); };
 
-  const swapCities = () => {
-    setFromCity(toCity);
-    setToCity(fromCity);
-  };
+  const STATS = [
+    { icon: 'car-sport-outline', value: `${rides.length}+`, label: 'Active Rides', colors: GRADIENTS.primary },
+    { icon: 'people-outline', value: '500+', label: 'Drivers', colors: GRADIENTS.secondary },
+    { icon: 'location-outline', value: '20+', label: 'Cities', colors: GRADIENTS.teal },
+  ];
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={['#1a73e8', '#0d47a1']} style={styles.header}>
+      <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
         <View style={styles.bgCircle1} />
         <View style={styles.bgCircle2} />
         <View style={styles.headerTop}>
@@ -40,11 +36,7 @@ export default function PassengerHomeScreen({ navigation }) {
           </View>
           <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notifBtn}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {unreadCount > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{unreadCount}</Text>
-              </View>
-            )}
+            <NotifBadge count={unreadCount} />
           </TouchableOpacity>
         </View>
         <Text style={styles.headerTitle}>Aaj Kahan Jaana Hai?</Text>
@@ -53,29 +45,17 @@ export default function PassengerHomeScreen({ navigation }) {
         <View style={styles.searchCard}>
           <View style={styles.searchField}>
             <View style={[styles.searchDot, { backgroundColor: COLORS.primary }]} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Kahan se (e.g. Karachi)"
-              value={fromCity}
-              onChangeText={setFromCity}
-              placeholderTextColor="#aaa"
-            />
+            <TextInput style={styles.searchInput} placeholder="Kahan se (e.g. Karachi)" value={fromCity} onChangeText={setFromCity} placeholderTextColor="#aaa" />
           </View>
           <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
             <Ionicons name="swap-vertical" size={20} color={COLORS.primary} />
           </TouchableOpacity>
           <View style={[styles.searchField, { borderTopWidth: 1, borderTopColor: COLORS.border }]}>
             <View style={[styles.searchDot, { backgroundColor: COLORS.secondary }]} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Kahan tak (e.g. Lahore)"
-              value={toCity}
-              onChangeText={setToCity}
-              placeholderTextColor="#aaa"
-            />
+            <TextInput style={styles.searchInput} placeholder="Kahan tak (e.g. Lahore)" value={toCity} onChangeText={setToCity} placeholderTextColor="#aaa" />
           </View>
-          <TouchableOpacity onPress={handleSearch} style={styles.searchBtn}>
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.searchBtnGrad}>
+          <TouchableOpacity onPress={() => navigation.navigate('Search', { from: fromCity, to: toCity })} style={styles.searchBtn}>
+            <LinearGradient colors={GRADIENTS.primary} style={styles.searchBtnGrad}>
               <Ionicons name="search" size={18} color="#fff" />
               <Text style={styles.searchBtnText}>Rides Dhundho</Text>
             </LinearGradient>
@@ -88,15 +68,8 @@ export default function PassengerHomeScreen({ navigation }) {
         <SectionHeader title="Popular Routes" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.routeScroll}>
           {POPULAR_ROUTES.map((route, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.routeChip}
-              onPress={() => navigation.navigate('Search', { from: route.from, to: route.to })}
-            >
-              <LinearGradient
-                colors={[`hsl(${i * 40 + 200}, 70%, 95%)`, `hsl(${i * 40 + 200}, 70%, 92%)`]}
-                style={styles.routeChipGrad}
-              >
+            <TouchableOpacity key={i} style={styles.routeChip} onPress={() => navigation.navigate('Search', { from: route.from, to: route.to })}>
+              <LinearGradient colors={[`hsl(${i * 40 + 200}, 70%, 95%)`, `hsl(${i * 40 + 200}, 70%, 92%)`]} style={styles.routeChipGrad}>
                 <Text style={styles.routeChipFrom}>{route.from}</Text>
                 <Ionicons name="arrow-forward" size={12} color={COLORS.gray} style={{ marginHorizontal: 4 }} />
                 <Text style={styles.routeChipTo}>{route.to}</Text>
@@ -108,26 +81,13 @@ export default function PassengerHomeScreen({ navigation }) {
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
-          {[
-            { icon: 'car-sport-outline', value: `${rides.length}+`, label: 'Active Rides' },
-            { icon: 'people-outline', value: '500+', label: 'Drivers' },
-            { icon: 'location-outline', value: '20+', label: 'Cities' },
-          ].map((stat, i) => (
-            <View key={i} style={styles.statCard}>
-              <LinearGradient colors={['#eff6ff', '#dbeafe']} style={styles.statIcon}>
-                <Ionicons name={stat.icon} size={22} color={COLORS.primary} />
-              </LinearGradient>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
+          {STATS.map((stat, i) => (
+            <StatsCard key={i} icon={stat.icon} value={stat.value} label={stat.label} colors={stat.colors} style={styles.statCard} />
           ))}
         </View>
 
         {/* Recent Rides */}
-        <SectionHeader
-          title="Available Rides"
-          onSeeAll={() => navigation.navigate('Search', { from: '', to: '' })}
-        />
+        <SectionHeader title="Available Rides" onSeeAll={() => navigation.navigate('Search', { from: '', to: '' })} />
         {recentRides.map(ride => (
           <RideCard
             key={ride.id}
@@ -160,8 +120,6 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
   userName: { fontSize: 20, fontWeight: '800', color: '#fff' },
   notifBtn: { position: 'relative', padding: 4 },
-  notifBadge: { position: 'absolute', top: 0, right: 0, width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.danger, alignItems: 'center', justifyContent: 'center' },
-  notifBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
   headerTitle: { fontSize: 15, color: 'rgba(255,255,255,0.85)', marginBottom: 16, fontWeight: '500' },
   searchCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
   searchField: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
@@ -178,11 +136,8 @@ const styles = StyleSheet.create({
   routeChipFrom: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
   routeChipTo: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
   routeChipDist: { fontSize: 10, color: COLORS.gray, marginTop: 4, textAlign: 'center' },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
-  statCard: { flex: 1, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, padding: 16, marginHorizontal: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  statIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  statLabel: { fontSize: 11, color: COLORS.gray, marginTop: 2, textAlign: 'center' },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 8 },
+  statCard: { flex: 1 },
   safetyBanner: { borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 20 },
   safetyText: { marginLeft: 16, flex: 1 },
   safetyTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Image, Alert, Linking,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, AmenityBadge, StarRating, PrimaryButton, GhostButton } from '../../components';
+import {
+  COLORS, GRADIENTS,
+  AmenityBadge, StarRating, PrimaryButton,
+  Avatar, VerifiedBadge,
+} from '../../components';
 import { useApp } from '../../context/AppContext';
 
 export default function RideDetailScreen({ navigation, route }) {
@@ -47,11 +48,11 @@ export default function RideDetailScreen({ navigation, route }) {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <LinearGradient colors={['#1a73e8', '#0d47a1']} style={styles.header}>
+        <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ride Detail</Text>
+          <Text style={styles.headerLabel}>Ride Detail</Text>
 
           <View style={styles.routeCard}>
             <View style={styles.routeRow}>
@@ -77,36 +78,34 @@ export default function RideDetailScreen({ navigation, route }) {
           </View>
         </LinearGradient>
 
-        {/* Price & Seats */}
-        <View style={styles.priceSeatsRow}>
-          <View style={styles.priceBox}>
-            <Text style={styles.priceLabel}>Per Seat</Text>
-            <Text style={styles.priceValue}>Rs {ride.pricePerSeat?.toLocaleString()}</Text>
+        {/* Price / Seats / Vehicle Row */}
+        <View style={styles.infoRow}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Per Seat</Text>
+            <Text style={styles.infoValue}>Rs {ride.pricePerSeat?.toLocaleString()}</Text>
           </View>
           <View style={styles.dividerV} />
-          <View style={styles.seatsBox}>
-            <Text style={styles.priceLabel}>Available Seats</Text>
-            <Text style={[styles.priceValue, { color: available > 0 ? COLORS.secondary : COLORS.danger }]}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Available</Text>
+            <Text style={[styles.infoValue, { color: available > 0 ? COLORS.secondary : COLORS.danger }]}>
               {available} / {ride.totalSeats}
             </Text>
           </View>
           <View style={styles.dividerV} />
-          <View style={styles.vehicleBox}>
-            <Text style={styles.priceLabel}>Vehicle</Text>
-            <Text style={styles.priceValue} numberOfLines={1}>{vehicle?.type || 'Car'}</Text>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoLabel}>Vehicle</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>{vehicle?.type || 'Car'}</Text>
           </View>
         </View>
 
-        {/* Driver Info */}
+        {/* Driver */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Driver</Text>
           <View style={styles.driverCard}>
-            <View style={styles.driverAvatar}>
-              <Text style={styles.driverInitial}>{driver?.name?.[0]}</Text>
+            <View style={styles.driverAvatarWrap}>
+              <Avatar name={driver?.name} size={52} color={COLORS.primary} />
               {driver?.verified && (
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark" size={10} color="#fff" />
-                </View>
+                <VerifiedBadge style={styles.verifiedBadge} />
               )}
             </View>
             <View style={styles.driverInfo}>
@@ -118,7 +117,7 @@ export default function RideDetailScreen({ navigation, route }) {
               style={styles.callBtn}
               onPress={() => Alert.alert('Call', `${driver?.name} ko call karna chahte hain?`)}
             >
-              <LinearGradient colors={[COLORS.secondary, '#00695c']} style={styles.callBtnGrad}>
+              <LinearGradient colors={GRADIENTS.secondary} style={styles.callBtnGrad}>
                 <Ionicons name="call" size={18} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
@@ -132,7 +131,7 @@ export default function RideDetailScreen({ navigation, route }) {
             {vehicle?.images?.[0] ? (
               <Image source={{ uri: vehicle.images[0] }} style={styles.vehicleImg} resizeMode="cover" />
             ) : (
-              <View style={[styles.vehicleImg, { backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' }]}>
+              <View style={[styles.vehicleImg, styles.vehicleImgPlaceholder]}>
                 <Ionicons name="car-sport-outline" size={48} color={COLORS.gray} />
               </View>
             )}
@@ -152,29 +151,29 @@ export default function RideDetailScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>Route Details</Text>
           <View style={styles.routeDetail}>
             <View style={styles.routeDetailRow}>
-              <View style={styles.routeDetailIcon}>
+              <View style={styles.rdIcon}>
                 <Ionicons name="location" size={16} color={COLORS.primary} />
               </View>
               <View>
-                <Text style={styles.routeDetailLabel}>Pickup Point</Text>
-                <Text style={styles.routeDetailValue}>{ride.pickupPoint}</Text>
+                <Text style={styles.rdLabel}>Pickup Point</Text>
+                <Text style={styles.rdValue}>{ride.pickupPoint}</Text>
               </View>
             </View>
-            <View style={styles.routeDetailDivider} />
+            <View style={styles.rdDivider} />
             <View style={styles.routeDetailRow}>
-              <View style={[styles.routeDetailIcon, { backgroundColor: '#e8f5e9' }]}>
+              <View style={[styles.rdIcon, { backgroundColor: '#e8f5e9' }]}>
                 <Ionicons name="flag" size={16} color={COLORS.secondary} />
               </View>
               <View>
-                <Text style={styles.routeDetailLabel}>Drop Point</Text>
-                <Text style={styles.routeDetailValue}>{ride.dropPoint}</Text>
+                <Text style={styles.rdLabel}>Drop Point</Text>
+                <Text style={styles.rdValue}>{ride.dropPoint}</Text>
               </View>
             </View>
             {ride.description && (
               <>
-                <View style={styles.routeDetailDivider} />
+                <View style={styles.rdDivider} />
                 <View style={styles.routeDetailRow}>
-                  <View style={[styles.routeDetailIcon, { backgroundColor: '#fff8e1' }]}>
+                  <View style={[styles.rdIcon, { backgroundColor: '#fff8e1' }]}>
                     <Ionicons name="information-circle" size={16} color={COLORS.accent} />
                   </View>
                   <Text style={styles.descText}>{ride.description}</Text>
@@ -195,15 +194,13 @@ export default function RideDetailScreen({ navigation, route }) {
         )}
 
         {/* Reviews */}
-        {reviews.length > 0 && (
+        {reviews?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
             {reviews.map(r => (
               <View key={r.id} style={styles.reviewCard}>
                 <View style={styles.reviewTop}>
-                  <View style={styles.reviewAvatar}>
-                    <Text style={styles.reviewInitial}>{r.reviewerName[0]}</Text>
-                  </View>
+                  <Avatar name={r.reviewerName} size={36} color={COLORS.lightGray} />
                   <View style={styles.reviewInfo}>
                     <Text style={styles.reviewerName}>{r.reviewerName}</Text>
                     <StarRating rating={r.rating} size={12} />
@@ -219,30 +216,22 @@ export default function RideDetailScreen({ navigation, route }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Book Button */}
+      {/* Book Bar */}
       {available > 0 && (
         <View style={styles.bookingBar}>
           <View style={styles.seatsSelector}>
             <Text style={styles.seatsSelectorLabel}>Seats:</Text>
-            <TouchableOpacity
-              style={styles.seatBtn}
-              onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}
-            >
+            <TouchableOpacity style={styles.seatBtn} onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}>
               <Ionicons name="remove" size={16} color={COLORS.primary} />
             </TouchableOpacity>
             <Text style={styles.seatCount}>{selectedSeats}</Text>
-            <TouchableOpacity
-              style={styles.seatBtn}
-              onPress={() => setSelectedSeats(Math.min(available, selectedSeats + 1))}
-            >
+            <TouchableOpacity style={styles.seatBtn} onPress={() => setSelectedSeats(Math.min(available, selectedSeats + 1))}>
               <Ionicons name="add" size={16} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={handleBook} style={styles.bookBtn} disabled={booking}>
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.bookBtnGrad}>
-              <Text style={styles.bookBtnText}>
-                Book • Rs {(selectedSeats * ride.pricePerSeat)?.toLocaleString()}
-              </Text>
+            <LinearGradient colors={GRADIENTS.primary} style={styles.bookBtnGrad}>
+              <Text style={styles.bookBtnText}>Book • Rs {(selectedSeats * ride.pricePerSeat)?.toLocaleString()}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -255,7 +244,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   header: { paddingTop: 55, paddingBottom: 24, paddingHorizontal: 20 },
   backBtn: { marginBottom: 16 },
-  headerTitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginBottom: 16 },
+  headerLabel: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginBottom: 16 },
   routeCard: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, padding: 16 },
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   cityLarge: { fontSize: 22, fontWeight: '800', color: '#fff' },
@@ -264,19 +253,16 @@ const styles = StyleSheet.create({
   routeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
   routeArrowLine: { flex: 1, height: 1.5, backgroundColor: 'rgba(255,255,255,0.4)', maxWidth: 30 },
   dateText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
-  priceSeatsRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: -16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
-  priceBox: { flex: 1, padding: 16, alignItems: 'center' },
-  seatsBox: { flex: 1, padding: 16, alignItems: 'center' },
-  vehicleBox: { flex: 1, padding: 16, alignItems: 'center' },
+  infoRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: -16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  infoBox: { flex: 1, padding: 16, alignItems: 'center' },
   dividerV: { width: 1, backgroundColor: COLORS.border, marginVertical: 12 },
-  priceLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 4 },
-  priceValue: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
+  infoLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 4 },
+  infoValue: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
   section: { margin: 16, marginTop: 12 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
   driverCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  driverAvatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginRight: 12, position: 'relative' },
-  driverInitial: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.secondary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+  driverAvatarWrap: { position: 'relative', marginRight: 12 },
+  verifiedBadge: { position: 'absolute', bottom: -4, right: -4 },
   driverInfo: { flex: 1 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   driverTrips: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
@@ -284,6 +270,7 @@ const styles = StyleSheet.create({
   callBtnGrad: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   vehicleCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   vehicleImg: { width: '100%', height: 160 },
+  vehicleImgPlaceholder: { backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
   vehicleDetails: { padding: 16 },
   vehicleName: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
   vehicleModel: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
@@ -291,16 +278,14 @@ const styles = StyleSheet.create({
   plateNum: { fontSize: 13, color: COLORS.textPrimary, fontWeight: '600', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   routeDetail: { backgroundColor: '#fff', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   routeDetailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  routeDetailIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
-  routeDetailDivider: { height: 20, width: 1.5, backgroundColor: COLORS.border, marginLeft: 15, marginVertical: 4 },
-  routeDetailLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 2 },
-  routeDetailValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  rdIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  rdDivider: { height: 20, width: 1.5, backgroundColor: COLORS.border, marginLeft: 15, marginVertical: 4 },
+  rdLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 2 },
+  rdValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   descText: { fontSize: 13, color: COLORS.gray, flex: 1, lineHeight: 20 },
   amenitiesRow: { flexDirection: 'row', flexWrap: 'wrap' },
   reviewCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  reviewTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  reviewInitial: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  reviewTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
   reviewInfo: { flex: 1 },
   reviewerName: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 3 },
   reviewDate: { fontSize: 11, color: COLORS.gray },
