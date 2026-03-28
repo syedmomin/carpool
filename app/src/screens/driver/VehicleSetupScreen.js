@@ -13,12 +13,11 @@ import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from 
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = [
-  { label: 'Car',     value: 'CAR',     icon: 'car-outline',       gradient: GRADIENTS.primary },
-  { label: 'Van',     value: 'VAN',     icon: 'car-sport-outline', gradient: GRADIENTS.teal },
-  { label: 'Hiace',   value: 'HIACE',   icon: 'bus-outline',       gradient: GRADIENTS.secondary },
-  { label: 'Coaster', value: 'COASTER', icon: 'bus-outline',       gradient: GRADIENTS.purple },
-  { label: 'Bus',     value: 'BUS',     icon: 'bus-outline',       gradient: ['#f59e0b', '#b45309'] },
-  { label: 'Pickup',  value: 'PICKUP',  icon: 'car-outline',       gradient: ['#6366f1', '#4338ca'] },
+  { label: 'Car',     value: 'CAR',     icon: 'car-outline'       },
+  { label: 'Van',     value: 'VAN',     icon: 'car-sport-outline' },
+  { label: 'Hiace',   value: 'HIACE',   icon: 'bus-outline'       },
+  { label: 'Coaster', value: 'COASTER', icon: 'bus-outline'       },
+  { label: 'Bus',     value: 'BUS',     icon: 'bus-outline'       },
 ];
 
 // ─── All vehicle features ──────────────────────────────────────────────────────
@@ -180,7 +179,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
               onPress={() => setSelectedType(vt.value)}
               activeOpacity={0.85}
             >
-              <LinearGradient colors={active ? vt.gradient : ['#f8f9fa', '#f0f0f0']} style={styles.typeCardInner}>
+              <LinearGradient colors={active ? GRADIENTS.primary : ['#f8f9fa', '#f0f0f0']} style={styles.typeCardInner}>
                 <View style={[styles.typeIconBox, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : COLORS.lightGray }]}>
                   <Ionicons name={vt.icon} size={26} color={active ? '#fff' : COLORS.gray} />
                 </View>
@@ -301,8 +300,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
     </View>
   );
 
-  const selectedTypeConfig = VEHICLE_TYPES.find(vt => vt.value === selectedType);
-  const headerGradient = selectedTypeConfig?.gradient || GRADIENTS.purple;
+  const headerGradient = GRADIENTS.primary;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -381,14 +379,14 @@ export default function VehicleSetupScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: COLORS.bg },
   progressBar:  { height: 4, backgroundColor: COLORS.border },
-  progressFill: { height: '100%', backgroundColor: COLORS.purple, borderRadius: 2 },
+  progressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 2 },
   stepDotsRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
   stepDotWrap:  { flexDirection: 'row', alignItems: 'center' },
   stepDot:      { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.lightGray, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
-  stepDotActive:{ backgroundColor: COLORS.purple, borderColor: COLORS.purple },
+  stepDotActive:{ backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   stepDotText:  { fontSize: 12, fontWeight: '700', color: COLORS.gray },
   stepLine:     { width: 60, height: 2, backgroundColor: COLORS.border, marginHorizontal: 4 },
-  stepLineActive:{ backgroundColor: COLORS.purple },
+  stepLineActive:{ backgroundColor: COLORS.primary },
   body:         { padding: 20, paddingBottom: 40 },
   stepTitle:    { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 },
   stepSub:      { fontSize: 13, color: COLORS.gray, marginBottom: 20, lineHeight: 19 },
@@ -396,7 +394,7 @@ const styles = StyleSheet.create({
   // Type cards
   typeGrid:      { gap: 12 },
   typeCard:      { borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
-  typeCardSelected: { borderColor: COLORS.purple },
+  typeCardSelected: { borderColor: COLORS.primary },
   typeCardInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
   typeIconBox:   { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   typeLabel:     { flex: 1, fontSize: 17, fontWeight: '700' },

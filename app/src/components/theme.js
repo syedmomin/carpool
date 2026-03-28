@@ -1,37 +1,50 @@
-// ─── COLORS ────────────────────────────────────────────────────────────────
+// ─── SafariShare Brand Palette ───────────────────────────────────────────────
+// Rule: passenger UI = primary blue | driver UI = teal
+// Never use purple — was replaced with blue
 export const COLORS = {
-  primary: '#1a73e8',
-  primaryDark: '#0d47a1',
-  secondary: '#34a853',
-  secondaryDark: '#2e7d32',
-  accent: '#fbbc04',
-  danger: '#ea4335',
-  dangerLight: '#ffebee',
-  warning: '#ff9800',
-  warningLight: '#fff3e0',
-  white: '#ffffff',
-  black: '#1a1a2e',
-  gray: '#6b7280',
-  lightGray: '#f3f4f6',
-  border: '#e5e7eb',
-  cardBg: '#ffffff',
-  bg: '#f8f9ff',
-  textPrimary: '#111827',
+  // ── Core brand
+  primary:       '#1a73e8',   // passenger CTA, general links
+  primaryDark:   '#1557b0',
+  primaryLight:  '#e8f0fe',
+
+  // ── Driver accent
+  teal:          '#0097a7',
+  tealDark:      '#006978',
+  tealLight:     '#e0f7fa',
+
+  // ── Status
+  secondary:     '#2e7d32',   // success, verified
+  secondaryDark: '#1b5e20',
+  danger:        '#e53935',
+  dangerLight:   '#ffebee',
+  warning:       '#f59e0b',
+  warningLight:  '#fffbeb',
+  accent:        '#f59e0b',   // alias for warning
+
+  // ── Neutrals
+  white:         '#ffffff',
+  black:         '#0d0d0d',
+  gray:          '#6b7280',
+  lightGray:     '#f3f4f6',
+  border:        '#e5e7eb',
+  cardBg:        '#ffffff',
+  bg:            '#f5f7ff',
+  textPrimary:   '#111827',
   textSecondary: '#6b7280',
-  teal: '#00897b',
-  tealDark: '#00695c',
-  purple: '#7c3aed',
-  purpleDark: '#5b21b6',
+
+  // ── Legacy aliases (kept for backward compat — maps to brand colors)
+  purple:        '#1a73e8',
+  purpleDark:    '#1557b0',
 };
 
 // ─── GRADIENTS ──────────────────────────────────────────────────────────────
 export const GRADIENTS = {
   primary:   [COLORS.primary,   COLORS.primaryDark],
-  secondary: [COLORS.secondary, COLORS.secondaryDark],
   teal:      [COLORS.teal,      COLORS.tealDark],
-  purple:    [COLORS.purple,    COLORS.purpleDark],
-  accent:    ['#fbbc04',        '#f57f17'],
-  warning:   [COLORS.warning,   '#e65100'],
+  secondary: [COLORS.secondary, COLORS.secondaryDark],
+  purple:    [COLORS.primary,   COLORS.primaryDark],  // legacy → blue
+  accent:    ['#f59e0b',        '#d97706'],
+  warning:   ['#f59e0b',        '#d97706'],
 };
 
 // ─── SPACING ────────────────────────────────────────────────────────────────
@@ -51,9 +64,9 @@ export const TYPOGRAPHY = {
   heading2: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary },
   heading3: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
   subtitle: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  body: { fontSize: 14, fontWeight: '400', color: COLORS.textPrimary },
-  caption: { fontSize: 12, fontWeight: '400', color: COLORS.textSecondary },
-  label: { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary },
+  body:     { fontSize: 14, fontWeight: '400', color: COLORS.textPrimary },
+  caption:  { fontSize: 12, fontWeight: '400', color: COLORS.textSecondary },
+  label:    { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary },
 };
 
 // ─── SHADOWS ────────────────────────────────────────────────────────────────

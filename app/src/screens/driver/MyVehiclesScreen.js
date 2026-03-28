@@ -80,11 +80,14 @@ export default function MyVehiclesScreen({ navigation }) {
           <TouchableOpacity style={styles.deleteBtn} onPress={() => showModal({
               type: 'danger',
               title: 'Delete Vehicle?',
-              message: 'This will permanently remove the vehicle. Any active rides may be affected.',
+              message: 'This will permanently remove the vehicle.',
               confirmText: 'Yes, Delete',
               cancelText: 'Cancel',
               icon: 'trash-outline',
-              onConfirm: () => deleteVehicle(item.id),
+              onConfirm: async () => {
+                const { error } = await deleteVehicle(item.id);
+                if (error) showModal({ type: 'error', title: 'Cannot Delete', message: error });
+              },
             })}>
             <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
           </TouchableOpacity>
@@ -96,7 +99,7 @@ export default function MyVehiclesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.purple}
+        colors={GRADIENTS.teal}
         title="My Vehicles"
         subtitle={`${myVehicles.length} vehicle${myVehicles.length !== 1 ? 's' : ''} registered`}
         onBack={() => navigation.goBack()}
@@ -112,7 +115,7 @@ export default function MyVehiclesScreen({ navigation }) {
         }
       />
 
-      <FAB icon="add" onPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })} colors={GRADIENTS.purple} style={styles.fab} />
+      <FAB icon="add" onPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })} colors={GRADIENTS.teal} style={styles.fab} />
     </View>
   );
 }
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
   vehicleName: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
   vehicleType: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   plateBadge: { fontSize: 12, fontWeight: '700', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, color: COLORS.textPrimary },
-  featureRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  featureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   featureChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, gap: 5 },
   featureText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
   actionRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },

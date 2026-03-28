@@ -15,7 +15,7 @@ export default function MyRidesScreen({ navigation }) {
   const { showModal } = useGlobalModal();
   const [activeTab, setActiveTab] = useState(0);
   const allRides = getMyRides();
-  const rides = activeTab === 0 ? allRides.filter(r => r.status === 'active') : allRides;
+  const rides = activeTab === 0 ? allRides.filter(r => r.status === 'ACTIVE') : allRides;
 
   const renderRide = ({ item }) => {
     const vehicle = getVehicleById(item.vehicleId);
@@ -88,7 +88,7 @@ export default function MyRidesScreen({ navigation }) {
         <View style={styles.headerStats}>
           {[
             { val: allRides.length, label: 'Total' },
-            { val: allRides.filter(r => r.status === 'active').length, label: 'Active' },
+            { val: allRides.filter(r => r.status === 'ACTIVE').length, label: 'Active' },
             { val: `Rs ${allRides.reduce((s, r) => s + r.bookedSeats * r.pricePerSeat, 0).toLocaleString()}`, label: 'Earned', accent: true },
           ].map((s, i) => (
             <View key={i} style={styles.headerStat}>

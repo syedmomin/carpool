@@ -46,6 +46,14 @@ export class VehicleService extends BaseService<Vehicle, CreateVehicleDto, Updat
     const vehicle = await this.getById(id);
     if ((vehicle as any).driverId !== driverId) throw AppError.forbidden('Not your vehicle');
 
+    // Block deletion if vehicle has active rides
+    const activeRideCount = await prisma.ride.count({
+      where: { vehicleId: id, status: { in: ['ACTIVE', 'CONFIRMED'] } },
+    });
+    if (activeRideCount > 0) {
+      throw AppError.conflict('Cannot delete vehicle with active rides. Cancel or complete those rides first.');
+    }
+
     // If active vehicle deleted, activate another
     if ((vehicle as any).isActive) {
       const another = await prisma.vehicle.findFirst({

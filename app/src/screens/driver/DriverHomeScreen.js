@@ -9,13 +9,13 @@ export default function DriverHomeScreen({ navigation }) {
   const { currentUser, getMyRides, getVehicleByDriver, unreadCount, getMyEarnings } = useApp();
   const myRides = getMyRides();
   const myVehicle = getVehicleByDriver(currentUser?.id);
-  const activeRides = myRides.filter(r => r.status === 'active');
+  const activeRides = myRides.filter(r => r.status === 'ACTIVE');
   const { total: totalEarned, totalPassengers } = getMyEarnings?.() || { total: 0, totalPassengers: 0 };
 
   const QUICK_ACTIONS = [
     { icon: 'add-circle',  label: 'Post Ride',    gradient: GRADIENTS.primary,   screen: 'PostRide',   desc: 'Share your route' },
     { icon: 'car-sport',   label: 'My Rides',     gradient: GRADIENTS.teal,      screen: 'MyRides',    desc: 'Manage bookings'  },
-    { icon: 'car',         label: 'My Vehicles',  gradient: GRADIENTS.purple,    screen: 'MyVehicles', desc: 'Vehicle details'  },
+    { icon: 'car',         label: 'My Vehicles',  gradient: GRADIENTS.primary,   screen: 'MyVehicles', desc: 'Vehicle details'  },
     { icon: 'wallet',      label: 'Earnings',     gradient: GRADIENTS.secondary, screen: 'Earnings',   desc: 'View income'      },
   ];
 

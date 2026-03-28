@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, GRADIENTS } from '../components';
 import { useApp } from '../context/AppContext';
 
 // Auth
@@ -46,14 +47,93 @@ const Tab = createBottomTabNavigator();
 
 const SPLASH_SEEN_KEY = '@safarishare_splash_seen';
 
-const TAB_BAR_STYLE = {
-  backgroundColor: '#fff',
-  borderTopWidth: 1,
-  borderTopColor: COLORS.border,
-  paddingBottom: 8,
-  paddingTop: 6,
-  height: 62,
-};
+// ─── Custom Tab Bar ───────────────────────────────────────────────────────────
+function CustomTabBar({ state, descriptors, navigation, tintColor }) {
+  return (
+    <View style={tabStyles.wrapper}>
+      <View style={tabStyles.container}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const focused = state.index === index;
+          const label = options.tabBarLabel || route.name;
+          const iconName = options._iconName;
+          const iconFocused = options._iconFocused;
+          const color = tintColor;
+
+          return (
+            <View key={route.key} style={tabStyles.tab}>
+              <View
+                style={[tabStyles.iconWrap, focused && { backgroundColor: color + '18' }]}
+                onStartShouldSetResponder={() => {
+                  navigation.navigate(route.name);
+                  return true;
+                }}
+              >
+                {focused && (
+                  <View style={[tabStyles.activePill, { backgroundColor: color }]} />
+                )}
+                <Ionicons
+                  name={focused ? iconFocused : iconName}
+                  size={22}
+                  color={focused ? color : COLORS.gray}
+                />
+                <Text style={[tabStyles.label, { color: focused ? color : COLORS.gray, fontWeight: focused ? '700' : '500' }]}>
+                  {label}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const tabStyles = StyleSheet.create({
+  wrapper: {
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  container: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    paddingHorizontal: 8,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  iconWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    position: 'relative',
+    minWidth: 60,
+  },
+  activePill: {
+    position: 'absolute',
+    top: 0,
+    left: 10,
+    right: 10,
+    height: 3,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+  },
+  label: {
+    fontSize: 10,
+    marginTop: 3,
+    letterSpacing: 0.2,
+  },
+});
 
 // ─── Shared stack screens (added inside both tab navigators) ──────────────────
 function SharedStack(Stack, TabNavigator) {
@@ -79,30 +159,35 @@ function SharedStack(Stack, TabNavigator) {
   );
 }
 
+const PASSENGER_TABS = [
+  { name: 'PassengerHome',    icon: 'home-outline',    iconFocused: 'home',       label: 'Home',     component: PassengerHomeScreen },
+  { name: 'Search',           icon: 'search-outline',  iconFocused: 'search',     label: 'Search',   component: SearchScreen },
+  { name: 'BookingHistory',   icon: 'receipt-outline', iconFocused: 'receipt',    label: 'Bookings', component: BookingHistoryScreen },
+  { name: 'PassengerProfile', icon: 'person-outline',  iconFocused: 'person',     label: 'Profile',  component: ProfileScreen },
+];
+
+const DRIVER_TABS = [
+  { name: 'DriverHome',    icon: 'grid-outline',          iconFocused: 'grid',          label: 'Dashboard', component: DriverHomeScreen },
+  { name: 'PostRide',      icon: 'add-circle-outline',    iconFocused: 'add-circle',    label: 'Post Ride', component: PostRideScreen },
+  { name: 'MyRides',       icon: 'car-sport-outline',     iconFocused: 'car-sport',     label: 'My Rides',  component: MyRidesScreen },
+  { name: 'MyVehicles',    icon: 'car-outline',           iconFocused: 'car',           label: 'Vehicles',  component: MyVehiclesScreen },
+  { name: 'DriverProfile', icon: 'person-outline',        iconFocused: 'person',        label: 'Profile',   component: ProfileScreen },
+];
+
 function PassengerTabNav() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.gray,
-        tabBarStyle: TAB_BAR_STYLE,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ focused, color }) => {
-          const icons = {
-            PassengerHome:  focused ? 'home'    : 'home-outline',
-            Search:         focused ? 'search'  : 'search-outline',
-            BookingHistory: focused ? 'receipt' : 'receipt-outline',
-            PassengerProfile: focused ? 'person' : 'person-outline',
-          };
-          return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={22} color={color} />;
-        },
-      })}
+      tabBar={(props) => <CustomTabBar {...props} tintColor={COLORS.primary} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="PassengerHome"    component={PassengerHomeScreen}  options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Search"           component={SearchScreen}          options={{ tabBarLabel: 'Search' }} />
-      <Tab.Screen name="BookingHistory"   component={BookingHistoryScreen}  options={{ tabBarLabel: 'Bookings' }} />
-      <Tab.Screen name="PassengerProfile" component={ProfileScreen}         options={{ tabBarLabel: 'Profile' }} />
+      {PASSENGER_TABS.map(t => (
+        <Tab.Screen
+          key={t.name}
+          name={t.name}
+          component={t.component}
+          options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused }}
+        />
+      ))}
     </Tab.Navigator>
   );
 }
@@ -110,27 +195,17 @@ function PassengerTabNav() {
 function DriverTabNav() {
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.teal,
-        tabBarInactiveTintColor: COLORS.gray,
-        tabBarStyle: TAB_BAR_STYLE,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ focused, color }) => {
-          const icons = {
-            DriverHome:    focused ? 'grid'       : 'grid-outline',
-            PostRide:      focused ? 'add-circle' : 'add-circle-outline',
-            MyRides:       focused ? 'car-sport'  : 'car-sport-outline',
-            DriverProfile: focused ? 'person'     : 'person-outline',
-          };
-          return <Ionicons name={icons[route.name] || 'ellipse-outline'} size={22} color={color} />;
-        },
-      })}
+      tabBar={(props) => <CustomTabBar {...props} tintColor={COLORS.teal} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="DriverHome"    component={DriverHomeScreen} options={{ tabBarLabel: 'Dashboard' }} />
-      <Tab.Screen name="PostRide"      component={PostRideScreen}   options={{ tabBarLabel: 'Post Ride' }} />
-      <Tab.Screen name="MyRides"       component={MyRidesScreen}    options={{ tabBarLabel: 'My Rides' }} />
-      <Tab.Screen name="DriverProfile" component={ProfileScreen}    options={{ tabBarLabel: 'Profile' }} />
+      {DRIVER_TABS.map(t => (
+        <Tab.Screen
+          key={t.name}
+          name={t.name}
+          component={t.component}
+          options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused }}
+        />
+      ))}
     </Tab.Navigator>
   );
 }
@@ -163,7 +238,6 @@ function DriverApp() {
   return (
     <DriverStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <DriverStack.Screen name="Tabs"           component={DriverTabNav}          options={{ animation: 'none' }} />
-      <DriverStack.Screen name="MyVehicles"     component={MyVehiclesScreen} />
       <DriverStack.Screen name="VehicleSetup"   component={VehicleSetupScreen} />
       <DriverStack.Screen name="Earnings"       component={EarningsScreen} />
       <DriverStack.Screen name="Notifications"  component={NotificationsScreen} />

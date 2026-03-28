@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi } from '../services/api';
+
+const USER_STORAGE_KEY = '@safarishare_user';
+const ROLE_STORAGE_KEY = '@safarishare_role';
 
 const AppContext = createContext();
 
@@ -18,25 +22,62 @@ export const AppProvider = ({ children }) => {
     (async () => {
       try {
         const token = await tokenStorage.get();
-        if (token) {
-          const { data } = await authApi.me();
-          if (data?.data) {
-            const user = data.data;
-            const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
-            setCurrentUser(user);
-            setUserRole(role);
+        if (!token) { setIsLoading(false); return; }
+
+        // 1. Restore user from local storage instantly (no network needed)
+        const [cachedUserRaw, cachedRole] = await Promise.all([
+          AsyncStorage.getItem(USER_STORAGE_KEY),
+          AsyncStorage.getItem(ROLE_STORAGE_KEY),
+        ]);
+
+        if (cachedUserRaw && cachedRole) {
+          const cachedUser = JSON.parse(cachedUserRaw);
+          setCurrentUser(cachedUser);
+          setUserRole(cachedRole);
+          setIsLoading(false); // Show UI immediately from cache
+          // Load app data in background
+          loadUserData(cachedRole).catch(() => {});
+        }
+
+        // 2. Refresh from server in background (updates user data if changed)
+        const { data, error } = await authApi.me();
+        if (data?.data) {
+          const user = data.data;
+          const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
+          setCurrentUser(user);
+          setUserRole(role);
+          // Persist updated user
+          await Promise.all([
+            AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
+            AsyncStorage.setItem(ROLE_STORAGE_KEY, role),
+          ]);
+          // Only reload data if we didn't already (no cache was present)
+          if (!cachedUserRaw) {
             await loadUserData(role);
-          } else {
-            await tokenStorage.remove();
+          }
+        } else if (error && !cachedUserRaw) {
+          // No cache AND server failed — clear token only on explicit 401-style failure
+          // Don't clear on network timeout — keep user logged in
+          if (error.includes('401') || error.includes('Unauthorized') || error.includes('Invalid token')) {
+            await Promise.all([
+              tokenStorage.remove(),
+              AsyncStorage.removeItem(USER_STORAGE_KEY),
+              AsyncStorage.removeItem(ROLE_STORAGE_KEY),
+            ]);
+            setCurrentUser(null);
+            setUserRole(null);
           }
         }
       } catch (_) {
-        await tokenStorage.remove();
+        // Network error — do NOT remove token/user. Keep session alive.
       } finally {
         setIsLoading(false);
       }
     })();
   }, []);
+
+  // Normalize ride: backend uses fromCity/toCity, frontend uses from/to
+  const normalizeRide = (r) => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
   // ─── Load data after login ────────────────────────────────────────────────
   const loadUserData = useCallback(async (role) => {
@@ -48,7 +89,7 @@ export const AppProvider = ({ children }) => {
     ];
     const [ridesRes, notifRes, alertsRes] = await Promise.allSettled(requests);
 
-    if (ridesRes.value?.data?.data)      setRides(ridesRes.value.data.data);
+    if (ridesRes.value?.data?.data)      setRides(ridesRes.value.data.data.map(normalizeRide));
     if (notifRes.value?.data?.data)      setNotifications(notifRes.value.data.data);
     if (!isDriver && alertsRes?.value?.data?.data) setScheduleAlerts(alertsRes.value.data.data);
 
@@ -66,8 +107,12 @@ export const AppProvider = ({ children }) => {
     const { data, error } = await authApi.login(phone, password);
     if (error) return { error };
     const { accessToken, user } = data.data;
-    await tokenStorage.set(accessToken);
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
+    await Promise.all([
+      tokenStorage.set(accessToken),
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
+      AsyncStorage.setItem(ROLE_STORAGE_KEY, role),
+    ]);
     setCurrentUser(user);
     setUserRole(role);
     await loadUserData(role);
@@ -75,7 +120,11 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await tokenStorage.remove();
+    await Promise.all([
+      tokenStorage.remove(),
+      AsyncStorage.removeItem(USER_STORAGE_KEY),
+      AsyncStorage.removeItem(ROLE_STORAGE_KEY),
+    ]);
     setCurrentUser(null);
     setUserRole(null);
     setRides([]);
@@ -89,8 +138,12 @@ export const AppProvider = ({ children }) => {
     const { data, error } = await authApi.register(userData);
     if (error) return { error };
     const { accessToken, user } = data.data;
-    await tokenStorage.set(accessToken);
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
+    await Promise.all([
+      tokenStorage.set(accessToken),
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
+      AsyncStorage.setItem(ROLE_STORAGE_KEY, role),
+    ]);
     setCurrentUser(user);
     setUserRole(role);
     await loadUserData(role);
@@ -98,9 +151,16 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateProfile = async (updates) => {
-    setCurrentUser(prev => ({ ...prev, ...updates }));
+    setCurrentUser(prev => {
+      const updated = { ...prev, ...updates };
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
     const { data, error } = await profileApi.update(updates);
-    if (data?.data) setCurrentUser(data.data);
+    if (data?.data) {
+      setCurrentUser(data.data);
+      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.data)).catch(() => {});
+    }
     return { error };
   };
 
@@ -108,12 +168,17 @@ export const AppProvider = ({ children }) => {
   const postRide = async (rideData) => {
     const payload = {
       ...rideData,
+      // Backend uses fromCity/toCity, frontend form uses from/to
+      fromCity:     rideData.fromCity || rideData.from,
+      toCity:       rideData.toCity   || rideData.to,
       pricePerSeat: parseInt(rideData.pricePerSeat) || rideData.pricePerSeat,
       totalSeats:   parseInt(rideData.totalSeats)   || rideData.totalSeats,
     };
+    delete payload.from;
+    delete payload.to;
     const { data, error } = await ridesApi.post(payload);
     if (error) return { error };
-    const newRide = data.data;
+    const newRide = normalizeRide(data.data);
     setRides(prev => [newRide, ...prev]);
     return { data: newRide };
   };
@@ -121,12 +186,12 @@ export const AppProvider = ({ children }) => {
   const searchRides = async (from, to, date) => {
     const { data, error } = await ridesApi.search(from, to, date);
     if (error) return { error, data: [] };
-    return { data: data.data || [] };
+    return { data: (data.data || []).map(normalizeRide) };
   };
 
   const refreshRides = async () => {
     const res = userRole === 'driver' ? await ridesApi.myRides() : await ridesApi.getAll();
-    if (res.data?.data) setRides(res.data.data);
+    if (res.data?.data) setRides(res.data.data.map(normalizeRide));
   };
 
   // ─── Bookings ─────────────────────────────────────────────────────────────
@@ -162,6 +227,9 @@ export const AppProvider = ({ children }) => {
     if (error) return { error };
     const newVehicle = data.data;
     setVehicles(prev => [...prev, newVehicle]);
+    // Refresh from server to ensure driverId and isActive fields are correct
+    const vRes = await vehiclesApi.myVehicles();
+    if (vRes.data?.data) setVehicles(vRes.data.data);
     return { data: newVehicle };
   };
 

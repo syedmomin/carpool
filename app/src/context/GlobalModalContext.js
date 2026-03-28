@@ -113,7 +113,10 @@ export function GlobalModalProvider({ children }) {
 
         <View style={styles.centeredView} pointerEvents="box-none">
           <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
-            <LinearGradient colors={cfg.gradient} style={styles.topBar} />
+            {/* Top accent bar — rendered inside a wrapper that enforces top radius */}
+            <View style={styles.topBarWrap}>
+              <LinearGradient colors={cfg.gradient} style={styles.topBar} />
+            </View>
 
             <Animated.View style={[styles.iconCircle, { backgroundColor: cfg.iconBg, transform: [{ translateY: iconBounce }] }]}>
               <View style={[styles.iconInner, { backgroundColor: cfg.iconBg }]}>
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     backgroundColor: '#fff',
-    borderRadius: 28,
+    borderRadius: 24,
     paddingHorizontal: 24,
     paddingBottom: 28,
     paddingTop: 0,
@@ -170,11 +173,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 24,
     elevation: 16,
+  },
+  topBarWrap: {
+    width: '100%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: 'hidden',
   },
   topBar: {
     width: '100%',
-    height: 8,
+    height: 6,
   },
   iconCircle: {
     width: 80,
