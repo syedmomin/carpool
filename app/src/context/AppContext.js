@@ -17,6 +17,17 @@ export const AppProvider = ({ children }) => {
   const [drivers, setDrivers] = useState(MOCK_DRIVERS);
   const [vehicles, setVehicles] = useState(MOCK_VEHICLES);
   const [reviews] = useState(MOCK_REVIEWS);
+  const [scheduleAlerts, setScheduleAlerts] = useState([]);
+
+  const addScheduleAlert = ({ date, from, to }) => {
+    const newAlert = { id: `sa${Date.now()}`, date, from, to, passengerId: currentUser?.id };
+    setScheduleAlerts(prev => [newAlert, ...prev]);
+  };
+
+  const removeScheduleAlert = (id) => {
+    setScheduleAlerts(prev => prev.filter(a => a.id !== id));
+  };
+
   const [notifications, setNotifications] = useState([
     { id: 'n1', title: 'Booking Confirmed!', message: 'Your Karachi → Hyderabad seat has been confirmed.', time: '2 mins ago', read: false, type: 'booking' },
     { id: 'n2', title: 'New Passenger Request', message: 'Sara Khan has booked 2 seats on your ride.', time: '1 hour ago', read: false, type: 'request' },
@@ -45,6 +56,20 @@ export const AppProvider = ({ children }) => {
       type: 'new_ride',
       rideId: newRide.id,
     });
+    // Check matching schedule alerts → send priority notification
+    const matchingAlerts = scheduleAlerts.filter(a =>
+      a.from?.toLowerCase() === rideData.from?.toLowerCase() &&
+      a.to?.toLowerCase()   === rideData.to?.toLowerCase()   &&
+      a.date                === rideData.date
+    );
+    if (matchingAlerts.length > 0) {
+      addNotification({
+        title: 'Your Scheduled Ride is Available!',
+        message: `A driver posted ${rideData.from} → ${rideData.to} on ${rideData.date} — exactly what you scheduled!`,
+        type: 'new_ride',
+        rideId: newRide.id,
+      });
+    }
     syncToApi(() => ridesApi.post({
       ...rideData,
       pricePerSeat: parseInt(rideData.pricePerSeat) || rideData.pricePerSeat,
@@ -154,6 +179,7 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider value={{
       currentUser, userRole, rides, bookings, drivers, vehicles, reviews, notifications,
       login, logout, updateProfile,
+      scheduleAlerts, addScheduleAlert, removeScheduleAlert,
       postRide, bookRide, cancelBooking, searchRides,
       getRideById, getDriverById, getVehicleById, getVehicleByDriver,
       getVehiclesByDriver, setActiveVehicle, registerVehicle, updateVehicle, deleteVehicle,

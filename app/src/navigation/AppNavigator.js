@@ -17,6 +17,7 @@ import SearchScreen from '../screens/passenger/SearchScreen';
 import RideDetailScreen from '../screens/passenger/RideDetailScreen';
 import BookingConfirmScreen from '../screens/passenger/BookingConfirmScreen';
 import BookingHistoryScreen from '../screens/passenger/BookingHistoryScreen';
+import ScheduleScreen from '../screens/passenger/ScheduleScreen';
 
 // Driver
 import DriverHomeScreen from '../screens/driver/DriverHomeScreen';
@@ -123,6 +124,7 @@ export default function AppNavigator() {
         <Stack.Screen name="RideDetail" component={RideDetailScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Schedule" component={ScheduleScreen} options={{ animation: 'slide_from_right' }} />
 
         {/* Driver */}
         <Stack.Screen name="MyVehicles" component={MyVehiclesScreen} options={{ animation: 'slide_from_right' }} />

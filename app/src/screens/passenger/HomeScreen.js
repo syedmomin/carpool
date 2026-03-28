@@ -131,7 +131,7 @@ export default function PassengerHomeScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.datePill, !!selectedDate && styles.datePillActive]}
-            onPress={() => setScheduleModal(true)}
+            onPress={() => navigation.navigate('Schedule')}
           >
             <Ionicons name="calendar-outline" size={13} color={selectedDate ? '#fff' : COLORS.gray} />
             <Text style={[styles.datePillText, !!selectedDate && styles.datePillActiveText]}>
