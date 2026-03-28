@@ -58,13 +58,10 @@ export const bookingsApi = {
 
 // ─── Profile ─────────────────────────────────────────────────────────────────
 export const profileApi = {
-  get:            ()          => request('GET',  '/profile'),
-  update:         (updates)   => request('PUT',  '/profile',          updates),
-  changePassword: (current, next) => request('POST', '/profile/password', { currentPassword: current, newPassword: next }),
-  uploadAvatar:   (formData)  => {
-    // multipart/form-data upload — handled separately
-    return request('POST', '/profile/avatar', formData);
-  },
+  get:            ()              => request('GET',  '/users/me'),
+  update:         (updates)       => request('PUT',  '/users/me',              updates),
+  changePassword: (current, next) => request('POST', '/auth/change-password',  { currentPassword: current, newPassword: next }),
+  updateFcmToken: (fcmToken)      => request('PUT',  '/users/me/fcm-token',    { fcmToken }),
 };
 
 // ─── Vehicles ────────────────────────────────────────────────────────────────

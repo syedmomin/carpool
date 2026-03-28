@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum RideStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum VehicleType {
+  CAR
+  VAN
+  HIACE
+  COASTER
+  BUS
+}
+
+enum NotificationType {
+  BOOKING
+  RIDE
+  REMINDER
+  NEW_RIDE
+  SYSTEM
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  phone        String    @unique
+  password     String
+  role         UserRole  @default(PASSENGER)
+  avatar       String?
+  city         String?
+  isVerified   Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  fcmToken     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdBy    String?
+  updatedBy    String?
+
+  // Relations
+  ridesAsDriver    Ride[]         @relation("DriverRides")
+  bookings         Booking[]
+  notifications    Notification[]
+  reviews          Review[]       @relation("ReviewedBy")
+  reviewsReceived  Review[]       @relation("ReviewsForDriver")
+  vehicles         Vehicle[]
+  scheduleAlerts   ScheduleAlert[]
+  cnicVerification CnicVerification?
+
+  @@map("users")
+}
+
+// ─── Vehicle ──────────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id          String      @id @default(cuid())
+  driverId    String
+  type        VehicleType
+  brand       String
+  model       String?
+  color       String?
+  plateNumber String      @unique
+  totalSeats  Int
+  ac          Boolean     @default(false)
+  wifi        Boolean     @default(false)
+  images      String[]
+  isActive    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  driver      User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  rides       Ride[]
+
+  @@map("vehicles")
+}
+
+// ─── Ride ─────────────────────────────────────────────────────────────────────
+
+model Ride {
+  id            String     @id @default(cuid())
+  driverId      String
+  vehicleId     String
+  fromCity      String
+  toCity        String
+  date          String
+  departureTime String
+  arrivalTime   String?
+  pricePerSeat  Int
+  totalSeats    Int
+  bookedSeats   Int        @default(0)
+  pickupPoint   String?
+  dropPoint     String?
+  description   String?
+  amenities     String[]
+  status        RideStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  createdBy     String?
+  updatedBy     String?
+
+  driver        User       @relation("DriverRides", fields: [driverId], references: [id])
+  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
+  bookings      Booking[]
+
+  @@index([fromCity, toCity, date, status])
+  @@map("rides")
+}
+
+// ─── Booking ──────────────────────────────────────────────────────────────────
+
+model Booking {
+  id          String        @id @default(cuid())
+  rideId      String
+  passengerId String
+  seats       Int
+  totalAmount Int
+  status      BookingStatus @default(CONFIRMED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  ride        Ride          @relation(fields: [rideId], references: [id])
+  passenger   User          @relation(fields: [passengerId], references: [id])
+
+  @@map("bookings")
+}
+
+// ─── Review ───────────────────────────────────────────────────────────────────
+
+model Review {
+  id         String   @id @default(cuid())
+  driverId   String
+  reviewerId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String?
+  updatedBy  String?
+
+  driver     User     @relation("ReviewsForDriver", fields: [driverId],   references: [id])
+  reviewer   User     @relation("ReviewedBy",       fields: [reviewerId], references: [id])
+
+  @@map("reviews")
+}
+
+// ─── Notification ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  rideId    String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  createdBy String?
+  updatedBy String?
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ─── Schedule Alert ───────────────────────────────────────────────────────────
+
+model ScheduleAlert {
+  id          String   @id @default(cuid())
+  passengerId String
+  fromCity    String
+  toCity      String
+  date        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+
+  passenger   User     @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@map("schedule_alerts")
+}
+
+// ─── CNIC Verification ────────────────────────────────────────────────────────
+
+model CnicVerification {
+  id         String             @id @default(cuid())
+  userId     String             @unique
+  cnicNumber String
+  frontImage String?
+  backImage  String?
+  status     VerificationStatus @default(PENDING)
+  rejectedReason String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  createdBy  String?
+  updatedBy  String?
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cnic_verifications")
+}

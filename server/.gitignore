@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.development
+.env.production
+*.log
+prisma/migrations/
+*firebase-admin*.json
+firebase-service-account.json

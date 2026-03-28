@@ -28,7 +28,9 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-image-picker"
+      "expo-image-picker",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ]
   }
 }

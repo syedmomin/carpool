@@ -1,0 +1,40 @@
+import { Request, Response, NextFunction } from 'express';
+import { BaseController } from './base.controller';
+import { rideService } from '../services/ride.service';
+import { ResponseUtil } from '../utils/response';
+import { AuthRequest, PaginationQuery } from '../types';
+import { Ride } from '@prisma/client';
+
+export class RideController extends BaseController<Ride, any, any> {
+  protected service = rideService;
+
+  search = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { from, to, date } = req.query as any;
+      const rides = await rideService.search(from, to, date);
+      ResponseUtil.success(res, rides, `${rides.length} ride(s) found`);
+    } catch (err) { next(err); }
+  };
+
+  postRide = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const ride = await rideService.postRide(
+        { ...req.body, driverId: req.user!.id },
+        req.user!.id,
+      );
+      ResponseUtil.created(res, ride, 'Ride posted successfully');
+    } catch (err) { next(err); }
+  };
+
+  myRides = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await rideService.getDriverRides(
+        req.user!.id,
+        req.query as unknown as PaginationQuery,
+      );
+      ResponseUtil.paginated(res, result.data, result.meta.total, result.meta.page, result.meta.limit);
+    } catch (err) { next(err); }
+  };
+}
+
+export const rideController = new RideController();
