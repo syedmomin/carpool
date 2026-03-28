@@ -5,111 +5,169 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PrimaryButton, FormInput, OTPInput } from '../../components';
+import { COLORS, GRADIENTS, PrimaryButton, FormInput } from '../../components';
 import { useApp } from '../../context/AppContext';
 
-const STEPS = ['Role', 'Details', 'Verify'];
+// ─── Validators ───────────────────────────────────────────────────────────────
+const isValidPhone    = (v) => /^\d{11,13}$/.test(v.replace(/[\s\-]/g, ''));
+const isValidEmail    = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const isValidPassword = (v) => v.length >= 6;
+
+const STEPS = ['Role', 'Details'];
 
 export default function RegisterScreen({ navigation }) {
-  const { login } = useApp();
-  const [step, setStep] = useState(0);
-  const [role, setRole] = useState('passenger');
-  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', cnic: '' });
-  const [loading, setLoading] = useState(false);
+  const { register } = useApp();
+  const [step, setStep]   = useState(0);
+  const [role, setRole]   = useState('passenger');
+  const [form, setForm]   = useState({ name: '', phone: '', email: '', password: '', city: '' });
+  const [showPass, setShowPass] = useState(false);
+  const [errors, setErrors]     = useState({});
+  const [loading, setLoading]   = useState(false);
 
-  const updateForm = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+  const set = (key, val) => {
+    setForm(p => ({ ...p, [key]: val }));
+    setErrors(p => ({ ...p, [key]: '' }));
+  };
+
+  const validateStep1 = () => true; // just role selection
+
+  const validateStep2 = () => {
+    const e = {};
+    if (!form.name.trim())           e.name     = 'Full name is required';
+    else if (form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
+
+    if (!form.phone.trim())          e.phone    = 'Phone number is required';
+    else if (!isValidPhone(form.phone)) e.phone = 'Phone must be 11–13 digits (numbers only)';
+
+    if (!form.email.trim())          e.email    = 'Email is required';
+    else if (!isValidEmail(form.email)) e.email = 'Enter a valid email address';
+
+    if (!form.password)              e.password = 'Password is required';
+    else if (!isValidPassword(form.password)) e.password = 'Password must be at least 6 characters';
+
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
   const handleNext = () => {
-    if (step === 0) { setStep(1); }
-    else if (step === 1) {
-      if (!form.name || !form.phone || !form.password) {
-        Alert.alert('Error', 'Please fill in all required fields!');
-        return;
-      }
-      setStep(2);
-    } else { handleRegister(); }
+    if (step === 0) { setStep(1); return; }
+    handleRegister();
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    if (!validateStep2()) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      login(
-        { id: `user_${Date.now()}`, name: form.name, phone: form.phone, email: form.email, rating: 0, totalTrips: 0, verified: false },
-        role
-      );
-      navigation.replace(role === 'driver' ? 'DriverTabs' : 'PassengerTabs');
-    }, 1500);
+    const { error, role: userRole } = await register({
+      name:     form.name.trim(),
+      email:    form.email.trim().toLowerCase(),
+      phone:    form.phone.replace(/[\s\-]/g, ''),
+      password: form.password,
+      city:     form.city.trim() || undefined,
+      role:     role === 'driver' ? 'DRIVER' : 'PASSENGER',
+    });
+    setLoading(false);
+    if (error) { Alert.alert('Registration Failed', error); return; }
+    navigation.replace(userRole === 'driver' ? 'DriverTabs' : 'PassengerTabs');
   };
 
-  const renderStep = () => {
-    if (step === 0) return (
-      <View>
-        <Text style={styles.stepTitle}>Choose Your Role</Text>
-        <Text style={styles.stepSub}>What would you like to do on SafariShare?</Text>
-        {[
-          { value: 'passenger', icon: 'person', label: 'Passenger', sub: 'Find and book rides', colors: GRADIENTS.primary },
-          { value: 'driver', icon: 'car-sport', label: 'Driver', sub: 'Post rides and earn money', colors: GRADIENTS.teal },
-        ].map(r => (
-          <TouchableOpacity
-            key={r.value}
-            style={[styles.roleCard, role === r.value && styles.roleCardActive]}
-            onPress={() => setRole(r.value)}
+  // ─── Step 1: Role ─────────────────────────────────────────────────────────
+  const renderStep1 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Choose Your Role</Text>
+      <Text style={styles.stepSub}>What would you like to do on SafariShare?</Text>
+      {[
+        { value: 'passenger', icon: 'person',   label: 'Passenger', sub: 'Find & book rides', colors: GRADIENTS.primary },
+        { value: 'driver',    icon: 'car-sport', label: 'Driver',   sub: 'Post rides & earn', colors: GRADIENTS.teal    },
+      ].map(r => (
+        <TouchableOpacity
+          key={r.value}
+          style={[styles.roleCard, role === r.value && styles.roleCardActive]}
+          onPress={() => setRole(r.value)}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={role === r.value ? r.colors : ['#f8f9fa', '#f8f9fa']}
+            style={styles.roleCardInner}
           >
-            <LinearGradient
-              colors={role === r.value ? r.colors : [COLORS.bg, COLORS.bg]}
-              style={styles.roleCardGrad}
-            >
-              <View style={[styles.roleIconBox, { backgroundColor: role === r.value ? 'rgba(255,255,255,0.2)' : COLORS.lightGray }]}>
-                <Ionicons name={r.icon} size={28} color={role === r.value ? '#fff' : COLORS.gray} />
-              </View>
-              <View style={styles.roleCardText}>
-                <Text style={[styles.roleTitle, { color: role === r.value ? '#fff' : COLORS.textPrimary }]}>{r.label}</Text>
-                <Text style={[styles.roleSub, { color: role === r.value ? 'rgba(255,255,255,0.8)' : COLORS.gray }]}>{r.sub}</Text>
-              </View>
-              {role === r.value && <Ionicons name="checkmark-circle" size={24} color="#fff" />}
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
+            <View style={[styles.roleIcon, { backgroundColor: role === r.value ? 'rgba(255,255,255,0.25)' : COLORS.lightGray }]}>
+              <Ionicons name={r.icon} size={26} color={role === r.value ? '#fff' : COLORS.gray} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.roleLabel, { color: role === r.value ? '#fff' : COLORS.textPrimary }]}>{r.label}</Text>
+              <Text style={[styles.roleSub,   { color: role === r.value ? 'rgba(255,255,255,0.8)' : COLORS.gray }]}>{r.sub}</Text>
+            </View>
+            <View style={[styles.radioOuter, role === r.value && styles.radioOuterActive]}>
+              {role === r.value && <View style={styles.radioInner} />}
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
-    if (step === 1) return (
-      <View>
-        <Text style={styles.stepTitle}>Personal Details</Text>
-        <Text style={styles.stepSub}>Fill in your basic information</Text>
-        <FormInput label="Full Name *" icon="person-outline" placeholder="e.g. Ahmad Raza" value={form.name} onChangeText={v => updateForm('name', v)} />
-        <FormInput label="Phone Number *" icon="call-outline" placeholder="0300-1234567" value={form.phone} onChangeText={v => updateForm('phone', v)} keyboardType="phone-pad" />
-        <FormInput label="Email (Optional)" icon="mail-outline" placeholder="ahmad@example.com" value={form.email} onChangeText={v => updateForm('email', v)} keyboardType="email-address" />
-        <FormInput label="Password *" icon="lock-closed-outline" placeholder="Min 6 characters" value={form.password} onChangeText={v => updateForm('password', v)} secureTextEntry />
-        {role === 'driver' && (
-          <FormInput label="CNIC Number *" icon="card-outline" placeholder="42101-1234567-1" value={form.cnic} onChangeText={v => updateForm('cnic', v)} keyboardType="numeric" />
-        )}
-      </View>
-    );
+  // ─── Step 2: Details ──────────────────────────────────────────────────────
+  const renderStep2 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Personal Details</Text>
+      <Text style={styles.stepSub}>Fill in your account information</Text>
 
-    return (
-      <View style={styles.verifyContainer}>
-        <LinearGradient colors={GRADIENTS.primary} style={styles.verifyIcon}>
-          <Ionicons name="phone-portrait-outline" size={40} color="#fff" />
-        </LinearGradient>
-        <Text style={styles.stepTitle}>Verify Phone Number</Text>
-        <Text style={styles.verifyText}>A 6-digit OTP has been sent to {form.phone}</Text>
-        <OTPInput />
-        <Text style={styles.resendText}>
-          Didn't receive OTP?{' '}
-          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Resend</Text>
-        </Text>
-        <View style={styles.demoNote}>
-          <Ionicons name="information-circle-outline" size={14} color={COLORS.primary} />
-          <Text style={styles.demoNoteText}>Demo mode: Register directly</Text>
-        </View>
+      <FormInput
+        label="Full Name *"
+        icon="person-outline"
+        placeholder="e.g. Ahmad Raza"
+        value={form.name}
+        onChangeText={v => set('name', v)}
+      />
+      {!!errors.name && <Text style={styles.errText}>{errors.name}</Text>}
+
+      <View style={styles.phoneRow}>
+        <View style={styles.countryCode}><Text style={styles.countryCodeTxt}>🇵🇰 +92</Text></View>
+        <FormInput
+          placeholder="03001234567"
+          value={form.phone}
+          onChangeText={v => set('phone', v.replace(/[^0-9\s\-]/g, ''))}
+          keyboardType="phone-pad"
+          style={styles.phoneInput}
+        />
       </View>
-    );
-  };
+      {!!errors.phone && <Text style={styles.errText}>{errors.phone}</Text>}
+
+      <FormInput
+        label="Email Address *"
+        icon="mail-outline"
+        placeholder="ahmad@example.com"
+        value={form.email}
+        onChangeText={v => set('email', v)}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+      {!!errors.email && <Text style={styles.errText}>{errors.email}</Text>}
+
+      <FormInput
+        label="Password *"
+        icon="lock-closed-outline"
+        placeholder="Min 6 characters"
+        value={form.password}
+        onChangeText={v => set('password', v)}
+        secureTextEntry={!showPass}
+        rightIcon={showPass ? 'eye-off-outline' : 'eye-outline'}
+        onRightIconPress={() => setShowPass(p => !p)}
+      />
+      {!!errors.password && <Text style={styles.errText}>{errors.password}</Text>}
+
+      <FormInput
+        label="City (Optional)"
+        icon="location-outline"
+        placeholder="e.g. Karachi"
+        value={form.city}
+        onChangeText={v => set('city', v)}
+      />
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* Header */}
       <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
         <TouchableOpacity
           onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}
@@ -117,34 +175,27 @@ export default function RegisterScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Account</Text>
-        <Text style={styles.headerSub}>Step {step + 1} of {STEPS.length}</Text>
-        <View style={styles.progressRow}>
-          {STEPS.map((s, i) => (
-            <View key={i} style={styles.progressStep}>
-              <View style={[styles.progressDot, i <= step && styles.progressDotActive]}>
-                {i < step
-                  ? <Ionicons name="checkmark" size={12} color={COLORS.primary} />
-                  : <Text style={[styles.progressNum, i === step && { color: COLORS.primary }]}>{i + 1}</Text>
-                }
-              </View>
-              {i < STEPS.length - 1 && (
-                <View style={[styles.progressLine, i < step && styles.progressLineActive]} />
-              )}
-            </View>
-          ))}
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Create Account</Text>
+          <Text style={styles.headerSub}>Step {step + 1} of {STEPS.length} — {STEPS[step]}</Text>
+        </View>
+        {/* Progress bar */}
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${((step + 1) / STEPS.length) * 100}%` }]} />
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {renderStep()}
+      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {step === 0 ? renderStep1() : renderStep2()}
+
         <PrimaryButton
           title={step === STEPS.length - 1 ? 'Create Account' : 'Continue'}
           onPress={handleNext}
           loading={loading}
-          style={{ marginTop: 32 }}
+          style={styles.btn}
           icon={step === STEPS.length - 1 ? 'checkmark-circle-outline' : 'arrow-forward-outline'}
         />
+
         <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
           <Text style={styles.loginLinkText}>
             Already have an account?{' '}
@@ -157,34 +208,35 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: 55, paddingBottom: 24, paddingHorizontal: 20 },
-  backBtn: { marginBottom: 12 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2, marginBottom: 16 },
-  progressRow: { flexDirection: 'row', alignItems: 'center' },
-  progressStep: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  progressDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  progressDotActive: { backgroundColor: '#fff' },
-  progressNum: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
-  progressLine: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 4 },
-  progressLineActive: { backgroundColor: '#fff' },
-  body: { padding: 24, paddingBottom: 40 },
-  stepTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 8 },
-  stepSub: { fontSize: 14, color: COLORS.gray, marginBottom: 24, lineHeight: 20 },
-  roleCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 16, borderWidth: 2, borderColor: 'transparent' },
+  container:      { flex: 1, backgroundColor: COLORS.bg },
+  header:         { paddingTop: 52, paddingBottom: 20, paddingHorizontal: 20 },
+  backBtn:        { marginBottom: 10 },
+  headerText:     { marginBottom: 14 },
+  headerTitle:    { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerSub:      { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  progressBar:    { height: 4, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' },
+  progressFill:   { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
+  body:           { padding: 20, paddingBottom: 36 },
+  stepContent:    { marginBottom: 4 },
+  stepTitle:      { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginTop: 8, marginBottom: 6 },
+  stepSub:        { fontSize: 13, color: COLORS.gray, marginBottom: 20, lineHeight: 19 },
+  // Role cards
+  roleCard:       { borderRadius: 14, overflow: 'hidden', marginBottom: 12, borderWidth: 2, borderColor: 'transparent' },
   roleCardActive: { borderColor: COLORS.primary },
-  roleCardGrad: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 14 },
-  roleIconBox: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  roleCardText: { flex: 1 },
-  roleTitle: { fontSize: 18, fontWeight: '700' },
-  roleSub: { fontSize: 13, marginTop: 2 },
-  verifyContainer: { alignItems: 'center', paddingTop: 20 },
-  verifyIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  verifyText: { fontSize: 14, color: COLORS.gray, textAlign: 'center', marginBottom: 32, lineHeight: 20 },
-  resendText: { fontSize: 14, color: COLORS.gray, marginTop: 16 },
-  demoNote: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: 10, padding: 10, marginTop: 20, gap: 6 },
-  demoNoteText: { fontSize: 12, color: COLORS.primary },
-  loginLink: { alignItems: 'center', marginTop: 20 },
-  loginLinkText: { fontSize: 14, color: COLORS.gray },
+  roleCardInner:  { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  roleIcon:       { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  roleLabel:      { fontSize: 17, fontWeight: '700', marginBottom: 2 },
+  roleSub:        { fontSize: 12 },
+  radioOuter:     { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+  radioOuterActive: { borderColor: '#fff' },
+  radioInner:     { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff' },
+  // Form
+  phoneRow:       { flexDirection: 'row', alignItems: 'center', marginBottom: 2, marginTop: 4 },
+  countryCode:    { backgroundColor: COLORS.lightGray, paddingHorizontal: 12, height: 50, justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.border, borderRightWidth: 0, borderRadius: 12, borderTopRightRadius: 0, borderBottomRightRadius: 0 },
+  countryCodeTxt: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  phoneInput:     { flex: 1, marginBottom: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
+  errText:        { fontSize: 12, color: COLORS.danger, marginTop: 2, marginBottom: 8, marginLeft: 4 },
+  btn:            { marginTop: 24 },
+  loginLink:      { alignItems: 'center', marginTop: 16 },
+  loginLinkText:  { fontSize: 14, color: COLORS.gray },
 });

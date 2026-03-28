@@ -4,8 +4,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '../../components';
 import { SplashIllustration } from '../../components/Illustrations';
+import { useApp } from '../../context/AppContext';
 
 export default function SplashScreen({ navigation }) {
+  const { currentUser, userRole, isLoading } = useApp();
   const logoScale  = useRef(new Animated.Value(0)).current;
   const logoOpac   = useRef(new Animated.Value(0)).current;
   const textOpac   = useRef(new Animated.Value(0)).current;
@@ -24,10 +26,19 @@ export default function SplashScreen({ navigation }) {
         Animated.spring(illTransY,  { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
       ]),
     ]).start();
-
-    const timer = setTimeout(() => navigation.replace('Onboarding'), 3000);
-    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return; // wait for session restore
+    const timer = setTimeout(() => {
+      if (currentUser && userRole) {
+        navigation.replace(userRole === 'driver' ? 'DriverTabs' : 'PassengerTabs');
+      } else {
+        navigation.replace('Onboarding');
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [isLoading, currentUser, userRole]);
 
   return (
     <LinearGradient colors={[COLORS.primary, '#0a52c4', '#1a1a6e']} style={styles.container}>

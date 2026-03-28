@@ -32,8 +32,8 @@ export default function ProfileScreen({ navigation }) {
   const myRides = getMyRides?.() || [];
   const headerColors = userRole === 'driver' ? GRADIENTS.teal : GRADIENTS.primary;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigation.replace('Login');
   };
 

@@ -14,7 +14,7 @@ interface RegisterDto {
 }
 
 interface LoginDto {
-  email: string;
+  phone: string;
   password: string;
 }
 
@@ -33,14 +33,21 @@ export class AuthService {
 
     const hashed = await hashPassword(dto.password);
     const user   = await prisma.user.create({
-      data: { ...dto, password: hashed },
+      data: {
+        name:     dto.name,
+        email:    dto.email,
+        phone:    dto.phone,
+        password: hashed,
+        role:     dto.role ?? 'PASSENGER',
+        city:     dto.city,
+      },
     });
 
     return this.buildTokens(user);
   }
 
   async login(dto: LoginDto): Promise<AuthTokens> {
-    const user = await prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await prisma.user.findUnique({ where: { phone: dto.phone } });
     if (!user || !user.isActive) throw AppError.unauthorized('Invalid credentials');
 
     const valid = await comparePassword(dto.password, user.password);

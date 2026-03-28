@@ -22,9 +22,8 @@ export default function NotificationsScreen({ navigation }) {
 
   const handleViewRide = (item) => {
     markNotificationRead(item.id);
-    if (item.rideId) {
-      navigation.navigate('RideDetail', { rideId: item.rideId });
-    }
+    const rideId = item.rideId || item.ride?.id;
+    if (rideId) navigation.navigate('RideDetail', { rideId });
   };
 
   return (
@@ -42,11 +41,13 @@ export default function NotificationsScreen({ navigation }) {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
           const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.default;
-          const isNewRide = item.type === 'new_ride';
+          const isNewRide = item.type === 'new_ride' || item.type === 'BOOKING';
+          const isRead    = item.read ?? false;
+          const timeLabel = item.time ?? (item.createdAt ? new Date(item.createdAt).toLocaleString('en-PK', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '');
 
           return (
             <TouchableOpacity
-              style={[styles.card, !item.read && styles.cardUnread, isNewRide && styles.cardNewRide]}
+              style={[styles.card, !isRead && styles.cardUnread, isNewRide && styles.cardNewRide]}
               onPress={() => handleNotifPress(item)}
               activeOpacity={0.8}
             >
@@ -55,13 +56,13 @@ export default function NotificationsScreen({ navigation }) {
               </View>
               <View style={styles.content}>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.title, !item.read && { fontWeight: '800' }]}>{item.title}</Text>
-                  {!item.read && <View style={styles.unreadDot} />}
+                  <Text style={[styles.title, !isRead && { fontWeight: '800' }]}>{item.title}</Text>
+                  {!isRead && <View style={styles.unreadDot} />}
                 </View>
                 <Text style={styles.message}>{item.message}</Text>
-                <Text style={styles.time}>{item.time}</Text>
+                <Text style={styles.time}>{timeLabel}</Text>
 
-                {isNewRide && item.rideId && (
+                {isNewRide && (item.rideId || item.ride?.id) && (
                   <TouchableOpacity
                     style={styles.interestedBtn}
                     onPress={() => handleViewRide(item)}

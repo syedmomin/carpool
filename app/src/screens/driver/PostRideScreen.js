@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, KeyboardAvoidingView, Platform, Modal, FlatList,
+  TouchableOpacity, KeyboardAvoidingView, Platform, Modal, FlatList, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, FormInput, SearchInput, GradientHeader, Chip } from '../../components';
+import { DatePickerInput, TimePickerInput } from '../../components/DateTimePicker';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { CITIES } from '../../data/mockData';
 
 const AMENITY_OPTIONS = ['AC', 'WiFi', 'Music', 'Water Bottle', 'Snacks', 'Blanket', 'Charging Port'];
 
-const FIELDS = [
-  { key: 'date',          label: 'Travel Date *',         icon: 'calendar-outline', placeholder: '2026-03-30' },
-  { key: 'departureTime', label: 'Departure Time *',       icon: 'time-outline',     placeholder: 'e.g. 08:00 AM' },
-  { key: 'arrivalTime',   label: 'Estimated Arrival',      icon: 'time-outline',     placeholder: 'e.g. 02:00 PM' },
-  { key: 'pricePerSeat',  label: 'Price Per Seat (Rs) *',  icon: 'cash-outline',     placeholder: 'e.g. 1500', type: 'numeric' },
-  { key: 'seats',         label: 'Available Seats *',      icon: 'people-outline',   placeholder: 'e.g. 3', type: 'numeric' },
-  { key: 'pickupPoint',   label: 'Pickup Location',        icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
-  { key: 'dropPoint',     label: 'Drop Location',          icon: 'flag-outline',     placeholder: 'e.g. Larkana Bus Stop' },
+const TEXT_FIELDS = [
+  { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline',     placeholder: 'e.g. 1500', type: 'numeric' },
+  { key: 'seats',        label: 'Available Seats *',     icon: 'people-outline',   placeholder: 'e.g. 3',    type: 'numeric' },
+  { key: 'pickupPoint',  label: 'Pickup Location',       icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
+  { key: 'dropPoint',    label: 'Drop Location',         icon: 'flag-outline',     placeholder: 'e.g. Larkana Bus Stop' },
 ];
 
 export default function PostRideScreen({ navigation }) {
@@ -110,7 +108,23 @@ export default function PostRideScreen({ navigation }) {
 
           {/* Fields */}
           <Text style={styles.sectionTitle}>Details</Text>
-          {FIELDS.map(field => (
+          <DatePickerInput
+            label="Travel Date *"
+            value={form.date}
+            onChange={v => update('date', v)}
+            minDate={new Date()}
+          />
+          <TimePickerInput
+            label="Departure Time *"
+            value={form.departureTime}
+            onChange={v => update('departureTime', v)}
+          />
+          <TimePickerInput
+            label="Estimated Arrival"
+            value={form.arrivalTime}
+            onChange={v => update('arrivalTime', v)}
+          />
+          {TEXT_FIELDS.map(field => (
             <FormInput
               key={field.key}
               label={field.label}

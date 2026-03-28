@@ -1,30 +1,51 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
+import { showImagePickerOptions } from '../../utils/imagePicker';
+import { verificationApi } from '../../services/api';
 
 export default function CnicVerificationScreen({ navigation }) {
   const [cnic, setCnic] = useState('');
   const [frontImg, setFrontImg] = useState(null);
   const [backImg, setBackImg] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [uploadingFront, setUpFront]    = useState(false);
+  const [uploadingBack,  setUpBack]     = useState(false);
 
-  const addFront = () => setFrontImg('https://images.unsplash.com/photo-1633265486064-086b219458ec?w=400');
-  const addBack = () => setBackImg('https://images.unsplash.com/photo-1633265486064-086b219458ec?w=400');
+  const pickFront = () => {
+    showImagePickerOptions(async (result) => {
+      if (result.cancelled) return;
+      if (result.error) { Alert.alert('Error', result.error); return; }
+      setUpFront(true);
+      setFrontImg(result.url);
+      setUpFront(false);
+    });
+  };
 
-  const handleSubmit = () => {
+  const pickBack = () => {
+    showImagePickerOptions(async (result) => {
+      if (result.cancelled) return;
+      if (result.error) { Alert.alert('Error', result.error); return; }
+      setUpBack(true);
+      setBackImg(result.url);
+      setUpBack(false);
+    });
+  };
+
+  const handleSubmit = async () => {
     if (!cnic || !frontImg) {
       Alert.alert('Error', 'Please enter CNIC number and upload the front image.');
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('Submitted!', 'Your CNIC has been submitted for verification. We will review it within 24 hours.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    }, 1500);
+    const { error } = await verificationApi.submit(cnic, frontImg, backImg);
+    setLoading(false);
+    if (error) { Alert.alert('Error', error); return; }
+    Alert.alert('Submitted!', 'Your CNIC has been submitted for verification. We will review it within 24 hours.', [
+      { text: 'OK', onPress: () => navigation.goBack() },
+    ]);
   };
 
   return (
@@ -75,27 +96,17 @@ export default function CnicVerificationScreen({ navigation }) {
 
         {/* Upload Boxes */}
         <Text style={styles.uploadLabel}>CNIC Front *</Text>
-        <TouchableOpacity style={styles.uploadBox} onPress={addFront}>
-          {frontImg ? (
-            <Image source={{ uri: frontImg }} style={styles.uploadImg} resizeMode="cover" />
-          ) : (
-            <>
-              <Ionicons name="cloud-upload-outline" size={32} color={COLORS.primary} />
-              <Text style={styles.uploadText}>Tap to upload front side</Text>
-            </>
-          )}
+        <TouchableOpacity style={styles.uploadBox} onPress={pickFront} disabled={uploadingFront}>
+          {uploadingFront ? <ActivityIndicator color={COLORS.primary} size="large" />
+          : frontImg ? <Image source={{ uri: frontImg }} style={styles.uploadImg} resizeMode="cover" />
+          : (<><Ionicons name="cloud-upload-outline" size={32} color={COLORS.primary} /><Text style={styles.uploadText}>Tap to upload front side</Text></>)}
         </TouchableOpacity>
 
         <Text style={styles.uploadLabel}>CNIC Back</Text>
-        <TouchableOpacity style={styles.uploadBox} onPress={addBack}>
-          {backImg ? (
-            <Image source={{ uri: backImg }} style={styles.uploadImg} resizeMode="cover" />
-          ) : (
-            <>
-              <Ionicons name="cloud-upload-outline" size={32} color={COLORS.primary} />
-              <Text style={styles.uploadText}>Tap to upload back side</Text>
-            </>
-          )}
+        <TouchableOpacity style={styles.uploadBox} onPress={pickBack} disabled={uploadingBack}>
+          {uploadingBack ? <ActivityIndicator color={COLORS.primary} size="large" />
+          : backImg ? <Image source={{ uri: backImg }} style={styles.uploadImg} resizeMode="cover" />
+          : (<><Ionicons name="cloud-upload-outline" size={32} color={COLORS.primary} /><Text style={styles.uploadText}>Tap to upload back side</Text></>)}
         </TouchableOpacity>
 
         <PrimaryButton title="Submit for Verification" onPress={handleSubmit} loading={loading} icon="shield-checkmark-outline" colors={GRADIENTS.secondary} style={{ marginTop: 24 }} />

@@ -68,7 +68,7 @@ export const splashIllustration = `<svg viewBox="0 0 400 320" fill="none" xmlns=
   <rect x="288" y="163" width="7" height="9" fill="#e0f2f1" rx="1"/>
   <rect x="300" y="163" width="7" height="9" fill="#e0f2f1" rx="1"/>
   <rect x="288" y="178" width="7" height="9" fill="#e0f2f1" rx="1"/>
-  <rect x="300" y="178" width="e0f2f1" fill="#e0f2f1" rx="1"/>
+  <rect x="300" y="178" width="7" height="9" fill="#e0f2f1" rx="1"/>
   <rect x="322" y="135" width="58" height="125" fill="#1a73e8" rx="2"/>
   <rect x="330" y="143" width="11" height="13" fill="#e8f0fe" rx="1"/>
   <rect x="347" y="143" width="11" height="13" fill="#e8f0fe" rx="1"/>

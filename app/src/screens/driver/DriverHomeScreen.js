@@ -13,10 +13,10 @@ export default function DriverHomeScreen({ navigation }) {
   const { total: totalEarned, totalPassengers } = getMyEarnings?.() || { total: 0, totalPassengers: 0 };
 
   const QUICK_ACTIONS = [
-    { icon: 'add-circle-outline', label: 'Post Ride',    color: COLORS.primary,  screen: 'PostRide' },
-    { icon: 'car-sport-outline',  label: 'My Rides',     color: COLORS.teal,     screen: 'MyRides' },
-    { icon: 'car-outline',        label: 'My Vehicles',  color: COLORS.purple,   screen: 'MyVehicles' },
-    { icon: 'wallet-outline',     label: 'Earnings',     color: COLORS.secondary,screen: 'Earnings' },
+    { icon: 'add-circle',  label: 'Post Ride',    gradient: GRADIENTS.primary,   screen: 'PostRide',   desc: 'Share your route' },
+    { icon: 'car-sport',   label: 'My Rides',     gradient: GRADIENTS.teal,      screen: 'MyRides',    desc: 'Manage bookings'  },
+    { icon: 'car',         label: 'My Vehicles',  gradient: GRADIENTS.purple,    screen: 'MyVehicles', desc: 'Vehicle details'  },
+    { icon: 'wallet',      label: 'Earnings',     gradient: GRADIENTS.secondary, screen: 'Earnings',   desc: 'View income'      },
   ];
 
   return (
@@ -67,12 +67,16 @@ export default function DriverHomeScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           {QUICK_ACTIONS.map((action, i) => (
-            <TouchableOpacity key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)}>
-              <LinearGradient colors={[action.color + '20', action.color + '10']} style={styles.actionGrad}>
-                <View style={[styles.actionIcon, { backgroundColor: action.color + '20' }]}>
-                  <Ionicons name={action.icon} size={26} color={action.color} />
+            <TouchableOpacity key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)} activeOpacity={0.88}>
+              <LinearGradient colors={action.gradient} style={styles.actionGrad}>
+                <View style={styles.actionIconBox}>
+                  <Ionicons name={action.icon} size={28} color="#fff" />
                 </View>
-                <Text style={[styles.actionLabel, { color: action.color }]}>{action.label}</Text>
+                <Text style={styles.actionLabel}>{action.label}</Text>
+                <Text style={styles.actionDesc}>{action.desc}</Text>
+                <View style={styles.actionArrow}>
+                  <Ionicons name="arrow-forward" size={14} color="rgba(255,255,255,0.8)" />
+                </View>
               </LinearGradient>
             </TouchableOpacity>
           ))}
@@ -166,11 +170,13 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.75)', textAlign: 'center' },
   body: { padding: 20 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
-  actionCard: { width: '47%', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  actionGrad: { padding: 20, alignItems: 'center' },
-  actionIcon: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  actionLabel: { fontSize: 13, fontWeight: '700' },
+  actionsGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
+  actionCard:   { width: '47%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5 },
+  actionGrad:   { padding: 18, minHeight: 130, justifyContent: 'space-between' },
+  actionIconBox:{ width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionLabel:  { fontSize: 14, fontWeight: '800', color: '#fff' },
+  actionDesc:   { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  actionArrow:  { alignSelf: 'flex-end', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   vehicleCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
   vehicleGrad: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   vehicleIconBox: { width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(26,115,232,0.1)', alignItems: 'center', justifyContent: 'center' },

@@ -1,47 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  Alert, Image, KeyboardAvoidingView, Platform, ActivityIndicator,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { showImagePickerOptions } from '../../utils/imagePicker';
 
 export default function EditProfileScreen({ navigation }) {
   const { currentUser, updateProfile } = useApp();
   const [form, setForm] = useState({
-    name: currentUser?.name || '',
+    name:  currentUser?.name  || '',
     phone: currentUser?.phone || '',
     email: currentUser?.email || '',
-    city: currentUser?.city || '',
+    city:  currentUser?.city  || '',
   });
-  const [avatar, setAvatar] = useState(currentUser?.avatar || null);
-  const [loading, setLoading] = useState(false);
+  const [avatar, setAvatar]       = useState(currentUser?.avatar || null);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading]     = useState(false);
 
-  const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+  const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
-  const handleSave = () => {
-    if (!form.name || !form.phone) {
-      Alert.alert('Error', 'Name and phone number are required.');
-      return;
-    }
-    setLoading(true);
-    setTimeout(() => {
-      updateProfile({ ...form, avatar });
-      setLoading(false);
-      Alert.alert('Success', 'Profile updated successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    }, 1000);
+  const handlePickImage = () => {
+    showImagePickerOptions(async (result) => {
+      if (result.cancelled) return;
+      if (result.error) { Alert.alert('Upload Error', result.error); return; }
+      setUploading(true);
+      setAvatar(result.url);
+      setUploading(false);
+    });
   };
 
-  const pickImage = () => {
-    // Cycle through sample avatars for demo
-    const samples = [
-      'https://i.pravatar.cc/150?img=12',
-      'https://i.pravatar.cc/150?img=47',
-      'https://i.pravatar.cc/150?img=68',
-    ];
-    const next = samples[Math.floor(Math.random() * samples.length)];
-    setAvatar(next);
+  const handleSave = async () => {
+    if (!form.name.trim()) { Alert.alert('Error', 'Name is required.'); return; }
+    setLoading(true);
+    const { error } = await updateProfile({ ...form, avatar });
+    setLoading(false);
+    if (error) { Alert.alert('Error', error); return; }
+    Alert.alert('Success', 'Profile updated!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
   };
 
   const initials = form.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
@@ -59,29 +57,46 @@ export default function EditProfileScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            <TouchableOpacity style={styles.avatarWrap} onPress={pickImage}>
-              {avatar ? (
+            <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.85}>
+              {uploading ? (
+                <LinearGradient colors={GRADIENTS.primary} style={styles.avatarPlaceholder}>
+                  <ActivityIndicator color="#fff" size="large" />
+                </LinearGradient>
+              ) : avatar ? (
                 <Image source={{ uri: avatar }} style={styles.avatarImg} />
               ) : (
                 <LinearGradient colors={GRADIENTS.primary} style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 </LinearGradient>
               )}
-              <View style={styles.cameraBtn}>
-                <Ionicons name="camera" size={16} color="#fff" />
-              </View>
+              <LinearGradient colors={GRADIENTS.primary} style={styles.cameraBtn}>
+                <Ionicons name="camera" size={15} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
-            <Text style={styles.avatarHint}>Tap to change photo</Text>
+            <Text style={styles.avatarHint}>Tap to change profile photo</Text>
           </View>
 
-          {/* Form */}
-          <FormInput label="Full Name *" icon="person-outline" placeholder="Your full name" value={form.name} onChangeText={v => update('name', v)} />
-          <FormInput label="Phone Number *" icon="call-outline" placeholder="0300-1234567" value={form.phone} onChangeText={v => update('phone', v)} keyboardType="phone-pad" />
-          <FormInput label="Email Address" icon="mail-outline" placeholder="your@email.com" value={form.email} onChangeText={v => update('email', v)} keyboardType="email-address" />
-          <FormInput label="City" icon="location-outline" placeholder="e.g. Karachi" value={form.city} onChangeText={v => update('city', v)} />
+          {/* Role / verified badges */}
+          <View style={styles.badgeRow}>
+            <View style={styles.badge}>
+              <Ionicons name={currentUser?.role === 'DRIVER' ? 'car-sport' : 'person'} size={14} color={COLORS.primary} />
+              <Text style={styles.badgeText}>{currentUser?.role === 'DRIVER' ? 'Driver' : 'Passenger'}</Text>
+            </View>
+            {currentUser?.isVerified && (
+              <View style={[styles.badge, styles.badgeGreen]}>
+                <Ionicons name="shield-checkmark" size={14} color={COLORS.secondary} />
+                <Text style={[styles.badgeText, { color: COLORS.secondary }]}>Verified</Text>
+              </View>
+            )}
+          </View>
+
+          <FormInput label="Full Name *"    icon="person-outline"    placeholder="Your full name"  value={form.name}  onChangeText={v => set('name', v)} />
+          <FormInput label="Phone Number *" icon="call-outline"       placeholder="03001234567"     value={form.phone} onChangeText={v => set('phone', v)} keyboardType="phone-pad" />
+          <FormInput label="Email Address"  icon="mail-outline"       placeholder="your@email.com" value={form.email} onChangeText={v => set('email', v)} keyboardType="email-address" autoCapitalize="none" />
+          <FormInput label="City"           icon="location-outline"   placeholder="e.g. Karachi"   value={form.city}  onChangeText={v => set('city', v)} />
 
           <PrimaryButton title="Save Changes" onPress={handleSave} loading={loading} icon="checkmark-circle-outline" style={{ marginTop: 24 }} />
-          <View style={{ height: 24 }} />
+          <View style={{ height: 32 }} />
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -89,13 +104,17 @@ export default function EditProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  body: { padding: 24 },
-  avatarSection: { alignItems: 'center', marginBottom: 28 },
-  avatarWrap: { position: 'relative', marginBottom: 8 },
-  avatarImg: { width: 96, height: 96, borderRadius: 32 },
-  avatarPlaceholder: { width: 96, height: 96, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  avatarInitials: { fontSize: 32, fontWeight: '900', color: '#fff' },
-  cameraBtn: { position: 'absolute', bottom: -4, right: -4, width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
-  avatarHint: { fontSize: 12, color: COLORS.gray },
+  container:         { flex: 1, backgroundColor: COLORS.bg },
+  body:              { padding: 24 },
+  avatarSection:     { alignItems: 'center', marginBottom: 16 },
+  avatarWrap:        { position: 'relative', marginBottom: 8 },
+  avatarImg:         { width: 100, height: 100, borderRadius: 32, borderWidth: 3, borderColor: COLORS.primary + '50' },
+  avatarPlaceholder: { width: 100, height: 100, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+  avatarInitials:    { fontSize: 34, fontWeight: '900', color: '#fff' },
+  cameraBtn:         { position: 'absolute', bottom: -4, right: -4, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: '#fff' },
+  avatarHint:        { fontSize: 12, color: COLORS.gray },
+  badgeRow:          { flexDirection: 'row', gap: 10, marginBottom: 20, justifyContent: 'center' },
+  badge:             { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary + '12', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 },
+  badgeGreen:        { backgroundColor: COLORS.secondary + '12' },
+  badgeText:         { fontSize: 13, fontWeight: '700', color: COLORS.primary },
 });

@@ -40,6 +40,9 @@ export { Divider, DividerText } from './Divider';
 // ─── Confirm Modal ───────────────────────────────────────────────────────────
 export { ConfirmModal } from './ConfirmModal';
 
+// ─── Date / Time Pickers ─────────────────────────────────────────────────────
+export { DatePickerInput, TimePickerInput } from './DateTimePicker';
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 export { default as Toast } from './Toast';
 

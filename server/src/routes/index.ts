@@ -9,6 +9,7 @@ import notificationRoutes  from './notification.routes';
 import scheduleAlertRoutes from './schedule-alert.routes';
 import cnicRoutes          from './cnic.routes';
 import earningsRoutes      from './earnings.routes';
+import uploadRoutes        from './upload.routes';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.use('/notifications',   notificationRoutes);
 router.use('/schedule-alerts', scheduleAlertRoutes);
 router.use('/cnic',            cnicRoutes);
 router.use('/earnings',        earningsRoutes);
+router.use('/upload',          uploadRoutes);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', env: process.env.NODE_ENV, timestamp: new Date().toISOString() });

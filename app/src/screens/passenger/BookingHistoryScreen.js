@@ -16,19 +16,23 @@ export default function BookingHistoryScreen({ navigation }) {
   };
 
   const renderBooking = ({ item }) => {
-    const ride = getRideById(item.rideId);
-    const driver = getDriverById(ride?.driverId);
+    // API returns nested ride; fallback to local lookup
+    const ride       = item.ride || getRideById(item.rideId);
     if (!ride) return null;
+    const fromCity   = ride.fromCity || ride.from || '';
+    const toCity     = ride.toCity   || ride.to   || '';
+    const driverName = ride.driver?.name || 'N/A';
+    const isActive   = item.status === 'CONFIRMED' || item.status === 'confirmed';
 
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.routeRow}>
             <View style={styles.cityDot} />
-            <Text style={styles.city}>{ride.from}</Text>
+            <Text style={styles.city}>{fromCity}</Text>
             <Ionicons name="arrow-forward" size={14} color={COLORS.gray} style={{ marginHorizontal: 8 }} />
             <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
-            <Text style={styles.city}>{ride.to}</Text>
+            <Text style={styles.city}>{toCity}</Text>
           </View>
           <StatusBadge status={item.status} />
         </View>
@@ -38,7 +42,7 @@ export default function BookingHistoryScreen({ navigation }) {
             { icon: 'calendar-outline', label: 'Date',   value: ride.date },
             { icon: 'time-outline',     label: 'Time',   value: ride.departureTime },
             { icon: 'people-outline',   label: 'Seats',  value: `${item.seats} seat(s)` },
-            { icon: 'person-outline',   label: 'Driver', value: driver?.name || 'N/A' },
+            { icon: 'person-outline',   label: 'Driver', value: driverName },
           ].map((info, i) => (
             <View key={i} style={styles.infoItem}>
               <Ionicons name={info.icon} size={14} color={COLORS.primary} />
@@ -55,7 +59,7 @@ export default function BookingHistoryScreen({ navigation }) {
             <Text style={styles.amountLabel}>Total Paid</Text>
             <Text style={styles.amountValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
           </View>
-          {item.status === 'confirmed' && (
+          {isActive && (
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setCancelTarget(item.id)}>
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={styles.cancelBtnText}>Cancel</Text>

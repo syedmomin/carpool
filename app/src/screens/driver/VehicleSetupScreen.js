@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, FormInput, GradientHeader, Chip } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { showImagePickerOptions } from '../../utils/imagePicker';
 import { VEHICLE_TYPES } from '../../data/mockData';
 
 export default function VehicleSetupScreen({ navigation, route }) {
@@ -48,13 +49,16 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }, 1000);
   };
 
-  const addSampleImage = () => {
-    const sampleImgs = [
-      'https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=400',
-      'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=400',
-      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-    ];
-    setImages(prev => [...prev, sampleImgs[prev.length % sampleImgs.length]]);
+  const [imgUploading, setImgUploading] = useState(false);
+
+  const addVehicleImage = () => {
+    showImagePickerOptions(async (result) => {
+      if (result.cancelled) return;
+      if (result.error) { Alert.alert('Upload Error', result.error); return; }
+      setImgUploading(true);
+      setImages(prev => [...prev, result.url]);
+      setImgUploading(false);
+    });
   };
 
   const FIELDS = [
@@ -107,9 +111,11 @@ export default function VehicleSetupScreen({ navigation, route }) {
                 </TouchableOpacity>
               </View>
             ))}
-            <TouchableOpacity style={styles.addPhotoBtn} onPress={addSampleImage}>
-              <Ionicons name="camera-outline" size={28} color={COLORS.primary} />
-              <Text style={styles.addPhotoText}>Add Photo</Text>
+            <TouchableOpacity style={styles.addPhotoBtn} onPress={addVehicleImage} disabled={imgUploading}>
+              {imgUploading
+                ? <ActivityIndicator color={COLORS.primary} />
+                : <><Ionicons name="camera-outline" size={28} color={COLORS.primary} /><Text style={styles.addPhotoText}>Add Photo</Text></>
+              }
             </TouchableOpacity>
           </ScrollView>
 

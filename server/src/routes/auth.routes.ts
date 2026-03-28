@@ -7,23 +7,23 @@ const router = Router();
 
 router.post('/register',
   validate([
-    { field: 'name',     required: true, min: 2 },
-    { field: 'email',    required: true, type: 'email' },
-    { field: 'phone',    required: true, min: 10 },
-    { field: 'password', required: true, min: 6 },
+    { field: 'name',     required: true,  min: 2,  max: 60  },
+    { field: 'phone',    required: true,  type: 'phone'      },
+    { field: 'email',    required: true,  type: 'email'      },
+    { field: 'password', required: true,  min: 6,  max: 100 },
   ]),
   authController.register,
 );
 
 router.post('/login',
   validate([
-    { field: 'email',    required: true, type: 'email' },
-    { field: 'password', required: true },
+    { field: 'phone',    required: true, type: 'phone' },
+    { field: 'password', required: true               },
   ]),
   authController.login,
 );
 
-router.get('/me',                  authenticate, authController.me);
-router.post('/change-password',    authenticate, authController.changePassword);
+router.get('/me',               authenticate, authController.me);
+router.post('/change-password', authenticate, authController.changePassword);
 
 export default router;
