@@ -5,9 +5,10 @@ import { COLORS, GRADIENTS, PrimaryButton, FormInput, GradientHeader, Chip } fro
 import { useApp } from '../../context/AppContext';
 import { VEHICLE_TYPES } from '../../data/mockData';
 
-export default function VehicleSetupScreen({ navigation }) {
-  const { registerVehicle, getVehicleByDriver, currentUser } = useApp();
-  const existing = getVehicleByDriver(currentUser?.id);
+export default function VehicleSetupScreen({ navigation, route }) {
+  const { registerVehicle, updateVehicle, getVehicleById, currentUser } = useApp();
+  const vehicleId = route?.params?.vehicleId;
+  const existing = vehicleId ? getVehicleById(vehicleId) : null;
 
   const [form, setForm] = useState({
     type: existing?.type || '',
@@ -17,8 +18,8 @@ export default function VehicleSetupScreen({ navigation }) {
     plateNumber: existing?.plateNumber || '',
     totalSeats: existing?.totalSeats?.toString() || '',
   });
-  const [ac, setAc] = useState(existing?.ac || false);
-  const [wifi, setWifi] = useState(existing?.wifi || false);
+  const [ac, setAc] = useState(!!existing?.ac);
+  const [wifi, setWifi] = useState(!!existing?.wifi);
   const [images, setImages] = useState(existing?.images || []);
   const [loading, setLoading] = useState(false);
 
@@ -31,11 +32,19 @@ export default function VehicleSetupScreen({ navigation }) {
     }
     setLoading(true);
     setTimeout(() => {
-      registerVehicle({ ...form, totalSeats: parseInt(form.totalSeats), ac, wifi, images });
+      const data = { ...form, totalSeats: parseInt(form.totalSeats), ac, wifi, images };
+      if (existing) {
+        updateVehicle(vehicleId, data);
+        Alert.alert('Updated!', 'Vehicle updated successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        registerVehicle(data);
+        Alert.alert('Congratulations!', 'Vehicle registered successfully!', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      }
       setLoading(false);
-      Alert.alert('Congratulations!', 'Vehicle registered successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
     }, 1000);
   };
 
@@ -61,8 +70,8 @@ export default function VehicleSetupScreen({ navigation }) {
       <View style={styles.container}>
         <GradientHeader
           colors={GRADIENTS.purple}
-          title={existing ? 'Update Vehicle' : 'Register Vehicle'}
-          subtitle="Add your vehicle details and photos"
+          title={existing ? 'Edit Vehicle' : 'Register Vehicle'}
+          subtitle={existing ? 'Update your vehicle details' : 'Add your vehicle details and photos'}
           onBack={() => navigation.goBack()}
         />
 
@@ -126,7 +135,7 @@ export default function VehicleSetupScreen({ navigation }) {
           </View>
 
           <PrimaryButton
-            title={existing ? 'Update Vehicle' : 'Register Vehicle'}
+            title={existing ? 'Save Changes' : 'Register Vehicle'}
             onPress={handleSave}
             loading={loading}
             icon="checkmark-circle-outline"

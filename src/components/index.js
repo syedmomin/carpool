@@ -36,3 +36,22 @@ export { ProgressBar } from './ProgressBar';
 
 // ─── Divider ─────────────────────────────────────────────────────────────────
 export { Divider, DividerText } from './Divider';
+
+// ─── Confirm Modal ───────────────────────────────────────────────────────────
+export { ConfirmModal } from './ConfirmModal';
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+export { default as Toast } from './Toast';
+
+// ─── Illustrations ────────────────────────────────────────────────────────────
+export {
+  SplashIllustration,
+  SearchIllustration,
+  ShareRideIllustration,
+  SafetyIllustration,
+  AffordableIllustration,
+  EmptyRidesIllustration,
+  EmptyBookingsIllustration,
+  EmptyNotificationsIllustration,
+  EmptyGeneralIllustration,
+} from './Illustrations';

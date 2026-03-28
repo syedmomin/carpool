@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Modal, FlatList,
+  TouchableOpacity, KeyboardAvoidingView, Platform, Modal, FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, FormInput, SearchInput, GradientHeader, Chip } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useToast } from '../../context/ToastContext';
 import { CITIES } from '../../data/mockData';
 
 const AMENITY_OPTIONS = ['AC', 'WiFi', 'Music', 'Water Bottle', 'Snacks', 'Blanket', 'Charging Port'];
@@ -22,6 +23,7 @@ const FIELDS = [
 
 export default function PostRideScreen({ navigation }) {
   const { postRide, currentUser, getVehicleByDriver } = useApp();
+  const { showToast } = useToast();
   const vehicle = getVehicleByDriver(currentUser?.id);
 
   const [form, setForm] = useState({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', seats: '', pickupPoint: '', dropPoint: '', description: '' });
@@ -56,9 +58,8 @@ export default function PostRideScreen({ navigation }) {
         amenities,
       });
       setLoading(false);
-      Alert.alert('Congratulations!', 'Your ride has been posted successfully!', [
-        { text: 'View My Rides', onPress: () => navigation.navigate('MyRides') },
-      ]);
+      showToast('Ride posted successfully! Passengers have been notified.', 'success');
+      setTimeout(() => navigation.navigate('MyRides'), 800);
     }, 1200);
   };
 

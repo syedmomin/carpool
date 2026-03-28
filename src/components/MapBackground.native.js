@@ -17,7 +17,7 @@ export default function MapBackground({ markers = [], children, style }) {
           latitudeDelta: 0.12,
           longitudeDelta: 0.12,
         }}
-        showsUserLocation
+        showsUserLocation={true}
         showsMyLocationButton={false}
       >
         {markers.map(m => (

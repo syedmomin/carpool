@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Dimensions, Platform,
+  TextInput, Dimensions, Platform, Modal, FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,24 +20,56 @@ const CAR_MARKERS = [
   { id: 5, latitude: 24.9100, longitude: 67.1100 },
 ];
 
+function getUpcomingDates() {
+  const dates = [];
+  const today = new Date();
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-PK', { weekday: 'short', month: 'short', day: 'numeric' });
+    dates.push({ value: `${yyyy}-${mm}-${dd}`, label });
+  }
+  return dates;
+}
+
+const UPCOMING_DATES = getUpcomingDates();
+
 export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, rides, unreadCount } = useApp();
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null); // null = Today
+  const [scheduleModal, setScheduleModal] = useState(false);
 
   const swapCities = () => { setFromCity(toCity); setToCity(fromCity); };
 
+  const handleFindRide = () => {
+    navigation.navigate('Search', {
+      from: fromCity,
+      to: toCity,
+      date: selectedDate || UPCOMING_DATES[0].value,
+    });
+  };
+
+  const handleSelectDate = (date) => {
+    setSelectedDate(date.value);
+    setScheduleModal(false);
+  };
+
+  const displayDate = selectedDate
+    ? UPCOMING_DATES.find(d => d.value === selectedDate)?.label || selectedDate
+    : 'Today';
+
   return (
     <View style={styles.container}>
-      {/* ── Map Background ── */}
+      {/* Map Background */}
       <MapBackground markers={CAR_MARKERS} style={styles.mapSection} />
 
-      {/* ── Top Bar (absolute) ── */}
+      {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.menuBtn}>
-          <Ionicons name="menu" size={22} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-
         <View style={styles.topCenter}>
           <Ionicons name="location" size={13} color={COLORS.primary} />
           <Text style={styles.locationText}>Karachi, Pakistan</Text>
@@ -55,7 +87,7 @@ export default function PassengerHomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* ── Bottom Sheet ── */}
+      {/* Bottom Sheet */}
       <View style={styles.bottomSheet}>
         <View style={styles.sheetHandle} />
         <Text style={styles.sheetTitle}>Find a Ride</Text>
@@ -91,20 +123,25 @@ export default function PassengerHomeScreen({ navigation }) {
 
         {/* Date Toggle */}
         <View style={styles.dateRow}>
-          <TouchableOpacity style={[styles.datePill, styles.datePillActive]}>
-            <Text style={styles.datePillActiveText}>Today</Text>
+          <TouchableOpacity
+            style={[styles.datePill, !selectedDate && styles.datePillActive]}
+            onPress={() => setSelectedDate(null)}
+          >
+            <Text style={[styles.datePillText, !selectedDate && styles.datePillActiveText]}>Today</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.datePill}>
-            <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
-            <Text style={styles.datePillText}>Schedule</Text>
+          <TouchableOpacity
+            style={[styles.datePill, !!selectedDate && styles.datePillActive]}
+            onPress={() => setScheduleModal(true)}
+          >
+            <Ionicons name="calendar-outline" size={13} color={selectedDate ? '#fff' : COLORS.gray} />
+            <Text style={[styles.datePillText, !!selectedDate && styles.datePillActiveText]}>
+              {selectedDate ? displayDate : 'Schedule'}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Find Rides Button */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Search', { from: fromCity, to: toCity })}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity onPress={handleFindRide} activeOpacity={0.85}>
           <LinearGradient colors={GRADIENTS.primary} style={styles.findBtn}>
             <Text style={styles.findBtnText}>Find Ride</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
@@ -126,17 +163,55 @@ export default function PassengerHomeScreen({ navigation }) {
           ))}
         </ScrollView>
       </View>
+
+      {/* Schedule Date Modal */}
+      <Modal visible={scheduleModal} animationType="slide" transparent onRequestClose={() => setScheduleModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Travel Date</Text>
+              <TouchableOpacity onPress={() => setScheduleModal(false)} style={styles.modalClose}>
+                <Ionicons name="close" size={22} color={COLORS.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={UPCOMING_DATES}
+              keyExtractor={item => item.value}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              renderItem={({ item }) => {
+                const isSelected = selectedDate === item.value;
+                return (
+                  <TouchableOpacity
+                    style={[styles.dateItem, isSelected && styles.dateItemActive]}
+                    onPress={() => handleSelectDate(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.dateIcon, isSelected && styles.dateIconActive]}>
+                      <Ionicons name="calendar" size={18} color={isSelected ? '#fff' : COLORS.primary} />
+                    </View>
+                    <View style={styles.dateLabelWrap}>
+                      <Text style={[styles.dateLabel, isSelected && { color: COLORS.primary, fontWeight: '800' }]}>
+                        {item.label}
+                      </Text>
+                      <Text style={styles.dateValue}>{item.value}</Text>
+                    </View>
+                    {isSelected && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#e8f0e8' },
-
-  // Map fills top portion
   mapSection: { flex: 1 },
 
-  // Top Bar
   topBar: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 52 : 40,
@@ -146,13 +221,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     zIndex: 10,
-  },
-  menuBtn: {
-    width: 44, height: 44,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4,
   },
   topCenter: {
     flexDirection: 'row', alignItems: 'center',
@@ -170,7 +238,6 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
-  // Bottom Sheet
   bottomSheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 28,
@@ -187,7 +254,6 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
 
-  // Route Card
   routeCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: COLORS.lightGray,
@@ -204,7 +270,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
   },
 
-  // Date Toggle
   dateRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   datePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -215,14 +280,12 @@ const styles = StyleSheet.create({
   datePillActiveText: { fontSize: 13, fontWeight: '700', color: '#fff' },
   datePillText: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
 
-  // Find Button
   findBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 15, borderRadius: 16, gap: 8, marginBottom: 16,
   },
   findBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
-  // Popular Routes
   popularTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
   routeChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -231,4 +294,19 @@ const styles = StyleSheet.create({
     borderRadius: 20, marginRight: 8,
   },
   routeChipText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
+
+  // Schedule Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },
+  modalHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  modalClose: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
+  dateItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  dateItemActive: { backgroundColor: '#eff6ff' },
+  dateIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  dateIconActive: { backgroundColor: COLORS.primary },
+  dateLabelWrap: { flex: 1 },
+  dateLabel: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  dateValue: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
 });
