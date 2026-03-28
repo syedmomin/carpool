@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, TabPills, StatusBadge, ProgressBar, FAB } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 const TABS = [
   { value: 0, label: 'Active' },
@@ -11,6 +12,7 @@ const TABS = [
 
 export default function MyRidesScreen({ navigation }) {
   const { getMyRides, getVehicleById } = useApp();
+  const { showModal } = useGlobalModal();
   const [activeTab, setActiveTab] = useState(0);
   const allRides = getMyRides();
   const rides = activeTab === 0 ? allRides.filter(r => r.status === 'active') : allRides;
@@ -60,10 +62,13 @@ export default function MyRidesScreen({ navigation }) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { borderColor: COLORS.danger + '50' }]}
-            onPress={() => Alert.alert('Cancel Ride', 'Are you sure you want to cancel this ride?', [
-              { text: 'No', style: 'cancel' },
-              { text: 'Yes', style: 'destructive' },
-            ])}
+            onPress={() => showModal({
+              type: 'danger',
+              title: 'Cancel Ride?',
+              message: 'Are you sure you want to cancel this ride? Passengers will be notified.',
+              confirmText: 'Yes, Cancel',
+              cancelText: 'No',
+            })}
           >
             <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
             <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text>

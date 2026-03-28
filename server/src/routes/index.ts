@@ -7,7 +7,7 @@ import vehicleRoutes       from './vehicle.routes';
 import reviewRoutes        from './review.routes';
 import notificationRoutes  from './notification.routes';
 import scheduleAlertRoutes from './schedule-alert.routes';
-import cnicRoutes          from './cnic.routes';
+import verificationRoutes  from './verification.routes';
 import earningsRoutes      from './earnings.routes';
 import uploadRoutes        from './upload.routes';
 
@@ -21,7 +21,7 @@ router.use('/vehicles',        vehicleRoutes);
 router.use('/reviews',         reviewRoutes);
 router.use('/notifications',   notificationRoutes);
 router.use('/schedule-alerts', scheduleAlertRoutes);
-router.use('/cnic',            cnicRoutes);
+router.use('/verification',    verificationRoutes);
 router.use('/earnings',        earningsRoutes);
 router.use('/upload',          uploadRoutes);
 

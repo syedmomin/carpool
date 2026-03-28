@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -8,10 +8,12 @@ import {
   Avatar, VerifiedBadge,
 } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 export default function RideDetailScreen({ navigation, route }) {
-  const { rideId } = route.params;
+  const { rideId, boardingCity, exitCity } = route.params;
   const { getRideById, getDriverById, getVehicleById, getReviewsForDriver, bookRide } = useApp();
+  const { showModal } = useGlobalModal();
   const [selectedSeats, setSelectedSeats] = useState(1);
   const [booking, setBooking] = useState(false);
 
@@ -20,28 +22,31 @@ export default function RideDetailScreen({ navigation, route }) {
   const vehicle = getVehicleById(ride?.vehicleId);
   const reviews = getReviewsForDriver(ride?.driverId);
   const available = ride ? ride.totalSeats - ride.bookedSeats : 0;
+  const isSegment = !!(boardingCity && exitCity);
 
   if (!ride) return null;
 
   const handleBook = () => {
-    Alert.alert(
-      'Confirm Booking',
-      `${selectedSeats} seat(s) × Rs ${ride.pricePerSeat?.toLocaleString()} = Rs ${(selectedSeats * ride.pricePerSeat)?.toLocaleString()}\n\nWould you like to confirm?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => {
-            setBooking(true);
-            setTimeout(() => {
-              bookRide(rideId, selectedSeats);
-              setBooking(false);
-              navigation.navigate('BookingConfirm', { rideId, seats: selectedSeats });
-            }, 1000);
-          },
-        },
-      ]
-    );
+    const priceLabel = isSegment
+      ? `${boardingCity} → ${exitCity}`
+      : `${ride.from} → ${ride.to}`;
+    showModal({
+      type: 'confirm',
+      title: 'Confirm Booking',
+      message: `${selectedSeats} seat(s) on route ${priceLabel}\n\nWould you like to confirm?`,
+      confirmText: 'Confirm',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setBooking(true);
+        const { error } = await bookRide(rideId, selectedSeats, boardingCity, exitCity);
+        setBooking(false);
+        if (error) {
+          showModal({ type: 'error', title: 'Booking Failed', message: error });
+          return;
+        }
+        navigation.navigate('BookingConfirm', { rideId, seats: selectedSeats });
+      },
+    });
   };
 
   return (
@@ -54,10 +59,16 @@ export default function RideDetailScreen({ navigation, route }) {
           </TouchableOpacity>
           <Text style={styles.headerLabel}>Ride Detail</Text>
 
+          {isSegment && (
+            <View style={styles.segmentBanner}>
+              <Ionicons name="git-branch-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.segmentBannerText}>Booking segment: {boardingCity} → {exitCity}</Text>
+            </View>
+          )}
           <View style={styles.routeCard}>
             <View style={styles.routeRow}>
               <View>
-                <Text style={styles.cityLarge}>{ride.from}</Text>
+                <Text style={styles.cityLarge}>{isSegment ? boardingCity : ride.from}</Text>
                 <Text style={styles.timeSmall}>{ride.departureTime}</Text>
               </View>
               <View style={styles.routeMiddle}>
@@ -68,10 +79,13 @@ export default function RideDetailScreen({ navigation, route }) {
                 <View style={[styles.routeDot, { backgroundColor: '#4caf50' }]} />
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.cityLarge}>{ride.to}</Text>
+                <Text style={styles.cityLarge}>{isSegment ? exitCity : ride.to}</Text>
                 <Text style={styles.timeSmall}>{ride.arrivalTime}</Text>
               </View>
             </View>
+            {isSegment && (
+              <Text style={styles.fullRouteText}>Full route: {ride.from} → {ride.to}</Text>
+            )}
             <Text style={styles.dateText}>
               <Ionicons name="calendar-outline" size={12} /> {ride.date}
             </Text>
@@ -115,7 +129,7 @@ export default function RideDetailScreen({ navigation, route }) {
             </View>
             <TouchableOpacity
               style={styles.callBtn}
-              onPress={() => Alert.alert('Call Driver', `Would you like to call ${driver?.name}?`)}
+              onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Would you like to call ${driver?.name}?`, confirmText: 'Call' })}
             >
               <LinearGradient colors={GRADIENTS.secondary} style={styles.callBtnGrad}>
                 <Ionicons name="call" size={18} color="#fff" />
@@ -245,6 +259,9 @@ const styles = StyleSheet.create({
   header: { paddingTop: 55, paddingBottom: 24, paddingHorizontal: 20 },
   backBtn: { marginBottom: 16 },
   headerLabel: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginBottom: 16 },
+  segmentBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, alignSelf: 'flex-start' },
+  segmentBannerText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  fullRouteText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 4, marginBottom: 4, textAlign: 'center' },
   routeCard: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, padding: 16 },
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   cityLarge: { fontSize: 22, fontWeight: '800', color: '#fff' },

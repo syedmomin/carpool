@@ -11,7 +11,7 @@ export class BookingController extends BaseController<Booking, any, any> {
   book = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { rideId, seats } = req.body;
-      const booking = await bookingService.bookRide(rideId, req.user!.id, Number(seats));
+      const booking = await bookingService.bookRide(rideId, req.user!.id, Number(seats), req.body);
       ResponseUtil.created(res, booking, 'Booking confirmed');
     } catch (err) { next(err); }
   };

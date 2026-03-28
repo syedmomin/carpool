@@ -6,8 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
 enum UserRole {
   PASSENGER
   DRIVER
@@ -32,6 +30,7 @@ enum VehicleType {
   HIACE
   COASTER
   BUS
+  PICKUP
 }
 
 enum NotificationType {
@@ -47,8 +46,6 @@ enum VerificationStatus {
   APPROVED
   REJECTED
 }
-
-// ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
   id           String    @id @default(cuid())
@@ -67,7 +64,6 @@ model User {
   createdBy    String?
   updatedBy    String?
 
-  // Relations
   ridesAsDriver    Ride[]         @relation("DriverRides")
   bookings         Booking[]
   notifications    Notification[]
@@ -75,12 +71,10 @@ model User {
   reviewsReceived  Review[]       @relation("ReviewsForDriver")
   vehicles         Vehicle[]
   scheduleAlerts   ScheduleAlert[]
-  cnicVerification CnicVerification?
+  verification     UserVerification?
 
   @@map("users")
 }
-
-// ─── Vehicle ──────────────────────────────────────────────────────────────────
 
 model Vehicle {
   id          String      @id @default(cuid())
@@ -93,6 +87,12 @@ model Vehicle {
   totalSeats  Int
   ac          Boolean     @default(false)
   wifi        Boolean     @default(false)
+  music       Boolean     @default(false)
+  usbCharging Boolean     @default(false)
+  waterCooler Boolean     @default(false)
+  blanket     Boolean     @default(false)
+  firstAid    Boolean     @default(false)
+  luggageRack Boolean     @default(false)
   images      String[]
   isActive    Boolean     @default(false)
   createdAt   DateTime    @default(now())
@@ -106,14 +106,18 @@ model Vehicle {
   @@map("vehicles")
 }
 
-// ─── Ride ─────────────────────────────────────────────────────────────────────
-
 model Ride {
   id            String     @id @default(cuid())
   driverId      String
   vehicleId     String
   fromCity      String
   toCity        String
+  fromLat       Float?
+  fromLng       Float?
+  toLat         Float?
+  toLng         Float?
+  isMultiStop   Boolean    @default(false)
+  stops         Json?
   date          String
   departureTime String
   arrivalTime   String?
@@ -138,27 +142,27 @@ model Ride {
   @@map("rides")
 }
 
-// ─── Booking ──────────────────────────────────────────────────────────────────
-
 model Booking {
-  id          String        @id @default(cuid())
-  rideId      String
-  passengerId String
-  seats       Int
-  totalAmount Int
-  status      BookingStatus @default(CONFIRMED)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  createdBy   String?
-  updatedBy   String?
+  id           String        @id @default(cuid())
+  rideId       String
+  passengerId  String
+  seats        Int
+  totalAmount  Int
+  boardingCity String?
+  exitCity     String?
+  boardingOrder Int?
+  exitOrder    Int?
+  status       BookingStatus @default(CONFIRMED)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  createdBy    String?
+  updatedBy    String?
 
-  ride        Ride          @relation(fields: [rideId], references: [id])
-  passenger   User          @relation(fields: [passengerId], references: [id])
+  ride         Ride          @relation(fields: [rideId], references: [id])
+  passenger    User          @relation(fields: [passengerId], references: [id])
 
   @@map("bookings")
 }
-
-// ─── Review ───────────────────────────────────────────────────────────────────
 
 model Review {
   id         String   @id @default(cuid())
@@ -176,8 +180,6 @@ model Review {
 
   @@map("reviews")
 }
-
-// ─── Notification ─────────────────────────────────────────────────────────────
 
 model Notification {
   id        String           @id @default(cuid())
@@ -198,8 +200,6 @@ model Notification {
   @@map("notifications")
 }
 
-// ─── Schedule Alert ───────────────────────────────────────────────────────────
-
 model ScheduleAlert {
   id          String   @id @default(cuid())
   passengerId String
@@ -216,22 +216,22 @@ model ScheduleAlert {
   @@map("schedule_alerts")
 }
 
-// ─── CNIC Verification ────────────────────────────────────────────────────────
-
-model CnicVerification {
-  id         String             @id @default(cuid())
-  userId     String             @unique
-  cnicNumber String
-  frontImage String?
-  backImage  String?
-  status     VerificationStatus @default(PENDING)
+model UserVerification {
+  id             String             @id @default(cuid())
+  userId         String             @unique
+  cnicNumber     String?
+  cnicFront      String?
+  cnicBack       String?
+  cnicStatus     VerificationStatus @default(PENDING)
+  licenceImage   String?
+  licenceStatus  VerificationStatus @default(PENDING)
   rejectedReason String?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  createdBy  String?
-  updatedBy  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  createdBy      String?
+  updatedBy      String?
 
-  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("cnic_verifications")
+  @@map("user_verifications")
 }

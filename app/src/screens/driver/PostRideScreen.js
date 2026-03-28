@@ -1,67 +1,208 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, KeyboardAvoidingView, Platform, Modal, FlatList, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  KeyboardAvoidingView, Platform, Modal, FlatList, ActivityIndicator, Switch,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PrimaryButton, FormInput, SearchInput, GradientHeader, Chip } from '../../components';
+import { COLORS, GRADIENTS, PrimaryButton, FormInput, SearchInput, GradientHeader } from '../../components';
 import { DatePickerInput, TimePickerInput } from '../../components/DateTimePicker';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
-import { CITIES } from '../../data/mockData';
-
-const AMENITY_OPTIONS = ['AC', 'WiFi', 'Music', 'Water Bottle', 'Snacks', 'Blanket', 'Charging Port'];
+import { useGlobalModal } from '../../context/GlobalModalContext';
+import { searchPakistanLocations } from '../../utils/locationSearch';
 
 const TEXT_FIELDS = [
   { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline',     placeholder: 'e.g. 1500', type: 'numeric' },
-  { key: 'seats',        label: 'Available Seats *',     icon: 'people-outline',   placeholder: 'e.g. 3',    type: 'numeric' },
   { key: 'pickupPoint',  label: 'Pickup Location',       icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
   { key: 'dropPoint',    label: 'Drop Location',         icon: 'flag-outline',     placeholder: 'e.g. Larkana Bus Stop' },
 ];
 
-export default function PostRideScreen({ navigation }) {
-  const { postRide, currentUser, getVehicleByDriver } = useApp();
-  const { showToast } = useToast();
-  const vehicle = getVehicleByDriver(currentUser?.id);
+// ─── City Search Modal ────────────────────────────────────────────────────────
+function CitySearchModal({ visible, title, onSelect, onClose }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const timerRef = useRef(null);
 
-  const [form, setForm] = useState({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', seats: '', pickupPoint: '', dropPoint: '', description: '' });
-  const [amenities, setAmenities] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [cityModal, setCityModal] = useState(null);
-  const [citySearch, setCitySearch] = useState('');
+  useEffect(() => {
+    if (!visible) { setQuery(''); setResults([]); }
+  }, [visible]);
+
+  const handleSearch = (text) => {
+    setQuery(text);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (text.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    timerRef.current = setTimeout(async () => {
+      const res = await searchPakistanLocations(text);
+      setResults(res);
+      setSearching(false);
+    }, 400);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={ms.container}>
+        <View style={ms.header}>
+          <Text style={ms.title}>{title}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        </View>
+        <View style={ms.searchWrap}>
+          <SearchInput
+            placeholder="Search city or area..."
+            value={query}
+            onChangeText={handleSearch}
+            onClear={() => { setQuery(''); setResults([]); }}
+          />
+          {searching && <ActivityIndicator style={ms.spinner} color={COLORS.primary} />}
+        </View>
+        {results.length > 0 ? (
+          <FlatList
+            data={results}
+            keyExtractor={(_, i) => String(i)}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={ms.item} onPress={() => onSelect(item.name)}>
+                <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={ms.itemName}>{item.name}</Text>
+                  <Text style={ms.itemSub} numberOfLines={1}>{item.displayName}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        ) : (
+          query.length >= 2 && !searching ? (
+            <View style={ms.empty}>
+              <Ionicons name="search-outline" size={40} color={COLORS.border} />
+              <Text style={ms.emptyText}>No results. Try a different name.</Text>
+            </View>
+          ) : (
+            <View style={ms.hint}>
+              <Ionicons name="information-circle-outline" size={18} color={COLORS.gray} />
+              <Text style={ms.hintText}>Type at least 2 characters to search</Text>
+            </View>
+          )
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+export default function PostRideScreen({ navigation }) {
+  const { postRide, currentUser, getVehiclesByDriver } = useApp();
+  const { showToast } = useToast();
+  const { showModal } = useGlobalModal();
+
+  const driverVehicles = getVehiclesByDriver(currentUser?.id) || [];
+  const [selectedVehicle, setSelectedVehicle] = useState(
+    driverVehicles.find(v => v.isActive) || driverVehicles[0] || null
+  );
+
+  useEffect(() => {
+    if (!selectedVehicle && driverVehicles.length > 0) {
+      setSelectedVehicle(driverVehicles.find(v => v.isActive) || driverVehicles[0]);
+    }
+  }, [driverVehicles.length]);
+
+  const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false);
+
+  const [form, setForm] = useState({
+    from: '', to: '', date: '', departureTime: '', arrivalTime: '',
+    pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '',
+  });
+  const [isMultiStop, setIsMultiStop] = useState(false);
+  const [stops, setStops] = useState([]); // [{ city, arrivalTime }]
+  const [loading, setLoading]   = useState(false);
+
+  // City search modal state
+  const [cityModal, setCityModal] = useState(null); // 'from' | 'to' | { type:'stop', idx }
+
+  const vehicleSeats = selectedVehicle?.totalSeats || '—';
+  const vehicleAmenities = [
+    ...(selectedVehicle?.ac          ? ['AC']           : []),
+    ...(selectedVehicle?.wifi        ? ['WiFi']         : []),
+    ...(selectedVehicle?.music       ? ['Music']        : []),
+    ...(selectedVehicle?.usbCharging ? ['USB Charging'] : []),
+  ];
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
-  const toggleAmenity = (a) => setAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
 
-  const handlePost = () => {
-    if (!form.from || !form.to || !form.date || !form.departureTime || !form.pricePerSeat || !form.seats) {
-      Alert.alert('Error', 'Please fill all required fields!');
+  // ── Stops helpers ─────────────────────────────────────────────────────────
+  const addStop = () => {
+    if (stops.length >= 5) {
+      showModal({ type: 'info', title: 'Max Stops', message: 'You can add up to 5 intermediate stops.' });
       return;
     }
-    if (!vehicle) {
-      Alert.alert('Vehicle Required', 'Please register your vehicle first.', [
-        { text: 'Add Vehicle', onPress: () => navigation.navigate('VehicleSetup') },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
+    setStops(prev => [...prev, { city: '', arrivalTime: '' }]);
+  };
+
+  const removeStop = (idx) => setStops(prev => prev.filter((_, i) => i !== idx));
+
+  const updateStop = (idx, key, val) =>
+    setStops(prev => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s));
+
+  const handleCitySelect = (city) => {
+    if (cityModal === 'from') {
+      update('from', city);
+    } else if (cityModal === 'to') {
+      update('to', city);
+    } else if (cityModal?.type === 'stop') {
+      updateStop(cityModal.idx, 'city', city);
+    }
+    setCityModal(null);
+  };
+
+  const handlePost = async () => {
+    if (!form.from || !form.to || !form.date || !form.departureTime || !form.pricePerSeat) {
+      showModal({ type: 'error', title: 'Missing Fields', message: 'Please fill From, To, Date, Departure Time, and Price Per Seat.' });
+      return;
+    }
+    if (isMultiStop && stops.some(s => !s.city)) {
+      showModal({ type: 'error', title: 'Incomplete Stops', message: 'Each intermediate stop must have a city selected.' });
+      return;
+    }
+    if (!selectedVehicle) {
+      showModal({
+        type: 'warning',
+        title: 'Vehicle Required',
+        message: 'Please register your vehicle before posting a ride.',
+        confirmText: 'Add Vehicle',
+        cancelText:  'Cancel',
+        onConfirm: () => navigation.navigate('VehicleSetup'),
+      });
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      postRide({
-        ...form,
-        driverId: currentUser?.id,
-        vehicleId: vehicle?.id,
-        pricePerSeat: parseInt(form.pricePerSeat),
-        totalSeats: parseInt(form.seats),
-        amenities,
-      });
-      setLoading(false);
-      showToast('Ride posted successfully! Passengers have been notified.', 'success');
-      setTimeout(() => navigation.navigate('MyRides'), 800);
-    }, 1200);
+    const stopsPayload = isMultiStop
+      ? stops.map((s, i) => ({ city: s.city, order: i + 1, arrivalTime: s.arrivalTime || '' }))
+      : [];
+
+    const { data, error } = await postRide({
+      ...form,
+      driverId:     currentUser?.id,
+      vehicleId:    selectedVehicle.id,
+      pricePerSeat: parseInt(form.pricePerSeat),
+      totalSeats:   selectedVehicle.totalSeats,
+      amenities:    vehicleAmenities,
+      isMultiStop,
+      stops:        stopsPayload,
+    });
+    setLoading(false);
+    if (error) {
+      showModal({ type: 'error', title: 'Failed to Post', message: error });
+      return;
+    }
+    showToast('Ride posted successfully!', 'success');
+    navigation.navigate('MyRides');
   };
 
-  const filteredCities = CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()));
+  const cityModalTitle =
+    cityModal === 'from' ? 'Departure City' :
+    cityModal === 'to'   ? 'Destination City' :
+    cityModal?.type === 'stop' ? `Stop ${cityModal.idx + 1} City` : '';
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -74,24 +215,38 @@ export default function PostRideScreen({ navigation }) {
         />
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          {/* Vehicle Info */}
-          {vehicle ? (
-            <View style={styles.vehicleBanner}>
-              <Ionicons name="car-sport" size={22} color={COLORS.primary} />
-              <Text style={styles.vehicleBannerText}>{vehicle.brand} • {vehicle.plateNumber}</Text>
-              <View style={styles.activeDot} />
-            </View>
-          ) : (
+
+          {/* ── Vehicle Selector ─────────────────────────────────────────── */}
+          <Text style={styles.sectionTitle}>Vehicle</Text>
+          {driverVehicles.length === 0 ? (
             <TouchableOpacity style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <Ionicons name="warning-outline" size={20} color={COLORS.accent} />
-              <Text style={styles.noVehicleText}>Please register your vehicle first →</Text>
+              <Text style={styles.noVehicleText}>Register your vehicle first →</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.vehicleSelector}
+              onPress={() => driverVehicles.length > 1 && setVehiclePickerOpen(true)}
+              activeOpacity={driverVehicles.length > 1 ? 0.7 : 1}
+            >
+              <LinearGradient colors={GRADIENTS.teal} style={styles.vehicleIconBox}>
+                <Ionicons name="car-sport" size={20} color="#fff" />
+              </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.vehicleName}>{selectedVehicle?.brand || 'No vehicle'}</Text>
+                <Text style={styles.vehicleDetail}>
+                  {selectedVehicle?.plateNumber} • {vehicleSeats} seats
+                  {vehicleAmenities.length > 0 ? ` • ${vehicleAmenities.join(', ')}` : ''}
+                </Text>
+              </View>
+              {driverVehicles.length > 1 && <Ionicons name="chevron-down" size={16} color={COLORS.gray} />}
             </TouchableOpacity>
           )}
 
-          {/* Route */}
+          {/* ── Route ────────────────────────────────────────────────────── */}
           <Text style={styles.sectionTitle}>Route</Text>
           <View style={styles.routeRow}>
-            <TouchableOpacity style={styles.cityBtn} onPress={() => { setCityModal('from'); setCitySearch(''); }}>
+            <TouchableOpacity style={styles.cityBtn} onPress={() => setCityModal('from')}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
               <Text style={[styles.cityBtnText, !form.from && styles.placeholder]}>{form.from || 'Leaving From?'}</Text>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
@@ -99,15 +254,78 @@ export default function PostRideScreen({ navigation }) {
             <TouchableOpacity onPress={() => { update('from', form.to); update('to', form.from); }} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cityBtn} onPress={() => { setCityModal('to'); setCitySearch(''); }}>
+            <TouchableOpacity style={styles.cityBtn} onPress={() => setCityModal('to')}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
               <Text style={[styles.cityBtnText, !form.to && styles.placeholder]}>{form.to || 'Going To?'}</Text>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
             </TouchableOpacity>
           </View>
 
-          {/* Fields */}
-          <Text style={styles.sectionTitle}>Details</Text>
+          {/* ── Multi-Stop Toggle ──────────────────────────────────────────── */}
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleLeft}>
+              <Ionicons name="git-branch-outline" size={18} color={isMultiStop ? COLORS.primary : COLORS.gray} />
+              <View>
+                <Text style={[styles.toggleLabel, isMultiStop && { color: COLORS.primary }]}>Multi-Stop Route</Text>
+                <Text style={styles.toggleSub}>Add intermediate stops for partial bookings</Text>
+              </View>
+            </View>
+            <Switch
+              value={isMultiStop}
+              onValueChange={(val) => { setIsMultiStop(val); if (!val) setStops([]); }}
+              trackColor={{ false: COLORS.border, true: COLORS.primary + '60' }}
+              thumbColor={isMultiStop ? COLORS.primary : '#f4f3f4'}
+            />
+          </View>
+
+          {/* ── Intermediate Stops ─────────────────────────────────────────── */}
+          {isMultiStop && (
+            <View style={styles.stopsContainer}>
+              <Text style={styles.stopsHint}>
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Passengers can book any segment (e.g. Hyderabad → Multan)
+              </Text>
+
+              {stops.map((stop, idx) => (
+                <View key={idx} style={styles.stopRow}>
+                  <View style={styles.stopNumCol}>
+                    <View style={styles.stopLine} />
+                    <View style={styles.stopNum}>
+                      <Text style={styles.stopNumText}>{idx + 1}</Text>
+                    </View>
+                    <View style={styles.stopLine} />
+                  </View>
+                  <View style={styles.stopFields}>
+                    <TouchableOpacity
+                      style={styles.stopCityBtn}
+                      onPress={() => setCityModal({ type: 'stop', idx })}
+                    >
+                      <Ionicons name="location-outline" size={16} color={stop.city ? COLORS.primary : COLORS.gray} />
+                      <Text style={[styles.stopCityText, !stop.city && styles.placeholder]}>
+                        {stop.city || 'Select stop city'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={COLORS.gray} />
+                    </TouchableOpacity>
+                    <TimePickerInput
+                      label="Arrival Time at Stop"
+                      value={stop.arrivalTime}
+                      onChange={(v) => updateStop(idx, 'arrivalTime', v)}
+                    />
+                  </View>
+                  <TouchableOpacity style={styles.stopRemoveBtn} onPress={() => removeStop(idx)}>
+                    <Ionicons name="close-circle" size={22} color={COLORS.danger} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <TouchableOpacity style={styles.addStopBtn} onPress={addStop}>
+                <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.addStopText}>Add Intermediate Stop</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ── Schedule ─────────────────────────────────────────────────── */}
+          <Text style={styles.sectionTitle}>Schedule</Text>
           <DatePickerInput
             label="Travel Date *"
             value={form.date}
@@ -124,6 +342,9 @@ export default function PostRideScreen({ navigation }) {
             value={form.arrivalTime}
             onChange={v => update('arrivalTime', v)}
           />
+
+          {/* ── Fare & Locations ─────────────────────────────────────────── */}
+          <Text style={styles.sectionTitle}>Fare & Pickup</Text>
           {TEXT_FIELDS.map(field => (
             <FormInput
               key={field.key}
@@ -146,20 +367,6 @@ export default function PostRideScreen({ navigation }) {
             numberOfLines={3}
           />
 
-          {/* Amenities */}
-          <Text style={styles.sectionTitle}>Amenities</Text>
-          <View style={styles.amenitiesGrid}>
-            {AMENITY_OPTIONS.map(a => (
-              <Chip
-                key={a}
-                label={a}
-                active={amenities.includes(a)}
-                onPress={() => toggleAmenity(a)}
-                color={COLORS.teal}
-              />
-            ))}
-          </View>
-
           <PrimaryButton
             title="Post Ride"
             onPress={handlePost}
@@ -171,29 +378,38 @@ export default function PostRideScreen({ navigation }) {
           <View style={{ height: 24 }} />
         </ScrollView>
 
-        {/* City Modal */}
-        <Modal visible={!!cityModal} animationType="slide" onRequestClose={() => setCityModal(null)}>
+        {/* ── City Search Modal ──────────────────────────────────────────── */}
+        <CitySearchModal
+          visible={!!cityModal}
+          title={cityModalTitle}
+          onSelect={handleCitySelect}
+          onClose={() => setCityModal(null)}
+        />
+
+        {/* ── Vehicle Picker Modal ───────────────────────────────────────── */}
+        <Modal visible={vehiclePickerOpen} animationType="slide" onRequestClose={() => setVehiclePickerOpen(false)}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{cityModal === 'from' ? 'Departure City' : 'Destination City'}</Text>
-              <TouchableOpacity onPress={() => setCityModal(null)}>
+              <Text style={styles.modalTitle}>Select Vehicle</Text>
+              <TouchableOpacity onPress={() => setVehiclePickerOpen(false)}>
                 <Ionicons name="close" size={24} color={COLORS.textPrimary} />
               </TouchableOpacity>
             </View>
-            <SearchInput
-              placeholder="Search city..."
-              value={citySearch}
-              onChangeText={setCitySearch}
-              onClear={() => setCitySearch('')}
-              style={styles.citySearch}
-            />
             <FlatList
-              data={filteredCities}
-              keyExtractor={item => item}
+              data={driverVehicles}
+              keyExtractor={item => item.id}
+              contentContainerStyle={{ padding: 16 }}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.cityItem} onPress={() => { update(cityModal, item); setCityModal(null); }}>
-                  <Ionicons name="location-outline" size={18} color={COLORS.primary} />
-                  <Text style={styles.cityItemText}>{item}</Text>
+                <TouchableOpacity
+                  style={[styles.vehiclePickerItem, selectedVehicle?.id === item.id && styles.vehiclePickerItemActive]}
+                  onPress={() => { setSelectedVehicle(item); setVehiclePickerOpen(false); }}
+                >
+                  <Ionicons name="car-sport-outline" size={22} color={selectedVehicle?.id === item.id ? COLORS.primary : COLORS.gray} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.vehiclePickerName, selectedVehicle?.id === item.id && { color: COLORS.primary }]}>{item.brand}</Text>
+                    <Text style={styles.vehiclePickerDetail}>{item.plateNumber} • {item.totalSeats} seats</Text>
+                  </View>
+                  {selectedVehicle?.id === item.id && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
                 </TouchableOpacity>
               )}
             />
@@ -204,26 +420,72 @@ export default function PostRideScreen({ navigation }) {
   );
 }
 
+// ─── City Search Modal Styles ─────────────────────────────────────────────────
+const ms = StyleSheet.create({
+  container:  { flex: 1, backgroundColor: '#fff' },
+  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  title:      { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  searchWrap: { padding: 16, paddingBottom: 8 },
+  spinner:    { marginTop: 8 },
+  item:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
+  itemName:   { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  itemSub:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  empty:      { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText:  { fontSize: 14, color: COLORS.gray },
+  hint:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingTop: 24 },
+  hintText:   { fontSize: 13, color: COLORS.gray },
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  body: { padding: 20, paddingBottom: 40 },
-  vehicleBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: 12, padding: 14, marginBottom: 20, gap: 10 },
-  vehicleBannerText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.primary },
-  activeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.secondary },
-  noVehicleCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1', borderRadius: 12, padding: 14, marginBottom: 20, gap: 10 },
-  noVehicleText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.accent },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginTop: 8, marginBottom: 12 },
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
-  cityBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 13, gap: 8 },
-  cityDot: { width: 8, height: 8, borderRadius: 4 },
+  container:       { flex: 1, backgroundColor: COLORS.bg },
+  body:            { padding: 20, paddingBottom: 40 },
+  sectionTitle:    { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginTop: 16, marginBottom: 12 },
+
+  // Vehicle selector
+  vehicleSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 12, marginBottom: 4, borderWidth: 1.5, borderColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  vehicleIconBox:  { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  vehicleName:     { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  vehicleDetail:   { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  noVehicleCard:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1', borderRadius: 12, padding: 14, marginBottom: 4, gap: 10 },
+  noVehicleText:   { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.accent },
+
+  // Route
+  routeRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  cityBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 13, gap: 8 },
+  cityDot:     { width: 8, height: 8, borderRadius: 4 },
   cityBtnText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   placeholder: { color: COLORS.gray, fontWeight: '400' },
-  swapBtn: { padding: 8, backgroundColor: COLORS.lightGray, borderRadius: 10 },
-  amenitiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  modal: { flex: 1, backgroundColor: '#fff' },
+  swapBtn:     { padding: 8, backgroundColor: COLORS.lightGray, borderRadius: 10 },
+
+  // Multi-stop toggle
+  toggleRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: COLORS.border, marginBottom: 4 },
+  toggleLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  toggleLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  toggleSub:   { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+
+  // Stops
+  stopsContainer:  { backgroundColor: '#f8faff', borderRadius: 16, padding: 16, marginVertical: 8, borderWidth: 1, borderColor: COLORS.border },
+  stopsHint:       { fontSize: 12, color: COLORS.gray, marginBottom: 16, lineHeight: 18 },
+  stopRow:         { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, gap: 8 },
+  stopNumCol:      { alignItems: 'center', width: 28, paddingTop: 4 },
+  stopLine:        { width: 2, height: 14, backgroundColor: COLORS.border },
+  stopNum:         { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
+  stopNumText:     { fontSize: 11, fontWeight: '700', color: '#fff' },
+  stopFields:      { flex: 1, gap: 8 },
+  stopCityBtn:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 11, gap: 8 },
+  stopCityText:    { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  stopRemoveBtn:   { paddingTop: 8 },
+  addStopBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary, borderStyle: 'dashed', marginTop: 4 },
+  addStopText:     { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+
+  // Modals
+  modal:       { flex: 1, backgroundColor: '#fff' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  citySearch: { margin: 16 },
-  cityItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
-  cityItemText: { fontSize: 16, color: COLORS.textPrimary },
+  modalTitle:  { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+
+  // Vehicle picker items
+  vehiclePickerItem:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: COLORS.border, gap: 12 },
+  vehiclePickerItemActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
+  vehiclePickerName:       { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  vehiclePickerDetail:     { fontSize: 12, color: COLORS.gray, marginTop: 2 },
 });

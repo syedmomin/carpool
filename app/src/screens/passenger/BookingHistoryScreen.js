@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge, GhostButton } from '../../components';
-import { ConfirmModal } from '../../components/ConfirmModal';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 export default function BookingHistoryScreen({ navigation }) {
   const { getMyBookings, getRideById, getDriverById, cancelBooking } = useApp();
+  const { showModal } = useGlobalModal();
   const bookings = getMyBookings();
-  const [cancelTarget, setCancelTarget] = useState(null); // bookingId to cancel
 
-  const handleCancel = (bookingId) => {
-    cancelBooking(bookingId);
-    setCancelTarget(null);
+  const confirmCancel = (bookingId) => {
+    showModal({
+      type: 'danger',
+      title: 'Cancel Booking?',
+      message: 'Are you sure you want to cancel this booking? This action cannot be undone.',
+      confirmText: 'Yes, Cancel',
+      cancelText: 'Keep Booking',
+      icon: 'close-circle-outline',
+      onConfirm: () => cancelBooking(bookingId),
+    });
   };
 
   const renderBooking = ({ item }) => {
@@ -60,7 +67,7 @@ export default function BookingHistoryScreen({ navigation }) {
             <Text style={styles.amountValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
           </View>
           {isActive && (
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setCancelTarget(item.id)}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => confirmCancel(item.id)}>
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
@@ -92,17 +99,6 @@ export default function BookingHistoryScreen({ navigation }) {
         }
       />
 
-      <ConfirmModal
-        visible={!!cancelTarget}
-        onClose={() => setCancelTarget(null)}
-        onConfirm={() => handleCancel(cancelTarget)}
-        title="Cancel Booking?"
-        message="Are you sure you want to cancel this booking? This action cannot be undone."
-        confirmText="Yes, Cancel"
-        cancelText="Keep Booking"
-        type="danger"
-        icon="close-circle-outline"
-      />
     </View>
   );
 }

@@ -64,7 +64,7 @@ export const FAB = ({ icon, onPress, colors, style }) => (
       colors={colors || GRADIENTS.primary}
       style={styles.fab}
     >
-      <Ionicons name={icon} size={24} color="#fff" />
+      <Ionicons name={icon} size={20} color="#fff" />
     </LinearGradient>
   </TouchableOpacity>
 );
@@ -75,10 +75,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
+  btnText: { color: '#fff', fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
   btnIcon: { marginRight: 8 },
   ghost: {
     borderRadius: RADIUS.md,
@@ -92,5 +92,5 @@ const styles = StyleSheet.create({
   ghostText: { fontSize: 15, fontWeight: '600' },
   iconBtn: { alignItems: 'center', justifyContent: 'center' },
   fabContainer: { borderRadius: RADIUS.full, overflow: 'hidden' },
-  fab: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  fab: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
 });

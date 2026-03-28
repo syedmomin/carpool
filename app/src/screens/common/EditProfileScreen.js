@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform, ActivityIndicator,
+  Image, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 import { showImagePickerOptions } from '../../utils/imagePicker';
 
 export default function EditProfileScreen({ navigation }) {
   const { currentUser, updateProfile } = useApp();
+  const { showModal } = useGlobalModal();
   const [form, setForm] = useState({
     name:  currentUser?.name  || '',
     phone: currentUser?.phone || '',
@@ -26,7 +28,7 @@ export default function EditProfileScreen({ navigation }) {
   const handlePickImage = () => {
     showImagePickerOptions(async (result) => {
       if (result.cancelled) return;
-      if (result.error) { Alert.alert('Upload Error', result.error); return; }
+      if (result.error) { showModal({ type: 'error', title: 'Upload Error', message: result.error }); return; }
       setUploading(true);
       setAvatar(result.url);
       setUploading(false);
@@ -34,12 +36,12 @@ export default function EditProfileScreen({ navigation }) {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { Alert.alert('Error', 'Name is required.'); return; }
+    if (!form.name.trim()) { showModal({ type: 'error', title: 'Error', message: 'Name is required.' }); return; }
     setLoading(true);
     const { error } = await updateProfile({ ...form, avatar });
     setLoading(false);
-    if (error) { Alert.alert('Error', error); return; }
-    Alert.alert('Success', 'Profile updated!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+    if (error) { showModal({ type: 'error', title: 'Update Failed', message: error }); return; }
+    showModal({ type: 'success', title: 'Profile Updated!', message: 'Your profile has been saved successfully.', onConfirm: () => navigation.goBack() });
   };
 
   const initials = form.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';

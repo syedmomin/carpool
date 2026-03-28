@@ -67,7 +67,8 @@ export const ridesApi = {
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
 export const bookingsApi = {
-  book:       (rideId, seats) => request('POST',   '/bookings',            { rideId, seats }),
+  book:       (rideId, seats, boardingCity, exitCity) =>
+                                request('POST',   '/bookings',            { rideId, seats, ...(boardingCity ? { boardingCity } : {}), ...(exitCity ? { exitCity } : {}) }),
   cancel:     (bookingId)     => request('DELETE', `/bookings/${bookingId}`),
   myBookings: ()              => request('GET',    '/bookings/mine'),
   getById:    (bookingId)     => request('GET',    `/bookings/${bookingId}`),
@@ -102,11 +103,13 @@ export const reviewsApi = {
   submit:    (reviewData) => request('POST', '/reviews', reviewData),
 };
 
-// ─── CNIC Verification ───────────────────────────────────────────────────────
+// ─── Verification (CNIC + Driving Licence) ───────────────────────────────────
 export const verificationApi = {
-  submit: (cnicNumber, frontImage, backImage) =>
-    request('POST', '/cnic', { cnicNumber, frontImage, backImage }),
-  status: () => request('GET', '/cnic/status'),
+  submitCnic:    (cnicNumber, frontImage, backImage) =>
+    request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage }),
+  submitLicence: (licenceImage) =>
+    request('POST', '/verification/licence', { licenceImage }),
+  status:        () => request('GET', '/verification/status'),
 };
 
 // ─── Schedule Alerts ─────────────────────────────────────────────────────────

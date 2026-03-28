@@ -11,7 +11,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
   protected get model()     { return prisma.booking; }
   protected get modelName() { return 'Booking'; }
 
-  async bookRide(rideId: string, passengerId: string, seats: number): Promise<Booking> {
+  async bookRide(rideId: string, passengerId: string, seats: number, data?: any): Promise<Booking> {
     // Atomic transaction — prevents double booking
     return prisma.$transaction(async (tx) => {
       const ride = await tx.ride.findUnique({ where: { id: rideId } });
@@ -29,6 +29,10 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         data: {
           rideId, passengerId, seats,
           totalAmount: ride.pricePerSeat * seats,
+          boardingCity: (data as any)?.boardingCity || ride.fromCity,
+          exitCity:     (data as any)?.exitCity     || ride.toCity,
+          boardingOrder:(data as any)?.boardingOrder ?? 0,
+          exitOrder:    (data as any)?.exitOrder     ?? 1,
           createdBy: passengerId,
           updatedBy: passengerId,
         },

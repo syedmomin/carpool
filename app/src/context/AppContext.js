@@ -22,8 +22,10 @@ export const AppProvider = ({ children }) => {
           const { data } = await authApi.me();
           if (data?.data) {
             const user = data.data;
+            const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
             setCurrentUser(user);
-            setUserRole(user.role === 'DRIVER' ? 'driver' : 'passenger');
+            setUserRole(role);
+            await loadUserData(role);
           } else {
             await tokenStorage.remove();
           }
@@ -39,15 +41,16 @@ export const AppProvider = ({ children }) => {
   // ─── Load data after login ────────────────────────────────────────────────
   const loadUserData = useCallback(async (role) => {
     const isDriver = role === 'driver' || role === 'DRIVER';
-    const [ridesRes, notifRes, alertsRes] = await Promise.allSettled([
+    const requests = [
       isDriver ? ridesApi.myRides() : ridesApi.getAll(),
       notificationsApi.getAll(),
-      scheduleAlertsApi.getAll(),
-    ]);
+      ...(!isDriver ? [scheduleAlertsApi.getAll()] : []),
+    ];
+    const [ridesRes, notifRes, alertsRes] = await Promise.allSettled(requests);
 
     if (ridesRes.value?.data?.data)      setRides(ridesRes.value.data.data);
     if (notifRes.value?.data?.data)      setNotifications(notifRes.value.data.data);
-    if (alertsRes.value?.data?.data)     setScheduleAlerts(alertsRes.value.data.data);
+    if (!isDriver && alertsRes?.value?.data?.data) setScheduleAlerts(alertsRes.value.data.data);
 
     if (isDriver) {
       const vRes = await vehiclesApi.myVehicles();
@@ -90,6 +93,7 @@ export const AppProvider = ({ children }) => {
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     setCurrentUser(user);
     setUserRole(role);
+    await loadUserData(role);
     return { user, role };
   };
 
@@ -126,8 +130,8 @@ export const AppProvider = ({ children }) => {
   };
 
   // ─── Bookings ─────────────────────────────────────────────────────────────
-  const bookRide = async (rideId, seats) => {
-    const { data, error } = await bookingsApi.book(rideId, seats);
+  const bookRide = async (rideId, seats, boardingCity, exitCity) => {
+    const { data, error } = await bookingsApi.book(rideId, seats, boardingCity, exitCity);
     if (error) return { error };
     const newBooking = data.data;
     setBookings(prev => [newBooking, ...prev]);

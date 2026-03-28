@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader } from '../../components';
@@ -18,7 +18,7 @@ export default function SupportScreen({ navigation }) {
   const CONTACT = [
     { icon: 'call-outline',    label: 'Call Support',    sub: '+92 300 0000000',     onPress: () => Linking.openURL('tel:+923000000000'), color: COLORS.primary },
     { icon: 'mail-outline',    label: 'Email Us',        sub: 'support@safarishare.pk', onPress: () => Linking.openURL('mailto:support@safarishare.pk'), color: COLORS.teal },
-    { icon: 'logo-whatsapp',   label: 'WhatsApp',        sub: '+92 300 0000000',     onPress: () => Alert.alert('WhatsApp', 'Opening WhatsApp...'), color: COLORS.secondary },
+    { icon: 'logo-whatsapp',   label: 'WhatsApp',        sub: '+92 300 0000000',     onPress: () => Linking.openURL('https://wa.me/923000000000'), color: COLORS.secondary },
   ];
 
   return (

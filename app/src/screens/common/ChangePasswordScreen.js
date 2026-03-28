@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 export default function ChangePasswordScreen({ navigation }) {
+  const { showModal } = useGlobalModal();
   const [form, setForm] = useState({ current: '', newPass: '', confirm: '' });
   const [show, setShow] = useState({ current: false, newPass: false, confirm: false });
   const [loading, setLoading] = useState(false);
@@ -13,20 +15,18 @@ export default function ChangePasswordScreen({ navigation }) {
 
   const handleChange = () => {
     if (!form.current || !form.newPass || !form.confirm) {
-      Alert.alert('Error', 'Please fill in all fields.'); return;
+      showModal({ type: 'error', title: 'Missing Fields', message: 'Please fill in all fields.' }); return;
     }
     if (form.newPass.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters.'); return;
+      showModal({ type: 'error', title: 'Too Short', message: 'New password must be at least 6 characters.' }); return;
     }
     if (form.newPass !== form.confirm) {
-      Alert.alert('Error', 'New passwords do not match.'); return;
+      showModal({ type: 'error', title: 'Mismatch', message: 'New passwords do not match.' }); return;
     }
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      Alert.alert('Success!', 'Your password has been changed successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      showModal({ type: 'success', title: 'Password Changed!', message: 'Your password has been updated successfully.', onConfirm: () => navigation.goBack() });
     }, 1200);
   };
 

@@ -1,23 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, FAB, EmptyState } from '../../components';
-import { ConfirmModal } from '../../components/ConfirmModal';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 export default function MyVehiclesScreen({ navigation }) {
   const { getVehiclesByDriver, currentUser, setActiveVehicle, deleteVehicle } = useApp();
+  const { showModal } = useGlobalModal();
   const myVehicles = getVehiclesByDriver(currentUser?.id);
-  const [deleteModal, setDeleteModal] = useState({ visible: false, vehicleId: null });
 
   const handleSetActive = (vehicleId) => {
     setActiveVehicle(vehicleId);
-  };
-
-  const handleDelete = () => {
-    deleteVehicle(deleteModal.vehicleId);
-    setDeleteModal({ visible: false, vehicleId: null });
   };
 
   const renderVehicle = ({ item }) => (
@@ -52,18 +47,21 @@ export default function MyVehiclesScreen({ navigation }) {
             <Ionicons name="people-outline" size={13} color={COLORS.primary} />
             <Text style={styles.featureText}>{item.totalSeats} seats</Text>
           </View>
-          {item.ac && (
-            <View style={styles.featureChip}>
-              <Ionicons name="snow-outline" size={13} color={COLORS.teal} />
-              <Text style={[styles.featureText, { color: COLORS.teal }]}>AC</Text>
+          {[
+            { key: 'ac',          icon: 'snow-outline',          label: 'AC',        color: COLORS.teal   },
+            { key: 'wifi',        icon: 'wifi-outline',          label: 'WiFi',       color: COLORS.purple },
+            { key: 'music',       icon: 'musical-notes-outline', label: 'Music',      color: '#e91e63'     },
+            { key: 'usbCharging', icon: 'flash-outline',         label: 'USB',        color: '#ff9800'     },
+            { key: 'waterCooler', icon: 'water-outline',         label: 'Water',      color: '#03a9f4'     },
+            { key: 'blanket',     icon: 'bed-outline',           label: 'Blanket',    color: '#795548'     },
+            { key: 'firstAid',    icon: 'medkit-outline',        label: 'First Aid',  color: COLORS.danger },
+            { key: 'luggageRack', icon: 'briefcase-outline',     label: 'Luggage',    color: COLORS.gray   },
+          ].filter(f => item[f.key]).map(f => (
+            <View key={f.key} style={styles.featureChip}>
+              <Ionicons name={f.icon} size={13} color={f.color} />
+              <Text style={[styles.featureText, { color: f.color }]}>{f.label}</Text>
             </View>
-          )}
-          {item.wifi && (
-            <View style={styles.featureChip}>
-              <Ionicons name="wifi-outline" size={13} color={COLORS.purple} />
-              <Text style={[styles.featureText, { color: COLORS.purple }]}>WiFi</Text>
-            </View>
-          )}
+          ))}
         </View>
 
         <View style={styles.actionRow}>
@@ -79,7 +77,15 @@ export default function MyVehiclesScreen({ navigation }) {
             <Ionicons name="create-outline" size={18} color={COLORS.primary} />
             <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => setDeleteModal({ visible: true, vehicleId: item.id })}>
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => showModal({
+              type: 'danger',
+              title: 'Delete Vehicle?',
+              message: 'This will permanently remove the vehicle. Any active rides may be affected.',
+              confirmText: 'Yes, Delete',
+              cancelText: 'Cancel',
+              icon: 'trash-outline',
+              onConfirm: () => deleteVehicle(item.id),
+            })}>
             <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
           </TouchableOpacity>
         </View>
@@ -107,18 +113,6 @@ export default function MyVehiclesScreen({ navigation }) {
       />
 
       <FAB icon="add" onPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })} colors={GRADIENTS.purple} style={styles.fab} />
-
-      <ConfirmModal
-        visible={deleteModal.visible}
-        onClose={() => setDeleteModal({ visible: false, vehicleId: null })}
-        onConfirm={handleDelete}
-        title="Delete Vehicle?"
-        message="This will permanently remove the vehicle. Any active rides using this vehicle may be affected."
-        confirmText="Yes, Delete"
-        cancelText="Cancel"
-        type="danger"
-        icon="trash-outline"
-      />
     </View>
   );
 }

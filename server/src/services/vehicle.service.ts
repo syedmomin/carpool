@@ -6,7 +6,9 @@ import { AppError } from '../utils/AppError';
 type CreateVehicleDto = {
   driverId: string; type: string; brand: string; model?: string;
   color?: string; plateNumber: string; totalSeats: number;
-  ac?: boolean; wifi?: boolean; images?: string[];
+  ac?: boolean; wifi?: boolean; music?: boolean; usbCharging?: boolean;
+  waterCooler?: boolean; blanket?: boolean; firstAid?: boolean; luggageRack?: boolean;
+  images?: string[];
 };
 type UpdateVehicleDto = Partial<Omit<CreateVehicleDto, 'driverId' | 'plateNumber'>>;
 

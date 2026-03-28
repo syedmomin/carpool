@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, KeyboardAvoidingView, Platform, Alert,
+  ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, FormInput } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const isValidPhone    = (v) => /^\d{11,13}$/.test(v.replace(/[\s\-]/g, ''));
@@ -17,6 +18,7 @@ const STEPS = ['Role', 'Details'];
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useApp();
+  const { showModal } = useGlobalModal();
   const [step, setStep]   = useState(0);
   const [role, setRole]   = useState('passenger');
   const [form, setForm]   = useState({ name: '', phone: '', email: '', password: '', city: '' });
@@ -66,8 +68,8 @@ export default function RegisterScreen({ navigation }) {
       role:     role === 'driver' ? 'DRIVER' : 'PASSENGER',
     });
     setLoading(false);
-    if (error) { Alert.alert('Registration Failed', error); return; }
-    navigation.replace(userRole === 'driver' ? 'DriverTabs' : 'PassengerTabs');
+    if (error) { showModal({ type: 'error', title: 'Registration Failed', message: error }); return; }
+    navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
   };
 
   // ─── Step 1: Role ─────────────────────────────────────────────────────────
