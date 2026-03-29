@@ -8,9 +8,9 @@ import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import prisma from './data-source';
 
-const app    = express();
-const PORT   = Number(process.env.PORT) || 5000;
-const ENV    = process.env.NODE_ENV || 'development';
+const app = express();
+const PORT = Number(process.env.PORT) || 5000;
+const ENV = process.env.NODE_ENV || 'development';
 const isProd = ENV === 'production';
 
 // ─── Security & Parsing ───────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, TextInput, StyleSheet, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,7 +11,7 @@ import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 
 // ─── Validators ───────────────────────────────────────────────────────────────
-const isValidPhone    = (v) => /^\d{11,13}$/.test(v.replace(/[\s\-]/g, ''));
+const isValidPhone    = (v) => /^\d{10}$/.test(v.replace(/[\s\-]/g, ''));
 const isValidEmail    = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const isValidPassword = (v) => v.length >= 6;
 
@@ -40,7 +40,7 @@ export default function RegisterScreen({ navigation }) {
     else if (form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
 
     if (!form.phone.trim())          e.phone    = 'Phone number is required';
-    else if (!isValidPhone(form.phone)) e.phone = 'Phone must be 11–13 digits (numbers only)';
+    else if (!isValidPhone(form.phone)) e.phone = 'Enter exactly 10 digits after +92 (e.g. 3001234567)';
 
     if (!form.email.trim())          e.email    = 'Email is required';
     else if (!isValidEmail(form.email)) e.email = 'Enter a valid email address';
@@ -63,7 +63,7 @@ export default function RegisterScreen({ navigation }) {
     const { error, role: userRole } = await register({
       name:     form.name.trim(),
       email:    form.email.trim().toLowerCase(),
-      phone:    form.phone.replace(/[\s\-]/g, ''),
+      phone:    '92' + form.phone.replace(/[\s\-]/g, ''),
       password: form.password,
       city:     form.city.trim() || undefined,
       role:     role === 'driver' ? 'DRIVER' : 'PASSENGER',
@@ -126,12 +126,15 @@ export default function RegisterScreen({ navigation }) {
 
       <View style={styles.phoneRow}>
         <View style={styles.countryCode}><Text style={styles.countryCodeTxt}>🇵🇰 +92</Text></View>
-        <FormInput
-          placeholder="03001234567"
-          value={form.phone}
-          onChangeText={v => set('phone', v.replace(/[^0-9\s\-]/g, ''))}
-          keyboardType="phone-pad"
+        <View style={styles.phoneDivider} />
+        <TextInput
           style={styles.phoneInput}
+          placeholder="3001234567"
+          placeholderTextColor={COLORS.gray}
+          value={form.phone}
+          onChangeText={v => set('phone', v.replace(/[^0-9]/g, '').slice(0, 10))}
+          keyboardType="phone-pad"
+          maxLength={10}
         />
       </View>
       {!!errors.phone && <Text style={styles.errText}>{errors.phone}</Text>}
@@ -235,10 +238,11 @@ const styles = StyleSheet.create({
   radioOuterActive: { borderColor: '#fff' },
   radioInner:     { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff' },
   // Form
-  phoneRow:       { flexDirection: 'row', alignItems: 'center', marginBottom: 2, marginTop: 4 },
-  countryCode:    { backgroundColor: COLORS.lightGray, paddingHorizontal: 12, height: 50, justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.border, borderRightWidth: 0, borderRadius: 12, borderTopRightRadius: 0, borderBottomRightRadius: 0 },
+  phoneRow:       { flexDirection: 'row', alignItems: 'center', marginBottom: 2, marginTop: 4, borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, backgroundColor: '#fff', overflow: 'hidden' },
+  countryCode:    { backgroundColor: COLORS.lightGray, paddingHorizontal: 12, height: 50, justifyContent: 'center' },
   countryCodeTxt: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
-  phoneInput:     { flex: 1, marginBottom: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 },
+  phoneDivider:   { width: 1, height: 28, backgroundColor: COLORS.border },
+  phoneInput:     { flex: 1, fontSize: 15, color: COLORS.textPrimary, paddingHorizontal: 14, height: 50 },
   errText:        { fontSize: 12, color: COLORS.danger, marginTop: 2, marginBottom: 8, marginLeft: 4 },
   btn:            { marginTop: 24 },
   loginLink:      { alignItems: 'center', marginTop: 16 },

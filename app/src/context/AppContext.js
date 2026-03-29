@@ -2,17 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { secureStorage } from '../utils/secureStorage';
 import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi } from '../services/api';
 
-const USER_STORAGE_KEY     = '@chalparo_user';
-const ROLE_STORAGE_KEY     = '@chalparo_role';
-const USER_STORAGE_KEY_OLD = '@safarishare_user';
-const ROLE_STORAGE_KEY_OLD = '@safarishare_role';
+const USER_STORAGE_KEY = '@chalparo_user';
+const ROLE_STORAGE_KEY = '@chalparo_role';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [userRole,    setUserRole]    = useState(null);
-  const [isLoading,   setIsLoading]   = useState(true);
+  const [userRole, setUserRole] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // ─── Restore session on app start ────────────────────────────────────────
@@ -20,28 +18,14 @@ export const AppProvider = ({ children }) => {
     (async () => {
       try {
         const token = await tokenStorage.get();
-        if (!token) { setIsLoading(false); return; }
-
-        // Try new keys first, fallback to old plain-text keys (migration)
-        let cachedUser = await secureStorage.getObject(USER_STORAGE_KEY);
-        let cachedRole = await secureStorage.getItem(ROLE_STORAGE_KEY);
-        if (!cachedUser || !cachedRole) {
-          const { default: AS } = await import('@react-native-async-storage/async-storage');
-          const [oldUserRaw, oldRole] = await Promise.all([
-            AS.getItem(USER_STORAGE_KEY_OLD),
-            AS.getItem(ROLE_STORAGE_KEY_OLD),
-          ]);
-          if (oldUserRaw && !cachedUser) {
-            try { cachedUser = JSON.parse(oldUserRaw); } catch { cachedUser = null; }
-            await AS.removeItem(USER_STORAGE_KEY_OLD);
-            if (cachedUser) await secureStorage.setObject(USER_STORAGE_KEY, cachedUser);
-          }
-          if (oldRole && !cachedRole) {
-            cachedRole = oldRole;
-            await AS.removeItem(ROLE_STORAGE_KEY_OLD);
-            await secureStorage.setItem(ROLE_STORAGE_KEY, cachedRole);
-          }
+        if (!token) {
+          setIsLoading(false);
+          return;
         }
+
+        // Only use new secure storage keys
+        const cachedUser = await secureStorage.getObject(USER_STORAGE_KEY);
+        const cachedRole = await secureStorage.getItem(ROLE_STORAGE_KEY);
 
         if (cachedUser && cachedRole) {
           setCurrentUser(cachedUser);
@@ -54,8 +38,10 @@ export const AppProvider = ({ children }) => {
         if (data?.data) {
           const user = data.data;
           const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
+
           setCurrentUser(user);
           setUserRole(role);
+
           await Promise.all([
             secureStorage.setObject(USER_STORAGE_KEY, user),
             secureStorage.setItem(ROLE_STORAGE_KEY, role),
@@ -114,13 +100,13 @@ export const AppProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     setCurrentUser(prev => {
       const updated = { ...prev, ...updates };
-      secureStorage.setObject(USER_STORAGE_KEY, updated).catch(() => {});
+      secureStorage.setObject(USER_STORAGE_KEY, updated).catch(() => { });
       return updated;
     });
     const { data, error } = await profileApi.update(updates);
     if (data?.data) {
       setCurrentUser(data.data);
-      secureStorage.setObject(USER_STORAGE_KEY, data.data).catch(() => {});
+      secureStorage.setObject(USER_STORAGE_KEY, data.data).catch(() => { });
     }
     return { error };
   };
@@ -129,10 +115,10 @@ export const AppProvider = ({ children }) => {
   const postRide = async (rideData) => {
     const payload = {
       ...rideData,
-      fromCity:     rideData.fromCity || rideData.from,
-      toCity:       rideData.toCity   || rideData.to,
+      fromCity: rideData.fromCity || rideData.from,
+      toCity: rideData.toCity || rideData.to,
       pricePerSeat: parseInt(rideData.pricePerSeat) || rideData.pricePerSeat,
-      totalSeats:   parseInt(rideData.totalSeats)   || rideData.totalSeats,
+      totalSeats: parseInt(rideData.totalSeats) || rideData.totalSeats,
     };
     delete payload.from;
     delete payload.to;

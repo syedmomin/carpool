@@ -151,6 +151,9 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
   // ─── Save ────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
+    if (images.length === 0) {
+      showToast('Please add at least one vehicle photo.', 'error'); return;
+    }
     if (!form.brand.trim()) {
       showToast('Brand & Model name is required.', 'error'); return;
     }

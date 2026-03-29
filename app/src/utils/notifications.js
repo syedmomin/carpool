@@ -1,9 +1,15 @@
+import { Platform } from 'react-native';
+
 let messaging;
-try {
-  messaging = require('@react-native-firebase/messaging').default;
-} catch (e) {
-  // Firebase not available (Expo Go / dev environment without native build)
+if (Platform.OS === 'web') {
+  // Firebase native module not supported on web
   messaging = null;
+} else {
+  try {
+    messaging = require('@react-native-firebase/messaging').default;
+  } catch (e) {
+    messaging = null;
+  }
 }
 
 // ─── Register device + get FCM token ─────────────────────────────────────────

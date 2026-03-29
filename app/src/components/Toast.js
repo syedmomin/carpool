@@ -13,16 +13,18 @@ export default function Toast({ visible, message, type = 'info', onHide }) {
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity    = useRef(new Animated.Value(0)).current;
 
+  const nativeDriver = Platform.OS !== 'web';
+
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(translateY, { toValue: 0, tension: 60, friction: 10, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: 0, tension: 60, friction: 10, useNativeDriver: nativeDriver }),
+        Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: nativeDriver }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(translateY, { toValue: -100, duration: 260, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: -100, duration: 260, useNativeDriver: nativeDriver }),
+        Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: nativeDriver }),
       ]).start();
     }
   }, [visible]);
@@ -31,8 +33,7 @@ export default function Toast({ visible, message, type = 'info', onHide }) {
 
   return (
     <Animated.View
-      style={[styles.container, { backgroundColor: cfg.bg, transform: [{ translateY }], opacity }]}
-      pointerEvents={visible ? 'auto' : 'none'}
+      style={[styles.container, { backgroundColor: cfg.bg, transform: [{ translateY }], opacity, pointerEvents: visible ? 'auto' : 'none' }]}
     >
       <Ionicons name={cfg.icon} size={20} color={cfg.text} />
       <Text style={[styles.message, { color: cfg.text }]} numberOfLines={2}>{message}</Text>

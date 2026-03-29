@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Modal, TextInput, Linking, Alert,
@@ -184,16 +184,19 @@ export default function BookingHistoryScreen({ navigation }) {
   const [loading,        setLoading]        = useState(false);
   const [refreshing,     setRefreshing]     = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [reviewBooking,  setReviewBooking]  = useState(null);  // booking to review
+  const [reviewBooking,  setReviewBooking]  = useState(null);
   const [reviewedIds,    setReviewedIds]    = useState(new Set());
   const [sosVisible,     setSosVisible]     = useState(false);
+  const isFetching = useRef(false); // prevents stale-closure double-fetch
 
   const fetchBookings = useCallback(async (pageNum, replace = false) => {
-    if (loading && !replace) return;
+    if (isFetching.current && !replace) return;
+    isFetching.current = true;
     pageNum === 1 ? setRefreshing(true) : setLoading(true);
     const { data } = await bookingsApi.myBookings(pageNum, PAGE_SIZE);
     pageNum === 1 ? setRefreshing(false) : setLoading(false);
     setInitialLoading(false);
+    isFetching.current = false;
 
     if (!data?.data) return;
     const normalize = b => ({
@@ -204,15 +207,6 @@ export default function BookingHistoryScreen({ navigation }) {
     setBookings(prev => replace ? items : [...prev, ...items]);
     setHasMore(data.meta?.hasNext ?? false);
     setPage(pageNum);
-
-    // Auto-popup: show review modal for first unreviewed completed booking
-    if (replace && pageNum === 1) {
-      const firstCompletable = items.find(
-        b => b.status === 'COMPLETED' && b.ride?.driver?.id
-      );
-      // Only auto-popup if we haven't already reviewed in this session
-      // (we rely on reviewedIds set to suppress re-popup)
-    }
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -220,7 +214,9 @@ export default function BookingHistoryScreen({ navigation }) {
   }, []));
 
   const loadMore = () => {
-    if (hasMore && !loading && !refreshing) fetchBookings(page + 1);
+    if (hasMore && !isFetching.current && !refreshing && !initialLoading) {
+      fetchBookings(page + 1);
+    }
   };
 
   const confirmCancel = (bookingId) => {

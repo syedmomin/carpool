@@ -52,7 +52,7 @@ export class VehicleService extends BaseService<Vehicle, CreateVehicleDto, Updat
 
     // Block deletion if vehicle has active rides
     const activeRideCount = await prisma.ride.count({
-      where: { vehicleId: id, status: { in: ['ACTIVE', 'IN_PROGRESS'] } },
+      where: { vehicleId: id, status: { in: ['ACTIVE', 'IN_PROGRESS'] as any } },
     });
     if (activeRideCount > 0) {
       throw AppError.conflict('Cannot delete vehicle with active rides. Cancel or complete those rides first.');

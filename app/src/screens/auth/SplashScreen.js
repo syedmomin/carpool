@@ -59,7 +59,7 @@ export default function SplashScreen({ navigation, onDone }) {
       if (currentUser && userRole) {
         navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
       } else {
-        navigation.replace('Onboarding');
+        navigation.replace('Login');
       }
     }, delay);
     return () => clearTimeout(timer);

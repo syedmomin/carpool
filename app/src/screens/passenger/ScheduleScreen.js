@@ -1,16 +1,85 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, FlatList, Alert,
+  Modal, FlatList, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, PrimaryButton, EmptyState } from '../../components';
-import { SvgXml } from 'react-native-svg';
-import { scheduleIllustration } from '../../components/IllustrationAssets';
+import { COLORS, GRADIENTS, GradientHeader, PrimaryButton, SearchInput } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
-import { CITIES } from '../../data/mockData';
+import { searchPakistanLocations } from '../../utils/locationSearch';
+
+// ─── City Search Modal ─────────────────────────────────────────────────────────
+function CitySearchModal({ visible, title, onSelect, onClose }) {
+  const [query,    setQuery]    = useState('');
+  const [results,  setResults]  = useState([]);
+  const [searching, setSearching] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (!visible) { setQuery(''); setResults([]); }
+  }, [visible]);
+
+  const handleSearch = (text) => {
+    setQuery(text);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (text.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    timerRef.current = setTimeout(async () => {
+      const res = await searchPakistanLocations(text);
+      setResults(res);
+      setSearching(false);
+    }, 400);
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={ms.container}>
+        <View style={ms.header}>
+          <Text style={ms.title}>{title}</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+        </View>
+        <View style={ms.searchWrap}>
+          <SearchInput
+            placeholder="Search city or area..."
+            value={query}
+            onChangeText={handleSearch}
+            onClear={() => { setQuery(''); setResults([]); }}
+          />
+          {searching && <ActivityIndicator style={{ marginTop: 8 }} color={COLORS.primary} />}
+        </View>
+        {results.length > 0 ? (
+          <FlatList
+            data={results}
+            keyExtractor={(_, i) => String(i)}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={ms.item} onPress={() => onSelect(item.name)}>
+                <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={ms.itemName}>{item.name}</Text>
+                  <Text style={ms.itemSub} numberOfLines={1}>{item.displayName}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        ) : query.length >= 2 && !searching ? (
+          <View style={ms.empty}>
+            <Ionicons name="search-outline" size={40} color={COLORS.border} />
+            <Text style={ms.emptyText}>No results. Try a different name.</Text>
+          </View>
+        ) : (
+          <View style={ms.hint}>
+            <Ionicons name="information-circle-outline" size={18} color={COLORS.gray} />
+            <Text style={ms.hintText}>Type at least 2 characters to search</Text>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -102,11 +171,6 @@ export default function ScheduleScreen({ navigation }) {
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Illustration */}
-        <View style={styles.illustrationWrap}>
-          <SvgXml xml={scheduleIllustration} width={260} height={180} />
-        </View>
-
         {/* Calendar Card */}
         <View style={styles.calendarCard}>
           {/* Month Header */}
@@ -272,33 +336,19 @@ export default function ScheduleScreen({ navigation }) {
         )}
       </ScrollView>
 
-      {/* City Picker Modal */}
-      <Modal visible={!!cityModal} animationType="slide" onRequestClose={() => setCityModal(null)}>
-        <View style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{cityModal === 'from' ? 'Departure City' : 'Destination City'}</Text>
-            <TouchableOpacity onPress={() => setCityModal(null)} style={styles.modalClose}>
-              <Ionicons name="close" size={22} color={COLORS.textPrimary} />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={CITIES}
-            keyExtractor={item => item}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.cityItem}
-                onPress={() => {
-                  cityModal === 'from' ? setFrom(item) : setTo(item);
-                  setCityModal(null);
-                }}
-              >
-                <Ionicons name="location-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.cityItemText}>{item}</Text>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      </Modal>
+      {/* City Search Modals */}
+      <CitySearchModal
+        visible={cityModal === 'from'}
+        title="Departure City"
+        onSelect={name => { setFrom(name); setCityModal(null); }}
+        onClose={() => setCityModal(null)}
+      />
+      <CitySearchModal
+        visible={cityModal === 'to'}
+        title="Destination City"
+        onSelect={name => { setTo(name); setCityModal(null); }}
+        onClose={() => setCityModal(null)}
+      />
     </View>
   );
 }
@@ -369,10 +419,18 @@ const styles = StyleSheet.create({
   noAlertsWrap: { alignItems: 'center', paddingVertical: 12 },
   noAlertsText: { fontSize: 13, color: COLORS.gray, fontStyle: 'italic' },
 
-  modal: { flex: 1, backgroundColor: '#fff' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  modalTitle:  { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  modalClose:  { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
-  cityItem:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
-  cityItemText: { fontSize: 16, color: COLORS.textPrimary },
+});
+
+const ms = StyleSheet.create({
+  container:  { flex: 1, backgroundColor: '#fff' },
+  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  title:      { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  searchWrap: { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  item:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  itemName:   { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  itemSub:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  empty:      { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText:  { fontSize: 14, color: COLORS.gray },
+  hint:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20 },
+  hintText:   { fontSize: 13, color: COLORS.gray },
 });
