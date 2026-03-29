@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View, Text, StyleSheet, TouchableOpacity, FlatList, Modal,
+  View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, Modal,
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -178,6 +178,44 @@ function TimeModal({ visible, selected, onSelect, onClose }) {
   );
 }
 
+// ─── Max Price Modal ──────────────────────────────────────────────────────────
+function MaxPriceModal({ visible, value, onApply, onClose }) {
+  const [input, setInput] = useState(value);
+  useEffect(() => { if (visible) setInput(value); }, [visible]);
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sortOverlay} onPress={onClose} activeOpacity={1}>
+        <View style={styles.sortSheet}>
+          <View style={styles.sheetHandleRow}>
+            <Text style={styles.sortTitle}>Max Price (Rs)</Text>
+            {value ? (
+              <TouchableOpacity onPress={() => { onApply(''); onClose(); }}>
+                <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TextInput
+            style={styles.priceInput}
+            placeholder="e.g. 500"
+            placeholderTextColor={COLORS.gray}
+            value={input}
+            onChangeText={v => setInput(v.replace(/[^0-9]/g, ''))}
+            keyboardType="number-pad"
+            autoFocus
+            maxLength={6}
+          />
+          <TouchableOpacity
+            style={styles.sheetCloseBtn}
+            onPress={() => { onApply(input); onClose(); }}
+          >
+            <Text style={styles.sheetCloseBtnText}>Apply</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function timeInSlot(departureTime, slot) {
   if (!departureTime || !slot) return true;
@@ -199,15 +237,18 @@ export default function SearchScreen({ navigation, route }) {
   const [loading,       setLoading]       = useState(false);
   const [sort,          setSort]          = useState(null);
   const [showSortModal, setShowSortModal] = useState(false);
-  const [filterAC,      setFilterAC]      = useState(false);
-  const [filterVehicle, setFilterVehicle] = useState('');
-  const [filterBrand,   setFilterBrand]   = useState('');
-  const [filterTime,    setFilterTime]    = useState(null); // index into TIME_SLOTS
-  const [showBrandModal,setShowBrandModal]= useState(false);
-  const [showTimeModal, setShowTimeModal] = useState(false);
-  const [cityModal,     setCityModal]     = useState(null);
+  const [filterAC,        setFilterAC]        = useState(false);
+  const [filterFemale,    setFilterFemale]    = useState(false);
+  const [filterVehicle,   setFilterVehicle]   = useState('');
+  const [filterBrand,     setFilterBrand]     = useState('');
+  const [filterTime,      setFilterTime]      = useState(null);
+  const [filterMaxPrice,  setFilterMaxPrice]  = useState('');
+  const [showBrandModal,     setShowBrandModal]     = useState(false);
+  const [showTimeModal,      setShowTimeModal]      = useState(false);
+  const [showMaxPriceModal,  setShowMaxPriceModal]  = useState(false);
+  const [cityModal,          setCityModal]          = useState(null);
 
-  const activeFilterCount = [filterAC, filterVehicle, filterBrand, filterTime !== null].filter(Boolean).length;
+  const activeFilterCount = [filterAC, filterFemale, filterVehicle, filterBrand, filterTime !== null, !!filterMaxPrice].filter(Boolean).length;
 
   // ── Compute display list ──────────────────────────────────────────────────
   const displayList = useMemo(() => {
@@ -217,11 +258,16 @@ export default function SearchScreen({ navigation, route }) {
 
     let list = [...base];
     if (filterAC)           list = list.filter(r => r.vehicle?.ac);
+    if (filterFemale)       list = list.filter(r => r.femaleOnly || r.genderPreference === 'FEMALE');
     if (filterVehicle)      list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
     if (filterBrand)        list = list.filter(r => r.vehicle?.brand?.toLowerCase() === filterBrand.toLowerCase());
     if (filterTime !== null) {
       const slot = TIME_SLOTS[filterTime];
       list = list.filter(r => timeInSlot(r.departureTime, slot));
+    }
+    if (filterMaxPrice) {
+      const max = Number(filterMaxPrice);
+      if (!isNaN(max) && max > 0) list = list.filter(r => (r.segmentPrice ?? r.pricePerSeat) <= max);
     }
 
     if (sort === 0) list.sort((a, b) => (a.segmentPrice ?? a.pricePerSeat) - (b.segmentPrice ?? b.pricePerSeat));
@@ -259,9 +305,11 @@ export default function SearchScreen({ navigation, route }) {
 
   const activeFilters = [
     filterAC && 'AC',
+    filterFemale && 'Female Only',
     filterVehicle && filterVehicle,
     filterBrand && filterBrand,
     filterTime !== null && TIME_SLOTS[filterTime].label,
+    filterMaxPrice && `Max Rs ${filterMaxPrice}`,
   ].filter(Boolean);
 
   return (
@@ -320,6 +368,7 @@ export default function SearchScreen({ navigation, route }) {
         {/* Filters Row */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
+          <Chip label="Female Only" icon="female-outline" active={filterFemale} onPress={() => setFilterFemale(!filterFemale)} style={styles.filterChip} />
 
           {/* Vehicle type chips */}
           {['Car', 'Hiace', 'Coaster', 'Bus'].map(v => (
@@ -344,6 +393,15 @@ export default function SearchScreen({ navigation, route }) {
             style={styles.filterChip}
           />
 
+          {/* Max price chip */}
+          <Chip
+            label={filterMaxPrice ? `Max Rs ${filterMaxPrice}` : 'Max Price'}
+            icon="pricetag-outline"
+            active={!!filterMaxPrice}
+            onPress={() => setShowMaxPriceModal(true)}
+            style={styles.filterChip}
+          />
+
           {/* Sort chip */}
           <Chip label="Sort" icon="funnel-outline" active={sort !== null} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
         </ScrollView>
@@ -358,7 +416,7 @@ export default function SearchScreen({ navigation, route }) {
             ))}
             <TouchableOpacity
               style={styles.clearAllBtn}
-              onPress={() => { setFilterAC(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setSort(null); }}
+              onPress={() => { setFilterAC(false); setFilterFemale(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setFilterMaxPrice(''); setSort(null); }}
             >
               <Text style={styles.clearAllText}>Clear all</Text>
             </TouchableOpacity>
@@ -438,6 +496,14 @@ export default function SearchScreen({ navigation, route }) {
         onClose={() => setShowTimeModal(false)}
       />
 
+      {/* Max Price Modal */}
+      <MaxPriceModal
+        visible={showMaxPriceModal}
+        value={filterMaxPrice}
+        onApply={setFilterMaxPrice}
+        onClose={() => setShowMaxPriceModal(false)}
+      />
+
       {/* Sort Modal */}
       <Modal visible={showSortModal} transparent animationType="slide" onRequestClose={() => setShowSortModal(false)}>
         <TouchableOpacity style={styles.sortOverlay} onPress={() => setShowSortModal(false)} activeOpacity={1}>
@@ -512,6 +578,7 @@ const styles = StyleSheet.create({
   timeSlotSub:      { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   sheetCloseBtn:    { marginTop: 16, alignItems: 'center', paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.primary },
   sheetCloseBtnText:{ fontSize: 15, fontWeight: '700', color: '#fff' },
+  priceInput:       { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, padding: 14, fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16, textAlign: 'center' },
   brandGrid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
   brandChip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.lightGray },
   brandChipActive:  { backgroundColor: COLORS.primary, borderColor: COLORS.primary },

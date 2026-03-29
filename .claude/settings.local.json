@@ -4,7 +4,13 @@
       "Bash(npm uninstall:*)",
       "Bash(npx prisma:*)",
       "Bash(ipconfig)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\jamal\\.claude\\projects\\d--projects-carpool"
     ]
   }
 }

@@ -5,7 +5,7 @@ import { encryptValue, decryptValue } from '../utils/secureStorage';
 // For Android emulator use: 'http://10.0.2.2:5000/api/v1'
 // For iOS simulator use:    'http://localhost:5000/api/v1'
 // For physical device use:  'http://192.168.100.60:5000/api/v1'
-export const BASE_URL = 'http://localhost:5000/api/v1';
+export const BASE_URL = 'http://192.168.100.60:5000/api/v1';
 
 const TOKEN_KEY = '@chalparo_token';
 const DEFAULT_TIMEOUT = 12000;

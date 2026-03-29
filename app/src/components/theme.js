@@ -7,10 +7,10 @@ export const COLORS = {
   primaryDark:   '#1557b0',
   primaryLight:  '#e8f0fe',
 
-  // ── Driver accent
-  teal:          '#0097a7',
-  tealDark:      '#006978',
-  tealLight:     '#e0f7fa',
+  // ── Driver accent (unified to brand blue)
+  teal:          '#1a73e8',
+  tealDark:      '#1557b0',
+  tealLight:     '#e8f0fe',
 
   // ── Status
   secondary:     '#2e7d32',   // success, verified
@@ -40,7 +40,7 @@ export const COLORS = {
 // ─── GRADIENTS ──────────────────────────────────────────────────────────────
 export const GRADIENTS = {
   primary:   [COLORS.primary,   COLORS.primaryDark],
-  teal:      [COLORS.teal,      COLORS.tealDark],
+  teal:      [COLORS.primary,   COLORS.primaryDark],
   secondary: [COLORS.secondary, COLORS.secondaryDark],
   purple:    [COLORS.primary,   COLORS.primaryDark],  // legacy → blue
   accent:    ['#f59e0b',        '#d97706'],

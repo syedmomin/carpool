@@ -5,8 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS } from '../components';
+import { COLORS } from '../components';
 import { useApp } from '../context/AppContext';
 
 // Auth
@@ -47,44 +46,57 @@ const Tab = createBottomTabNavigator();
 const SPLASH_SEEN_KEY = '@chalparo_splash_seen';
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
-// Floating pill bar — active item has a gradient pill, inactive items are flat
-function CustomTabBar({ state, descriptors, navigation, tintColor }) {
+const CIRCLE  = 44;   // floating icon bubble diameter
+const HALO    = 56;   // background halo (fakes bar cutout)
+const BAR_H   = 56;   // height of the bar
+const LIFT    = HALO / 2; // bar pushed down by this amount
+
+function CustomTabBar({ state, descriptors, navigation }) {
+  const pbottom = Platform.OS === 'ios' ? 20 : 8;
   return (
-    <View style={[tabStyles.outerWrap, { paddingBottom: Platform.OS === 'ios' ? 20 : 6 }]}>
+    <View style={[tabStyles.wrapper, { paddingBottom: pbottom }]}>
+      {/* ── Dark bar (renders below the floating layer) ── */}
       <View style={tabStyles.bar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const focused  = state.index === index;
-          const label    = options.tabBarLabel || route.name;
-          const iconName = focused ? options._iconFocused : options._iconName;
-          const press    = () => navigation.navigate(route.name);
-
-          if (focused) {
-            return (
-              <View key={route.key} style={tabStyles.tab}>
-                <LinearGradient
-                  colors={[tintColor, tintColor + 'cc']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={tabStyles.activePill}
-                >
-                  <Ionicons name={iconName} size={18} color="#fff" />
-                  <Text style={tabStyles.activeLabel} numberOfLines={1}>{label}</Text>
-                </LinearGradient>
-              </View>
-            );
-          }
-
+          const focused = state.index === index;
+          const label   = options.tabBarLabel || route.name;
           return (
             <TouchableOpacity
               key={route.key}
-              style={tabStyles.tab}
-              onPress={press}
-              activeOpacity={0.7}
+              style={tabStyles.slot}
+              onPress={() => navigation.navigate(route.name)}
+              activeOpacity={0.75}
             >
-              <Ionicons name={iconName} size={22} color={COLORS.textSecondary} />
-              <Text style={tabStyles.inactiveLabel} numberOfLines={1}>{label}</Text>
+              <View style={tabStyles.iconSpace}>
+                {!focused && (
+                  <Ionicons name={options._iconName} size={20} color="#9ca3af" />
+                )}
+              </View>
+              <Text style={[tabStyles.lbl, focused && tabStyles.lblActive]} numberOfLines={1}>
+                {label}
+              </Text>
             </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* ── Floating bubbles overlay (pointer-events none — taps fall through to bar) ── */}
+      <View style={tabStyles.floatLayer} pointerEvents="none">
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const focused = state.index === index;
+          return (
+            <View key={route.key} style={tabStyles.floatItem}>
+              {focused && (
+                /* Halo (matches app bg) hides bar behind bubble → fake cutout */
+                <View style={tabStyles.halo}>
+                  <View style={tabStyles.bubble}>
+                    <Ionicons name={options._iconFocused} size={24} color="#fff" />
+                  </View>
+                </View>
+              )}
+            </View>
           );
         })}
       </View>
@@ -93,51 +105,77 @@ function CustomTabBar({ state, descriptors, navigation, tintColor }) {
 }
 
 const tabStyles = StyleSheet.create({
-  outerWrap: {
+  wrapper: {
     backgroundColor: 'transparent',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    overflow: 'visible',
   },
   bar: {
-    flexDirection:   'row',
-    backgroundColor: '#fff',
-    borderRadius:    32,
-    height:          62,
+    flexDirection:         'row',
+    height:                BAR_H,
+    backgroundColor:       '#fff',
+    marginTop:             LIFT,
+    borderTopLeftRadius:   20,
+    borderTopRightRadius:  20,
+    shadowColor:           '#000',
+    shadowOffset:          { width: 0, height: -3 },
+    shadowOpacity:         0.07,
+    shadowRadius:          10,
+    elevation:             14,
+  },
+  slot: {
+    flex:            1,
     alignItems:      'center',
-    paddingHorizontal: 6,
-    shadowColor:     '#000',
-    shadowOffset:    { width: 0, height: 4 },
-    shadowOpacity:   0.10,
-    shadowRadius:    16,
-    elevation:       14,
+    justifyContent:  'center',
+    paddingVertical: 6,
+    gap:             2,
   },
-  tab: {
-    flex:           1,
+  iconSpace: {
+    height:         22,
     alignItems:     'center',
     justifyContent: 'center',
-    height:         62,
   },
-  activePill: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    justifyContent: 'center',
-    gap:            6,
-    paddingHorizontal: 14,
-    paddingVertical:   9,
-    borderRadius:   22,
-    maxWidth:       120,
+  lbl: {
+    fontSize:      10,
+    color:         '#9ca3af',
+    fontWeight:    '500',
+    letterSpacing: 0.1,
   },
-  activeLabel: {
-    fontSize:    12,
-    fontWeight:  '700',
-    color:       '#fff',
-    letterSpacing: 0.2,
+  lblActive: {
+    color:      COLORS.primary,
+    fontWeight: '700',
   },
-  inactiveLabel: {
-    fontSize:    10,
-    color:       COLORS.textSecondary,
-    marginTop:   3,
-    letterSpacing: 0.2,
+  floatLayer: {
+    position:      'absolute',
+    top:           0,
+    left:          0,
+    right:         0,
+    flexDirection: 'row',
+    height:        HALO,
+  },
+  floatItem: {
+    flex:       1,
+    alignItems: 'center',
+  },
+  halo: {
+    width:           HALO,
+    height:          HALO,
+    borderRadius:    HALO / 2,
+    backgroundColor: COLORS.bg,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  bubble: {
+    width:           CIRCLE,
+    height:          CIRCLE,
+    borderRadius:    CIRCLE / 2,
+    backgroundColor: COLORS.primary,
+    alignItems:      'center',
+    justifyContent:  'center',
+    shadowColor:     COLORS.primary,
+    shadowOffset:    { width: 0, height: 3 },
+    shadowOpacity:   0.35,
+    shadowRadius:    8,
+    elevation:       10,
   },
 });
 
@@ -183,7 +221,7 @@ const DRIVER_TABS = [
 function PassengerTabNav() {
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} tintColor={COLORS.primary} />}
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
     >
       {PASSENGER_TABS.map(t => (
@@ -201,7 +239,7 @@ function PassengerTabNav() {
 function DriverTabNav() {
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} tintColor={COLORS.teal} />}
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
     >
       {DRIVER_TABS.map(t => (

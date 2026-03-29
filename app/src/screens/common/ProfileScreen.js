@@ -92,7 +92,7 @@ export default function ProfileScreen({ navigation }) {
 
   const handleLogout = async () => {
     await logout();
-    navigation.replace('Onboarding');
+    navigation.replace('Login');
   };
 
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
@@ -139,18 +139,22 @@ export default function ProfileScreen({ navigation }) {
         {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{currentUser?.city || '—'}</Text>
+            <Text style={styles.statValue} numberOfLines={1}>{currentUser?.city || '—'}</Text>
             <Text style={styles.statLabel}>City</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{currentUser?.rating || '—'}</Text>
+            <Text style={styles.statValue}>
+              {currentUser?.rating ? `${Number(currentUser.rating).toFixed(1)} ★` : 'New'}
+            </Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{currentUser?.city || '—'}</Text>
-            <Text style={styles.statLabel}>City</Text>
+            <Text style={styles.statValue}>
+              {currentUser?.createdAt ? new Date(currentUser.createdAt).getFullYear() : '—'}
+            </Text>
+            <Text style={styles.statLabel}>Member</Text>
           </View>
         </View>
       </LinearGradient>
@@ -214,7 +218,7 @@ const vStyles = StyleSheet.create({
   verifiedPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f5e9', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 4 },
   verifiedText: { fontSize: 12, fontWeight: '700', color: COLORS.secondary },
   progressTrack:{ height: 6, backgroundColor: COLORS.lightGray, borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
-  progressFill: { height: '100%', backgroundColor: COLORS.secondary, borderRadius: 3 },
+  progressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 3 },
   progressLabel:{ fontSize: 12, color: COLORS.gray, marginBottom: 14 },
   stepsGrid:    { gap: 8 },
   stepChip:     { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 10, padding: 10, gap: 10 },
