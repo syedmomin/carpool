@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm uninstall:*)",
       "Bash(npx prisma:*)",
-      "Bash(ipconfig)"
+      "Bash(ipconfig)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

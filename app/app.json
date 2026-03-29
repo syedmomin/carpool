@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SafariShare",
-    "slug": "safarishare",
+    "name": "ChalParo",
+    "slug": "chalparo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,20 +9,20 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a73e8"
+      "backgroundColor": "#0d1b4b"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "pk.safarishare.app"
+      "bundleIdentifier": "pk.chalparo.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1a73e8",
+        "backgroundColor": "#0d1b4b",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "pk.safarishare.app"
+      "package": "pk.chalparo.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"

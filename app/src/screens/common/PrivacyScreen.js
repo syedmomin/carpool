@@ -9,7 +9,7 @@ const SECTIONS = [
   { title: 'Data Security', body: 'We use industry-standard encryption to protect your data. Your CNIC and personal documents are stored securely.' },
   { title: 'Your Rights', body: 'You can request deletion of your account and all associated data at any time by contacting support.' },
   { title: 'Location Data', body: 'Location data is used only during active rides and is not stored permanently.' },
-  { title: 'Contact', body: 'For privacy concerns, email us at privacy@safarishare.pk' },
+  { title: 'Contact', body: 'For privacy concerns, email us at privacy@chalparo.pk' },
 ];
 
 export default function PrivacyScreen({ navigation }) {

@@ -221,6 +221,78 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     return withRating(ride);
   }
 
+  // ── Update ride status (ACTIVE → IN_PROGRESS → COMPLETED) ───────────────
+  async updateStatus(rideId: string, driverId: string, newStatus: string): Promise<any> {
+    const ride = await prisma.ride.findFirst({ where: { id: rideId, driverId } });
+    if (!ride) throw AppError.notFound('Ride not found');
+
+    const allowed: Record<string, string> = {
+      ACTIVE:      'IN_PROGRESS',
+      IN_PROGRESS: 'COMPLETED',
+    };
+    if (allowed[ride.status] !== newStatus) {
+      throw AppError.badRequest(`Cannot change status from ${ride.status} to ${newStatus}`);
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const r = await tx.ride.update({
+        where: { id: rideId },
+        data:  { status: newStatus as any, updatedBy: driverId },
+        include: INCLUDE,
+      });
+
+      if (newStatus === 'COMPLETED') {
+        // Mark all confirmed bookings as completed
+        await tx.booking.updateMany({
+          where: { rideId, status: 'CONFIRMED' },
+          data:  { status: 'COMPLETED', updatedBy: driverId },
+        });
+
+        // Notify passengers
+        const bookings = await tx.booking.findMany({
+          where:   { rideId },
+          include: { passenger: { select: { fcmToken: true, name: true } } },
+        });
+        const tokens = bookings
+          .map(b => b.passenger.fcmToken)
+          .filter((t): t is string => !!t);
+
+        if (tokens.length) {
+          const { sendToMultiple } = await import('../utils/firebase');
+          await sendToMultiple(
+            tokens,
+            'Ride Completed! ⭐ Rate Your Driver',
+            `Your ${r.fromCity} → ${r.toCity} ride is complete. Share your feedback!`,
+            { screen: 'BookingHistory' },
+          );
+        }
+      } else if (newStatus === 'IN_PROGRESS') {
+        // Notify passengers ride has started
+        const bookings = await tx.booking.findMany({
+          where:   { rideId, status: 'CONFIRMED' },
+          include: { passenger: { select: { fcmToken: true } } },
+        });
+        const tokens = bookings
+          .map(b => b.passenger.fcmToken)
+          .filter((t): t is string => !!t);
+
+        if (tokens.length) {
+          const { sendToMultiple } = await import('../utils/firebase');
+          await sendToMultiple(
+            tokens,
+            'Your Ride Has Started! 🚗',
+            `${r.fromCity} → ${r.toCity} — Your driver is on the way!`,
+            { screen: 'BookingHistory' },
+          );
+        }
+      }
+
+      return r;
+    });
+
+    return withRating(updated);
+  }
+
   // ── Small helper (avoids importing parsePagination separately) ────────────
   private parsePaginationSimple(query: PaginationQuery) {
     const page  = Math.max(1, Number(query.page)  || 1);

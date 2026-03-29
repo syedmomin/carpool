@@ -14,7 +14,7 @@ export async function searchPakistanLocations(query) {
   const url = `${NOMINATIM_BASE}?q=${encodeURIComponent(q + ', Pakistan')}&format=json&limit=8&countrycodes=pk&addressdetails=1`;
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'SafariShare/1.0 (carpool app)' },
+      headers: { 'User-Agent': 'ChalParo/1.0 (carpool app)' },
     });
     if (!res.ok) return [];
     const json = await res.json();

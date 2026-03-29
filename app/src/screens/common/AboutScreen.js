@@ -16,14 +16,14 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.primary} title="About SafariShare" onBack={() => navigation.goBack()} />
+      <GradientHeader colors={GRADIENTS.primary} title="About ChalParo" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <LinearGradient colors={GRADIENTS.primary} style={styles.logoBox}>
             <Ionicons name="car-sport" size={48} color="#fff" />
           </LinearGradient>
-          <Text style={styles.appName}>SafariShare</Text>
+          <Text style={styles.appName}>ChalParo</Text>
           <Text style={styles.version}>Version 1.0.0</Text>
           <Text style={styles.tagline}>Pakistan's Smart Ride Sharing App</Text>
         </View>
@@ -31,7 +31,7 @@ export default function AboutScreen({ navigation }) {
         {/* About */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
-          <Text style={styles.cardText}>SafariShare connects drivers with empty seats to passengers who need affordable travel across Pakistan. We believe travel should be safe, affordable, and accessible to everyone.</Text>
+          <Text style={styles.cardText}>ChalParo connects drivers with empty seats to passengers who need affordable travel across Pakistan. We believe travel should be safe, affordable, and accessible to everyone.</Text>
         </View>
 
         {/* Features */}
@@ -50,10 +50,10 @@ export default function AboutScreen({ navigation }) {
         {/* Team */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Made With Love in Pakistan 🇵🇰</Text>
-          <Text style={styles.cardText}>SafariShare is built by a passionate team dedicated to solving Pakistan's intercity travel challenges.</Text>
+          <Text style={styles.cardText}>ChalParo is built by a passionate team dedicated to solving Pakistan's intercity travel challenges.</Text>
         </View>
 
-        <Text style={styles.copyright}>© 2026 SafariShare. All rights reserved.</Text>
+        <Text style={styles.copyright}>© 2026 ChalParo. All rights reserved.</Text>
         <View style={{ height: 24 }} />
       </ScrollView>
     </View>

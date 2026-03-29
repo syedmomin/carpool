@@ -188,7 +188,7 @@ export default function ProfileScreen({ navigation }) {
         onPress={() => showModal({
           type:        'danger',
           title:       'Logout?',
-          message:     'Are you sure you want to logout from SafariShare?',
+          message:     'Are you sure you want to logout from ChalParo?',
           confirmText: 'Yes, Logout',
           cancelText:  'Stay',
           icon:        'log-out-outline',
@@ -199,7 +199,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      <Text style={styles.versionText}>SafariShare v1.0.0 • Made in Pakistan 🇵🇰</Text>
+      <Text style={styles.versionText}>ChalParo v1.0.0 • Made in Pakistan 🇵🇰</Text>
       <View style={{ height: 32 }} />
     </ScrollView>
   );

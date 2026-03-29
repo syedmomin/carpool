@@ -36,19 +36,23 @@ export class VehicleService extends BaseService<Vehicle, CreateVehicleDto, Updat
     });
   }
 
+  private ownsVehicle(vehicle: any, driverId: string): boolean {
+    return vehicle.driverId === driverId || vehicle.createdBy === driverId;
+  }
+
   async updateVehicle(id: string, dto: UpdateVehicleDto, driverId: string): Promise<Vehicle> {
     const vehicle = await this.getById(id);
-    if ((vehicle as any).driverId !== driverId) throw AppError.forbidden('Not your vehicle');
+    if (!this.ownsVehicle(vehicle, driverId)) throw AppError.forbidden('Not your vehicle');
     return this.update(id, dto, driverId);
   }
 
   async deleteVehicle(id: string, driverId: string): Promise<void> {
     const vehicle = await this.getById(id);
-    if ((vehicle as any).driverId !== driverId) throw AppError.forbidden('Not your vehicle');
+    if (!this.ownsVehicle(vehicle, driverId)) throw AppError.forbidden('Not your vehicle');
 
     // Block deletion if vehicle has active rides
     const activeRideCount = await prisma.ride.count({
-      where: { vehicleId: id, status: { in: ['ACTIVE', 'CONFIRMED'] } },
+      where: { vehicleId: id, status: { in: ['ACTIVE', 'IN_PROGRESS'] } },
     });
     if (activeRideCount > 0) {
       throw AppError.conflict('Cannot delete vehicle with active rides. Cancel or complete those rides first.');

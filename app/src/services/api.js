@@ -1,19 +1,37 @@
-// ─── SafariShare API Service ──────────────────────────────────────────────────
+// ─── ChalParo API Service ─────────────────────────────────────────────────────
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { encryptValue, decryptValue } from '../utils/secureStorage';
 
 // For Android emulator use: 'http://10.0.2.2:5000/api/v1'
 // For iOS simulator use:    'http://localhost:5000/api/v1'
 // For physical device use:  'http://192.168.100.60:5000/api/v1'
 export const BASE_URL = 'http://192.168.100.60:5000/api/v1';
 
-const TOKEN_KEY   = '@safarishare_token';
+const TOKEN_KEY       = '@chalparo_token';
+const TOKEN_KEY_OLD   = '@safarishare_token'; // migration: old unencrypted key
 const DEFAULT_TIMEOUT = 12000;
 
-// ─── Token helpers ────────────────────────────────────────────────────────────
+// ─── Token helpers (encrypted) ────────────────────────────────────────────────
 export const tokenStorage = {
-  get:    ()      => AsyncStorage.getItem(TOKEN_KEY),
-  set:    (token) => AsyncStorage.setItem(TOKEN_KEY, token),
-  remove: ()      => AsyncStorage.removeItem(TOKEN_KEY),
+  get: async () => {
+    // 1. Try new encrypted key
+    const raw = await AsyncStorage.getItem(TOKEN_KEY);
+    if (raw) return decryptValue(raw);
+    // 2. Migration: old key was plain-text
+    const old = await AsyncStorage.getItem(TOKEN_KEY_OLD);
+    if (old) {
+      // Migrate to new encrypted key, remove old
+      await AsyncStorage.setItem(TOKEN_KEY, encryptValue(old));
+      await AsyncStorage.removeItem(TOKEN_KEY_OLD);
+      return old;
+    }
+    return null;
+  },
+  set:    async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
+  remove: async ()      => {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+    await AsyncStorage.removeItem(TOKEN_KEY_OLD);
+  },
 };
 
 // ─── Core request ─────────────────────────────────────────────────────────────
@@ -62,7 +80,8 @@ export const ridesApi = {
   post:    (rideData)       => request('POST', '/rides', rideData),
   update:  (rideId, updates)=> request('PUT',  `/rides/${rideId}`, updates),
   cancel:  (rideId)         => request('DELETE', `/rides/${rideId}`),
-  myRides: (page = 1, limit = 10) => request('GET', `/rides/mine?page=${page}&limit=${limit}`),
+  myRides:      (page = 1, limit = 10) => request('GET',   `/rides/mine?page=${page}&limit=${limit}`),
+  updateStatus: (rideId, status)       => request('PATCH', `/rides/${rideId}/status`, { status }),
 };
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
@@ -84,6 +103,7 @@ export const profileApi = {
 // ─── Vehicles ────────────────────────────────────────────────────────────────
 export const vehiclesApi = {
   register:   (vehicleData)        => request('POST',   '/vehicles',              vehicleData),
+  getById:    (vehicleId)          => request('GET',    `/vehicles/${vehicleId}`),
   update:     (vehicleId, updates) => request('PUT',    `/vehicles/${vehicleId}`,  updates),
   delete:     (vehicleId)          => request('DELETE', `/vehicles/${vehicleId}`),
   setActive:  (vehicleId)          => request('POST',   `/vehicles/${vehicleId}/activate`),

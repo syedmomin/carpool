@@ -17,7 +17,7 @@ export default function SupportScreen({ navigation }) {
 
   const CONTACT = [
     { icon: 'call-outline',    label: 'Call Support',    sub: '+92 300 0000000',     onPress: () => Linking.openURL('tel:+923000000000'), color: COLORS.primary },
-    { icon: 'mail-outline',    label: 'Email Us',        sub: 'support@safarishare.pk', onPress: () => Linking.openURL('mailto:support@safarishare.pk'), color: COLORS.teal },
+    { icon: 'mail-outline',    label: 'Email Us',        sub: 'support@chalparo.pk', onPress: () => Linking.openURL('mailto:support@chalparo.pk'), color: COLORS.teal },
     { icon: 'logo-whatsapp',   label: 'WhatsApp',        sub: '+92 300 0000000',     onPress: () => Linking.openURL('https://wa.me/923000000000'), color: COLORS.secondary },
   ];
 

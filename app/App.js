@@ -1,22 +1,29 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppProvider } from './src/context/AppContext';
 import { ToastProvider } from './src/context/ToastContext';
 import { GlobalModalProvider } from './src/context/GlobalModalContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { registerForPushNotifications } from './src/utils/notifications';
+import { registerForPushNotifications, setupNotificationListeners } from './src/utils/notifications';
 import { profileApi } from './src/services/api';
 
 export default function App() {
+  const navigationRef = useRef(null);
+
   useEffect(() => {
     // Register for push notifications on app start
     registerForPushNotifications().then(token => {
       if (token) {
-        // Send FCM token to backend silently
         profileApi.updateFcmToken(token).catch(() => {});
       }
     });
+  }, []);
+
+  useEffect(() => {
+    // Wire notification tap navigation once navigation is ready
+    const cleanup = setupNotificationListeners(navigationRef.current);
+    return cleanup;
   }, []);
 
   return (
@@ -25,7 +32,7 @@ export default function App() {
         <GlobalModalProvider>
           <ToastProvider>
             <StatusBar style="light" />
-            <AppNavigator />
+            <AppNavigator navigationRef={navigationRef} />
           </ToastProvider>
         </GlobalModalProvider>
       </AppProvider>

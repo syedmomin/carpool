@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from '../../utils/imagePicker';
+import { vehiclesApi } from '../../services/api';
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = [
@@ -35,43 +36,83 @@ const ALL_FEATURES = [
 
 const STEPS = ['Vehicle Type', 'Details & Photos'];
 
+// ─── Car brands available in Pakistan ─────────────────────────────────────────
+const VEHICLE_BRANDS = [
+  // Japanese
+  'Toyota', 'Suzuki', 'Honda', 'Daihatsu', 'Mitsubishi', 'Nissan', 'Mazda', 'Subaru',
+  // Korean
+  'Hyundai', 'Kia',
+  // Chinese
+  'Changan', 'MG', 'Proton', 'FAW', 'DFSK', 'Haval', 'Chery', 'BYD',
+  // European / American
+  'Mercedes', 'BMW', 'Audi', 'Land Rover',
+  // Other
+  'Other',
+];
+
 // ─── Year picker: 1980 to current year + 1 ────────────────────────────────────
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: CURRENT_YEAR - 1979 }, (_, i) => String(CURRENT_YEAR - i));
 
 export default function VehicleSetupScreen({ navigation, route }) {
-  const { registerVehicle, updateVehicle, getVehicleById } = useApp();
+  const { registerVehicle, updateVehicle } = useApp();
   const { showToast } = useToast();
   const vehicleId = route?.params?.vehicleId;
-  const existing  = vehicleId ? getVehicleById(vehicleId) : null;
 
-  const [step, setStep] = useState(0);
+  const [step,         setStep]         = useState(0);
+  const [fetchLoading, setFetchLoading] = useState(!!vehicleId);
+  const [existing,     setExisting]     = useState(null);
+
+  // Fetch existing vehicle from API when editing
+  useEffect(() => {
+    if (!vehicleId) return;
+    vehiclesApi.getById(vehicleId).then(({ data, error }) => {
+      if (error || !data?.data) {
+        showToast('Vehicle not found.', 'error');
+        navigation.goBack();
+        return;
+      }
+      const v = data.data;
+      setExisting(v);
+      setSelectedType(v.type || '');
+      setImages(v.images || []);
+      setForm({
+        brand:       v.brand       || '',
+        model:       v.model       || '',
+        color:       v.color       || '',
+        plateNumber: v.plateNumber || '',
+        totalSeats:  v.totalSeats?.toString() || '',
+      });
+      setFeatures({
+        ac:          !!v.ac,
+        wifi:        !!v.wifi,
+        music:       !!v.music,
+        usbCharging: !!v.usbCharging,
+        waterCooler: !!v.waterCooler,
+        blanket:     !!v.blanket,
+        firstAid:    !!v.firstAid,
+        luggageRack: !!v.luggageRack,
+      });
+      setFetchLoading(false);
+    });
+  }, [vehicleId]);
 
   // Step 1
-  const [selectedType, setSelectedType] = useState(existing?.type || '');
+  const [selectedType, setSelectedType] = useState('');
 
   // Step 2
-  const [images, setImages]           = useState(existing?.images || []);
+  const [images, setImages]             = useState([]);
   const [imgUploading, setImgUploading] = useState(false);
   const [form, setForm] = useState({
-    brand:       existing?.brand       || '',
-    model:       existing?.model       || '',
-    color:       existing?.color       || '',
-    plateNumber: existing?.plateNumber || '',
-    totalSeats:  existing?.totalSeats?.toString() || '',
+    brand: '', model: '', color: '', plateNumber: '', totalSeats: '',
   });
   const [features, setFeatures] = useState({
-    ac:          !!existing?.ac,
-    wifi:        !!existing?.wifi,
-    music:       !!existing?.music,
-    usbCharging: !!existing?.usbCharging,
-    waterCooler: !!existing?.waterCooler,
-    blanket:     !!existing?.blanket,
-    firstAid:    !!existing?.firstAid,
-    luggageRack: !!existing?.luggageRack,
+    ac: false, wifi: false, music: false, usbCharging: false,
+    waterCooler: false, blanket: false, firstAid: false, luggageRack: false,
   });
-  const [yearModal, setYearModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [yearModal,  setYearModal]  = useState(false);
+  const [brandModal, setBrandModal] = useState(false);
+  const [loading,    setLoading]    = useState(false);
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
@@ -232,13 +273,20 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
       {/* ── Vehicle Details ──────────────────────────────────────────── */}
       <Text style={styles.sectionLabel}>Vehicle Details</Text>
-      <FormInput
-        label="Brand & Model *"
-        icon="car-outline"
-        placeholder="e.g. Toyota Corolla"
-        value={form.brand}
-        onChangeText={v => update('brand', v)}
-      />
+
+      {/* Brand Picker */}
+      <TouchableOpacity style={styles.yearPickerBtn} onPress={() => setBrandModal(true)} activeOpacity={0.8}>
+        <View style={styles.yearPickerIcon}>
+          <Ionicons name="car-outline" size={18} color={COLORS.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.yearPickerLabel}>Brand *</Text>
+          <Text style={[styles.yearPickerValue, !form.brand && { color: COLORS.gray }]}>
+            {form.brand || 'Select brand'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
+      </TouchableOpacity>
 
       {/* Year picker */}
       <TouchableOpacity style={styles.yearPickerBtn} onPress={() => setYearModal(true)} activeOpacity={0.8}>
@@ -305,6 +353,15 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
   const headerGradient = GRADIENTS.primary;
 
+  if (fetchLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ fontSize: 14, color: COLORS.gray }}>Loading vehicle details...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
@@ -349,6 +406,32 @@ export default function VehicleSetupScreen({ navigation, route }) {
           <View style={{ height: 32 }} />
         </ScrollView>
       </View>
+
+      {/* Brand Picker Modal */}
+      <Modal visible={brandModal} animationType="slide" onRequestClose={() => setBrandModal(false)}>
+        <View style={styles.yearModal}>
+          <View style={styles.yearModalHeader}>
+            <Text style={styles.yearModalTitle}>Select Brand</Text>
+            <TouchableOpacity onPress={() => setBrandModal(false)}>
+              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={VEHICLE_BRANDS}
+            keyExtractor={item => item}
+            contentContainerStyle={{ paddingVertical: 8 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.yearItem, form.brand === item && styles.yearItemActive]}
+                onPress={() => { update('brand', item); setBrandModal(false); }}
+              >
+                <Text style={[styles.yearItemText, form.brand === item && styles.yearItemTextActive]}>{item}</Text>
+                {form.brand === item && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </Modal>
 
       {/* Year Picker Modal */}
       <Modal visible={yearModal} animationType="slide" onRequestClose={() => setYearModal(false)}>

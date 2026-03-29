@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureStorage } from '../utils/secureStorage';
 import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi } from '../services/api';
 
-const USER_STORAGE_KEY = '@safarishare_user';
-const ROLE_STORAGE_KEY = '@safarishare_role';
+const USER_STORAGE_KEY     = '@chalparo_user';
+const ROLE_STORAGE_KEY     = '@chalparo_role';
+const USER_STORAGE_KEY_OLD = '@safarishare_user';
+const ROLE_STORAGE_KEY_OLD = '@safarishare_role';
 
 const AppContext = createContext();
 
@@ -20,13 +22,29 @@ export const AppProvider = ({ children }) => {
         const token = await tokenStorage.get();
         if (!token) { setIsLoading(false); return; }
 
-        const [cachedUserRaw, cachedRole] = await Promise.all([
-          AsyncStorage.getItem(USER_STORAGE_KEY),
-          AsyncStorage.getItem(ROLE_STORAGE_KEY),
-        ]);
+        // Try new keys first, fallback to old plain-text keys (migration)
+        let cachedUser = await secureStorage.getObject(USER_STORAGE_KEY);
+        let cachedRole = await secureStorage.getItem(ROLE_STORAGE_KEY);
+        if (!cachedUser || !cachedRole) {
+          const { default: AS } = await import('@react-native-async-storage/async-storage');
+          const [oldUserRaw, oldRole] = await Promise.all([
+            AS.getItem(USER_STORAGE_KEY_OLD),
+            AS.getItem(ROLE_STORAGE_KEY_OLD),
+          ]);
+          if (oldUserRaw && !cachedUser) {
+            try { cachedUser = JSON.parse(oldUserRaw); } catch { cachedUser = null; }
+            await AS.removeItem(USER_STORAGE_KEY_OLD);
+            if (cachedUser) await secureStorage.setObject(USER_STORAGE_KEY, cachedUser);
+          }
+          if (oldRole && !cachedRole) {
+            cachedRole = oldRole;
+            await AS.removeItem(ROLE_STORAGE_KEY_OLD);
+            await secureStorage.setItem(ROLE_STORAGE_KEY, cachedRole);
+          }
+        }
 
-        if (cachedUserRaw && cachedRole) {
-          setCurrentUser(JSON.parse(cachedUserRaw));
+        if (cachedUser && cachedRole) {
+          setCurrentUser(cachedUser);
           setUserRole(cachedRole);
           setIsLoading(false);
         }
@@ -39,8 +57,8 @@ export const AppProvider = ({ children }) => {
           setCurrentUser(user);
           setUserRole(role);
           await Promise.all([
-            AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
-            AsyncStorage.setItem(ROLE_STORAGE_KEY, role),
+            secureStorage.setObject(USER_STORAGE_KEY, user),
+            secureStorage.setItem(ROLE_STORAGE_KEY, role),
           ]);
         }
       } catch (_) {
@@ -59,8 +77,8 @@ export const AppProvider = ({ children }) => {
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     await Promise.all([
       tokenStorage.set(accessToken),
-      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
-      AsyncStorage.setItem(ROLE_STORAGE_KEY, role),
+      secureStorage.setObject(USER_STORAGE_KEY, user),
+      secureStorage.setItem(ROLE_STORAGE_KEY, role),
     ]);
     setCurrentUser(user);
     setUserRole(role);
@@ -70,8 +88,8 @@ export const AppProvider = ({ children }) => {
   const logout = async () => {
     await Promise.all([
       tokenStorage.remove(),
-      AsyncStorage.removeItem(USER_STORAGE_KEY),
-      AsyncStorage.removeItem(ROLE_STORAGE_KEY),
+      secureStorage.removeItem(USER_STORAGE_KEY),
+      secureStorage.removeItem(ROLE_STORAGE_KEY),
     ]);
     setCurrentUser(null);
     setUserRole(null);
@@ -85,8 +103,8 @@ export const AppProvider = ({ children }) => {
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     await Promise.all([
       tokenStorage.set(accessToken),
-      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user)),
-      AsyncStorage.setItem(ROLE_STORAGE_KEY, role),
+      secureStorage.setObject(USER_STORAGE_KEY, user),
+      secureStorage.setItem(ROLE_STORAGE_KEY, role),
     ]);
     setCurrentUser(user);
     setUserRole(role);
@@ -96,19 +114,19 @@ export const AppProvider = ({ children }) => {
   const updateProfile = async (updates) => {
     setCurrentUser(prev => {
       const updated = { ...prev, ...updates };
-      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated)).catch(() => {});
+      secureStorage.setObject(USER_STORAGE_KEY, updated).catch(() => {});
       return updated;
     });
     const { data, error } = await profileApi.update(updates);
     if (data?.data) {
       setCurrentUser(data.data);
-      AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.data)).catch(() => {});
+      secureStorage.setObject(USER_STORAGE_KEY, data.data).catch(() => {});
     }
     return { error };
   };
 
   // ─── Rides (pure API wrappers — no global state) ──────────────────────────
-  const postRide    = async (rideData) => {
+  const postRide = async (rideData) => {
     const payload = {
       ...rideData,
       fromCity:     rideData.fromCity || rideData.from,
@@ -177,8 +195,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const refreshUnreadCount = async () => {
-    const res = await notificationsApi.getAll(1, 1);
-    // Backend returns unread count in meta or we just re-fetch
     const { data } = await notificationsApi.getAll(1, 100);
     if (data?.data) {
       const count = (data.data || []).filter(n => !n.read).length;

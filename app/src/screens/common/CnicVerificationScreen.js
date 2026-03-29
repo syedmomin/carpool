@@ -53,7 +53,7 @@ export default function CnicVerificationScreen({ navigation }) {
       setUploading(true);
       setter(result.url);
       setUploading(false);
-    });
+    }, 'documents');
   };
 
   const validateCnic = (value) => /^\d{5}-\d{7}-\d$/.test(value) || /^\d{13}$/.test(value.replace(/-/g, ''));

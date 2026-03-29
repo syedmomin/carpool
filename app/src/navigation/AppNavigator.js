@@ -45,7 +45,8 @@ import AboutScreen from '../screens/common/AboutScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const SPLASH_SEEN_KEY = '@safarishare_splash_seen';
+const SPLASH_SEEN_KEY     = '@chalparo_splash_seen';
+const ONBOARDING_SEEN_KEY = '@chalparo_onboarding_seen';
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
 // Floating pill bar — active item has a gradient pill, inactive items are flat
@@ -263,31 +264,40 @@ function DriverApp() {
 }
 
 // ─── Root Navigator ───────────────────────────────────────────────────────────
-export default function AppNavigator() {
+export default function AppNavigator({ navigationRef }) {
   const { currentUser, userRole, isLoading } = useApp();
-  const [splashSeen, setSplashSeen] = useState(null); // null = not checked yet
+  const [splashSeen,     setSplashSeen]     = useState(null); // null = not checked yet
+  const [onboardingSeen, setOnboardingSeen] = useState(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(SPLASH_SEEN_KEY).then(val => setSplashSeen(!!val));
+    Promise.all([
+      AsyncStorage.getItem(SPLASH_SEEN_KEY),
+      AsyncStorage.getItem(ONBOARDING_SEEN_KEY),
+    ]).then(([splash, onboarding]) => {
+      setSplashSeen(!!splash);
+      setOnboardingSeen(!!onboarding);
+    });
   }, []);
 
-  // Waiting for both: auth check + splash-seen check
-  if (isLoading || splashSeen === null) {
+  // Waiting for both: auth check + storage checks
+  if (isLoading || splashSeen === null || onboardingSeen === null) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a73e8' }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1b4b' }}>
         <ActivityIndicator size="large" color="#fff" />
       </View>
     );
   }
 
-  // Decide initial route:
-  // - First-ever open (no splash seen): show Splash → Onboarding/Tabs
-  // - Already seen splash + logged in: go directly to tabs
-  // - Already seen splash + not logged in: go to Onboarding
+  // Route logic:
+  // 1. Never seen splash → show Splash (leads to Onboarding or Tabs)
+  // 2. Seen splash + logged in → go to tabs
+  // 3. Seen splash + never seen onboarding → show Onboarding (once only)
+  // 4. Seen splash + seen onboarding + not logged in → Login
   const getInitialRoute = () => {
     if (!splashSeen) return 'Splash';
     if (currentUser) return userRole === 'driver' ? 'DriverApp' : 'PassengerApp';
-    return 'Onboarding';
+    if (!onboardingSeen) return 'Onboarding';
+    return 'Login';
   };
 
   const handleSplashDone = () => {
@@ -295,8 +305,13 @@ export default function AppNavigator() {
     setSplashSeen(true);
   };
 
+  const handleOnboardingDone = () => {
+    AsyncStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+    setOnboardingSeen(true);
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName={getInitialRoute()}
         screenOptions={{ headerShown: false, animation: 'fade' }}
@@ -305,7 +320,9 @@ export default function AppNavigator() {
         <Stack.Screen name="Splash">
           {props => <SplashScreen {...props} onDone={handleSplashDone} />}
         </Stack.Screen>
-        <Stack.Screen name="Onboarding"  component={OnboardingScreen} />
+        <Stack.Screen name="Onboarding">
+          {props => <OnboardingScreen {...props} onDone={handleOnboardingDone} />}
+        </Stack.Screen>
         <Stack.Screen name="Login"       component={LoginScreen} />
         <Stack.Screen name="Register"    component={RegisterScreen} />
 

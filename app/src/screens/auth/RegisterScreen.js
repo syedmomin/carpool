@@ -70,7 +70,7 @@ export default function RegisterScreen({ navigation }) {
     });
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
-    showToast('Account created successfully! Welcome to SafariShare.', 'success');
+    showToast('Account created successfully! Welcome to ChalParo.', 'success');
     navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
   };
 
@@ -78,7 +78,7 @@ export default function RegisterScreen({ navigation }) {
   const renderStep1 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Choose Your Role</Text>
-      <Text style={styles.stepSub}>What would you like to do on SafariShare?</Text>
+      <Text style={styles.stepSub}>What would you like to do on ChalParo?</Text>
       {[
         { value: 'passenger', icon: 'person',   label: 'Passenger', sub: 'Find & book rides', colors: GRADIENTS.primary },
         { value: 'driver',    icon: 'car-sport', label: 'Driver',   sub: 'Post rides & earn', colors: GRADIENTS.teal    },

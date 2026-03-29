@@ -33,7 +33,7 @@ export default function EditProfileScreen({ navigation }) {
       setUploading(true);
       setAvatar(result.url);
       setUploading(false);
-    });
+    }, 'profile');
   };
 
   const handleSave = async () => {

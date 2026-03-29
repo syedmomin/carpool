@@ -2,8 +2,10 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, TabPills, StatusBadge, ProgressBar, FAB } from '../../components';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
 import { ridesApi } from '../../services/api';
 
 const PAGE_SIZE = 10;
@@ -14,12 +16,20 @@ const TABS = [
 
 export default function MyRidesScreen({ navigation }) {
   const { showModal } = useGlobalModal();
-  const [activeTab,  setActiveTab]  = useState(0);
-  const [allRides,   setAllRides]   = useState([]);
-  const [page,       setPage]       = useState(1);
-  const [hasMore,    setHasMore]    = useState(true);
-  const [loading,    setLoading]    = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const { showToast } = useToast();
+  const [activeTab,      setActiveTab]      = useState(0);
+  const [allRides,       setAllRides]       = useState([]);
+  const [page,           setPage]           = useState(1);
+  const [hasMore,        setHasMore]        = useState(true);
+  const [loading,        setLoading]        = useState(false);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [actionLoading,  setActionLoading]  = useState(null); // rideId being actioned
+
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
 
   const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
@@ -28,6 +38,7 @@ export default function MyRidesScreen({ navigation }) {
     pageNum === 1 ? setRefreshing(true) : setLoading(true);
     const { data } = await ridesApi.myRides(pageNum, PAGE_SIZE);
     pageNum === 1 ? setRefreshing(false) : setLoading(false);
+    setInitialLoading(false);
     if (!data?.data) return;
     const items = (data.data || []).map(normalize);
     setAllRides(prev => replace ? items : [...prev, ...items]);
@@ -43,22 +54,66 @@ export default function MyRidesScreen({ navigation }) {
     if (hasMore && !loading && !refreshing) fetchRides(page + 1);
   };
 
-  const rides = activeTab === 0 ? allRides.filter(r => r.status === 'ACTIVE') : allRides;
+  const handleStatusChange = (ride, newStatus) => {
+    const isStart    = newStatus === 'IN_PROGRESS';
+    const isComplete = newStatus === 'COMPLETED';
+    showModal({
+      type:        isComplete ? 'info' : 'primary',
+      title:       isStart ? 'Start Ride?' : 'Complete Ride?',
+      message:     isStart
+        ? 'This will notify all passengers that the ride has started.'
+        : 'This will mark the ride as completed and notify passengers to rate their experience.',
+      confirmText: isStart ? 'Start Ride' : 'Complete Ride',
+      cancelText:  'Cancel',
+      icon:        isStart ? 'play-circle-outline' : 'checkmark-circle-outline',
+      onConfirm:   async () => {
+        setActionLoading(ride.id);
+        const { data, error } = await ridesApi.updateStatus(ride.id, newStatus);
+        setActionLoading(null);
+        if (error) {
+          showToast(error, 'error');
+        } else {
+          showToast(isStart ? 'Ride started!' : 'Ride completed!', 'success');
+          setAllRides(prev => prev.map(r => r.id === ride.id ? { ...normalize(data.data || data), ...r, status: newStatus } : r));
+          fetchRides(1, true);
+        }
+      },
+    });
+  };
+
+  const rides = activeTab === 0
+    ? allRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS')
+    : allRides;
 
   const renderRide = ({ item }) => {
-    const vehicle = item.vehicle;
-    const available = item.totalSeats - item.bookedSeats;
-    const fillPercent = item.bookedSeats / item.totalSeats;
-    const earned = item.bookedSeats * item.pricePerSeat;
+    const vehicle      = item.vehicle;
+    const available    = item.totalSeats - item.bookedSeats;
+    const fillPercent  = item.bookedSeats / item.totalSeats;
+    const earned       = item.bookedSeats * item.pricePerSeat;
+    const isActioning  = actionLoading === item.id;
+    const isActive     = item.status === 'ACTIVE';
+    const isInProgress = item.status === 'IN_PROGRESS';
+    const isToday      = item.date === todayStr;
 
     return (
       <View style={styles.rideCard}>
+        {/* Status banner for IN_PROGRESS */}
+        {isInProgress && (
+          <LinearGradient colors={GRADIENTS.teal} style={styles.inProgressBanner}>
+            <Ionicons name="navigate-outline" size={14} color="#fff" />
+            <Text style={styles.inProgressText}>Ride In Progress</Text>
+          </LinearGradient>
+        )}
+
         <View style={styles.rideHeader}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.rideRoute}>{item.from} → {item.to}</Text>
             <Text style={styles.rideDate}>{item.date} • {item.departureTime}</Text>
           </View>
-          <StatusBadge status={available > 0 ? 'active' : 'pending'} label={available > 0 ? 'Open' : 'Full'} />
+          <StatusBadge
+            status={isInProgress ? 'in_progress' : available > 0 ? 'active' : 'pending'}
+            label={isInProgress ? 'Active' : available > 0 ? 'Open' : 'Full'}
+          />
         </View>
 
         <ProgressBar
@@ -84,27 +139,78 @@ export default function MyRidesScreen({ navigation }) {
         </View>
 
         <View style={styles.actionRow}>
+          {/* Passengers button */}
           <TouchableOpacity style={styles.actionBtn}>
             <Ionicons name="people-outline" size={16} color={COLORS.primary} />
             <Text style={styles.actionBtnText}>Passengers ({item.bookedSeats})</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: COLORS.danger + '50' }]}
-            onPress={() => showModal({
-              type: 'danger',
-              title: 'Cancel Ride?',
-              message: 'Are you sure you want to cancel this ride? Passengers will be notified.',
-              confirmText: 'Yes, Cancel',
-              cancelText: 'No',
-            })}
-          >
-            <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
-            <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text>
-          </TouchableOpacity>
+
+          {/* Start Ride button — only when ACTIVE, has bookings, and today is the ride date */}
+          {isActive && item.bookedSeats > 0 && isToday && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.startBtn]}
+              onPress={() => handleStatusChange(item, 'IN_PROGRESS')}
+              disabled={isActioning}
+            >
+              {isActioning
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <>
+                    <Ionicons name="play-circle-outline" size={16} color="#fff" />
+                    <Text style={styles.startBtnText}>Start Ride</Text>
+                  </>
+              }
+            </TouchableOpacity>
+          )}
+
+          {/* Complete Ride button — only when IN_PROGRESS */}
+          {isInProgress && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.completeBtn]}
+              onPress={() => handleStatusChange(item, 'COMPLETED')}
+              disabled={isActioning}
+            >
+              {isActioning
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <>
+                    <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+                    <Text style={styles.startBtnText}>Complete</Text>
+                  </>
+              }
+            </TouchableOpacity>
+          )}
+
+          {/* Cancel — only when ACTIVE */}
+          {isActive && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { borderColor: COLORS.danger + '50' }]}
+              onPress={() => showModal({
+                type:        'danger',
+                title:       'Cancel Ride?',
+                message:     'Are you sure you want to cancel this ride? Passengers will be notified.',
+                confirmText: 'Yes, Cancel',
+                cancelText:  'No',
+              })}
+            >
+              <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
+              <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
   };
+
+  if (initialLoading) {
+    return (
+      <View style={styles.container}>
+        <GradientHeader colors={GRADIENTS.teal} title="My Rides" onBack={() => navigation.goBack()} />
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator size="large" color={COLORS.teal} />
+          <Text style={styles.loadingText}>Loading your rides...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -116,7 +222,7 @@ export default function MyRidesScreen({ navigation }) {
         <View style={styles.headerStats}>
           {[
             { val: allRides.length,                                                                           label: 'Total'  },
-            { val: allRides.filter(r => r.status === 'ACTIVE').length,                                       label: 'Active' },
+            { val: allRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS').length,         label: 'Active' },
             { val: `Rs ${allRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0).toLocaleString()}`, label: 'Earned', accent: true },
           ].map((s, i) => (
             <View key={i} style={styles.headerStat}>
@@ -162,23 +268,30 @@ export default function MyRidesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  headerStats: { flexDirection: 'row', gap: 20, marginTop: 12 },
-  headerStat: { alignItems: 'center' },
-  headerStatVal: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerStatLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  tabs: { margin: 16 },
-  listContent: { padding: 16, paddingBottom: 80 },
-  rideCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
-  rideHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  rideRoute: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  rideDate: { fontSize: 12, color: COLORS.gray, marginTop: 3 },
-  progress: { marginBottom: 12 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, borderRadius: 12, padding: 12, marginBottom: 12 },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
-  actionRow: { flexDirection: 'row', gap: 10 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, gap: 6 },
-  actionBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  fab: { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  container:        { flex: 1, backgroundColor: COLORS.bg },
+  loadingCenter:    { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText:      { fontSize: 14, color: COLORS.gray },
+  headerStats:      { flexDirection: 'row', gap: 20, marginTop: 12 },
+  headerStat:       { alignItems: 'center' },
+  headerStatVal:    { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerStatLabel:  { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  tabs:             { margin: 16 },
+  listContent:      { padding: 16, paddingBottom: 80 },
+  rideCard:         { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  inProgressBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
+  inProgressText:   { fontSize: 12, fontWeight: '700', color: '#fff' },
+  rideHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
+  rideRoute:        { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
+  rideDate:         { fontSize: 12, color: COLORS.gray, marginTop: 3 },
+  progress:         { marginHorizontal: 16, marginBottom: 12 },
+  statsRow:         { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12 },
+  stat:             { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statText:         { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
+  actionRow:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
+  actionBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
+  actionBtnText:    { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  startBtn:         { backgroundColor: COLORS.secondary, borderColor: 'transparent' },
+  completeBtn:      { backgroundColor: COLORS.teal || '#009688', borderColor: 'transparent' },
+  startBtnText:     { fontSize: 13, fontWeight: '700', color: '#fff' },
+  fab:              { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
 });

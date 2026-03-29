@@ -32,7 +32,7 @@ export const ProgressBar = ({ value = 0, color, height = 6, label, caption, styl
 };
 
 const styles = StyleSheet.create({
-  wrapper: { width: '100%' },
+  wrapper: { alignSelf: 'stretch' },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   label: { fontSize: 12, color: COLORS.gray },
   caption: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },

@@ -12,6 +12,25 @@ import { ridesApi } from '../../services/api';
 
 const SORT_OPTIONS = ['Price: Low to High', 'Price: High to Low', 'Earliest Departure', 'Highest Rated'];
 
+// Popular car brands available in Pakistan (Pakistani / Japanese / Korean / Chinese)
+const VEHICLE_BRANDS = [
+  // Japanese
+  'Toyota', 'Suzuki', 'Honda', 'Daihatsu', 'Mitsubishi', 'Nissan', 'Mazda', 'Subaru',
+  // Korean
+  'Hyundai', 'Kia',
+  // Chinese
+  'Changan', 'MG', 'Proton', 'FAW', 'DFSK', 'Haval', 'Chery', 'BYD',
+  // European / American (present in Pakistan)
+  'Mercedes', 'BMW', 'Audi', 'Land Rover',
+];
+
+const TIME_SLOTS = [
+  { label: 'Morning',   icon: 'sunny-outline',     from: '05:00', to: '12:00' },
+  { label: 'Afternoon', icon: 'partly-sunny-outline', from: '12:00', to: '17:00' },
+  { label: 'Evening',   icon: 'moon-outline',       from: '17:00', to: '21:00' },
+  { label: 'Night',     icon: 'cloudy-night-outline', from: '21:00', to: '23:59' },
+];
+
 // ─── City Search Modal ────────────────────────────────────────────────────────
 function CitySearchModal({ visible, title, onSelect, onClose }) {
   const [query, setQuery] = useState('');
@@ -83,30 +102,127 @@ function CitySearchModal({ visible, title, onSelect, onClose }) {
   );
 }
 
+// ─── Brand Filter Modal ────────────────────────────────────────────────────────
+function BrandModal({ visible, selected, onSelect, onClose }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sortOverlay} onPress={onClose} activeOpacity={1}>
+        <View style={[styles.sortSheet, { maxHeight: '75%' }]}>
+          <View style={styles.sheetHandleRow}>
+            <Text style={styles.sortTitle}>Filter by Brand</Text>
+            {selected ? (
+              <TouchableOpacity onPress={() => onSelect('')}>
+                <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.brandGrid}>
+              {VEHICLE_BRANDS.map(brand => (
+                <TouchableOpacity
+                  key={brand}
+                  style={[styles.brandChip, selected === brand && styles.brandChipActive]}
+                  onPress={() => onSelect(selected === brand ? '' : brand)}
+                >
+                  <Text style={[styles.brandChipText, selected === brand && { color: '#fff' }]}>
+                    {brand}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <TouchableOpacity style={styles.sheetCloseBtn} onPress={onClose}>
+            <Text style={styles.sheetCloseBtnText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ─── Time Filter Modal ────────────────────────────────────────────────────────
+function TimeModal({ visible, selected, onSelect, onClose }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sortOverlay} onPress={onClose} activeOpacity={1}>
+        <View style={styles.sortSheet}>
+          <View style={styles.sheetHandleRow}>
+            <Text style={styles.sortTitle}>Departure Time</Text>
+            {selected !== null ? (
+              <TouchableOpacity onPress={() => onSelect(null)}>
+                <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          {TIME_SLOTS.map((slot, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.sortOption, selected === i && styles.sortOptionActive]}
+              onPress={() => { onSelect(selected === i ? null : i); onClose(); }}
+            >
+              <View style={styles.timeSlotRow}>
+                <Ionicons name={slot.icon} size={18} color={selected === i ? COLORS.primary : COLORS.gray} />
+                <View>
+                  <Text style={[styles.sortOptionText, selected === i && { color: COLORS.primary, fontWeight: '700' }]}>
+                    {slot.label}
+                  </Text>
+                  <Text style={styles.timeSlotSub}>{slot.from} – {slot.to}</Text>
+                </View>
+              </View>
+              {selected === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function timeInSlot(departureTime, slot) {
+  if (!departureTime || !slot) return true;
+  const [h, m] = departureTime.split(':').map(Number);
+  const mins    = h * 60 + m;
+  const [fh, fm] = slot.from.split(':').map(Number);
+  const [th, tm] = slot.to.split(':').map(Number);
+  return mins >= fh * 60 + fm && mins <= th * 60 + tm;
+}
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function SearchScreen({ navigation, route }) {
   const { searchRides } = useApp();
-  const [allRides, setAllRides] = useState([]);
-  const [from, setFrom] = useState(route.params?.from || '');
-  const [to,   setTo]   = useState(route.params?.to   || '');
-  const [date, setDate] = useState(route.params?.date || '');
-  // searchResults: null = not searched yet (show allRides), array = search done
+  const [allRides,      setAllRides]      = useState([]);
+  const [from,          setFrom]          = useState(route.params?.from || '');
+  const [to,            setTo]            = useState(route.params?.to   || '');
+  const [date,          setDate]          = useState(route.params?.date || '');
   const [searchResults, setSearchResults] = useState(null);
   const [loading,       setLoading]       = useState(false);
-  const [sort,          setSort]          = useState(null); // null = no sort selected
+  const [sort,          setSort]          = useState(null);
   const [showSortModal, setShowSortModal] = useState(false);
   const [filterAC,      setFilterAC]      = useState(false);
   const [filterVehicle, setFilterVehicle] = useState('');
-  const [cityModal,     setCityModal]     = useState(null); // 'from' | 'to'
+  const [filterBrand,   setFilterBrand]   = useState('');
+  const [filterTime,    setFilterTime]    = useState(null); // index into TIME_SLOTS
+  const [showBrandModal,setShowBrandModal]= useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [cityModal,     setCityModal]     = useState(null);
 
-  // ── Compute display list from either allRides or search results ──────────
+  const activeFilterCount = [filterAC, filterVehicle, filterBrand, filterTime !== null].filter(Boolean).length;
+
+  // ── Compute display list ──────────────────────────────────────────────────
   const displayList = useMemo(() => {
     const base = searchResults !== null
       ? searchResults
       : allRides.filter(r => r.status === 'ACTIVE');
 
     let list = [...base];
-    if (filterAC)      list = list.filter(r => r.vehicle?.ac);
-    if (filterVehicle) list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
+    if (filterAC)           list = list.filter(r => r.vehicle?.ac);
+    if (filterVehicle)      list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
+    if (filterBrand)        list = list.filter(r => r.vehicle?.brand?.toLowerCase() === filterBrand.toLowerCase());
+    if (filterTime !== null) {
+      const slot = TIME_SLOTS[filterTime];
+      list = list.filter(r => timeInSlot(r.departureTime, slot));
+    }
 
     if (sort === 0) list.sort((a, b) => (a.segmentPrice ?? a.pricePerSeat) - (b.segmentPrice ?? b.pricePerSeat));
     if (sort === 1) list.sort((a, b) => (b.segmentPrice ?? b.pricePerSeat) - (a.segmentPrice ?? a.pricePerSeat));
@@ -114,21 +230,16 @@ export default function SearchScreen({ navigation, route }) {
     if (sort === 3) list.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0));
 
     return list;
-  }, [searchResults, allRides, filterAC, filterVehicle, sort]);
+  }, [searchResults, allRides, filterAC, filterVehicle, filterBrand, filterTime, sort]);
 
   const doSearch = useCallback(async () => {
-    if (!from && !to) {
-      // Reset to show all rides
-      setSearchResults(null);
-      return;
-    }
+    if (!from && !to) { setSearchResults(null); return; }
     setLoading(true);
     const { data, error } = await searchRides(from, to, date);
     setLoading(false);
     setSearchResults(error || !data ? [] : data);
   }, [from, to, date, searchRides]);
 
-  // Load all rides on first focus (for default listing)
   useFocusEffect(useCallback(() => {
     if (allRides.length === 0) {
       ridesApi.getAll(1, 20).then(({ data }) => {
@@ -140,24 +251,35 @@ export default function SearchScreen({ navigation, route }) {
     }
   }, []));
 
-  // Auto search when params come from HomeScreen
   useEffect(() => {
     if (route.params?.from || route.params?.to) doSearch();
   }, []);
 
   const swapCities = () => { setFrom(to); setTo(from); };
 
+  const activeFilters = [
+    filterAC && 'AC',
+    filterVehicle && filterVehicle,
+    filterBrand && filterBrand,
+    filterTime !== null && TIME_SLOTS[filterTime].label,
+  ].filter(Boolean);
+
   return (
     <View style={styles.container}>
-      {/* ── Search Header ──────────────────────────────────────────────── */}
+      {/* ── Search Header ────────────────────────────────────────────── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find a Ride</Text>
+        {activeFilterCount > 0 && (
+          <View style={styles.filterBadge}>
+            <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+          </View>
+        )}
       </View>
 
-      {/* ── Search Form ────────────────────────────────────────────────── */}
+      {/* ── Search Form ──────────────────────────────────────────────── */}
       <View style={styles.searchForm}>
         <View style={styles.searchRow}>
           <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('from')}>
@@ -195,17 +317,56 @@ export default function SearchScreen({ navigation, route }) {
           }
         </TouchableOpacity>
 
-        {/* Filters */}
+        {/* Filters Row */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
+
+          {/* Vehicle type chips */}
           {['Car', 'Hiace', 'Coaster', 'Bus'].map(v => (
             <Chip key={v} label={v} icon="car-outline" active={filterVehicle === v} onPress={() => setFilterVehicle(filterVehicle === v ? '' : v)} style={styles.filterChip} />
           ))}
-          <Chip label="Sort" icon="funnel-outline" active={false} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
+
+          {/* Brand picker chip */}
+          <Chip
+            label={filterBrand || 'Brand'}
+            icon="business-outline"
+            active={!!filterBrand}
+            onPress={() => setShowBrandModal(true)}
+            style={styles.filterChip}
+          />
+
+          {/* Time picker chip */}
+          <Chip
+            label={filterTime !== null ? TIME_SLOTS[filterTime].label : 'Time'}
+            icon="time-outline"
+            active={filterTime !== null}
+            onPress={() => setShowTimeModal(true)}
+            style={styles.filterChip}
+          />
+
+          {/* Sort chip */}
+          <Chip label="Sort" icon="funnel-outline" active={sort !== null} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
         </ScrollView>
+
+        {/* Active filter pills */}
+        {activeFilters.length > 0 && (
+          <View style={styles.activeFiltersRow}>
+            {activeFilters.map((f, i) => (
+              <View key={i} style={styles.activePill}>
+                <Text style={styles.activePillText}>{f}</Text>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={styles.clearAllBtn}
+              onPress={() => { setFilterAC(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setSort(null); }}
+            >
+              <Text style={styles.clearAllText}>Clear all</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-      {/* ── Results header ─────────────────────────────────────────────── */}
+      {/* ── Results header ───────────────────────────────────────────── */}
       {!loading && (
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
@@ -251,7 +412,7 @@ export default function SearchScreen({ navigation, route }) {
         }
       />
 
-      {/* ── City Search Modal ──────────────────────────────────────────── */}
+      {/* Modals */}
       <CitySearchModal
         visible={!!cityModal}
         title={cityModal === 'from' ? 'Leaving From' : 'Going To'}
@@ -263,7 +424,21 @@ export default function SearchScreen({ navigation, route }) {
         onClose={() => setCityModal(null)}
       />
 
-      {/* ── Sort Modal ─────────────────────────────────────────────────── */}
+      <BrandModal
+        visible={showBrandModal}
+        selected={filterBrand}
+        onSelect={(b) => { setFilterBrand(b); }}
+        onClose={() => setShowBrandModal(false)}
+      />
+
+      <TimeModal
+        visible={showTimeModal}
+        selected={filterTime}
+        onSelect={setFilterTime}
+        onClose={() => setShowTimeModal(false)}
+      />
+
+      {/* Sort Modal */}
       <Modal visible={showSortModal} transparent animationType="slide" onRequestClose={() => setShowSortModal(false)}>
         <TouchableOpacity style={styles.sortOverlay} onPress={() => setShowSortModal(false)} activeOpacity={1}>
           <View style={styles.sortSheet}>
@@ -300,31 +475,45 @@ const ms = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: COLORS.bg },
-  header:         { flexDirection: 'row', alignItems: 'center', paddingTop: 55, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  backBtn:        { marginRight: 16 },
-  headerTitle:    { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  searchForm:     { backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12 },
-  searchRow:      { flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 8 },
-  cityInput:      { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-  dot:            { width: 8, height: 8, borderRadius: 4 },
-  cityInputText:  { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  placeholder:    { color: COLORS.gray, fontWeight: '400' },
-  swapBtn:        { paddingHorizontal: 8 },
-  searchBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 10 },
-  searchBtnText:  { color: '#fff', fontWeight: '700', fontSize: 14 },
-  filtersScroll:  { flexDirection: 'row' },
-  filterChip:     { marginRight: 8 },
-  resultsHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  resultsCount:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  sortLabel:      { fontSize: 12, color: COLORS.gray },
-  listContent:    { paddingHorizontal: 20, paddingBottom: 24 },
-  promptWrap:     { alignItems: 'center', paddingTop: 60, gap: 12, paddingHorizontal: 40 },
-  promptTitle:    { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  promptSub:      { fontSize: 13, color: COLORS.gray, textAlign: 'center', lineHeight: 20 },
-  sortOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sortSheet:      { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  sortTitle:      { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
-  sortOption:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  sortOptionText: { fontSize: 15, color: COLORS.textPrimary },
+  container:        { flex: 1, backgroundColor: COLORS.bg },
+  header:           { flexDirection: 'row', alignItems: 'center', paddingTop: 55, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  backBtn:          { marginRight: 16 },
+  headerTitle:      { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
+  filterBadge:      { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
+  filterBadgeText:  { fontSize: 11, fontWeight: '800', color: '#fff' },
+  searchForm:       { backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12 },
+  searchRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 8 },
+  cityInput:        { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
+  dot:              { width: 8, height: 8, borderRadius: 4 },
+  cityInputText:    { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  placeholder:      { color: COLORS.gray, fontWeight: '400' },
+  swapBtn:          { paddingHorizontal: 8 },
+  searchBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 10 },
+  searchBtnText:    { color: '#fff', fontWeight: '700', fontSize: 14 },
+  filtersScroll:    { flexDirection: 'row' },
+  filterChip:       { marginRight: 8 },
+  activeFiltersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  activePill:       { backgroundColor: COLORS.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  activePillText:   { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  clearAllBtn:      { paddingHorizontal: 10, paddingVertical: 4 },
+  clearAllText:     { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
+  resultsHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
+  resultsCount:     { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  sortLabel:        { fontSize: 12, color: COLORS.gray },
+  listContent:      { paddingHorizontal: 20, paddingBottom: 24 },
+  sortOverlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sortSheet:        { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  sheetHandleRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sortTitle:        { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  sortOption:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  sortOptionActive: { backgroundColor: COLORS.primary + '08' },
+  sortOptionText:   { fontSize: 15, color: COLORS.textPrimary },
+  timeSlotRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  timeSlotSub:      { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  sheetCloseBtn:    { marginTop: 16, alignItems: 'center', paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.primary },
+  sheetCloseBtnText:{ fontSize: 15, fontWeight: '700', color: '#fff' },
+  brandGrid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
+  brandChip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.lightGray },
+  brandChipActive:  { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  brandChipText:    { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
 });

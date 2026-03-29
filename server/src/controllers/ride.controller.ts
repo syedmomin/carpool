@@ -51,6 +51,13 @@ export class RideController extends BaseController<Ride, any, any> {
       ResponseUtil.paginated(res, result.data, result.meta.total, result.meta.page, result.meta.limit);
     } catch (err) { next(err); }
   };
+
+  updateStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const ride = await rideService.updateStatus(req.params.id, req.user!.id, String(req.body.status));
+      ResponseUtil.success(res, ride, `Ride status updated to ${req.body.status}`);
+    } catch (err) { next(err); }
+  };
 }
 
 export const rideController = new RideController();

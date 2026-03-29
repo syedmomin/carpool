@@ -7,13 +7,25 @@ import { ResponseUtil } from '../utils/response';
 
 const router = Router();
 
-// Ensure uploads dir exists
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
+// Allowed upload type folders
+const VALID_TYPES = ['profile', 'vehicle', 'documents'] as const;
+type UploadType = typeof VALID_TYPES[number];
+
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename:    (_req, file,  cb) => {
+  destination: (req: Request, _file, cb) => {
+    const userId = (req as any).user?.id;
+    const type: UploadType = VALID_TYPES.includes((req.query.type as UploadType))
+      ? (req.query.type as UploadType)
+      : 'profile';
+
+    const dir = path.join(UPLOADS_DIR, userId, type);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
   },
@@ -32,7 +44,13 @@ const SERVER_URL = process.env.SERVER_URL || 'http://192.168.100.60:5000';
 
 router.post('/image', authenticate, upload.single('image'), (req, res) => {
   if (!req.file) { ResponseUtil.badRequest(res, 'No file uploaded'); return; }
-  const url = `${SERVER_URL}/uploads/${req.file.filename}`;
+
+  const userId = (req as any).user?.id;
+  const type: UploadType = VALID_TYPES.includes((req.query.type as UploadType))
+    ? (req.query.type as UploadType)
+    : 'profile';
+
+  const url = `${SERVER_URL}/uploads/${userId}/${type}/${req.file.filename}`;
   ResponseUtil.created(res, { url }, 'Image uploaded successfully');
 });
 

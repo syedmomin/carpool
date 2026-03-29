@@ -2,13 +2,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 import { BASE_URL, tokenStorage } from '../services/api';
 
-async function uploadToServer(uri) {
+// type: 'profile' | 'vehicle' | 'documents'
+async function uploadToServer(uri, type = 'profile') {
   try {
     const token = await tokenStorage.get();
     const formData = new FormData();
     formData.append('image', { uri, type: 'image/jpeg', name: `upload_${Date.now()}.jpg` });
 
-    const res = await fetch(`${BASE_URL}/upload/image`, {
+    const res = await fetch(`${BASE_URL}/upload/image?type=${type}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -21,7 +22,7 @@ async function uploadToServer(uri) {
   }
 }
 
-export async function pickImageFromLibrary(options = {}) {
+export async function pickImageFromLibrary(options = {}, type = 'profile') {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
     Alert.alert('Permission Required', 'Please allow access to your photo library.');
@@ -34,10 +35,10 @@ export async function pickImageFromLibrary(options = {}) {
     quality: 0.8,
   });
   if (result.canceled) return { cancelled: true };
-  return uploadToServer(result.assets[0].uri);
+  return uploadToServer(result.assets[0].uri, type);
 }
 
-export async function pickImageFromCamera(options = {}) {
+export async function pickImageFromCamera(options = {}, type = 'profile') {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') {
     Alert.alert('Permission Required', 'Please allow camera access.');
@@ -49,7 +50,7 @@ export async function pickImageFromCamera(options = {}) {
     quality: 0.8,
   });
   if (result.canceled) return { cancelled: true };
-  return uploadToServer(result.assets[0].uri);
+  return uploadToServer(result.assets[0].uri, type);
 }
 
 // Pick multiple images locally (no upload) — returns local URIs
@@ -86,8 +87,8 @@ export async function pickImageFromCameraLocal(options = {}) {
 }
 
 // Upload a batch of local URIs to server — returns array of URLs
-export async function uploadImages(uris) {
-  const uploads = await Promise.all(uris.map(uri => uploadToServer(uri)));
+export async function uploadImages(uris, type = 'vehicle') {
+  const uploads = await Promise.all(uris.map(uri => uploadToServer(uri, type)));
   const urls = uploads.filter(u => u.url).map(u => u.url);
   const firstError = uploads.find(u => u.error)?.error;
   return { urls, error: urls.length === 0 && uris.length > 0 ? firstError : null };
@@ -101,10 +102,10 @@ export async function pickMultipleImages() {
   return uploadImages(uris);
 }
 
-export function showImagePickerOptions(onResult) {
+export function showImagePickerOptions(onResult, type = 'profile') {
   Alert.alert('Upload Photo', 'Choose a source', [
-    { text: 'Camera',        onPress: async () => onResult(await pickImageFromCamera()) },
-    { text: 'Photo Library', onPress: async () => onResult(await pickImageFromLibrary()) },
+    { text: 'Camera',        onPress: async () => onResult(await pickImageFromCamera({}, type)) },
+    { text: 'Photo Library', onPress: async () => onResult(await pickImageFromLibrary({}, type)) },
     { text: 'Cancel', style: 'cancel' },
   ]);
 }

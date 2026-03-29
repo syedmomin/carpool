@@ -50,7 +50,7 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.iconWrapper}>
           <Ionicons name="car-sport" size={36} color="#fff" />
         </View>
-        <Text style={styles.headerTitle}>SafariShare</Text>
+        <Text style={styles.headerTitle}>ChalParo</Text>
         <Text style={styles.headerSub}>Welcome Back!</Text>
       </View>
 
