@@ -1,11 +1,15 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { notificationsApi } from '../../services/api';
 
+const PAGE_SIZE = 20;
 const TYPE_CONFIG = {
+  BOOKING:  { icon: 'checkmark-circle', color: COLORS.secondary, bg: '#e8f5e9' },
   booking:  { icon: 'checkmark-circle', color: COLORS.secondary, bg: '#e8f5e9' },
   request:  { icon: 'person-add',       color: COLORS.primary,   bg: '#eff6ff' },
   reminder: { icon: 'alarm',            color: COLORS.accent,    bg: '#fff8e1' },
@@ -14,16 +18,45 @@ const TYPE_CONFIG = {
 };
 
 export default function NotificationsScreen({ navigation }) {
-  const { notifications, markNotificationRead, unreadCount } = useApp();
+  const { markNotificationRead, markAllNotificationsRead } = useApp();
+  const [notifications, setNotifications] = useState([]);
+  const [page,          setPage]          = useState(1);
+  const [hasMore,       setHasMore]       = useState(true);
+  const [loading,       setLoading]       = useState(false);
+  const [refreshing,    setRefreshing]    = useState(false);
 
-  const handleNotifPress = (item) => {
-    markNotificationRead(item.id);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const fetchNotifs = useCallback(async (pageNum, replace = false) => {
+    pageNum === 1 ? setRefreshing(true) : setLoading(true);
+    const { data } = await notificationsApi.getAll(pageNum, PAGE_SIZE);
+    pageNum === 1 ? setRefreshing(false) : setLoading(false);
+    if (!data?.data) return;
+    setNotifications(prev => replace ? data.data : [...prev, ...data.data]);
+    setHasMore(data.meta?.hasNext ?? false);
+    setPage(pageNum);
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    fetchNotifs(1, true);
+  }, []));
+
+  const handleNotifPress = async (item) => {
+    if (!item.read) {
+      await markNotificationRead(item.id);
+      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+    }
   };
 
-  const handleViewRide = (item) => {
-    markNotificationRead(item.id);
+  const handleViewRide = async (item) => {
+    await handleNotifPress(item);
     const rideId = item.rideId || item.ride?.id;
     if (rideId) navigation.navigate('RideDetail', { rideId });
+  };
+
+  const handleMarkAll = async () => {
+    await markAllNotificationsRead();
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   return (
@@ -31,14 +64,25 @@ export default function NotificationsScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.primary}
         title="Notifications"
-        subtitle={unreadCount > 0 ? `${unreadCount} new notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
         onBack={() => navigation.goBack()}
-      />
+      >
+        {unreadCount > 0 && (
+          <TouchableOpacity onPress={handleMarkAll} style={styles.markAllBtn}>
+            <Text style={styles.markAllText}>Mark all read</Text>
+          </TouchableOpacity>
+        )}
+      </GradientHeader>
 
       <FlatList
         data={notifications}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
+        onEndReached={() => { if (hasMore && !loading) fetchNotifs(page + 1); }}
+        onEndReachedThreshold={0.3}
+        refreshing={refreshing}
+        onRefresh={() => fetchNotifs(1, true)}
+        ListFooterComponent={loading ? <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 16 }} /> : null}
         renderItem={({ item }) => {
           const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.default;
           const isNewRide = item.type === 'new_ride' || item.type === 'BOOKING';
@@ -79,7 +123,9 @@ export default function NotificationsScreen({ navigation }) {
           );
         }}
         ListEmptyComponent={
-          <EmptyState icon="notifications-off-outline" title="No Notifications" subtitle="You're all caught up!" />
+          !refreshing ? (
+            <EmptyState icon="notifications-off-outline" title="No Notifications" subtitle="You're all caught up!" />
+          ) : null
         }
       />
     </View>
@@ -94,6 +140,8 @@ const styles = StyleSheet.create({
     borderRadius: 16, padding: 14, marginBottom: 10,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
+  markAllBtn: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
+  markAllText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary },
   cardNewRide: { borderLeftWidth: 3, borderLeftColor: COLORS.teal },
   iconBox: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },

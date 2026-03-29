@@ -3,20 +3,19 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, GhostButton } from '../../components';
-import { useApp } from '../../context/AppContext';
 
 export default function BookingConfirmScreen({ navigation, route }) {
-  const { rideId, seats } = route.params;
-  const { getRideById, getDriverById } = useApp();
-  const ride = getRideById(rideId);
-  const driver = getDriverById(ride?.driverId);
+  const { rideId, seats, rideData } = route.params;
+  const ride   = rideData || null;
+  const driver = ride?.driver;
 
   const TICKET_ROWS = [
-    { label: 'Date',         value: ride?.date,                                           icon: 'calendar-outline' },
-    { label: 'Seats',        value: `${seats} seat(s)`,                                  icon: 'people-outline' },
-    { label: 'Driver',       value: driver?.name,                                         icon: 'person-outline' },
-    { label: 'Total Amount', value: `Rs ${(seats * ride?.pricePerSeat)?.toLocaleString()}`, icon: 'wallet-outline', highlight: true },
-    { label: 'Payment',      value: 'Cash on Board',                                     icon: 'cash-outline' },
+    { label: 'Date',         value: ride?.date,                                              icon: 'calendar-outline' },
+    { label: 'Seats',        value: `${seats} seat(s)`,                                     icon: 'people-outline' },
+    { label: 'Driver',       value: driver?.name || 'N/A',                                  icon: 'person-outline' },
+    { label: 'Vehicle',      value: ride?.vehicle ? `${ride.vehicle.brand} • ${ride.vehicle.plateNumber}` : 'N/A', icon: 'car-outline' },
+    { label: 'Total Amount', value: `Rs ${(seats * ride?.pricePerSeat)?.toLocaleString()}`,  icon: 'wallet-outline', highlight: true },
+    { label: 'Payment',      value: 'Cash on Board',                                        icon: 'cash-outline' },
   ];
 
   return (

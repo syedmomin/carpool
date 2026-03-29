@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   KeyboardAvoidingView, Platform, Modal, FlatList, ActivityIndicator, Switch,
@@ -10,7 +10,10 @@ import { DatePickerInput, TimePickerInput } from '../../components/DateTimePicke
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { parseApiError } from '../../utils/errorMessages';
 import { searchPakistanLocations } from '../../utils/locationSearch';
+import { useFocusEffect } from '@react-navigation/native';
+import { vehiclesApi } from '../../services/api';
 
 const TEXT_FIELDS = [
   { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline',     placeholder: 'e.g. 1500', type: 'numeric' },
@@ -92,20 +95,21 @@ function CitySearchModal({ visible, title, onSelect, onClose }) {
 }
 
 export default function PostRideScreen({ navigation }) {
-  const { postRide, currentUser, getVehiclesByDriver } = useApp();
+  const { postRide } = useApp();
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
 
-  const driverVehicles = getVehiclesByDriver(currentUser?.id) || [];
-  const [selectedVehicle, setSelectedVehicle] = useState(
-    driverVehicles.find(v => v.isActive) || driverVehicles[0] || null
-  );
+  const [driverVehicles,   setDriverVehicles]   = useState([]);
+  const [selectedVehicle,  setSelectedVehicle]  = useState(null);
 
-  useEffect(() => {
-    if (!selectedVehicle && driverVehicles.length > 0) {
-      setSelectedVehicle(driverVehicles.find(v => v.isActive) || driverVehicles[0]);
-    }
-  }, [driverVehicles.length]);
+  useFocusEffect(useCallback(() => {
+    vehiclesApi.myVehicles().then(({ data }) => {
+      if (data?.data) {
+        setDriverVehicles(data.data);
+        setSelectedVehicle(prev => prev || data.data.find(v => v.isActive) || data.data[0] || null);
+      }
+    });
+  }, []));
 
   const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false);
 
@@ -133,7 +137,7 @@ export default function PostRideScreen({ navigation }) {
   // ── Stops helpers ─────────────────────────────────────────────────────────
   const addStop = () => {
     if (stops.length >= 5) {
-      showModal({ type: 'info', title: 'Max Stops', message: 'You can add up to 5 intermediate stops.' });
+      showToast('Maximum 5 intermediate stops allowed.', 'warning');
       return;
     }
     setStops(prev => [...prev, { city: '', arrivalTime: '' }]);
@@ -157,11 +161,11 @@ export default function PostRideScreen({ navigation }) {
 
   const handlePost = async () => {
     if (!form.from || !form.to || !form.date || !form.departureTime || !form.pricePerSeat) {
-      showModal({ type: 'error', title: 'Missing Fields', message: 'Please fill From, To, Date, Departure Time, and Price Per Seat.' });
+      showToast('Please fill From, To, Date, Departure Time, and Price.', 'error');
       return;
     }
     if (isMultiStop && stops.some(s => !s.city)) {
-      showModal({ type: 'error', title: 'Incomplete Stops', message: 'Each intermediate stop must have a city selected.' });
+      showToast('Each intermediate stop must have a city selected.', 'error');
       return;
     }
     if (!selectedVehicle) {
@@ -192,9 +196,13 @@ export default function PostRideScreen({ navigation }) {
     });
     setLoading(false);
     if (error) {
-      showModal({ type: 'error', title: 'Failed to Post', message: error });
+      showToast(parseApiError(error), 'error');
       return;
     }
+    // Reset form
+    setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
+    setStops([]);
+    setIsMultiStop(false);
     showToast('Ride posted successfully!', 'success');
     navigation.navigate('MyRides');
   };

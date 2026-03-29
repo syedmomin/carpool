@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, StarRating } from '../../components';
+import { COLORS, GRADIENTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
@@ -86,10 +86,8 @@ function VerificationProgress({ user, onNavigate }) {
 }
 
 export default function ProfileScreen({ navigation }) {
-  const { currentUser, userRole, logout, getMyBookings, getMyRides } = useApp();
+  const { currentUser, userRole, logout } = useApp();
   const { showModal } = useGlobalModal();
-  const bookings = getMyBookings?.() || [];
-  const myRides  = getMyRides?.()   || [];
   const headerColors = userRole === 'driver' ? GRADIENTS.teal : GRADIENTS.primary;
 
   const handleLogout = async () => {
@@ -105,39 +103,44 @@ export default function ProfileScreen({ navigation }) {
       <LinearGradient colors={headerColors} style={styles.header}>
         <View style={styles.bgCircle} />
 
-        <TouchableOpacity style={styles.avatarWrap} onPress={() => navigation.navigate('EditProfile')}>
-          {currentUser?.avatar ? (
-            <Image source={{ uri: currentUser.avatar }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarInitBox}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
+        {/* Avatar + Info row */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.avatarWrap} onPress={() => navigation.navigate('EditProfile')}>
+            {currentUser?.avatar ? (
+              <Image source={{ uri: currentUser.avatar }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarInitBox}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.editBadge}>
+              <Ionicons name="camera" size={10} color="#fff" />
             </View>
-          )}
-          <View style={styles.editBadge}>
-            <Ionicons name="camera" size={12} color="#fff" />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        <Text style={styles.userName}>{currentUser?.name}</Text>
-        <Text style={styles.userPhone}>{currentUser?.phone}</Text>
-
-        <View style={styles.profileBadges}>
-          <View style={styles.badge}>
-            <Ionicons name={userRole === 'driver' ? 'car-outline' : 'person-outline'} size={13} color="#fff" />
-            <Text style={styles.badgeText}>{userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
-          </View>
-          {(currentUser?.verified || currentUser?.cnicStatus === 'APPROVED') && (
-            <View style={[styles.badge, { backgroundColor: 'rgba(76,175,80,0.4)' }]}>
-              <Ionicons name="shield-checkmark" size={13} color="#fff" />
-              <Text style={styles.badgeText}>Verified</Text>
+          <View style={styles.headerInfo}>
+            <Text style={styles.userName} numberOfLines={1}>{currentUser?.name}</Text>
+            <Text style={styles.userPhone}>{currentUser?.phone}</Text>
+            <View style={styles.profileBadges}>
+              <View style={styles.badge}>
+                <Ionicons name={userRole === 'driver' ? 'car-outline' : 'person-outline'} size={11} color="#fff" />
+                <Text style={styles.badgeText}>{userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
+              </View>
+              {(currentUser?.isVerified || currentUser?.verification?.cnicStatus === 'APPROVED') && (
+                <View style={[styles.badge, { backgroundColor: 'rgba(76,175,80,0.35)' }]}>
+                  <Ionicons name="shield-checkmark" size={11} color="#fff" />
+                  <Text style={styles.badgeText}>Verified</Text>
+                </View>
+              )}
             </View>
-          )}
+          </View>
         </View>
 
+        {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{currentUser?.totalTrips || 0}</Text>
-            <Text style={styles.statLabel}>Total Trips</Text>
+            <Text style={styles.statValue}>{currentUser?.city || '—'}</Text>
+            <Text style={styles.statLabel}>City</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
@@ -146,19 +149,11 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{userRole === 'driver' ? myRides.length : bookings.length}</Text>
-            <Text style={styles.statLabel}>{userRole === 'driver' ? 'Rides Posted' : 'Bookings'}</Text>
+            <Text style={styles.statValue}>{currentUser?.city || '—'}</Text>
+            <Text style={styles.statLabel}>City</Text>
           </View>
         </View>
       </LinearGradient>
-
-      {/* Rating */}
-      {currentUser?.rating ? (
-        <View style={styles.ratingCard}>
-          <StarRating rating={currentUser.rating} size={18} />
-          <Text style={styles.ratingNote}>Based on {currentUser.totalTrips} trips</Text>
-        </View>
-      ) : null}
 
       {/* Verification Progress */}
       <View style={styles.section}>
@@ -230,26 +225,29 @@ const vStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container:        { flex: 1, backgroundColor: COLORS.bg },
-  header:           { paddingTop: 60, paddingBottom: 28, paddingHorizontal: 20, alignItems: 'center', position: 'relative', overflow: 'hidden' },
-  bgCircle:         { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.06)', top: -60, right: -40 },
-  avatarWrap:       { position: 'relative', marginBottom: 12 },
-  avatarImg:        { width: 90, height: 90, borderRadius: 30, borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)' },
-  avatarInitBox:    { width: 90, height: 90, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
-  avatarInitials:   { fontSize: 30, fontWeight: '900', color: '#fff' },
-  editBadge:        { position: 'absolute', bottom: -4, right: -4, width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
-  userName:         { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  userPhone:        { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 12 },
-  profileBadges:    { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  badge:            { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 4 },
-  badgeText:        { color: '#fff', fontSize: 12, fontWeight: '600' },
-  statsRow:         { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, padding: 16, width: '100%' },
+  header:           { paddingTop: 52, paddingBottom: 16, paddingHorizontal: 20, position: 'relative', overflow: 'hidden' },
+  bgCircle:         { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -50, right: -30 },
+  // Horizontal row: avatar left, info right
+  headerRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 16 },
+  avatarWrap:       { position: 'relative', flexShrink: 0 },
+  avatarImg:        { width: 72, height: 72, borderRadius: 22, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
+  avatarInitBox:    { width: 72, height: 72, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
+  avatarInitials:   { fontSize: 24, fontWeight: '900', color: '#fff' },
+  editBadge:        { position: 'absolute', bottom: -3, right: -3, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+  headerInfo:       { flex: 1 },
+  userName:         { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  userPhone:        { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginBottom: 8 },
+  profileBadges:    { flexDirection: 'row', gap: 6 },
+  badge:            { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, gap: 4 },
+  badgeText:        { color: '#fff', fontSize: 11, fontWeight: '600' },
+  statsRow:         { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 8 },
   stat:             { flex: 1, alignItems: 'center' },
-  statValue:        { fontSize: 22, fontWeight: '800', color: '#fff' },
-  statLabel:        { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  statValue:        { fontSize: 17, fontWeight: '800', color: '#fff' },
+  statLabel:        { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
   statDivider:      { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
   ratingCard:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', marginHorizontal: 20, marginTop: -12, borderRadius: 14, padding: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3, gap: 10 },
   ratingNote:       { fontSize: 12, color: COLORS.gray },
-  section:          { paddingHorizontal: 20, marginTop: 16 },
+  section:          { paddingHorizontal: 20, marginTop: 12 },
   menuSection:      { paddingHorizontal: 20, marginTop: 20 },
   menuSectionTitle: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   menuGroup:        { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },

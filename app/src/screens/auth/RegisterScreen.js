@@ -7,7 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, FormInput } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const isValidPhone    = (v) => /^\d{11,13}$/.test(v.replace(/[\s\-]/g, ''));
@@ -18,7 +19,7 @@ const STEPS = ['Role', 'Details'];
 
 export default function RegisterScreen({ navigation }) {
   const { register } = useApp();
-  const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const [step, setStep]   = useState(0);
   const [role, setRole]   = useState('passenger');
   const [form, setForm]   = useState({ name: '', phone: '', email: '', password: '', city: '' });
@@ -68,7 +69,8 @@ export default function RegisterScreen({ navigation }) {
       role:     role === 'driver' ? 'DRIVER' : 'PASSENGER',
     });
     setLoading(false);
-    if (error) { showModal({ type: 'error', title: 'Registration Failed', message: error }); return; }
+    if (error) { showToast(parseApiError(error), 'error'); return; }
+    showToast('Account created successfully! Welcome to SafariShare.', 'success');
     navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
   };
 

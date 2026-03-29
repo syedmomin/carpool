@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
-import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { authApi } from '../../services/api';
+import { parseApiError } from '../../utils/errorMessages';
 
 export default function ChangePasswordScreen({ navigation }) {
-  const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const [form, setForm] = useState({ current: '', newPass: '', confirm: '' });
   const [show, setShow] = useState({ current: false, newPass: false, confirm: false });
   const [loading, setLoading] = useState(false);
@@ -13,21 +15,24 @@ export default function ChangePasswordScreen({ navigation }) {
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleShow = (key) => setShow(prev => ({ ...prev, [key]: !prev[key] }));
 
-  const handleChange = () => {
+  const handleChange = async () => {
     if (!form.current || !form.newPass || !form.confirm) {
-      showModal({ type: 'error', title: 'Missing Fields', message: 'Please fill in all fields.' }); return;
+      showToast('Please fill in all fields.', 'error'); return;
     }
     if (form.newPass.length < 6) {
-      showModal({ type: 'error', title: 'Too Short', message: 'New password must be at least 6 characters.' }); return;
+      showToast('New password must be at least 6 characters.', 'error'); return;
     }
     if (form.newPass !== form.confirm) {
-      showModal({ type: 'error', title: 'Mismatch', message: 'New passwords do not match.' }); return;
+      showToast('New passwords do not match.', 'error'); return;
     }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      showModal({ type: 'success', title: 'Password Changed!', message: 'Your password has been updated successfully.', onConfirm: () => navigation.goBack() });
-    }, 1200);
+    const { error } = await authApi.changePassword(form.current, form.newPass);
+    setLoading(false);
+    if (error) { showToast(parseApiError(error), 'error'); return; }
+    // Reset form
+    setForm({ current: '', newPass: '', confirm: '' });
+    showToast('Password changed successfully!', 'success');
+    navigation.goBack();
   };
 
   const strength = form.newPass.length === 0 ? 0 : form.newPass.length < 6 ? 1 : form.newPass.length < 10 ? 2 : 3;
@@ -37,12 +42,11 @@ export default function ChangePasswordScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <GradientHeader colors={GRADIENTS.purple} title="Change Password" subtitle="Keep your account secure" onBack={() => navigation.goBack()} />
+        <GradientHeader colors={GRADIENTS.primary} title="Change Password" subtitle="Keep your account secure" onBack={() => navigation.goBack()} />
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          {/* Security tips */}
           <View style={styles.tipCard}>
-            <Ionicons name="lock-closed-outline" size={20} color={COLORS.purple} />
+            <Ionicons name="lock-closed-outline" size={20} color={COLORS.primary} />
             <Text style={styles.tipText}>Use a mix of letters, numbers and symbols for a strong password.</Text>
           </View>
 
@@ -67,7 +71,6 @@ export default function ChangePasswordScreen({ navigation }) {
             onRightIconPress={() => toggleShow('newPass')}
           />
 
-          {/* Strength Meter */}
           {form.newPass.length > 0 && (
             <View style={styles.strengthBox}>
               <View style={styles.strengthBars}>
@@ -90,7 +93,7 @@ export default function ChangePasswordScreen({ navigation }) {
             onRightIconPress={() => toggleShow('confirm')}
           />
 
-          <PrimaryButton title="Change Password" onPress={handleChange} loading={loading} icon="shield-checkmark-outline" colors={GRADIENTS.purple} style={{ marginTop: 24 }} />
+          <PrimaryButton title="Change Password" onPress={handleChange} loading={loading} icon="shield-checkmark-outline" colors={GRADIENTS.primary} style={{ marginTop: 24 }} />
           <View style={{ height: 24 }} />
         </ScrollView>
       </View>
@@ -101,8 +104,8 @@ export default function ChangePasswordScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   body: { padding: 24 },
-  tipCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#f5f3ff', borderRadius: 14, padding: 14, marginBottom: 20, gap: 10 },
-  tipText: { flex: 1, fontSize: 13, color: COLORS.purple, lineHeight: 20 },
+  tipCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#eff6ff', borderRadius: 14, padding: 14, marginBottom: 20, gap: 10 },
+  tipText: { flex: 1, fontSize: 13, color: COLORS.primary, lineHeight: 20 },
   strengthBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, marginTop: -4 },
   strengthBars: { flexDirection: 'row', gap: 4, flex: 1 },
   strengthBar: { flex: 1, height: 4, borderRadius: 2 },

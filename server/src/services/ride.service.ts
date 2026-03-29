@@ -17,10 +17,37 @@ type CreateRideDto = {
 };
 type UpdateRideDto = Partial<Omit<CreateRideDto, 'driverId'>>;
 
+// ─── Include definition ───────────────────────────────────────────────────────
 const INCLUDE = {
-  driver:  { select: { id: true, name: true, avatar: true, phone: true } },
-  vehicle: { select: { brand: true, model: true, plateNumber: true, type: true, ac: true, wifi: true, music: true, usbCharging: true, waterCooler: true, blanket: true, firstAid: true, luggageRack: true, totalSeats: true } },
+  driver: {
+    select: {
+      id: true, name: true, avatar: true, phone: true,
+      reviewsReceived: { select: { rating: true } },
+    },
+  },
+  vehicle: {
+    select: {
+      id: true, brand: true, model: true, plateNumber: true, type: true,
+      images: true, totalSeats: true,
+      ac: true, wifi: true, music: true, usbCharging: true,
+      waterCooler: true, blanket: true, firstAid: true, luggageRack: true,
+    },
+  },
 };
+
+// ─── Compute avg rating from nested reviewsReceived ──────────────────────────
+function withRating(ride: any): any {
+  if (!ride?.driver) return ride;
+  const reviews: { rating: number }[] = ride.driver.reviewsReceived || [];
+  const avg = reviews.length
+    ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+    : null;
+  const { reviewsReceived, ...driverRest } = ride.driver;
+  return {
+    ...ride,
+    driver: { ...driverRest, rating: avg, reviewCount: reviews.length },
+  };
+}
 
 // Build full city list for a ride: [fromCity, ...stops ordered, toCity]
 function getOrderedCities(ride: any): string[] {
@@ -37,7 +64,34 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
   protected get model()     { return prisma.ride; }
   protected get modelName() { return 'Ride'; }
 
-  // Search with stop-based matching
+  // ── Get all public rides (with driver + vehicle) ──────────────────────────
+  async getAllRides(query: PaginationQuery) {
+    const { skip, take } = this.parsePaginationSimple(query);
+    const [data, total] = await Promise.all([
+      prisma.ride.findMany({
+        where:   { status: 'ACTIVE' },
+        include: INCLUDE,
+        skip, take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.ride.count({ where: { status: 'ACTIVE' } }),
+    ]);
+    const page  = Number(query.page)  || 1;
+    const limit = Number(query.limit) || 20;
+    return {
+      data:  data.map(withRating),
+      meta:  { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  // ── Get single ride with full details ─────────────────────────────────────
+  async getRideById(id: string): Promise<any> {
+    const ride = await prisma.ride.findUnique({ where: { id }, include: INCLUDE });
+    if (!ride) throw AppError.notFound('Ride not found');
+    return withRating(ride);
+  }
+
+  // ── Search with stop-based matching ───────────────────────────────────────
   async search(from: string, to: string, date?: string): Promise<any[]> {
     const where: any = {
       status: 'ACTIVE',
@@ -45,7 +99,6 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     };
 
     const allRides = await prisma.ride.findMany({ where, include: INCLUDE });
-
     const matched: any[] = [];
 
     for (const ride of allRides) {
@@ -53,59 +106,85 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       if (available <= 0) continue;
 
       const cities = getOrderedCities(ride);
-
       const fromNorm = from?.trim().toLowerCase();
       const toNorm   = to?.trim().toLowerCase();
 
-      // Allow empty from/to (show all)
-      if (!fromNorm && !toNorm) { matched.push(ride); continue; }
+      if (!fromNorm && !toNorm) { matched.push(withRating(ride)); continue; }
 
       const fromIdx = fromNorm ? cities.findIndex(c => c.toLowerCase() === fromNorm) : 0;
       const toIdx   = toNorm   ? cities.findIndex(c => c.toLowerCase() === toNorm)   : cities.length - 1;
 
       if (fromIdx === -1 || toIdx === -1) continue;
-      if (fromIdx >= toIdx) continue; // wrong direction
+      if (fromIdx >= toIdx) continue;
 
-      // Calculate segment price
-      const totalCities = cities.length - 1; // number of segments
-      const segmentCount = toIdx - fromIdx;
-      const segmentPrice = Math.round((ride.pricePerSeat / totalCities) * segmentCount);
+      const totalSegments = cities.length - 1;
+      const segmentCount  = toIdx - fromIdx;
+      const segmentPrice  = Math.round((ride.pricePerSeat / totalSegments) * segmentCount);
 
-      matched.push({
+      matched.push(withRating({
         ...ride,
         boardingCity:  cities[fromIdx],
         exitCity:      cities[toIdx],
         boardingOrder: fromIdx,
         exitOrder:     toIdx,
-        segmentPrice:  segmentPrice,
-        isSegment:     fromIdx > 0 || toIdx < cities.length - 1,
-      });
+        segmentPrice,
+        isSegment: fromIdx > 0 || toIdx < cities.length - 1,
+      }));
     }
 
     return matched.sort((a, b) => a.pricePerSeat - b.pricePerSeat);
   }
 
+  // ── Driver's rides ────────────────────────────────────────────────────────
   async getDriverRides(driverId: string, query: PaginationQuery) {
-    return this.getAll(query, { driverId }, INCLUDE);
+    const { skip, take } = this.parsePaginationSimple(query);
+    const [data, total] = await Promise.all([
+      prisma.ride.findMany({
+        where:   { driverId },
+        include: INCLUDE,
+        skip, take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.ride.count({ where: { driverId } }),
+    ]);
+    const page  = Number(query.page)  || 1;
+    const limit = Number(query.limit) || 20;
+    return {
+      data:  data.map(withRating),
+      meta:  { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
-  async postRide(data: CreateRideDto, createdBy: string): Promise<Ride> {
+  // ── Post ride ─────────────────────────────────────────────────────────────
+  async postRide(data: CreateRideDto, createdBy: string): Promise<any> {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: data.vehicleId, driverId: createdBy },
     });
     if (!vehicle) throw AppError.badRequest('Vehicle not found. Please register a vehicle first.');
 
-    // Sanitize stops
-    const sanitizedData: any = {
-      ...data,
-      stops: data.stops ? JSON.stringify(data.stops) : undefined,
-    };
+    // Validate departure date+time is not in the past
+    if (data.date && data.departureTime) {
+      const [y, m, d] = data.date.split('-').map(Number);
+      const [h, min]  = data.departureTime.split(':').map(Number);
+      const departure = new Date(y, m - 1, d, h, min);
+      if (departure <= new Date()) {
+        throw AppError.badRequest('Departure time has already passed. Please select a future date and time.');
+      }
+    }
 
-    const ride = await this.create(sanitizedData, createdBy);
+    // Create ride and return with full relations
+    const ride = await prisma.ride.create({
+      data: {
+        ...data,
+        stops: data.stops ? JSON.stringify(data.stops) : undefined,
+        createdBy,
+        updatedBy: createdBy,
+      } as any,
+      include: INCLUDE,
+    });
 
     // Schedule alert notifications
     const citiesToCheck = [data.fromCity, ...(data.stops?.map(s => s.city) || []), data.toCity];
-
     const alerts = await prisma.scheduleAlert.findMany({
       where: {
         fromCity: { in: citiesToCheck, mode: 'insensitive' } as any,
@@ -139,7 +218,14 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       }
     }
 
-    return ride;
+    return withRating(ride);
+  }
+
+  // ── Small helper (avoids importing parsePagination separately) ────────────
+  private parsePaginationSimple(query: PaginationQuery) {
+    const page  = Math.max(1, Number(query.page)  || 1);
+    const limit = Math.min(100, Number(query.limit) || 20);
+    return { skip: (page - 1) * limit, take: limit };
   }
 }
 

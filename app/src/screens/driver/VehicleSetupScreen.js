@@ -8,7 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, PrimaryButton, FormInput, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
 import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from '../../utils/imagePicker';
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
@@ -40,7 +41,7 @@ const YEARS = Array.from({ length: CURRENT_YEAR - 1979 }, (_, i) => String(CURRE
 
 export default function VehicleSetupScreen({ navigation, route }) {
   const { registerVehicle, updateVehicle, getVehicleById } = useApp();
-  const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const vehicleId = route?.params?.vehicleId;
   const existing  = vehicleId ? getVehicleById(vehicleId) : null;
 
@@ -79,13 +80,13 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const addVehicleImages = async () => {
     const { uris, error, cancelled } = await pickMultipleImagesLocal();
     if (cancelled) return;
-    if (error) { showModal({ type: 'error', title: 'Permission Error', message: error }); return; }
+    if (error) { showToast('Photo library permission denied. Please allow in settings.', 'error'); return; }
     setImages(prev => [...prev, ...uris]);
   };
 
   const addFromCamera = async () => {
     const result = await pickImageFromCameraLocal({ aspect: [4, 3] });
-    if (result.error) { showModal({ type: 'error', title: 'Camera Error', message: result.error }); return; }
+    if (result.error) { showToast('Camera access denied. Please allow in settings.', 'error'); return; }
     if (!result.cancelled) setImages(prev => [...prev, result.uri]);
   };
 
@@ -93,7 +94,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const goNext = () => {
     if (step === 0) {
       if (!selectedType) {
-        showModal({ type: 'warning', title: 'Select Vehicle Type', message: 'Please choose a vehicle type to continue.' });
+        showToast('Please choose a vehicle type to continue.', 'warning');
         return;
       }
       setStep(1);
@@ -110,17 +111,17 @@ export default function VehicleSetupScreen({ navigation, route }) {
   // ─── Save ────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!form.brand.trim()) {
-      showModal({ type: 'error', title: 'Missing Field', message: 'Brand & Model name is required.' }); return;
+      showToast('Brand & Model name is required.', 'error'); return;
     }
     if (!form.plateNumber.trim()) {
-      showModal({ type: 'error', title: 'Missing Field', message: 'Number plate is required.' }); return;
+      showToast('Number plate is required.', 'error'); return;
     }
     if (!form.totalSeats) {
-      showModal({ type: 'error', title: 'Missing Field', message: 'Total seats is required.' }); return;
+      showToast('Total seats is required.', 'error'); return;
     }
     const seats = parseInt(form.totalSeats);
     if (isNaN(seats) || seats < 1 || seats > 60) {
-      showModal({ type: 'error', title: 'Invalid Seats', message: 'Total seats must be between 1 and 60.' }); return;
+      showToast('Total seats must be between 1 and 60.', 'error'); return;
     }
 
     setLoading(true);
@@ -134,7 +135,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
       const { urls, error: uploadError } = await uploadImages(localUris);
       if (uploadError) {
         setLoading(false);
-        showModal({ type: 'error', title: 'Image Upload Failed', message: uploadError });
+        showToast('Image upload failed. Please try again.', 'error');
         return;
       }
       uploadedUrls = [...existingUrls, ...urls];
@@ -154,13 +155,15 @@ export default function VehicleSetupScreen({ navigation, route }) {
     if (existing) {
       const { error } = await updateVehicle(vehicleId, payload);
       setLoading(false);
-      if (error) { showModal({ type: 'error', title: 'Update Failed', message: error }); return; }
-      showModal({ type: 'success', title: 'Vehicle Updated!', message: 'Your vehicle has been updated.', onConfirm: () => navigation.goBack() });
+      if (error) { showToast(parseApiError(error), 'error'); return; }
+      showToast('Vehicle updated successfully!', 'success');
+      navigation.goBack();
     } else {
       const { error } = await registerVehicle(payload);
       setLoading(false);
-      if (error) { showModal({ type: 'error', title: 'Registration Failed', message: error }); return; }
-      showModal({ type: 'success', title: 'Vehicle Registered!', message: 'Your vehicle is ready. You can now post rides!', onConfirm: () => navigation.goBack() });
+      if (error) { showToast(parseApiError(error), 'error'); return; }
+      showToast('Vehicle registered! You can now post rides.', 'success');
+      navigation.goBack();
     }
   };
 

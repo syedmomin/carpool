@@ -1,16 +1,35 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { ridesApi, vehiclesApi } from '../../services/api';
 
 export default function DriverHomeScreen({ navigation }) {
-  const { currentUser, getMyRides, getVehicleByDriver, unreadCount, getMyEarnings } = useApp();
-  const myRides = getMyRides();
-  const myVehicle = getVehicleByDriver(currentUser?.id);
-  const activeRides = myRides.filter(r => r.status === 'ACTIVE');
-  const { total: totalEarned, totalPassengers } = getMyEarnings?.() || { total: 0, totalPassengers: 0 };
+  const { currentUser, unreadCount } = useApp();
+  const [myRides,   setMyRides]   = useState([]);
+  const [myVehicle, setMyVehicle] = useState(null);
+
+  const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
+
+  useFocusEffect(useCallback(() => {
+    // Load only the summary data needed for dashboard (first page, small limit)
+    ridesApi.myRides(1, 5).then(({ data }) => {
+      if (data?.data) setMyRides(data.data.map(normalize));
+    });
+    vehiclesApi.myVehicles().then(({ data }) => {
+      if (data?.data) {
+        const active = data.data.find(v => v.isActive) || data.data[0] || null;
+        setMyVehicle(active);
+      }
+    });
+  }, []));
+
+  const activeRides     = myRides.filter(r => r.status === 'ACTIVE');
+  const totalEarned     = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
+  const totalPassengers = myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
 
   const QUICK_ACTIONS = [
     { icon: 'add-circle',  label: 'Post Ride',    gradient: GRADIENTS.primary,   screen: 'PostRide',   desc: 'Share your route' },

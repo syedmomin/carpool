@@ -1,18 +1,36 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, FAB, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
+import { vehiclesApi } from '../../services/api';
 
 export default function MyVehiclesScreen({ navigation }) {
-  const { getVehiclesByDriver, currentUser, setActiveVehicle, deleteVehicle } = useApp();
+  const { setActiveVehicle, deleteVehicle } = useApp();
   const { showModal } = useGlobalModal();
-  const myVehicles = getVehiclesByDriver(currentUser?.id);
+  const { showToast } = useToast();
+  const [myVehicles,  setMyVehicles]  = useState([]);
+  const [refreshing,  setRefreshing]  = useState(false);
 
-  const handleSetActive = (vehicleId) => {
-    setActiveVehicle(vehicleId);
+  const fetchVehicles = useCallback(async () => {
+    setRefreshing(true);
+    const { data } = await vehiclesApi.myVehicles();
+    setRefreshing(false);
+    if (data?.data) setMyVehicles(data.data);
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    fetchVehicles();
+  }, []));
+
+  const handleSetActive = async (vehicleId) => {
+    await setActiveVehicle(vehicleId);
+    setMyVehicles(prev => prev.map(v => ({ ...v, isActive: v.id === vehicleId })));
   };
 
   const renderVehicle = ({ item }) => (
@@ -86,7 +104,8 @@ export default function MyVehiclesScreen({ navigation }) {
               icon: 'trash-outline',
               onConfirm: async () => {
                 const { error } = await deleteVehicle(item.id);
-                if (error) showModal({ type: 'error', title: 'Cannot Delete', message: error });
+                if (error) showToast(parseApiError(error), 'error');
+                else setMyVehicles(prev => prev.filter(v => v.id !== item.id));
               },
             })}>
             <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
@@ -110,8 +129,12 @@ export default function MyVehiclesScreen({ navigation }) {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={renderVehicle}
+        refreshing={refreshing}
+        onRefresh={fetchVehicles}
         ListEmptyComponent={
-          <EmptyState icon="car-outline" title="No Vehicles" subtitle="Add your vehicle to start posting rides" />
+          !refreshing ? (
+            <EmptyState icon="car-outline" title="No Vehicles" subtitle="Add your vehicle to start posting rides" />
+          ) : null
         }
       />
 

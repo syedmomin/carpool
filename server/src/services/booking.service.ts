@@ -82,7 +82,19 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         );
       }
 
-      return booking;
+      // Re-fetch booking with full nested data
+      const full = await tx.booking.findUnique({
+        where:   { id: booking.id },
+        include: {
+          ride: {
+            include: {
+              driver:  { select: { id: true, name: true, avatar: true, phone: true, reviewsReceived: { select: { rating: true } } } },
+              vehicle: { select: { id: true, brand: true, model: true, plateNumber: true, type: true, images: true, totalSeats: true, ac: true, wifi: true } },
+            },
+          },
+        },
+      });
+      return full || booking;
     });
   }
 
@@ -121,19 +133,37 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
     });
   }
 
-  async getMyBookings(passengerId: string) {
-    return prisma.booking.findMany({
-      where:   { passengerId },
-      include: {
-        ride: {
-          include: {
-            driver:  { select: { name: true, avatar: true } },
-            vehicle: { select: { brand: true, plateNumber: true } },
+  async getMyBookings(passengerId: string, page = 1, limit = 10) {
+    const skip  = (page - 1) * limit;
+    const where = { passengerId };
+    const [data, total] = await Promise.all([
+      prisma.booking.findMany({
+        where,
+        include: {
+          ride: {
+            include: {
+              driver:  { select: { id: true, name: true, avatar: true, phone: true, city: true, isVerified: true, reviewsReceived: { select: { rating: true } } } },
+              vehicle: { select: { id: true, brand: true, model: true, plateNumber: true, type: true, color: true, images: true, totalSeats: true, ac: true, wifi: true, music: true, usbCharging: true, waterCooler: true, blanket: true, firstAid: true, luggageRack: true } },
+            },
           },
         },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.booking.count({ where }),
+    ]);
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1,
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 }
 

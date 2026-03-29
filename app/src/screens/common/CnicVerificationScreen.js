@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIn
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
 import { showImagePickerOptions } from '../../utils/imagePicker';
 import { verificationApi } from '../../services/api';
 
@@ -33,7 +34,7 @@ function UploadBox({ label, required, image, uploading, onPress }) {
 
 export default function CnicVerificationScreen({ navigation }) {
   const { userRole } = useApp();
-  const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const isDriver = userRole === 'driver';
 
   const [cnic,        setCnic]        = useState('');
@@ -48,7 +49,7 @@ export default function CnicVerificationScreen({ navigation }) {
   const pickImage = async (setter, setUploading) => {
     showImagePickerOptions(async (result) => {
       if (result.cancelled) return;
-      if (result.error) { showModal({ type: 'error', title: 'Upload Error', message: result.error }); return; }
+      if (result.error) { showToast('Image upload failed. Please try again.', 'error'); return; }
       setUploading(true);
       setter(result.url);
       setUploading(false);
@@ -62,23 +63,22 @@ export default function CnicVerificationScreen({ navigation }) {
     // For passengers: CNIC is optional — but if they start filling, front image is required
     if (isDriver) {
       if (!cnic || !frontImg) {
-        showModal({ type: 'error', title: 'Missing Info', message: 'Drivers must provide CNIC number and front image.' });
+        showToast('Drivers must provide CNIC number and front image.', 'error');
         return;
       }
       if (!licenceImg) {
-        showModal({ type: 'error', title: 'Driving Licence Required', message: 'Please upload your driving licence to verify as a driver.' });
+        showToast('Please upload your driving licence to verify as a driver.', 'error');
         return;
       }
     } else {
-      // Passenger — if they filled any CNIC field, require at minimum cnic + front
       if ((cnic || frontImg) && (!cnic || !frontImg)) {
-        showModal({ type: 'error', title: 'Incomplete CNIC', message: 'Please enter your CNIC number and upload the front image.' });
+        showToast('Please enter your CNIC number and upload the front image.', 'error');
         return;
       }
     }
 
     if (cnic && !validateCnic(cnic)) {
-      showModal({ type: 'error', title: 'Invalid CNIC', message: 'Please enter a valid CNIC number (e.g. 42101-1234567-1).' });
+      showToast('Please enter a valid CNIC number (e.g. 42101-1234567-1).', 'error');
       return;
     }
 
@@ -102,28 +102,22 @@ export default function CnicVerificationScreen({ navigation }) {
     setLoading(false);
 
     if (cnicError || licenceError) {
-      showModal({
-        type: 'error',
-        title: 'Submission Failed',
-        message: cnicError || licenceError,
-      });
+      showToast(parseApiError(cnicError || licenceError), 'error');
       return;
     }
 
     if (!cnic && !licenceImg) {
-      // Nothing was submitted (passenger skipped)
       navigation.goBack();
       return;
     }
 
-    showModal({
-      type: 'success',
-      title: 'Submitted!',
-      message: isDriver
-        ? 'Your CNIC and driving licence have been submitted for review. We will verify within 24 hours.'
-        : 'Your CNIC has been submitted for verification. We will review it within 24 hours.',
-      onConfirm: () => navigation.goBack(),
-    });
+    showToast(
+      isDriver
+        ? 'CNIC and licence submitted! We will verify within 24 hours.'
+        : 'CNIC submitted for verification. We will review within 24 hours.',
+      'success',
+    );
+    navigation.goBack();
   };
 
   const cnicSteps = [

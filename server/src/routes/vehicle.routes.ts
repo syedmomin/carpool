@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate, authorize('DRIVER'));
 
 router.get('/',          vehicleController.getMyVehicles);
+router.get('/mine',      vehicleController.getMyVehicles);
 router.get('/:id',       vehicleController.getById);
 
 router.post('/',

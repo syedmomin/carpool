@@ -1,24 +1,52 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, TabPills, StatusBadge, ProgressBar, FAB } from '../../components';
-import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { ridesApi } from '../../services/api';
 
+const PAGE_SIZE = 10;
 const TABS = [
   { value: 0, label: 'Active' },
   { value: 1, label: 'All' },
 ];
 
 export default function MyRidesScreen({ navigation }) {
-  const { getMyRides, getVehicleById } = useApp();
   const { showModal } = useGlobalModal();
-  const [activeTab, setActiveTab] = useState(0);
-  const allRides = getMyRides();
+  const [activeTab,  setActiveTab]  = useState(0);
+  const [allRides,   setAllRides]   = useState([]);
+  const [page,       setPage]       = useState(1);
+  const [hasMore,    setHasMore]    = useState(true);
+  const [loading,    setLoading]    = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
+
+  const fetchRides = useCallback(async (pageNum, replace = false) => {
+    if (loading && !replace) return;
+    pageNum === 1 ? setRefreshing(true) : setLoading(true);
+    const { data } = await ridesApi.myRides(pageNum, PAGE_SIZE);
+    pageNum === 1 ? setRefreshing(false) : setLoading(false);
+    if (!data?.data) return;
+    const items = (data.data || []).map(normalize);
+    setAllRides(prev => replace ? items : [...prev, ...items]);
+    setHasMore(data.meta?.hasNext ?? false);
+    setPage(pageNum);
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    fetchRides(1, true);
+  }, []));
+
+  const loadMore = () => {
+    if (hasMore && !loading && !refreshing) fetchRides(page + 1);
+  };
+
   const rides = activeTab === 0 ? allRides.filter(r => r.status === 'ACTIVE') : allRides;
 
   const renderRide = ({ item }) => {
-    const vehicle = getVehicleById(item.vehicleId);
+    const vehicle = item.vehicle;
     const available = item.totalSeats - item.bookedSeats;
     const fillPercent = item.bookedSeats / item.totalSeats;
     const earned = item.bookedSeats * item.pricePerSeat;
@@ -87,9 +115,9 @@ export default function MyRidesScreen({ navigation }) {
       >
         <View style={styles.headerStats}>
           {[
-            { val: allRides.length, label: 'Total' },
-            { val: allRides.filter(r => r.status === 'ACTIVE').length, label: 'Active' },
-            { val: `Rs ${allRides.reduce((s, r) => s + r.bookedSeats * r.pricePerSeat, 0).toLocaleString()}`, label: 'Earned', accent: true },
+            { val: allRides.length,                                                                           label: 'Total'  },
+            { val: allRides.filter(r => r.status === 'ACTIVE').length,                                       label: 'Active' },
+            { val: `Rs ${allRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0).toLocaleString()}`, label: 'Earned', accent: true },
           ].map((s, i) => (
             <View key={i} style={styles.headerStat}>
               <Text style={[styles.headerStatVal, s.accent && { color: COLORS.accent }]}>{s.val}</Text>
@@ -112,12 +140,19 @@ export default function MyRidesScreen({ navigation }) {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={renderRide}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        refreshing={refreshing}
+        onRefresh={() => fetchRides(1, true)}
+        ListFooterComponent={loading ? <ActivityIndicator color={COLORS.teal} style={{ marginVertical: 16 }} /> : null}
         ListEmptyComponent={
-          <EmptyState
-            icon="car-sport-outline"
-            title="No Rides Found"
-            subtitle="You haven't posted any rides yet. Post your first ride!"
-          />
+          !refreshing ? (
+            <EmptyState
+              icon="car-sport-outline"
+              title="No Rides Found"
+              subtitle="You haven't posted any rides yet. Post your first ride!"
+            />
+          ) : null
         }
       />
 

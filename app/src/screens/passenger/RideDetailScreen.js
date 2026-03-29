@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -9,20 +9,43 @@ import {
 } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
+import { ridesApi } from '../../services/api';
 
 export default function RideDetailScreen({ navigation, route }) {
-  const { rideId, boardingCity, exitCity } = route.params;
-  const { getRideById, getDriverById, getVehicleById, getReviewsForDriver, bookRide } = useApp();
+  const { rideId, rideData, boardingCity, exitCity } = route.params;
+  const { bookRide } = useApp();
   const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const [selectedSeats, setSelectedSeats] = useState(1);
   const [booking, setBooking] = useState(false);
+  const [ride, setRide] = useState(() => rideData || null);
+  const [loadingRide, setLoadingRide] = useState(false);
 
-  const ride = getRideById(rideId);
-  const driver = getDriverById(ride?.driverId);
-  const vehicle = getVehicleById(ride?.vehicleId);
-  const reviews = getReviewsForDriver(ride?.driverId);
+  // Fetch from API if not available locally
+  useEffect(() => {
+    if (!ride) {
+      setLoadingRide(true);
+      ridesApi.getById(rideId).then(({ data }) => {
+        if (data?.data) setRide(data.data);
+        setLoadingRide(false);
+      });
+    }
+  }, [rideId]);
+
+  const driver  = ride?.driver;
+  const vehicle = ride?.vehicle;
   const available = ride ? ride.totalSeats - ride.bookedSeats : 0;
   const isSegment = !!(boardingCity && exitCity);
+
+  if (loadingRide) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   if (!ride) return null;
 
@@ -41,10 +64,10 @@ export default function RideDetailScreen({ navigation, route }) {
         const { error } = await bookRide(rideId, selectedSeats, boardingCity, exitCity);
         setBooking(false);
         if (error) {
-          showModal({ type: 'error', title: 'Booking Failed', message: error });
+          showToast(parseApiError(error), 'error');
           return;
         }
-        navigation.navigate('BookingConfirm', { rideId, seats: selectedSeats });
+        navigation.navigate('BookingConfirm', { rideId, seats: selectedSeats, rideData: ride });
       },
     });
   };
@@ -54,41 +77,47 @@ export default function RideDetailScreen({ navigation, route }) {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerLabel}>Ride Detail</Text>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Ionicons name="arrow-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerLabel}>Ride Detail</Text>
+            {isSegment && (
+              <View style={styles.segmentBanner}>
+                <Ionicons name="git-branch-outline" size={12} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.segmentBannerText}>Segment</Text>
+              </View>
+            )}
+          </View>
 
-          {isSegment && (
-            <View style={styles.segmentBanner}>
-              <Ionicons name="git-branch-outline" size={13} color="rgba(255,255,255,0.9)" />
-              <Text style={styles.segmentBannerText}>Booking segment: {boardingCity} → {exitCity}</Text>
-            </View>
-          )}
           <View style={styles.routeCard}>
             <View style={styles.routeRow}>
-              <View>
+              <View style={styles.cityBlock}>
                 <Text style={styles.cityLarge}>{isSegment ? boardingCity : ride.from}</Text>
                 <Text style={styles.timeSmall}>{ride.departureTime}</Text>
               </View>
               <View style={styles.routeMiddle}>
                 <View style={styles.routeDot} />
                 <View style={styles.routeArrowLine} />
-                <Ionicons name="airplane" size={16} color="#fff" style={{ transform: [{ rotate: '90deg' }] }} />
+                {/* Custom road icon instead of airplane */}
+                <View style={styles.routeIconBox}>
+                  <Ionicons name="car-sport" size={14} color={COLORS.primary} />
+                </View>
                 <View style={styles.routeArrowLine} />
                 <View style={[styles.routeDot, { backgroundColor: '#4caf50' }]} />
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
+              <View style={[styles.cityBlock, { alignItems: 'flex-end' }]}>
                 <Text style={styles.cityLarge}>{isSegment ? exitCity : ride.to}</Text>
-                <Text style={styles.timeSmall}>{ride.arrivalTime}</Text>
+                <Text style={styles.timeSmall}>{ride.arrivalTime || '—'}</Text>
               </View>
             </View>
-            {isSegment && (
-              <Text style={styles.fullRouteText}>Full route: {ride.from} → {ride.to}</Text>
-            )}
-            <Text style={styles.dateText}>
-              <Ionicons name="calendar-outline" size={12} /> {ride.date}
-            </Text>
+            <View style={styles.dateLine}>
+              <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.dateText}>{ride.date}</Text>
+              {isSegment && (
+                <Text style={styles.fullRouteText}> · Full: {ride.from} → {ride.to}</Text>
+              )}
+            </View>
           </View>
         </LinearGradient>
 
@@ -116,20 +145,27 @@ export default function RideDetailScreen({ navigation, route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Driver</Text>
           <View style={styles.driverCard}>
-            <View style={styles.driverAvatarWrap}>
-              <Avatar name={driver?.name} size={52} color={COLORS.primary} />
-              {driver?.verified && (
-                <VerifiedBadge style={styles.verifiedBadge} />
-              )}
-            </View>
+            <Avatar name={driver?.name} size={56} color={COLORS.primary} />
             <View style={styles.driverInfo}>
-              <Text style={styles.driverName}>{driver?.name}</Text>
+              <View style={styles.driverNameRow}>
+                <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
+                {driver?.isVerified && <Ionicons name="shield-checkmark" size={15} color={COLORS.secondary} />}
+              </View>
               <StarRating rating={driver?.rating} size={14} />
-              <Text style={styles.driverTrips}>{driver?.totalTrips} trips completed</Text>
+              <Text style={styles.driverMeta}>
+                {driver?.reviewCount > 0 ? `${driver.reviewCount} review${driver.reviewCount !== 1 ? 's' : ''}` : 'No reviews yet'}
+                {driver?.city ? ` · ${driver.city}` : ''}
+              </Text>
+              {driver?.phone && (
+                <View style={styles.driverPhoneRow}>
+                  <Ionicons name="call-outline" size={13} color={COLORS.gray} />
+                  <Text style={styles.driverPhone}>{driver.phone}</Text>
+                </View>
+              )}
             </View>
             <TouchableOpacity
               style={styles.callBtn}
-              onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Would you like to call ${driver?.name}?`, confirmText: 'Call' })}
+              onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Call ${driver?.name} at ${driver?.phone || 'N/A'}?`, confirmText: 'Call' })}
             >
               <LinearGradient colors={GRADIENTS.secondary} style={styles.callBtnGrad}>
                 <Ionicons name="call" size={18} color="#fff" />
@@ -146,15 +182,48 @@ export default function RideDetailScreen({ navigation, route }) {
               <Image source={{ uri: vehicle.images[0] }} style={styles.vehicleImg} resizeMode="cover" />
             ) : (
               <View style={[styles.vehicleImg, styles.vehicleImgPlaceholder]}>
-                <Ionicons name="car-sport-outline" size={48} color={COLORS.gray} />
+                <Ionicons name="car-sport-outline" size={40} color={COLORS.gray} />
+                <Text style={styles.vehicleImgLabel}>{vehicle?.brand || 'Vehicle'}</Text>
               </View>
             )}
             <View style={styles.vehicleDetails}>
-              <Text style={styles.vehicleName}>{vehicle?.brand}</Text>
-              <Text style={styles.vehicleModel}>{vehicle?.model} • {vehicle?.color}</Text>
-              <View style={styles.plateRow}>
-                <Ionicons name="card-outline" size={14} color={COLORS.gray} />
+              <View style={styles.vehicleHeaderRow}>
+                <Text style={styles.vehicleName}>{vehicle?.brand} {vehicle?.model}</Text>
                 <Text style={styles.plateNum}>{vehicle?.plateNumber}</Text>
+              </View>
+              <View style={styles.vehicleMetaRow}>
+                <View style={styles.vehicleChip}>
+                  <Ionicons name="car-outline" size={12} color={COLORS.gray} />
+                  <Text style={styles.vehicleChipText}>{vehicle?.type || 'Car'}</Text>
+                </View>
+                <View style={styles.vehicleChip}>
+                  <Ionicons name="people-outline" size={12} color={COLORS.gray} />
+                  <Text style={styles.vehicleChipText}>{vehicle?.totalSeats} seats</Text>
+                </View>
+                {vehicle?.color && (
+                  <View style={styles.vehicleChip}>
+                    <Ionicons name="color-palette-outline" size={12} color={COLORS.gray} />
+                    <Text style={styles.vehicleChipText}>{vehicle.color}</Text>
+                  </View>
+                )}
+              </View>
+              {/* Amenities */}
+              <View style={styles.amenityGrid}>
+                {[
+                  { key: 'ac',          icon: 'snow-outline',          label: 'AC',        color: COLORS.teal   },
+                  { key: 'wifi',        icon: 'wifi-outline',          label: 'WiFi',       color: COLORS.primary},
+                  { key: 'music',       icon: 'musical-notes-outline', label: 'Music',      color: '#e91e63'     },
+                  { key: 'usbCharging', icon: 'flash-outline',         label: 'USB',        color: '#ff9800'     },
+                  { key: 'waterCooler', icon: 'water-outline',         label: 'Water',      color: '#03a9f4'     },
+                  { key: 'blanket',     icon: 'bed-outline',           label: 'Blanket',    color: '#795548'     },
+                  { key: 'firstAid',    icon: 'medkit-outline',        label: 'First Aid',  color: COLORS.danger },
+                  { key: 'luggageRack', icon: 'briefcase-outline',     label: 'Luggage',    color: COLORS.gray   },
+                ].filter(f => vehicle?.[f.key]).map(f => (
+                  <View key={f.key} style={[styles.amenityChip, { backgroundColor: f.color + '15' }]}>
+                    <Ionicons name={f.icon} size={13} color={f.color} />
+                    <Text style={[styles.amenityChipText, { color: f.color }]}>{f.label}</Text>
+                  </View>
+                ))}
               </View>
             </View>
           </View>
@@ -207,25 +276,6 @@ export default function RideDetailScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Reviews */}
-        {reviews?.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reviews ({reviews.length})</Text>
-            {reviews.map(r => (
-              <View key={r.id} style={styles.reviewCard}>
-                <View style={styles.reviewTop}>
-                  <Avatar name={r.reviewerName} size={36} color={COLORS.lightGray} />
-                  <View style={styles.reviewInfo}>
-                    <Text style={styles.reviewerName}>{r.reviewerName}</Text>
-                    <StarRating rating={r.rating} size={12} />
-                  </View>
-                  <Text style={styles.reviewDate}>{r.date}</Text>
-                </View>
-                <Text style={styles.reviewComment}>{r.comment}</Text>
-              </View>
-            ))}
-          </View>
-        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -256,20 +306,24 @@ export default function RideDetailScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: 55, paddingBottom: 24, paddingHorizontal: 20 },
-  backBtn: { marginBottom: 16 },
-  headerLabel: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginBottom: 16 },
-  segmentBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, alignSelf: 'flex-start' },
-  segmentBannerText: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
-  fullRouteText: { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 4, marginBottom: 4, textAlign: 'center' },
-  routeCard: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, padding: 16 },
+  header: { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16 },
+  headerTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  backBtn: { width: 34, height: 34, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  headerLabel: { fontSize: 15, color: '#fff', fontWeight: '700', flex: 1 },
+  segmentBanner: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  segmentBannerText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  routeCard: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: 14 },
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  cityLarge: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  timeSmall: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  routeMiddle: { flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'center' },
-  routeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' },
-  routeArrowLine: { flex: 1, height: 1.5, backgroundColor: 'rgba(255,255,255,0.4)', maxWidth: 30 },
-  dateText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+  cityBlock: { flex: 1 },
+  cityLarge: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  timeSmall: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  routeMiddle: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
+  routeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' },
+  routeArrowLine: { width: 20, height: 1.5, backgroundColor: 'rgba(255,255,255,0.4)' },
+  routeIconBox: { width: 26, height: 26, backgroundColor: '#fff', borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 },
+  dateLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dateText: { fontSize: 11, color: 'rgba(255,255,255,0.75)' },
+  fullRouteText: { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
   infoRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 16, marginTop: -16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
   infoBox: { flex: 1, padding: 16, alignItems: 'center' },
   dividerV: { width: 1, backgroundColor: COLORS.border, marginVertical: 12 },
@@ -277,22 +331,29 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
   section: { margin: 16, marginTop: 12 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
-  driverCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  driverAvatarWrap: { position: 'relative', marginRight: 12 },
-  verifiedBadge: { position: 'absolute', bottom: -4, right: -4 },
+  driverCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   driverInfo: { flex: 1 },
-  driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
-  driverTrips: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
+  driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  driverMeta: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
+  driverPhoneRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
+  driverPhone: { fontSize: 13, color: COLORS.textPrimary, fontWeight: '600' },
   callBtn: { borderRadius: 14, overflow: 'hidden' },
   callBtnGrad: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   vehicleCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  vehicleImg: { width: '100%', height: 160 },
-  vehicleImgPlaceholder: { backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
-  vehicleDetails: { padding: 16 },
-  vehicleName: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleModel: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
-  plateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
-  plateNum: { fontSize: 13, color: COLORS.textPrimary, fontWeight: '600', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  vehicleImg: { width: '100%', height: 140 },
+  vehicleImgPlaceholder: { backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  vehicleImgLabel: { fontSize: 13, color: COLORS.gray, fontWeight: '600' },
+  vehicleDetails: { padding: 14 },
+  vehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  vehicleName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  plateNum: { fontSize: 12, color: COLORS.textPrimary, fontWeight: '700', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  vehicleMetaRow: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  vehicleChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
+  vehicleChipText: { fontSize: 12, color: COLORS.gray, fontWeight: '600' },
+  amenityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  amenityChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
+  amenityChipText: { fontSize: 11, fontWeight: '700' },
   routeDetail: { backgroundColor: '#fff', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   routeDetailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   rdIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, Modal,
   ActivityIndicator, ScrollView,
@@ -7,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RideCard, EmptyState, Chip, SearchInput } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { searchPakistanLocations } from '../../utils/locationSearch';
+import { ridesApi } from '../../services/api';
 
 const SORT_OPTIONS = ['Price: Low to High', 'Price: High to Low', 'Earliest Departure', 'Highest Rated'];
 
@@ -82,40 +84,61 @@ function CitySearchModal({ visible, title, onSelect, onClose }) {
 }
 
 export default function SearchScreen({ navigation, route }) {
-  const { searchRides, getDriverById, getVehicleById } = useApp();
+  const { searchRides } = useApp();
+  const [allRides, setAllRides] = useState([]);
   const [from, setFrom] = useState(route.params?.from || '');
   const [to,   setTo]   = useState(route.params?.to   || '');
   const [date, setDate] = useState(route.params?.date || '');
-  const [results,  setResults]  = useState([]);
-  const [loading,  setLoading]  = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [sort,     setSort]     = useState(0);
+  // searchResults: null = not searched yet (show allRides), array = search done
+  const [searchResults, setSearchResults] = useState(null);
+  const [loading,       setLoading]       = useState(false);
+  const [sort,          setSort]          = useState(null); // null = no sort selected
   const [showSortModal, setShowSortModal] = useState(false);
   const [filterAC,      setFilterAC]      = useState(false);
   const [filterVehicle, setFilterVehicle] = useState('');
-  const [cityModal, setCityModal] = useState(null); // 'from' | 'to'
+  const [cityModal,     setCityModal]     = useState(null); // 'from' | 'to'
+
+  // ── Compute display list from either allRides or search results ──────────
+  const displayList = useMemo(() => {
+    const base = searchResults !== null
+      ? searchResults
+      : allRides.filter(r => r.status === 'ACTIVE');
+
+    let list = [...base];
+    if (filterAC)      list = list.filter(r => r.vehicle?.ac);
+    if (filterVehicle) list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
+
+    if (sort === 0) list.sort((a, b) => (a.segmentPrice ?? a.pricePerSeat) - (b.segmentPrice ?? b.pricePerSeat));
+    if (sort === 1) list.sort((a, b) => (b.segmentPrice ?? b.pricePerSeat) - (a.segmentPrice ?? a.pricePerSeat));
+    if (sort === 2) list.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || ''));
+    if (sort === 3) list.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0));
+
+    return list;
+  }, [searchResults, allRides, filterAC, filterVehicle, sort]);
 
   const doSearch = useCallback(async () => {
-    if (!from && !to) return;
+    if (!from && !to) {
+      // Reset to show all rides
+      setSearchResults(null);
+      return;
+    }
     setLoading(true);
-    setSearched(true);
     const { data, error } = await searchRides(from, to, date);
     setLoading(false);
-    if (error || !data) { setResults([]); return; }
-    let filtered = [...data];
-    if (filterAC) filtered = filtered.filter(r => r.amenities?.includes('AC'));
-    if (filterVehicle) filtered = filtered.filter(r => {
-      const v = getVehicleById(r.vehicleId);
-      return v?.type === filterVehicle;
-    });
-    switch (sort) {
-      case 0: filtered.sort((a, b) => (a.segmentPrice ?? a.pricePerSeat) - (b.segmentPrice ?? b.pricePerSeat)); break;
-      case 1: filtered.sort((a, b) => (b.segmentPrice ?? b.pricePerSeat) - (a.segmentPrice ?? a.pricePerSeat)); break;
-      case 2: filtered.sort((a, b) => (a.departureTime || '').localeCompare(b.departureTime || '')); break;
-      case 3: filtered.sort((a, b) => (getDriverById(b.driverId)?.rating || 0) - (getDriverById(a.driverId)?.rating || 0)); break;
+    setSearchResults(error || !data ? [] : data);
+  }, [from, to, date, searchRides]);
+
+  // Load all rides on first focus (for default listing)
+  useFocusEffect(useCallback(() => {
+    if (allRides.length === 0) {
+      ridesApi.getAll(1, 20).then(({ data }) => {
+        if (data?.data) {
+          const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
+          setAllRides((data.data || []).filter(r => r.status === 'ACTIVE').map(normalize));
+        }
+      });
     }
-    setResults(filtered);
-  }, [from, to, date, sort, filterAC, filterVehicle]);
+  }, []));
 
   // Auto search when params come from HomeScreen
   useEffect(() => {
@@ -182,51 +205,48 @@ export default function SearchScreen({ navigation, route }) {
         </ScrollView>
       </View>
 
-      {/* ── Results ────────────────────────────────────────────────────── */}
-      {searched && !loading && (
+      {/* ── Results header ─────────────────────────────────────────────── */}
+      {!loading && (
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
-            {results.length} ride{results.length !== 1 ? 's' : ''} found
-            {from && to ? ` (${from} → ${to})` : from ? ` from ${from}` : to ? ` to ${to}` : ''}
+            {displayList.length} ride{displayList.length !== 1 ? 's' : ''}
+            {searchResults !== null && (from || to)
+              ? ` · ${from}${from && to ? ' → ' : ''}${to}`
+              : ' available'}
           </Text>
-          <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>
+          {sort !== null && <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>}
         </View>
       )}
 
       <FlatList
-        data={results}
+        data={displayList}
         keyExtractor={item => item.id + (item.boardingCity || '')}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <RideCard
             ride={item}
-            driver={getDriverById(item.driverId)}
-            vehicle={getVehicleById(item.vehicleId)}
+            driver={item.driver}
+            vehicle={item.vehicle}
             boardingCity={item.boardingCity}
             exitCity={item.exitCity}
             segmentPrice={item.segmentPrice}
             onPress={() => navigation.navigate('RideDetail', {
               rideId: item.id,
+              rideData: item,
               boardingCity: item.boardingCity,
               exitCity: item.exitCity,
             })}
           />
         )}
         ListEmptyComponent={
-          searched && !loading ? (
+          !loading ? (
             <EmptyState
               icon="car-outline"
-              title="No Rides Found"
-              subtitle={from || to
-                ? `No rides available on this route. Try different cities or check back later.`
-                : 'Search for rides by entering departure and destination cities.'}
+              title={searchResults !== null ? 'No Rides Found' : 'No Rides Available'}
+              subtitle={searchResults !== null
+                ? 'No rides on this route. Try different cities or check back later.'
+                : 'No active rides right now. Check back soon!'}
             />
-          ) : !searched ? (
-            <View style={styles.promptWrap}>
-              <Ionicons name="map-outline" size={64} color={COLORS.border} />
-              <Text style={styles.promptTitle}>Search for rides</Text>
-              <Text style={styles.promptSub}>Enter departure and destination to find available rides</Text>
-            </View>
           ) : null
         }
       />
@@ -248,6 +268,10 @@ export default function SearchScreen({ navigation, route }) {
         <TouchableOpacity style={styles.sortOverlay} onPress={() => setShowSortModal(false)} activeOpacity={1}>
           <View style={styles.sortSheet}>
             <Text style={styles.sortTitle}>Sort By</Text>
+            <TouchableOpacity style={styles.sortOption} onPress={() => { setSort(null); setShowSortModal(false); }}>
+              <Text style={[styles.sortOptionText, sort === null && { color: COLORS.primary, fontWeight: '700' }]}>Default (No Sort)</Text>
+              {sort === null && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+            </TouchableOpacity>
             {SORT_OPTIONS.map((opt, i) => (
               <TouchableOpacity key={i} style={styles.sortOption} onPress={() => { setSort(i); setShowSortModal(false); }}>
                 <Text style={[styles.sortOptionText, sort === i && { color: COLORS.primary, fontWeight: '700' }]}>{opt}</Text>

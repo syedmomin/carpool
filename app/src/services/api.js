@@ -58,11 +58,11 @@ export const authApi = {
 export const ridesApi = {
   search:  (from, to, date) => request('GET', `/rides/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date || ''}`),
   getById: (rideId)         => request('GET', `/rides/${rideId}`),
-  getAll:  ()               => request('GET', '/rides'),
+  getAll:  (page = 1, limit = 10) => request('GET', `/rides?page=${page}&limit=${limit}`),
   post:    (rideData)       => request('POST', '/rides', rideData),
   update:  (rideId, updates)=> request('PUT',  `/rides/${rideId}`, updates),
   cancel:  (rideId)         => request('DELETE', `/rides/${rideId}`),
-  myRides: ()               => request('GET', '/rides/mine'),
+  myRides: (page = 1, limit = 10) => request('GET', `/rides/mine?page=${page}&limit=${limit}`),
 };
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export const bookingsApi = {
   book:       (rideId, seats, boardingCity, exitCity) =>
                                 request('POST',   '/bookings',            { rideId, seats, ...(boardingCity ? { boardingCity } : {}), ...(exitCity ? { exitCity } : {}) }),
   cancel:     (bookingId)     => request('DELETE', `/bookings/${bookingId}`),
-  myBookings: ()              => request('GET',    '/bookings/mine'),
+  myBookings: (page = 1, limit = 10) => request('GET', `/bookings/mine?page=${page}&limit=${limit}`),
   getById:    (bookingId)     => request('GET',    `/bookings/${bookingId}`),
 };
 
@@ -92,7 +92,7 @@ export const vehiclesApi = {
 
 // ─── Notifications ───────────────────────────────────────────────────────────
 export const notificationsApi = {
-  getAll:     ()   => request('GET', '/notifications'),
+  getAll:     (page = 1, limit = 20) => request('GET', `/notifications?page=${page}&limit=${limit}`),
   markRead:   (id) => request('PUT', `/notifications/${id}/read`),
   markAllRead: ()  => request('PUT', '/notifications/read-all'),
 };

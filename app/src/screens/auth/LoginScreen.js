@@ -6,7 +6,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, PrimaryButton, GhostButton, FormInput, DividerText } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
 
 // phone: digits only, 11-13 chars
 const isValidPhone    = (v) => /^\d{11,13}$/.test(v.replace(/[\s\-]/g, ''));
@@ -14,7 +15,7 @@ const isValidPassword = (v) => v.length >= 6;
 
 export default function LoginScreen({ navigation }) {
   const { login } = useApp();
-  const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const [phone, setPhone]       = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -37,7 +38,7 @@ export default function LoginScreen({ navigation }) {
     const cleanPhone = phone.replace(/[\s\-]/g, '');
     const { error, role } = await login(cleanPhone, password);
     setLoading(false);
-    if (error) { showModal({ type: 'error', title: 'Login Failed', message: error }); return; }
+    if (error) { showToast(parseApiError(error), 'error'); return; }
     navigation.replace(role === 'driver' ? 'DriverApp' : 'PassengerApp');
   };
 

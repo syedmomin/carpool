@@ -7,12 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
 import { showImagePickerOptions } from '../../utils/imagePicker';
 
 export default function EditProfileScreen({ navigation }) {
   const { currentUser, updateProfile } = useApp();
-  const { showModal } = useGlobalModal();
+  const { showToast } = useToast();
   const [form, setForm] = useState({
     name:  currentUser?.name  || '',
     phone: currentUser?.phone || '',
@@ -28,7 +29,7 @@ export default function EditProfileScreen({ navigation }) {
   const handlePickImage = () => {
     showImagePickerOptions(async (result) => {
       if (result.cancelled) return;
-      if (result.error) { showModal({ type: 'error', title: 'Upload Error', message: result.error }); return; }
+      if (result.error) { showToast('Image upload failed. Please try again.', 'error'); return; }
       setUploading(true);
       setAvatar(result.url);
       setUploading(false);
@@ -36,12 +37,13 @@ export default function EditProfileScreen({ navigation }) {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { showModal({ type: 'error', title: 'Error', message: 'Name is required.' }); return; }
+    if (!form.name.trim()) { showToast('Name is required.', 'error'); return; }
     setLoading(true);
     const { error } = await updateProfile({ ...form, avatar });
     setLoading(false);
-    if (error) { showModal({ type: 'error', title: 'Update Failed', message: error }); return; }
-    showModal({ type: 'success', title: 'Profile Updated!', message: 'Your profile has been saved successfully.', onConfirm: () => navigation.goBack() });
+    if (error) { showToast(parseApiError(error), 'error'); return; }
+    showToast('Profile updated successfully!', 'success');
+    navigation.goBack();
   };
 
   const initials = form.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';

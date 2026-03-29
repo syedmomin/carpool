@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
-import { useApp } from '../../context/AppContext';
+import { ridesApi } from '../../services/api';
 
 const TABS = ['All Time', 'This Month', 'This Week'];
 
 export default function EarningsScreen({ navigation }) {
-  const { getMyEarnings, getVehicleById } = useApp();
-  const { total, totalPassengers, completedRides, rides: myRides } = getMyEarnings?.() || { total: 0, totalPassengers: 0, completedRides: 0, rides: [] };
-  const [tab, setTab] = useState(0);
+  const [myRides, setMyRides] = useState([]);
+  const [tab,     setTab]     = useState(0);
 
-  const avgPerRide = myRides.length > 0 ? Math.round(total / myRides.length) : 0;
+  const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
+
+  useFocusEffect(useCallback(() => {
+    ridesApi.myRides(1, 100).then(({ data }) => {
+      if (data?.data) setMyRides(data.data.map(normalize));
+    });
+  }, []));
+
+  const total           = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
+  const totalPassengers = myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
+  const avgPerRide      = myRides.length > 0 ? Math.round(total / myRides.length) : 0;
 
   return (
     <View style={styles.container}>

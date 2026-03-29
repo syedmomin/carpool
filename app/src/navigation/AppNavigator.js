@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -48,40 +48,44 @@ const Tab = createBottomTabNavigator();
 const SPLASH_SEEN_KEY = '@safarishare_splash_seen';
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
+// Floating pill bar — active item has a gradient pill, inactive items are flat
 function CustomTabBar({ state, descriptors, navigation, tintColor }) {
   return (
-    <View style={tabStyles.wrapper}>
-      <View style={tabStyles.container}>
+    <View style={[tabStyles.outerWrap, { paddingBottom: Platform.OS === 'ios' ? 20 : 6 }]}>
+      <View style={tabStyles.bar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const focused = state.index === index;
-          const label = options.tabBarLabel || route.name;
-          const iconName = options._iconName;
-          const iconFocused = options._iconFocused;
-          const color = tintColor;
+          const focused  = state.index === index;
+          const label    = options.tabBarLabel || route.name;
+          const iconName = focused ? options._iconFocused : options._iconName;
+          const press    = () => navigation.navigate(route.name);
+
+          if (focused) {
+            return (
+              <View key={route.key} style={tabStyles.tab}>
+                <LinearGradient
+                  colors={[tintColor, tintColor + 'cc']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={tabStyles.activePill}
+                >
+                  <Ionicons name={iconName} size={18} color="#fff" />
+                  <Text style={tabStyles.activeLabel} numberOfLines={1}>{label}</Text>
+                </LinearGradient>
+              </View>
+            );
+          }
 
           return (
-            <View key={route.key} style={tabStyles.tab}>
-              <View
-                style={[tabStyles.iconWrap, focused && { backgroundColor: color + '18' }]}
-                onStartShouldSetResponder={() => {
-                  navigation.navigate(route.name);
-                  return true;
-                }}
-              >
-                {focused && (
-                  <View style={[tabStyles.activePill, { backgroundColor: color }]} />
-                )}
-                <Ionicons
-                  name={focused ? iconFocused : iconName}
-                  size={22}
-                  color={focused ? color : COLORS.gray}
-                />
-                <Text style={[tabStyles.label, { color: focused ? color : COLORS.gray, fontWeight: focused ? '700' : '500' }]}>
-                  {label}
-                </Text>
-              </View>
-            </View>
+            <TouchableOpacity
+              key={route.key}
+              style={tabStyles.tab}
+              onPress={press}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={iconName} size={22} color={COLORS.textSecondary} />
+              <Text style={tabStyles.inactiveLabel} numberOfLines={1}>{label}</Text>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -90,47 +94,50 @@ function CustomTabBar({ state, descriptors, navigation, tintColor }) {
 }
 
 const tabStyles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 12,
-  },
-  container: {
-    flexDirection: 'row',
+  outerWrap: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 12,
     paddingTop: 8,
-    paddingHorizontal: 8,
+  },
+  bar: {
+    flexDirection:   'row',
+    backgroundColor: '#fff',
+    borderRadius:    32,
+    height:          62,
+    alignItems:      'center',
+    paddingHorizontal: 6,
+    shadowColor:     '#000',
+    shadowOffset:    { width: 0, height: 4 },
+    shadowOpacity:   0.10,
+    shadowRadius:    16,
+    elevation:       14,
   },
   tab: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  iconWrap: {
-    alignItems: 'center',
+    flex:           1,
+    alignItems:     'center',
     justifyContent: 'center',
-    borderRadius: 14,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    position: 'relative',
-    minWidth: 60,
+    height:         62,
   },
   activePill: {
-    position: 'absolute',
-    top: 0,
-    left: 10,
-    right: 10,
-    height: 3,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
+    flexDirection:  'row',
+    alignItems:     'center',
+    justifyContent: 'center',
+    gap:            6,
+    paddingHorizontal: 14,
+    paddingVertical:   9,
+    borderRadius:   22,
+    maxWidth:       120,
   },
-  label: {
-    fontSize: 10,
-    marginTop: 3,
+  activeLabel: {
+    fontSize:    12,
+    fontWeight:  '700',
+    color:       '#fff',
+    letterSpacing: 0.2,
+  },
+  inactiveLabel: {
+    fontSize:    10,
+    color:       COLORS.textSecondary,
+    marginTop:   3,
     letterSpacing: 0.2,
   },
 });
@@ -178,7 +185,7 @@ function PassengerTabNav() {
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} tintColor={COLORS.primary} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
     >
       {PASSENGER_TABS.map(t => (
         <Tab.Screen
@@ -196,7 +203,7 @@ function DriverTabNav() {
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} tintColor={COLORS.teal} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
     >
       {DRIVER_TABS.map(t => (
         <Tab.Screen

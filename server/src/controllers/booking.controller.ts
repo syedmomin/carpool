@@ -25,8 +25,10 @@ export class BookingController extends BaseController<Booking, any, any> {
 
   myBookings = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const bookings = await bookingService.getMyBookings(req.user!.id);
-      ResponseUtil.success(res, bookings, `${bookings.length} booking(s) found`);
+      const page  = Number(req.query.page)  || 1;
+      const limit = Number(req.query.limit) || 10;
+      const result = await bookingService.getMyBookings(req.user!.id, page, limit);
+      ResponseUtil.success(res, result, `${result.meta.total} booking(s) found`);
     } catch (err) { next(err); }
   };
 }

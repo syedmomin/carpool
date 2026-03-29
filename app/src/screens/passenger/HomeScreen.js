@@ -38,7 +38,7 @@ function getUpcomingDates() {
 const UPCOMING_DATES = getUpcomingDates();
 
 export default function PassengerHomeScreen({ navigation }) {
-  const { currentUser, rides, unreadCount } = useApp();
+  const { currentUser, unreadCount } = useApp();
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
   const [selectedDate, setSelectedDate] = useState(null); // null = Today
