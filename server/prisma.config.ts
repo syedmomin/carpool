@@ -1,10 +1,9 @@
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
-import { PrismaPg } from '@prisma/adapter-pg';
 
 export default defineConfig({
   datasource: {
-    url: process.env.DATABASE_URL!,
-    adapter: () => new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+    // CLI (db push / migrate) uses the direct connection (bypasses pgBouncer)
+    url: process.env.DIRECT_URL ?? process.env.DATABASE_URL!,
   },
 });
