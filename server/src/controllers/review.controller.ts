@@ -10,7 +10,7 @@ export class ReviewController extends BaseController<Review, any, any> {
 
   getDriverReviews = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await reviewService.getDriverReviews(req.params.driverId);
+      const data = await reviewService.getDriverReviews(req.params.driverId as string);
       ResponseUtil.success(res, data);
     } catch (err) { next(err); }
   };
@@ -27,7 +27,7 @@ export class ReviewController extends BaseController<Review, any, any> {
 
   deleteReview = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await reviewService.delete(req.params.id);
+      await reviewService.delete(req.params.id as string);
       ResponseUtil.noContent(res);
     } catch (err) { next(err); }
   };

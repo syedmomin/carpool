@@ -3,9 +3,9 @@ import { BaseController } from './base.controller';
 import { cnicService } from '../services/cnic.service';
 import { ResponseUtil } from '../utils/response';
 import { AuthRequest } from '../types';
-import { CnicVerification } from '@prisma/client';
+import { UserVerification } from '@prisma/client';
 
-export class CnicController extends BaseController<CnicVerification, any, any> {
+export class CnicController extends BaseController<UserVerification, any, any> {
   protected service = cnicService;
 
   submit = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -36,7 +36,7 @@ export class CnicController extends BaseController<CnicVerification, any, any> {
   review = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { status, rejectedReason } = req.body;
-      const record = await cnicService.review(req.params.id, status, req.user!.id, rejectedReason);
+      const record = await cnicService.review(req.params.id as string, status, req.user!.id, rejectedReason);
       ResponseUtil.success(res, record, `Verification ${status.toLowerCase()}`);
     } catch (err) { next(err); }
   };

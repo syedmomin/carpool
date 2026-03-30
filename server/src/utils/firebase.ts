@@ -8,7 +8,7 @@ if (!admin.apps.length) {
   });
 }
 
-export const messaging = admin.messaging();
+export const messaging: ReturnType<typeof admin.messaging> = admin.messaging();
 
 // ─── Send to single device ────────────────────────────────────────────────────
 export async function sendPushNotification(

@@ -27,7 +27,7 @@ export class ScheduleAlertController extends BaseController<ScheduleAlert, any, 
 
   remove = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await scheduleAlertService.removeAlert(req.params.id, req.user!.id);
+      await scheduleAlertService.removeAlert(req.params.id as string, req.user!.id);
       ResponseUtil.noContent(res);
     } catch (err) { next(err); }
   };

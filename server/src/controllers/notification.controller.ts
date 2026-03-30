@@ -20,7 +20,7 @@ export class NotificationController extends BaseController<Notification, any, an
 
   markRead = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const notif = await notificationService.markRead(req.params.id, req.user!.id);
+      const notif = await notificationService.markRead(req.params.id as string, req.user!.id);
       ResponseUtil.success(res, notif, 'Marked as read');
     } catch (err) { next(err); }
   };
@@ -41,7 +41,7 @@ export class NotificationController extends BaseController<Notification, any, an
 
   deleteNotification = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await notificationService.deleteNotification(req.params.id, req.user!.id);
+      await notificationService.deleteNotification(req.params.id as string, req.user!.id);
       ResponseUtil.noContent(res);
     } catch (err) { next(err); }
   };

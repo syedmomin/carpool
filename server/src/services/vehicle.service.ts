@@ -1,4 +1,4 @@
-import { Vehicle } from '@prisma/client';
+import { Vehicle, VehicleType } from '@prisma/client';
 import prisma from '../data-source';
 import { BaseService } from './base.service';
 import { AppError } from '../utils/AppError';
@@ -32,7 +32,7 @@ export class VehicleService extends BaseService<Vehicle, CreateVehicleDto, Updat
     const count = await prisma.vehicle.count({ where: { driverId: dto.driverId } });
 
     return prisma.vehicle.create({
-      data: { ...dto, isActive: count === 0, createdBy, updatedBy: createdBy },
+      data: { ...dto, type: dto.type as VehicleType, isActive: count === 0, createdBy, updatedBy: createdBy },
     });
   }
 

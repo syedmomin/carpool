@@ -24,7 +24,7 @@ export class UserController extends BaseController<User, any, any> {
 
   getPublicProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await userService.getProfile(req.params.id);
+      const user = await userService.getProfile(req.params.id as string);
       ResponseUtil.success(res, user);
     } catch (err) { next(err); }
   };
@@ -39,7 +39,7 @@ export class UserController extends BaseController<User, any, any> {
 
   deactivateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await userService.deactivateUser(req.params.id, req.user!.id);
+      await userService.deactivateUser(req.params.id as string, req.user!.id);
       ResponseUtil.success(res, null, 'User deactivated');
     } catch (err) { next(err); }
   };

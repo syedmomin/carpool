@@ -27,21 +27,21 @@ export class VehicleController extends BaseController<Vehicle, any, any> {
 
   updateVehicle = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const vehicle = await vehicleService.updateVehicle(req.params.id, req.body, req.user!.id);
+      const vehicle = await vehicleService.updateVehicle(req.params.id as string, req.body, req.user!.id);
       ResponseUtil.success(res, vehicle, 'Vehicle updated');
     } catch (err) { next(err); }
   };
 
   deleteVehicle = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await vehicleService.deleteVehicle(req.params.id, req.user!.id);
+      await vehicleService.deleteVehicle(req.params.id as string, req.user!.id);
       ResponseUtil.noContent(res);
     } catch (err) { next(err); }
   };
 
   setActive = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const vehicle = await vehicleService.setActive(req.params.id, req.user!.id);
+      const vehicle = await vehicleService.setActive(req.params.id as string, req.user!.id);
       ResponseUtil.success(res, vehicle, 'Active vehicle updated');
     } catch (err) { next(err); }
   };

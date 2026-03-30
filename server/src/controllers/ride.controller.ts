@@ -54,7 +54,7 @@ export class RideController extends BaseController<Ride, any, any> {
 
   updateStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const ride = await rideService.updateStatus(req.params.id, req.user!.id, String(req.body.status));
+      const ride = await rideService.updateStatus(req.params.id as string, req.user!.id, String(req.body.status));
       ResponseUtil.success(res, ride, `Ride status updated to ${req.body.status}`);
     } catch (err) { next(err); }
   };

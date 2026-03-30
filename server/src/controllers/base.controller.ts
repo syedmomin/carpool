@@ -12,7 +12,7 @@ export abstract class BaseController<T, CT, UT> {
   // ── GET /resource/:id ─────────────────────────────────────────────────────
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.getById(req.params.id);
+      const data = await this.service.getById(req.params.id as string);
       ResponseUtil.success(res, data);
     } catch (err) { next(err); }
   };
@@ -37,7 +37,7 @@ export abstract class BaseController<T, CT, UT> {
   // ── PUT /resource/:id ─────────────────────────────────────────────────────
   update = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.update(req.params.id, req.body as UT, req.user?.id);
+      const data = await this.service.update(req.params.id as string, req.body as UT, req.user?.id);
       ResponseUtil.success(res, data, 'Updated successfully');
     } catch (err) { next(err); }
   };
@@ -45,7 +45,7 @@ export abstract class BaseController<T, CT, UT> {
   // ── DELETE /resource/:id ──────────────────────────────────────────────────
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.service.delete(req.params.id);
+      await this.service.delete(req.params.id as string);
       ResponseUtil.noContent(res);
     } catch (err) { next(err); }
   };
