@@ -2,10 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { encryptValue, decryptValue } from '../utils/secureStorage';
 
-// For Android emulator use: 'http://10.0.2.2:5000/api/v1'
-// For iOS simulator use:    'http://localhost:5000/api/v1'
-// For physical device use:  'http://192.168.100.60:5000/api/v1'
-export const BASE_URL = 'http://192.168.100.60:5000/api/v1';
+export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
 
 const TOKEN_KEY = '@chalparo_token';
 const DEFAULT_TIMEOUT = 12000;
@@ -14,10 +11,23 @@ const DEFAULT_TIMEOUT = 12000;
 export const tokenStorage = {
   get: async () => AsyncStorage.getItem(TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
   set: async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
-  remove: async () => {
-    await AsyncStorage.removeItem(TOKEN_KEY);
-  },
+  remove: async () => AsyncStorage.removeItem(TOKEN_KEY),
 };
+
+// ─── Parse error from response body ──────────────────────────────────────────
+// Returns a human-readable string.
+// If errors[] is present (validation), joins field messages.
+// Otherwise falls back to message string.
+function parseError(json, status) {
+  if (!json || typeof json !== 'object') return `Error ${status}`;
+
+  // Validation errors: [{field, message}]
+  if (Array.isArray(json.errors) && json.errors.length > 0) {
+    return json.errors.map((e) => `${e.field}: ${e.message}`).join('\n');
+  }
+
+  return json.message || `Error ${status}`;
+}
 
 // ─── Core request ─────────────────────────────────────────────────────────────
 async function request(method, path, body = null) {
@@ -39,12 +49,17 @@ async function request(method, path, body = null) {
     clearTimeout(timeoutId);
 
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) return { data: null, error: json.message || `Error ${res.status}` };
-    return { data: json, error: null };
+
+    if (!res.ok) {
+      return { data: null, error: parseError(json, res.status), errors: json.errors ?? null };
+    }
+
+    return { data: json, error: null, errors: null };
   } catch (err) {
     clearTimeout(timeoutId);
-    if (err.name === 'AbortError') return { data: null, error: 'Request timed out. Check your connection.' };
-    return { data: null, error: err.message || 'Network error. Please try again.' };
+    if (err.name === 'AbortError')
+      return { data: null, error: 'Request timed out. Check your connection.', errors: null };
+    return { data: null, error: err.message || 'Network error. Please try again.', errors: null };
   }
 }
 
@@ -52,8 +67,7 @@ async function request(method, path, body = null) {
 export const authApi = {
   login: (phone, password) => request('POST', '/auth/login', { phone, password }),
   register: (userData) => request('POST', '/auth/register', userData),
-  changePassword: (currentPassword, newPassword) =>
-    request('POST', '/auth/change-password', { currentPassword, newPassword }),
+  changePassword: (currentPassword, newPassword) => request('POST', '/auth/change-password', { currentPassword, newPassword }),
   me: () => request('GET', '/auth/me'),
 };
 
@@ -72,7 +86,11 @@ export const ridesApi = {
 // ─── Bookings ────────────────────────────────────────────────────────────────
 export const bookingsApi = {
   book: (rideId, seats, boardingCity, exitCity) =>
-    request('POST', '/bookings', { rideId, seats, ...(boardingCity ? { boardingCity } : {}), ...(exitCity ? { exitCity } : {}) }),
+    request('POST', '/bookings', {
+      rideId, seats,
+      ...(boardingCity ? { boardingCity } : {}),
+      ...(exitCity ? { exitCity } : {}),
+    }),
   cancel: (bookingId) => request('DELETE', `/bookings/${bookingId}`),
   myBookings: (page = 1, limit = 10) => request('GET', `/bookings/mine?page=${page}&limit=${limit}`),
   getById: (bookingId) => request('GET', `/bookings/${bookingId}`),
@@ -108,12 +126,10 @@ export const reviewsApi = {
   submit: (reviewData) => request('POST', '/reviews', reviewData),
 };
 
-// ─── Verification (CNIC + Driving Licence) ───────────────────────────────────
+// ─── Verification ────────────────────────────────────────────────────────────
 export const verificationApi = {
-  submitCnic: (cnicNumber, frontImage, backImage) =>
-    request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage }),
-  submitLicence: (licenceImage) =>
-    request('POST', '/verification/licence', { licenceImage }),
+  submitCnic: (cnicNumber, frontImage, backImage) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage }),
+  submitLicence: (licenceImage) => request('POST', '/verification/licence', { licenceImage }),
   status: () => request('GET', '/verification/status'),
 };
 
@@ -127,4 +143,38 @@ export const scheduleAlertsApi = {
 // ─── Earnings ────────────────────────────────────────────────────────────────
 export const earningsApi = {
   summary: (period) => request('GET', `/earnings?period=${period || 'all'}`),
+};
+
+// ─── Image Upload ─────────────────────────────────────────────────────────────
+export const uploadApi = {
+  image: async (uri, type = 'profile') => {
+    const token = await tokenStorage.get();
+    const filename = uri.split('/').pop();
+    const mimeType = filename?.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+    const form = new FormData();
+    form.append('image', { uri, name: filename, type: mimeType });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const res = await fetch(`${BASE_URL}/upload/image?type=${type}`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: form,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return { data: null, error: parseError(json, res.status), errors: null };
+      return { data: json, error: null, errors: null };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      return { data: null, error: err.message || 'Upload failed', errors: null };
+    }
+  },
 };

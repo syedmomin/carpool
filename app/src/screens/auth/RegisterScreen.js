@@ -176,15 +176,17 @@ export default function RegisterScreen({ navigation }) {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
-        <TouchableOpacity
-          onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Create Account</Text>
-          <Text style={styles.headerSub}>Step {step + 1} of {STEPS.length} — {STEPS[step]}</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerText}>
+            <Text style={styles.headerTitle}>Create Account</Text>
+            <Text style={styles.headerSub}>Step {step + 1} of {STEPS.length} — {STEPS[step]}</Text>
+          </View>
         </View>
         {/* Progress bar */}
         <View style={styles.progressBar}>
@@ -216,11 +218,12 @@ export default function RegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container:      { flex: 1, backgroundColor: COLORS.bg },
-  header:         { paddingTop: 52, paddingBottom: 20, paddingHorizontal: 20 },
-  backBtn:        { marginBottom: 10 },
-  headerText:     { marginBottom: 14 },
-  headerTitle:    { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSub:      { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  header:         { paddingTop: 48, paddingBottom: 16, paddingHorizontal: 16 },
+  headerRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  backBtn:        { padding: 4 },
+  headerText:     { flex: 1 },
+  headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub:      { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   progressBar:    { height: 4, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' },
   progressFill:   { height: '100%', backgroundColor: '#fff', borderRadius: 2 },
   body:           { padding: 20, paddingBottom: 36 },

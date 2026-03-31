@@ -1,38 +1,31 @@
-import { Router, Request } from 'express';
+import { Router, Request, Response } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 import { authenticate } from '../middlewares/auth.middleware';
 import { ResponseUtil } from '../utils/response';
 
 const router = Router();
 
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// ─── Supabase Storage Client (lazy — created on first request) ───────────────
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+      throw new Error('SUPABASE_URL and SUPABASE_SERVICE_KEY env vars are required');
+    }
+    _supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  }
+  return _supabase;
+}
 
-// Allowed upload type folders
+const BUCKET = 'uploads';
+
+// ─── Multer (memory storage — file goes to Supabase, not disk) ───────────────
 const VALID_TYPES = ['profile', 'vehicle', 'documents'] as const;
 type UploadType = typeof VALID_TYPES[number];
 
-const storage = multer.diskStorage({
-  destination: (req: Request, _file, cb) => {
-    const userId = (req as any).user?.id;
-    const type: UploadType = VALID_TYPES.includes((req.query.type as UploadType))
-      ? (req.query.type as UploadType)
-      : 'profile';
-
-    const dir = path.join(UPLOADS_DIR, userId, type);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -40,18 +33,30 @@ const upload = multer({
   },
 });
 
-const SERVER_URL = process.env.SERVER_URL || 'http://192.168.100.60:5000';
-
-router.post('/image', authenticate, upload.single('image'), (req, res) => {
+// ─── POST /upload/image ───────────────────────────────────────────────────────
+router.post('/image', authenticate, upload.single('image'), async (req: Request, res: Response) => {
   if (!req.file) { ResponseUtil.badRequest(res, 'No file uploaded'); return; }
 
-  const userId = (req as any).user?.id;
-  const type: UploadType = VALID_TYPES.includes((req.query.type as UploadType))
+  const userId  = (req as any).user?.id;
+  const type: UploadType = VALID_TYPES.includes(req.query.type as UploadType)
     ? (req.query.type as UploadType)
     : 'profile';
 
-  const url = `${SERVER_URL}/uploads/${userId}/${type}/${req.file.filename}`;
-  ResponseUtil.created(res, { url }, 'Image uploaded successfully');
+  const ext      = req.file.mimetype.split('/')[1] || 'jpg';
+  const filename = `${userId}/${type}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const { error } = await getSupabase().storage
+    .from(BUCKET)
+    .upload(filename, req.file.buffer, {
+      contentType: req.file.mimetype,
+      upsert:      false,
+    });
+
+  if (error) { ResponseUtil.error(res, error.message); return; }
+
+  const { data } = getSupabase().storage.from(BUCKET).getPublicUrl(filename);
+
+  ResponseUtil.created(res, { url: data.publicUrl }, 'Image uploaded successfully');
 });
 
 export default router;

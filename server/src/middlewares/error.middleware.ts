@@ -29,13 +29,28 @@ export const errorHandler = (
   }
 
   // JWT errors
-  if (err.name === 'JsonWebTokenError')  { ResponseUtil.unauthorized(res, 'Invalid token');  return; }
-  if (err.name === 'TokenExpiredError')  { ResponseUtil.unauthorized(res, 'Token expired');  return; }
+  if (err.name === 'JsonWebTokenError') { ResponseUtil.unauthorized(res, 'Invalid token'); return; }
+  if (err.name === 'TokenExpiredError') { ResponseUtil.unauthorized(res, 'Token expired');  return; }
 
-  // Unknown error — don't leak details in production
-  console.error('Unhandled error:', err);
-  const message = process.env.NODE_ENV === 'development' ? err.message : 'Internal server error';
-  ResponseUtil.error(res, message, 500);
+  // Database / TLS connection errors — never leak internals
+  const msg = err.message || '';
+  if (
+    msg.includes('TLS') ||
+    msg.includes('self-signed') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('certificate') ||
+    msg.includes('connect ETIMEDOUT') ||
+    (err as any).code === 'P1001' ||
+    (err as any).code === 'P1017'
+  ) {
+    console.error('[DB] Connection error:', msg);
+    ResponseUtil.error(res, 'Service temporarily unavailable. Please try again.', 503);
+    return;
+  }
+
+  // Unknown error — always hide internals
+  console.error('[Unhandled]', err);
+  ResponseUtil.error(res, 'Something went wrong. Please try again.', 500);
 };
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────

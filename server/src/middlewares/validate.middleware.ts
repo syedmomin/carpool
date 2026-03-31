@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/AppError';
+import { AppError, FieldError } from '../utils/AppError';
 
 type ValidationRule = {
   field: string;
@@ -11,36 +11,39 @@ type ValidationRule = {
 
 export const validate = (rules: ValidationRule[]) =>
   (req: Request, _res: Response, next: NextFunction): void => {
-    const errors: string[] = [];
+    const errors: FieldError[] = [];
 
     for (const rule of rules) {
       const value = req.body[rule.field];
+      const add = (message: string) => errors.push({ field: rule.field, message });
 
       if (rule.required && (value === undefined || value === null || value === '')) {
-        errors.push(`${rule.field} is required`);
+        add('is required');
         continue;
       }
       if (value === undefined || value === null || value === '') continue;
 
       if (rule.type === 'email') {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value)))
-          errors.push(`${rule.field} must be a valid email`);
+          add('must be a valid email address');
       }
 
       if (rule.type === 'phone') {
         const digits = String(value).replace(/[\s\-]/g, '');
         if (!/^\d{11,13}$/.test(digits))
-          errors.push(`${rule.field} must be 11–13 digits (numbers only)`);
+          add('must be 11–13 digits');
       }
 
       if (rule.type === 'number' && isNaN(Number(value))) {
-        errors.push(`${rule.field} must be a number`);
+        add('must be a number');
       }
+
       if (rule.min !== undefined && String(value).length < rule.min) {
-        errors.push(`${rule.field} must be at least ${rule.min} characters`);
+        add(`must be at least ${rule.min} characters`);
       }
+
       if (rule.max !== undefined && String(value).length > rule.max) {
-        errors.push(`${rule.field} must be at most ${rule.max} characters`);
+        add(`must be at most ${rule.max} characters`);
       }
     }
 

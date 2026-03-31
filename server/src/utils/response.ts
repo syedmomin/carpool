@@ -1,12 +1,23 @@
 import { Response } from 'express';
+import { FieldError } from './AppError';
+
+// ─── Pagination Meta ──────────────────────────────────────────────────────────
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
 
 // ─── Standard API Response Shape ─────────────────────────────────────────────
 export interface ApiResponse<T = null> {
   success: boolean;
   message: string;
   data: T | null;
-  errors?: string[] | null;
-  meta?: Record<string, unknown> | null;
+  errors: FieldError[] | null;
+  meta: PaginationMeta | null;
   timestamp: string;
 }
 
@@ -17,7 +28,7 @@ export class ResponseUtil {
     data: T,
     message = 'Success',
     statusCode = 200,
-    meta?: Record<string, unknown>,
+    meta?: PaginationMeta,
   ): Response {
     const body: ApiResponse<T> = {
       success:   true,
@@ -42,7 +53,7 @@ export class ResponseUtil {
     res: Response,
     message = 'Something went wrong',
     statusCode = 500,
-    errors?: string[],
+    errors?: FieldError[],
   ): Response {
     const body: ApiResponse<null> = {
       success:   false,
@@ -55,7 +66,7 @@ export class ResponseUtil {
     return res.status(statusCode).json(body);
   }
 
-  static badRequest(res: Response, message = 'Bad request', errors?: string[]): Response {
+  static badRequest(res: Response, message = 'Bad request', errors?: FieldError[]): Response {
     return this.error(res, message, 400, errors);
   }
 
@@ -84,13 +95,14 @@ export class ResponseUtil {
     message = 'Success',
   ): Response {
     const totalPages = Math.ceil(total / limit);
-    return this.success(res, data, message, 200, {
+    const meta: PaginationMeta = {
       total,
       page,
       limit,
       totalPages,
       hasNext: page < totalPages,
       hasPrev: page > 1,
-    });
+    };
+    return this.success(res, data, message, 200, meta);
   }
 }
