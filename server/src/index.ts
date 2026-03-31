@@ -1,4 +1,6 @@
 import 'dotenv/config';
+// Supabase uses self-signed intermediate certs — disable strict TLS verification
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 import path from 'path';
 import express from 'express';
 import cors from 'cors';
