@@ -61,13 +61,14 @@ export function CustomTabBar({ state, descriptors, navigation }) {
   const getPath = () => {
     const s = tabWidth * activeIndex; // start point
     const c = s + tabWidth / 2; // center point
-    const r = 35; // curve radius
+    const r = 24; // narrower radius
+    const h = 34; // deeper curve
 
     return `
       M 0,0 
       L ${c - r - 10},0 
-      C ${c - r},0 ${c - r + 5},${r} ${c},${r} 
-      C ${c + r - 5},${r} ${c + r},0 ${c + r + 10},0 
+      C ${c - r},0 ${c - r + 4},${h} ${c},${h} 
+      C ${c + r - 4},${h} ${c + r},0 ${c + r + 10},0 
       L ${width},0 
       L ${width},${TAB_BAR_HEIGHT} 
       L 0,${TAB_BAR_HEIGHT} 

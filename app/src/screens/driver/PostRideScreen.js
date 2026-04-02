@@ -307,7 +307,7 @@ export default function PostRideScreen({ navigation }) {
                       style={styles.stopCityBtn}
                       onPress={() => setCityModal({ type: 'stop', idx })}
                     >
-                      <Ionicons name="location-outline" size={16} color={stop.city ? COLORS.primary : COLORS.gray} />
+                      <Ionicons name="location-outline" size={16} color={COLORS.gray} />
                       <Text style={[styles.stopCityText, !stop.city && styles.placeholder]}>
                         {stop.city || 'Select stop city'}
                       </Text>

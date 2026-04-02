@@ -14,8 +14,8 @@ export default function MyVehiclesScreen({ navigation }) {
   const { setActiveVehicle, deleteVehicle } = useApp();
   const { showModal } = useGlobalModal();
   const { showToast } = useToast();
-  const [myVehicles,  setMyVehicles]  = useState([]);
-  const [refreshing,  setRefreshing]  = useState(false);
+  const [myVehicles, setMyVehicles] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchVehicles = useCallback(async () => {
     setRefreshing(true);
@@ -66,14 +66,14 @@ export default function MyVehiclesScreen({ navigation }) {
             <Text style={styles.featureText}>{item.totalSeats} seats</Text>
           </View>
           {[
-            { key: 'ac',          icon: 'snow-outline',          label: 'AC',        color: COLORS.teal   },
-            { key: 'wifi',        icon: 'wifi-outline',          label: 'WiFi',       color: COLORS.purple },
-            { key: 'music',       icon: 'musical-notes-outline', label: 'Music',      color: '#e91e63'     },
-            { key: 'usbCharging', icon: 'flash-outline',         label: 'USB',        color: '#ff9800'     },
-            { key: 'waterCooler', icon: 'water-outline',         label: 'Water',      color: '#03a9f4'     },
-            { key: 'blanket',     icon: 'bed-outline',           label: 'Blanket',    color: '#795548'     },
-            { key: 'firstAid',    icon: 'medkit-outline',        label: 'First Aid',  color: COLORS.danger },
-            { key: 'luggageRack', icon: 'briefcase-outline',     label: 'Luggage',    color: COLORS.gray   },
+            { key: 'ac', icon: 'snow-outline', label: 'AC', color: COLORS.teal },
+            { key: 'wifi', icon: 'wifi-outline', label: 'WiFi', color: COLORS.purple },
+            { key: 'music', icon: 'musical-notes-outline', label: 'Music', color: '#e91e63' },
+            { key: 'usbCharging', icon: 'flash-outline', label: 'USB', color: '#ff9800' },
+            { key: 'waterCooler', icon: 'water-outline', label: 'Water', color: '#03a9f4' },
+            { key: 'blanket', icon: 'bed-outline', label: 'Blanket', color: '#795548' },
+            { key: 'firstAid', icon: 'medkit-outline', label: 'First Aid', color: COLORS.danger },
+            { key: 'luggageRack', icon: 'briefcase-outline', label: 'Luggage', color: COLORS.gray },
           ].filter(f => item[f.key]).map(f => (
             <View key={f.key} style={styles.featureChip}>
               <Ionicons name={f.icon} size={13} color={f.color} />
@@ -96,18 +96,18 @@ export default function MyVehiclesScreen({ navigation }) {
             <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.deleteBtn} onPress={() => showModal({
-              type: 'danger',
-              title: 'Delete Vehicle?',
-              message: 'This will permanently remove the vehicle.',
-              confirmText: 'Yes, Delete',
-              cancelText: 'Cancel',
-              icon: 'trash-outline',
-              onConfirm: async () => {
-                const { error } = await deleteVehicle(item.id);
-                if (error) showToast(parseApiError(error), 'error');
-                else setMyVehicles(prev => prev.filter(v => v.id !== item.id));
-              },
-            })}>
+            type: 'danger',
+            title: 'Delete Vehicle?',
+            message: 'This will permanently remove the vehicle.',
+            confirmText: 'Yes, Delete',
+            cancelText: 'Cancel',
+            icon: 'trash-outline',
+            onConfirm: async () => {
+              const { error } = await deleteVehicle(item.id);
+              if (error) showToast(parseApiError(error), 'error');
+              else setMyVehicles(prev => prev.filter(v => v.id !== item.id));
+            },
+          })}>
             <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
           </TouchableOpacity>
         </View>
@@ -120,7 +120,7 @@ export default function MyVehiclesScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.teal}
         title="My Vehicles"
-        subtitle="Manage your registered vehicles for ride-sharing"
+        subtitle="Manage your registered vehicles"
         onBack={() => navigation.goBack()}
         rightIcon="add"
         onRightPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })}

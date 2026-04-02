@@ -64,7 +64,7 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
     <View style={ps.wrap}>
       {!!label && <Text style={ps.label}>{label}</Text>}
       <TouchableOpacity style={ps.input} onPress={() => setShow(true)} activeOpacity={0.8}>
-        <Ionicons name="calendar-outline" size={18} color={COLORS.primary} style={ps.icon} />
+        <Ionicons name="calendar-outline" size={18} color={COLORS.gray} style={ps.icon} />
         <Text style={[ps.inputText, !value && ps.placeholder]}>
           {value ? formatDisplay(value) : placeholder}
         </Text>
@@ -134,7 +134,7 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
     <View style={ps.wrap}>
       {!!label && <Text style={ps.label}>{label}</Text>}
       <TouchableOpacity style={ps.input} onPress={() => setShow(true)} activeOpacity={0.8}>
-        <Ionicons name="time-outline" size={18} color={COLORS.primary} style={ps.icon} />
+        <Ionicons name="time-outline" size={18} color={COLORS.gray} style={ps.icon} />
         <Text style={[ps.inputText, !value && ps.placeholder]}>
           {value || placeholder}
         </Text>
