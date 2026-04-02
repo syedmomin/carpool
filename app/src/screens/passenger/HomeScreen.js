@@ -8,18 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, NotifBadge, SearchInput } from '../../components';
 import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
-import { POPULAR_ROUTES } from '../../data/mockData';
 import { searchPakistanLocations } from '../../utils/locationSearch';
 
 const { width } = Dimensions.get('window');
-
-const CAR_MARKERS = [
-  { id: 1, latitude: 24.8880, longitude: 67.0600 },
-  { id: 2, latitude: 24.8560, longitude: 67.0180 },
-  { id: 3, latitude: 24.8720, longitude: 67.0900 },
-  { id: 4, latitude: 24.8400, longitude: 66.9900 },
-  { id: 5, latitude: 24.9100, longitude: 67.1100 },
-];
 
 function getUpcomingDates() {
   const dates = [];
@@ -40,8 +31,8 @@ const UPCOMING_DATES = getUpcomingDates();
 
 // ─── City Search Modal ────────────────────────────────────────────────────────
 function CitySearchModal({ visible, title, onSelect, onClose }) {
-  const [query, setQuery]       = useState('');
-  const [results, setResults]   = useState([]);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const timerRef = useRef(null);
 
@@ -112,7 +103,7 @@ function CitySearchModal({ visible, title, onSelect, onClose }) {
 export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const [fromCity, setFromCity] = useState('');
-  const [toCity, setToCity]     = useState('');
+  const [toCity, setToCity] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [scheduleModal, setScheduleModal] = useState(false);
   const [cityModal, setCityModal] = useState(null); // 'from' | 'to' | null
@@ -139,7 +130,7 @@ export default function PassengerHomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Map Background */}
-      <MapBackground markers={CAR_MARKERS} style={styles.mapSection} />
+      <MapBackground style={styles.mapSection} />
 
       {/* Top Bar */}
       <View style={styles.topBar}>
@@ -216,21 +207,6 @@ export default function PassengerHomeScreen({ navigation }) {
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
-
-        {/* Popular Routes */}
-        <Text style={styles.popularTitle}>Popular Routes</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {POPULAR_ROUTES.map((route, i) => (
-            <TouchableOpacity
-              key={i}
-              style={styles.routeChip}
-              onPress={() => navigation.navigate('Search', { from: route.from, to: route.to })}
-            >
-              <Ionicons name="location-outline" size={11} color={COLORS.primary} />
-              <Text style={styles.routeChipText}>{route.from} → {route.to}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
 
       {/* City Search Modals */}
@@ -346,10 +322,10 @@ const styles = StyleSheet.create({
   routeDot: { width: 10, height: 10, borderRadius: 5 },
   routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
   routeInputs: { flex: 1 },
-  routeInputTouch:       { paddingVertical: 6 },
-  routeInput:            { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
+  routeInputTouch: { paddingVertical: 6 },
+  routeInput: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
   routeInputPlaceholder: { color: COLORS.gray },
-  routeInputDivider:     { height: 1, backgroundColor: COLORS.border },
+  routeInputDivider: { height: 1, backgroundColor: COLORS.border },
   swapBtn: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
@@ -371,15 +347,6 @@ const styles = StyleSheet.create({
   },
   findBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
-  popularTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
-  routeChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: COLORS.lightGray,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 20, marginRight: 8,
-  },
-  routeChipText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
-
   // Schedule Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },
@@ -398,15 +365,15 @@ const styles = StyleSheet.create({
 
 // ─── City Search Modal styles ─────────────────────────────────────────────────
 const ms = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#fff' },
-  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title:      { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  title: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
   searchWrap: { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  item:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  itemName:   { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  itemSub:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  empty:      { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText:  { fontSize: 14, color: COLORS.gray },
-  hint:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20 },
-  hintText:   { fontSize: 13, color: COLORS.gray },
+  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  itemName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  itemSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText: { fontSize: 14, color: COLORS.gray },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20 },
+  hintText: { fontSize: 13, color: COLORS.gray },
 });

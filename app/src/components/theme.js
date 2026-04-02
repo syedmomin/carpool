@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // ─── SafariShare Brand Palette ───────────────────────────────────────────────
 // Rule: passenger UI = primary blue | driver UI = teal
 // Never use purple — was replaced with blue
@@ -71,27 +73,36 @@ export const TYPOGRAPHY = {
 
 // ─── SHADOWS ────────────────────────────────────────────────────────────────
 export const SHADOWS = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 5,
-  },
+  sm: Platform.select({
+    web: { boxShadow: '0px 1px 4px rgba(0,0,0,0.06)' },
+    default: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+  }),
+  md: Platform.select({
+    web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.08)' },
+    default: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+  }),
+  lg: Platform.select({
+    web: { boxShadow: '0px 4px 16px rgba(0,0,0,0.12)' },
+    default: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 5,
+    },
+  }),
 };
 
 // ─── BORDER RADIUS ──────────────────────────────────────────────────────────

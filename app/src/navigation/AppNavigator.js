@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Dimensions } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -43,60 +43,86 @@ import AboutScreen from '../screens/common/AboutScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const SPLASH_SEEN_KEY = '@chalparo_splash_seen';
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
-const CIRCLE  = 44;   // floating icon bubble diameter
-const HALO    = 56;   // background halo (fakes bar cutout)
-const BAR_H   = 56;   // height of the bar
-const LIFT    = HALO / 2; // bar pushed down by this amount
+// const CIRCLE = 44;   // floating icon bubble diameter
+// const HALO = 56;   // background halo (fakes bar cutout)
+// const BAR_H = 56;   // height of the bar
+// const LIFT = HALO / 2; // bar pushed down by this amount
+const { width } = Dimensions.get('window');
+const TAB_BAR_HEIGHT = 65;
 
-function CustomTabBar({ state, descriptors, navigation }) {
-  const pbottom = Platform.OS === 'ios' ? 20 : 8;
+
+export function CustomTabBar({ state, descriptors, navigation }) {
+  const activeIndex = state.index;
+  const tabWidth = width / state.routes.length;
+
+  // Exact curve calculation based on the image
+  const getPath = () => {
+    const s = tabWidth * activeIndex; // start point
+    const c = s + tabWidth / 2; // center point
+    const r = 35; // curve radius
+
+    return `
+      M 0,0 
+      L ${c - r - 10},0 
+      C ${c - r},0 ${c - r + 5},${r} ${c},${r} 
+      C ${c + r - 5},${r} ${c + r},0 ${c + r + 10},0 
+      L ${width},0 
+      L ${width},${TAB_BAR_HEIGHT} 
+      L 0,${TAB_BAR_HEIGHT} 
+      Z
+    `;
+  };
+
   return (
-    <View style={[tabStyles.wrapper, { paddingBottom: pbottom }]}>
-      {/* ── Dark bar (renders below the floating layer) ── */}
-      <View style={tabStyles.bar}>
+    <View style={styles.container}>
+      {/* SVG Background with shadow for the cutout look */}
+      <View style={styles.svgWrapper}>
+        <Svg width={width} height={TAB_BAR_HEIGHT}>
+          <Path
+            fill="white"
+            d={getPath()}
+          />
+        </Svg>
+      </View>
+
+      {/* Interactive Tabs */}
+      <View style={styles.content}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const focused = state.index === index;
-          const label   = options.tabBarLabel || route.name;
+          const isFocused = state.index === index;
+          const label = options.tabBarLabel || route.name;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
           return (
             <TouchableOpacity
               key={route.key}
-              style={tabStyles.slot}
-              onPress={() => navigation.navigate(route.name)}
-              activeOpacity={0.75}
+              onPress={onPress}
+              style={styles.tabItem}
+              activeOpacity={1}
             >
-              <View style={tabStyles.iconSpace}>
-                {!focused && (
-                  <Ionicons name={options._iconName} size={20} color="#9ca3af" />
-                )}
+              <View style={[styles.iconWrapper, isFocused && styles.activeIconWrapper]}>
+                <Ionicons
+                  name={isFocused ? options._iconFocused : options._iconName}
+                  size={24}
+                  color={isFocused ? COLORS.primary : COLORS.gray}
+                />
               </View>
-              <Text style={[tabStyles.lbl, focused && tabStyles.lblActive]} numberOfLines={1}>
+              <Text style={[styles.label, isFocused && styles.activeLabel]}>
                 {label}
               </Text>
             </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* ── Floating bubbles overlay (pointer-events none — taps fall through to bar) ── */}
-      <View style={tabStyles.floatLayer} pointerEvents="none">
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const focused = state.index === index;
-          return (
-            <View key={route.key} style={tabStyles.floatItem}>
-              {focused && (
-                /* Halo (matches app bg) hides bar behind bubble → fake cutout */
-                <View style={tabStyles.halo}>
-                  <View style={tabStyles.bubble}>
-                    <Ionicons name={options._iconFocused} size={24} color="#fff" />
-                  </View>
-                </View>
-              )}
-            </View>
           );
         })}
       </View>
@@ -104,118 +130,75 @@ function CustomTabBar({ state, descriptors, navigation }) {
   );
 }
 
-const tabStyles = StyleSheet.create({
-  wrapper: {
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    bottom: 0,
+    width: width,
     backgroundColor: 'transparent',
-    overflow: 'visible',
+    elevation: 0,
   },
-  bar: {
-    flexDirection:         'row',
-    height:                BAR_H,
-    backgroundColor:       '#fff',
-    marginTop:             LIFT,
-    borderTopLeftRadius:   20,
-    borderTopRightRadius:  20,
-    shadowColor:           '#000',
-    shadowOffset:          { width: 0, height: -3 },
-    shadowOpacity:         0.07,
-    shadowRadius:          10,
-    elevation:             14,
+  svgWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
-  slot: {
-    flex:            1,
-    alignItems:      'center',
-    justifyContent:  'center',
-    paddingVertical: 6,
-    gap:             2,
+  content: {
+    flexDirection: 'row',
+    height: TAB_BAR_HEIGHT,
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 15 : 0,
   },
-  iconSpace: {
-    height:         22,
-    alignItems:     'center',
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  lbl: {
-    fontSize:      10,
-    color:         '#9ca3af',
-    fontWeight:    '500',
-    letterSpacing: 0.1,
-  },
-  lblActive: {
-    color:      COLORS.primary,
-    fontWeight: '700',
-  },
-  floatLayer: {
-    position:      'absolute',
-    top:           0,
-    left:          0,
-    right:         0,
-    flexDirection: 'row',
-    height:        HALO,
-  },
-  floatItem: {
-    flex:       1,
+  iconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    transition: '0.3s',
   },
-  halo: {
-    width:           HALO,
-    height:          HALO,
-    borderRadius:    HALO / 2,
-    backgroundColor: COLORS.bg,
-    alignItems:      'center',
-    justifyContent:  'center',
+  activeIconWrapper: {
+    backgroundColor: 'white',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    marginTop: -10, // Pushes icon into the cutout
   },
-  bubble: {
-    width:           CIRCLE,
-    height:          CIRCLE,
-    borderRadius:    CIRCLE / 2,
-    backgroundColor: COLORS.primary,
-    alignItems:      'center',
-    justifyContent:  'center',
-    shadowColor:     COLORS.primary,
-    shadowOffset:    { width: 0, height: 3 },
-    shadowOpacity:   0.35,
-    shadowRadius:    8,
-    elevation:       10,
+  label: {
+    fontSize: 11,
+    color: COLORS.gray,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  activeLabel: {
+    color: COLORS.primary,
+    fontWeight: '700',
   },
 });
 
-// ─── Shared stack screens (added inside both tab navigators) ──────────────────
-function SharedStack(Stack, TabNavigator) {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <Stack.Screen name="Tabs" component={TabNavigator} options={{ animation: 'none' }} />
-      <Stack.Screen name="RideDetail"      component={RideDetailScreen} />
-      <Stack.Screen name="BookingConfirm"  component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="BookingHistory"  component={BookingHistoryScreen} />
-      <Stack.Screen name="Schedule"        component={ScheduleScreen} />
-      <Stack.Screen name="MyVehicles"      component={MyVehiclesScreen} />
-      <Stack.Screen name="VehicleSetup"    component={VehicleSetupScreen} />
-      <Stack.Screen name="Earnings"        component={EarningsScreen} />
-      <Stack.Screen name="Notifications"   component={NotificationsScreen} />
-      <Stack.Screen name="EditProfile"     component={EditProfileScreen} />
-      <Stack.Screen name="CnicVerify"      component={CnicVerificationScreen} />
-      <Stack.Screen name="ChangePassword"  component={ChangePasswordScreen} />
-      <Stack.Screen name="Support"         component={SupportScreen} />
-      <Stack.Screen name="Terms"           component={TermsScreen} />
-      <Stack.Screen name="Privacy"         component={PrivacyScreen} />
-      <Stack.Screen name="About"           component={AboutScreen} />
-    </Stack.Navigator>
-  );
-}
-
 const PASSENGER_TABS = [
-  { name: 'PassengerHome',    icon: 'home-outline',    iconFocused: 'home',       label: 'Home',     component: PassengerHomeScreen },
-  { name: 'Search',           icon: 'search-outline',  iconFocused: 'search',     label: 'Search',   component: SearchScreen },
-  { name: 'BookingHistory',   icon: 'receipt-outline', iconFocused: 'receipt',    label: 'Bookings', component: BookingHistoryScreen },
-  { name: 'PassengerProfile', icon: 'person-outline',  iconFocused: 'person',     label: 'Profile',  component: ProfileScreen },
+  { name: 'PassengerHome', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerHomeScreen },
+  { name: 'Search', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: SearchScreen },
+  { name: 'BookingHistory', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
+  { name: 'PassengerProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: ProfileScreen },
 ];
 
 const DRIVER_TABS = [
-  { name: 'DriverHome',    icon: 'grid-outline',          iconFocused: 'grid',          label: 'Dashboard', component: DriverHomeScreen },
-  { name: 'PostRide',      icon: 'add-circle-outline',    iconFocused: 'add-circle',    label: 'Post Ride', component: PostRideScreen },
-  { name: 'MyRides',       icon: 'car-sport-outline',     iconFocused: 'car-sport',     label: 'My Rides',  component: MyRidesScreen },
-  { name: 'MyVehicles',    icon: 'car-outline',           iconFocused: 'car',           label: 'Vehicles',  component: MyVehiclesScreen },
-  { name: 'DriverProfile', icon: 'person-outline',        iconFocused: 'person',        label: 'Profile',   component: ProfileScreen },
+  { name: 'DriverHome', icon: 'grid-outline', iconFocused: 'grid', label: 'Dashboard', component: DriverHomeScreen },
+  { name: 'PostRide', icon: 'add-circle-outline', iconFocused: 'add-circle', label: 'Post Ride', component: PostRideScreen },
+  { name: 'MyRides', icon: 'car-sport-outline', iconFocused: 'car-sport', label: 'My Rides', component: MyRidesScreen },
+  { name: 'MyVehicles', icon: 'car-outline', iconFocused: 'car', label: 'Vehicles', component: MyVehiclesScreen },
+  { name: 'DriverProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: ProfileScreen },
 ];
 
 function PassengerTabNav() {
@@ -259,19 +242,19 @@ function PassengerApp() {
   const PassengerStack = createNativeStackNavigator();
   return (
     <PassengerStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <PassengerStack.Screen name="Tabs"           component={PassengerTabNav}      options={{ animation: 'none' }} />
-      <PassengerStack.Screen name="RideDetail"     component={RideDetailScreen} />
+      <PassengerStack.Screen name="Tabs" component={PassengerTabNav} options={{ animation: 'none' }} />
+      <PassengerStack.Screen name="RideDetail" component={RideDetailScreen} />
       <PassengerStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
       <PassengerStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-      <PassengerStack.Screen name="Schedule"       component={ScheduleScreen} />
-      <PassengerStack.Screen name="Notifications"  component={NotificationsScreen} />
-      <PassengerStack.Screen name="EditProfile"    component={EditProfileScreen} />
-      <PassengerStack.Screen name="CnicVerify"     component={CnicVerificationScreen} />
+      <PassengerStack.Screen name="Schedule" component={ScheduleScreen} />
+      <PassengerStack.Screen name="Notifications" component={NotificationsScreen} />
+      <PassengerStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <PassengerStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
       <PassengerStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <PassengerStack.Screen name="Support"        component={SupportScreen} />
-      <PassengerStack.Screen name="Terms"          component={TermsScreen} />
-      <PassengerStack.Screen name="Privacy"        component={PrivacyScreen} />
-      <PassengerStack.Screen name="About"          component={AboutScreen} />
+      <PassengerStack.Screen name="Support" component={SupportScreen} />
+      <PassengerStack.Screen name="Terms" component={TermsScreen} />
+      <PassengerStack.Screen name="Privacy" component={PrivacyScreen} />
+      <PassengerStack.Screen name="About" component={AboutScreen} />
     </PassengerStack.Navigator>
   );
 }
@@ -281,19 +264,19 @@ function DriverApp() {
   const DriverStack = createNativeStackNavigator();
   return (
     <DriverStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <DriverStack.Screen name="Tabs"           component={DriverTabNav}          options={{ animation: 'none' }} />
-      <DriverStack.Screen name="VehicleSetup"   component={VehicleSetupScreen} />
-      <DriverStack.Screen name="Earnings"       component={EarningsScreen} />
-      <DriverStack.Screen name="Notifications"  component={NotificationsScreen} />
-      <DriverStack.Screen name="EditProfile"    component={EditProfileScreen} />
-      <DriverStack.Screen name="CnicVerify"     component={CnicVerificationScreen} />
+      <DriverStack.Screen name="Tabs" component={DriverTabNav} options={{ animation: 'none' }} />
+      <DriverStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
+      <DriverStack.Screen name="Earnings" component={EarningsScreen} />
+      <DriverStack.Screen name="Notifications" component={NotificationsScreen} />
+      <DriverStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <DriverStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
       <DriverStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <DriverStack.Screen name="Support"        component={SupportScreen} />
-      <DriverStack.Screen name="Terms"          component={TermsScreen} />
-      <DriverStack.Screen name="Privacy"        component={PrivacyScreen} />
-      <DriverStack.Screen name="About"          component={AboutScreen} />
+      <DriverStack.Screen name="Support" component={SupportScreen} />
+      <DriverStack.Screen name="Terms" component={TermsScreen} />
+      <DriverStack.Screen name="Privacy" component={PrivacyScreen} />
+      <DriverStack.Screen name="About" component={AboutScreen} />
       {/* Passenger screens drivers might need */}
-      <DriverStack.Screen name="RideDetail"     component={RideDetailScreen} />
+      <DriverStack.Screen name="RideDetail" component={RideDetailScreen} />
       <DriverStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
     </DriverStack.Navigator>
   );
@@ -302,14 +285,9 @@ function DriverApp() {
 // ─── Root Navigator ───────────────────────────────────────────────────────────
 export default function AppNavigator({ navigationRef }) {
   const { currentUser, userRole, isLoading } = useApp();
-  const [splashSeen, setSplashSeen] = useState(null); // null = not checked yet
-
-  useEffect(() => {
-    AsyncStorage.getItem(SPLASH_SEEN_KEY).then(val => setSplashSeen(!!val));
-  }, []);
 
   // Waiting for: auth check + storage check
-  if (isLoading || splashSeen === null) {
+  if (isLoading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1b4b' }}>
         <ActivityIndicator size="large" color="#fff" />
@@ -322,14 +300,8 @@ export default function AppNavigator({ navigationRef }) {
   // 2. Logged in → go to app tabs
   // 3. Otherwise → Login
   const getInitialRoute = () => {
-    if (!splashSeen) return 'Splash';
     if (currentUser) return userRole === 'driver' ? 'DriverApp' : 'PassengerApp';
     return 'Login';
-  };
-
-  const handleSplashDone = () => {
-    AsyncStorage.setItem(SPLASH_SEEN_KEY, '1');
-    setSplashSeen(true);
   };
 
   return (
@@ -343,18 +315,18 @@ export default function AppNavigator({ navigationRef }) {
           {props => <SplashScreen {...props} onDone={handleSplashDone} />}
         </Stack.Screen>
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register"    component={RegisterScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
 
         {/* Protected app stacks */}
         {currentUser ? (
           userRole === 'driver' ? (
-            <Stack.Screen name="DriverApp"    component={DriverApp}    options={{ animation: 'none' }} />
+            <Stack.Screen name="DriverApp" component={DriverApp} options={{ animation: 'none' }} />
           ) : (
             <Stack.Screen name="PassengerApp" component={PassengerApp} options={{ animation: 'none' }} />
           )
         ) : (
           <>
-            <Stack.Screen name="DriverApp"    component={DriverApp}    options={{ animation: 'none' }} />
+            <Stack.Screen name="DriverApp" component={DriverApp} options={{ animation: 'none' }} />
             <Stack.Screen name="PassengerApp" component={PassengerApp} options={{ animation: 'none' }} />
           </>
         )}

@@ -57,11 +57,27 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     gap: 10,
     zIndex: 9999,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 12,
+      },
+      web: {
+        boxShadow: '0px 4px 10px rgba(0,0,0,0.2)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
+        elevation: 12,
+      }
+    }),
   },
   message: { flex: 1, fontSize: 14, fontWeight: '600', lineHeight: 20 },
 });
