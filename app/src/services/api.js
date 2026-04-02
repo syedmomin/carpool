@@ -2,9 +2,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { encryptValue, decryptValue } from '../utils/secureStorage';
 
-export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
+// export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
+export const BASE_URL = 'http://localhost:5000/api/v1';
 
 const TOKEN_KEY = '@chalparo_token';
+const REFRESH_TOKEN_KEY = '@chalparo_refresh_token';
 const DEFAULT_TIMEOUT = 12000;
 
 // ─── Token helpers (encrypted) ────────────────────────────────────────────────
@@ -12,7 +14,23 @@ export const tokenStorage = {
   get: async () => AsyncStorage.getItem(TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
   set: async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
   remove: async () => AsyncStorage.removeItem(TOKEN_KEY),
+  
+  getRefresh: async () => AsyncStorage.getItem(REFRESH_TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
+  setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, encryptValue(token)),
+  removeRefresh: async () => AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+  
+  clearAll: async () => {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    // These keys are matched with AppContext storage
+    await AsyncStorage.removeItem('@chalparo_user');
+    await AsyncStorage.removeItem('@chalparo_role');
+  }
 };
+
+// ─── Event listener for forced logout (e.g. session expiry) ──────────────────
+let onLogout = null;
+export const setLogoutHandler = (handler) => { onLogout = handler; };
 
 // ─── Parse error from response body ──────────────────────────────────────────
 // Returns a human-readable string.
@@ -30,25 +48,59 @@ function parseError(json, status) {
 }
 
 // ─── Core request ─────────────────────────────────────────────────────────────
-async function request(method, path, body = null) {
+async function request(method, path, body = null, isRetry = false) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
 
   try {
     const token = await tokenStorage.get();
+    const isFormData = body && typeof body === 'object' && typeof body.append === 'function';
     const headers = {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
-    const options = { method, headers, signal: controller.signal };
-    if (body) options.body = JSON.stringify(body);
+    const options = { 
+      method, 
+      headers, 
+      signal: controller.signal,
+      ...(body ? { body: isFormData ? body : JSON.stringify(body) } : {}),
+    };
 
     const res = await fetch(`${BASE_URL}${path}`, options);
     clearTimeout(timeoutId);
 
     const json = await res.json().catch(() => ({}));
+
+    // ─── Handle token expiry (401) ───
+    if (res.status === 401 && !isRetry && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
+      const refreshToken = await tokenStorage.getRefresh();
+      if (refreshToken) {
+        // Attempt to refresh
+        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken }),
+        });
+
+        const refreshJson = await refreshRes.json().catch(() => ({}));
+
+        if (refreshRes.ok && refreshJson.data) {
+          const { accessToken, refreshToken: newRefresh } = refreshJson.data;
+          await tokenStorage.set(accessToken);
+          await tokenStorage.setRefresh(newRefresh);
+          
+          // Retry the original request
+          return request(method, path, body, true);
+        }
+      }
+      
+      // If no refresh token or refresh failed: logout
+      await tokenStorage.clearAll();
+      if (onLogout) onLogout();
+      return { data: null, error: 'SESSION_EXPIRED', errors: null };
+    }
 
     if (!res.ok) {
       return { data: null, error: parseError(json, res.status), errors: json.errors ?? null };

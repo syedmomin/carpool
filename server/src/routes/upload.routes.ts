@@ -26,7 +26,7 @@ type UploadType = typeof VALID_TYPES[number];
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed'));
@@ -52,7 +52,11 @@ router.post('/image', authenticate, upload.single('image'), async (req: Request,
       upsert:      false,
     });
 
-  if (error) { ResponseUtil.error(res, error.message); return; }
+  if (error) { 
+    console.error('❌ Supabase Upload Error:', error);
+    ResponseUtil.error(res, error.message || 'Storage upload failed'); 
+    return; 
+  }
 
   const { data } = getSupabase().storage.from(BUCKET).getPublicUrl(filename);
 

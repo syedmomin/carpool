@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { secureStorage } from '../utils/secureStorage';
-import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi } from '../services/api';
+import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi, setLogoutHandler } from '../services/api';
 
 const USER_STORAGE_KEY = '@chalparo_user';
 const ROLE_STORAGE_KEY = '@chalparo_role';
@@ -15,6 +15,7 @@ export const AppProvider = ({ children }) => {
 
   // ─── Restore session on app start ────────────────────────────────────────
   useEffect(() => {
+    setLogoutHandler(logout);
     (async () => {
       try {
         const token = await tokenStorage.get();
@@ -59,10 +60,11 @@ export const AppProvider = ({ children }) => {
   const login = async (phone, password) => {
     const { data, error } = await authApi.login(phone, password);
     if (error) return { error };
-    const { accessToken, user } = data.data;
+    const { accessToken, refreshToken, user } = data.data;
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     await Promise.all([
       tokenStorage.set(accessToken),
+      tokenStorage.setRefresh(refreshToken),
       secureStorage.setObject(USER_STORAGE_KEY, user),
       secureStorage.setItem(ROLE_STORAGE_KEY, role),
     ]);
@@ -72,11 +74,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await Promise.all([
-      tokenStorage.remove(),
-      secureStorage.removeItem(USER_STORAGE_KEY),
-      secureStorage.removeItem(ROLE_STORAGE_KEY),
-    ]);
+    await tokenStorage.clearAll();
     setCurrentUser(null);
     setUserRole(null);
     setUnreadCount(0);
@@ -85,10 +83,11 @@ export const AppProvider = ({ children }) => {
   const register = async (userData) => {
     const { data, error } = await authApi.register(userData);
     if (error) return { error };
-    const { accessToken, user } = data.data;
+    const { accessToken, refreshToken, user } = data.data;
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     await Promise.all([
       tokenStorage.set(accessToken),
+      tokenStorage.setRefresh(refreshToken),
       secureStorage.setObject(USER_STORAGE_KEY, user),
       secureStorage.setItem(ROLE_STORAGE_KEY, role),
     ]);

@@ -186,19 +186,80 @@ const styles = StyleSheet.create({
   },
 });
 
-const PASSENGER_TABS = [
-  { name: 'PassengerHome', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerHomeScreen },
-  { name: 'Search', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: SearchScreen },
-  { name: 'BookingHistory', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
-  { name: 'PassengerProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: ProfileScreen },
-];
+// ─── Tab Stacks ───────────────────────────────────────────────────────────────
+
+const UserDashboardStack = createNativeStackNavigator();
+function DriverDashboardStack() {
+  return (
+    <UserDashboardStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <UserDashboardStack.Screen name="DriverHome" component={DriverHomeScreen} />
+      <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
+      <UserDashboardStack.Screen name="Earnings" component={EarningsScreen} />
+    </UserDashboardStack.Navigator>
+  );
+}
+
+const UserRidesStack = createNativeStackNavigator();
+function DriverRidesStack() {
+  return (
+    <UserRidesStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <UserRidesStack.Screen name="MyRidesMain" component={MyRidesScreen} />
+      <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
+    </UserRidesStack.Navigator>
+  );
+}
+
+const UserVehiclesStack = createNativeStackNavigator();
+function DriverVehiclesStack() {
+  return (
+    <UserVehiclesStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <UserVehiclesStack.Screen name="MyVehiclesMain" component={MyVehiclesScreen} />
+      <UserVehiclesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
+    </UserVehiclesStack.Navigator>
+  );
+}
+
+const UserProfileStack = createNativeStackNavigator();
+function CommonProfileStack() {
+  return (
+    <UserProfileStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <UserProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+      <UserProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <UserProfileStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
+      <UserProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <UserProfileStack.Screen name="Support" component={SupportScreen} />
+      <UserProfileStack.Screen name="Terms" component={TermsScreen} />
+      <UserProfileStack.Screen name="Privacy" component={PrivacyScreen} />
+      <UserProfileStack.Screen name="About" component={AboutScreen} />
+    </UserProfileStack.Navigator>
+  );
+}
+
+const PassengerActivityStack = createNativeStackNavigator();
+function PassengerRidesStack() {
+  return (
+    <PassengerActivityStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <PassengerActivityStack.Screen name="PassengerHomeMain" component={PassengerHomeScreen} />
+      <PassengerActivityStack.Screen name="Search" component={SearchScreen} />
+      <PassengerActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
+      <PassengerActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
+      <PassengerActivityStack.Screen name="Schedule" component={ScheduleScreen} />
+    </PassengerActivityStack.Navigator>
+  );
+}
 
 const DRIVER_TABS = [
-  { name: 'DriverHome', icon: 'grid-outline', iconFocused: 'grid', label: 'Dashboard', component: DriverHomeScreen },
+  { name: 'DriverHome', icon: 'grid-outline', iconFocused: 'grid', label: 'Dashboard', component: DriverDashboardStack },
   { name: 'PostRide', icon: 'add-circle-outline', iconFocused: 'add-circle', label: 'Post Ride', component: PostRideScreen },
-  { name: 'MyRides', icon: 'car-sport-outline', iconFocused: 'car-sport', label: 'My Rides', component: MyRidesScreen },
-  { name: 'MyVehicles', icon: 'car-outline', iconFocused: 'car', label: 'Vehicles', component: MyVehiclesScreen },
-  { name: 'DriverProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: ProfileScreen },
+  { name: 'MyRides', icon: 'car-sport-outline', iconFocused: 'car-sport', label: 'My Rides', component: DriverRidesStack },
+  { name: 'MyVehicles', icon: 'car-outline', iconFocused: 'car', label: 'Vehicles', component: DriverVehiclesStack },
+  { name: 'DriverProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
+];
+
+const PASSENGER_TABS = [
+  { name: 'PassengerHome', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerRidesStack },
+  { name: 'BookingHistory', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
+  { name: 'PassengerProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];
 
 function PassengerTabNav() {
@@ -237,97 +298,35 @@ function DriverTabNav() {
   );
 }
 
-// ─── Passenger App Stack ──────────────────────────────────────────────────────
-function PassengerApp() {
-  const PassengerStack = createNativeStackNavigator();
-  return (
-    <PassengerStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <PassengerStack.Screen name="Tabs" component={PassengerTabNav} options={{ animation: 'none' }} />
-      <PassengerStack.Screen name="RideDetail" component={RideDetailScreen} />
-      <PassengerStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
-      <PassengerStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-      <PassengerStack.Screen name="Schedule" component={ScheduleScreen} />
-      <PassengerStack.Screen name="Notifications" component={NotificationsScreen} />
-      <PassengerStack.Screen name="EditProfile" component={EditProfileScreen} />
-      <PassengerStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
-      <PassengerStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <PassengerStack.Screen name="Support" component={SupportScreen} />
-      <PassengerStack.Screen name="Terms" component={TermsScreen} />
-      <PassengerStack.Screen name="Privacy" component={PrivacyScreen} />
-      <PassengerStack.Screen name="About" component={AboutScreen} />
-    </PassengerStack.Navigator>
-  );
-}
-
-// ─── Driver App Stack ─────────────────────────────────────────────────────────
-function DriverApp() {
-  const DriverStack = createNativeStackNavigator();
-  return (
-    <DriverStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <DriverStack.Screen name="Tabs" component={DriverTabNav} options={{ animation: 'none' }} />
-      <DriverStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
-      <DriverStack.Screen name="Earnings" component={EarningsScreen} />
-      <DriverStack.Screen name="Notifications" component={NotificationsScreen} />
-      <DriverStack.Screen name="EditProfile" component={EditProfileScreen} />
-      <DriverStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
-      <DriverStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <DriverStack.Screen name="Support" component={SupportScreen} />
-      <DriverStack.Screen name="Terms" component={TermsScreen} />
-      <DriverStack.Screen name="Privacy" component={PrivacyScreen} />
-      <DriverStack.Screen name="About" component={AboutScreen} />
-      {/* Passenger screens drivers might need */}
-      <DriverStack.Screen name="RideDetail" component={RideDetailScreen} />
-      <DriverStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-    </DriverStack.Navigator>
-  );
-}
-
 // ─── Root Navigator ───────────────────────────────────────────────────────────
 export default function AppNavigator({ navigationRef }) {
   const { currentUser, userRole, isLoading } = useApp();
+  const [splashVisible, setSplashVisible] = useState(true);
 
-  // Waiting for: auth check + storage check
-  if (isLoading) {
+  if (isLoading || splashVisible) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1b4b' }}>
-        <ActivityIndicator size="large" color="#fff" />
+      <View style={{ flex: 1, backgroundColor: '#0d1b4b' }}>
+        <SplashScreen onDone={() => setSplashVisible(false)} />
       </View>
     );
   }
 
-  // Route logic:
-  // 1. Never seen splash → show Splash
-  // 2. Logged in → go to app tabs
-  // 3. Otherwise → Login
-  const getInitialRoute = () => {
-    if (currentUser) return userRole === 'driver' ? 'DriverApp' : 'PassengerApp';
-    return 'Login';
-  };
-
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
-        initialRouteName={getInitialRoute()}
         screenOptions={{ headerShown: false, animation: 'fade' }}
       >
-        {/* Auth */}
-        <Stack.Screen name="Splash">
-          {props => <SplashScreen {...props} onDone={handleSplashDone} />}
-        </Stack.Screen>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-
         {/* Protected app stacks */}
         {currentUser ? (
           userRole === 'driver' ? (
-            <Stack.Screen name="DriverApp" component={DriverApp} options={{ animation: 'none' }} />
+            <Stack.Screen name="DriverApp" component={DriverTabNav} options={{ animation: 'none' }} />
           ) : (
-            <Stack.Screen name="PassengerApp" component={PassengerApp} options={{ animation: 'none' }} />
+            <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
           )
         ) : (
           <>
-            <Stack.Screen name="DriverApp" component={DriverApp} options={{ animation: 'none' }} />
-            <Stack.Screen name="PassengerApp" component={PassengerApp} options={{ animation: 'none' }} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         )}
       </Stack.Navigator>

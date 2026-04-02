@@ -18,11 +18,13 @@ export const FormInput = ({
   editable = true,
   multiline,
   numberOfLines,
+  error,
+  errorMsg,
 }) => (
   <View style={[styles.wrapper, style]}>
-    {label && <Text style={styles.label}>{label}</Text>}
-    <View style={[styles.inputRow, !editable && styles.disabled]}>
-      {icon && <Ionicons name={icon} size={20} color={COLORS.gray} style={styles.leftIcon} />}
+    {label && <Text style={[styles.label, error && { color: COLORS.danger }]}>{label}</Text>}
+    <View style={[styles.inputRow, !editable && styles.disabled, error && styles.inputError]}>
+      {icon && <Ionicons name={icon} size={20} color={error ? COLORS.danger : COLORS.gray} style={styles.leftIcon} />}
       <TextInput
         style={[styles.input, multiline && styles.multiline]}
         placeholder={placeholder}
@@ -37,10 +39,11 @@ export const FormInput = ({
       />
       {rightIcon && (
         <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>
-          <Ionicons name={rightIcon} size={20} color={COLORS.gray} />
+          <Ionicons name={rightIcon} size={20} color={error ? COLORS.danger : COLORS.gray} />
         </TouchableOpacity>
       )}
     </View>
+    {error && errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
   </View>
 );
 
@@ -93,6 +96,8 @@ const styles = StyleSheet.create({
   leftIcon: { marginRight: SPACING.sm },
   input: { flex: 1, fontSize: 15, color: COLORS.textPrimary, paddingVertical: 13 },
   multiline: { minHeight: 80, textAlignVertical: 'top', paddingTop: 12 },
+  inputError: { borderColor: COLORS.danger },
+  errorText: { color: COLORS.danger, fontSize: 11, marginTop: 4, marginLeft: 2, fontWeight: '500' },
   rightIcon: { padding: 4 },
 
   searchRow: {

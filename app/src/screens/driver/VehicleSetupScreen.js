@@ -11,7 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from '../../utils/imagePicker';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, uploadApi } from '../../services/api';
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = [
@@ -113,6 +113,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const [yearModal,  setYearModal]  = useState(false);
   const [brandModal, setBrandModal] = useState(false);
   const [loading,    setLoading]    = useState(false);
+  const [errors,     setErrors]     = useState({});
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
@@ -144,6 +145,19 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }
   };
 
+  const validate = () => {
+    const newErrors = {};
+    if (!form.brand?.trim()) newErrors.brand = true;
+    if (!form.plateNumber?.trim()) newErrors.plateNumber = true;
+    if (!form.totalSeats) newErrors.totalSeats = true;
+    
+    const seats = parseInt(form.totalSeats);
+    if (isNaN(seats) || seats < 1 || seats > 60) newErrors.totalSeats = true;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const goBack = () => {
     if (step === 0) navigation.goBack();
     else setStep(0);
@@ -151,59 +165,67 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
   // ─── Save ────────────────────────────────────────────────────────────────────
   const handleSave = async () => {
+    if (!validate()) {
+      showToast('Please fill all required fields correctly.', 'error');
+      return;
+    }
+
     if (images.length === 0) {
       showToast('Please add at least one vehicle photo.', 'error'); return;
-    }
-    if (!form.brand.trim()) {
-      showToast('Brand & Model name is required.', 'error'); return;
-    }
-    if (!form.plateNumber.trim()) {
-      showToast('Number plate is required.', 'error'); return;
-    }
-    if (!form.totalSeats) {
-      showToast('Total seats is required.', 'error'); return;
-    }
-    const seats = parseInt(form.totalSeats);
-    if (isNaN(seats) || seats < 1 || seats > 60) {
-      showToast('Total seats must be between 1 and 60.', 'error'); return;
     }
 
     setLoading(true);
 
-    // Separate already-uploaded URLs (start with http) from local URIs
+    const formData = new FormData();
+    formData.append('type', selectedType);
+    formData.append('brand', form.brand.trim());
+    formData.append('model', form.model?.trim() || '');
+    formData.append('color', form.color?.trim() || '');
+    formData.append('plateNumber', form.plateNumber.trim().toUpperCase());
+    formData.append('totalSeats', form.totalSeats);
+
+    // Append feature booleans
+    Object.keys(features).forEach(key => {
+      formData.append(key, features[key] ? 'true' : 'false');
+    });
+
+    // Handle images
     const localUris = images.filter(i => !i.startsWith('http'));
     const existingUrls = images.filter(i => i.startsWith('http'));
-    let uploadedUrls = existingUrls;
 
-    if (localUris.length > 0) {
-      const { urls, error: uploadError } = await uploadImages(localUris);
-      if (uploadError) {
-        setLoading(false);
-        showToast('Image upload failed. Please try again.', 'error');
-        return;
+    // Append existing URLs to body
+    existingUrls.forEach(url => formData.append('existingImages', url));
+
+    // Append new local files
+    await Promise.all(localUris.map(async (uri, index) => {
+      const filename = uri.split('/').pop() || `image_${index}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
+      const cleanUri = Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
+
+      if (Platform.OS === 'web') {
+        // Web: fetch and append as Blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        formData.append('images', blob, filename);
+      } else {
+        // Mobile: append as {uri, name, type}
+        formData.append('images', {
+          uri: cleanUri,
+          name: filename,
+          type: mimeType,
+        });
       }
-      uploadedUrls = [...existingUrls, ...urls];
-    }
-
-    const payload = {
-      type:        selectedType,
-      brand:       form.brand.trim(),
-      model:       form.model.trim(),
-      color:       form.color.trim(),
-      plateNumber: form.plateNumber.trim().toUpperCase(),
-      totalSeats:  seats,
-      images:      uploadedUrls,
-      ...features,
-    };
+    }));
 
     if (existing) {
-      const { error } = await updateVehicle(vehicleId, payload);
+      const { error } = await vehiclesApi.update(vehicleId, formData);
       setLoading(false);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       showToast('Vehicle updated successfully!', 'success');
       navigation.goBack();
     } else {
-      const { error } = await registerVehicle(payload);
+      const { error } = await vehiclesApi.register(formData);
       setLoading(false);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       showToast('Vehicle registered! You can now post rides.', 'success');
@@ -278,12 +300,16 @@ export default function VehicleSetupScreen({ navigation, route }) {
       <Text style={styles.sectionLabel}>Vehicle Details</Text>
 
       {/* Brand Picker */}
-      <TouchableOpacity style={styles.yearPickerBtn} onPress={() => setBrandModal(true)} activeOpacity={0.8}>
-        <View style={styles.yearPickerIcon}>
-          <Ionicons name="car-outline" size={18} color={COLORS.primary} />
+      <TouchableOpacity 
+        style={[styles.yearPickerBtn, errors.brand && { borderColor: COLORS.danger }]} 
+        onPress={() => setBrandModal(true)} 
+        activeOpacity={0.8}
+      >
+        <View style={[styles.yearPickerIcon, { backgroundColor: errors.brand ? COLORS.danger + '12' : COLORS.lightGray }]}>
+          <Ionicons name="car-outline" size={18} color={errors.brand ? COLORS.danger : COLORS.gray} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.yearPickerLabel}>Brand *</Text>
+          <Text style={[styles.yearPickerLabel, errors.brand && { color: COLORS.danger }]}>Brand *</Text>
           <Text style={[styles.yearPickerValue, !form.brand && { color: COLORS.gray }]}>
             {form.brand || 'Select brand'}
           </Text>
@@ -293,8 +319,8 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
       {/* Year picker */}
       <TouchableOpacity style={styles.yearPickerBtn} onPress={() => setYearModal(true)} activeOpacity={0.8}>
-        <View style={styles.yearPickerIcon}>
-          <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
+        <View style={[styles.yearPickerIcon, { backgroundColor: COLORS.lightGray }]}>
+          <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.yearPickerLabel}>Manufacturing Year</Text>
@@ -317,16 +343,18 @@ export default function VehicleSetupScreen({ navigation, route }) {
         icon="card-outline"
         placeholder="e.g. KHI-2022"
         value={form.plateNumber}
-        onChangeText={v => update('plateNumber', v)}
+        onChangeText={v => { update('plateNumber', v); if (errors.plateNumber) setErrors(prev => ({...prev, plateNumber: false})); }}
         autoCapitalize="characters"
+        error={errors.plateNumber}
       />
       <FormInput
         label="Total Seats *"
         icon="people-outline"
         placeholder="e.g. 4"
         value={form.totalSeats}
-        onChangeText={v => update('totalSeats', v.replace(/[^0-9]/g, ''))}
+        onChangeText={v => { update('totalSeats', v.replace(/[^0-9]/g, '')); if (errors.totalSeats) setErrors(prev => ({...prev, totalSeats: false})); }}
         keyboardType="numeric"
+        error={errors.totalSeats}
       />
 
       {/* ── Features ─────────────────────────────────────────────────── */}
@@ -511,12 +539,12 @@ const styles = StyleSheet.create({
 
   // Features
   featureHint:    { fontSize: 12, color: COLORS.gray, marginBottom: 12, marginTop: -6, lineHeight: 18 },
-  featuresGrid:   { gap: 10 },
-  featureChip:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+  featuresGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  featureChip:    { width: '48.5%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   featureChipActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
-  featureIconBox:    { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
+  featureIconBox:    { width: 28, height: 28, borderRadius: 8, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
   featureIconBoxActive: { backgroundColor: COLORS.primary },
-  featureLabel:      { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
+  featureLabel:      { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
   featureLabelActive: { color: COLORS.primary },
 
   // Year modal

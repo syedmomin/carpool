@@ -55,12 +55,9 @@ export default function SplashScreen({ navigation, onDone }) {
     const timer = setTimeout(() => {
       if (navigated.current) return;
       navigated.current = true;
+      // onDone calls AppNavigator's setSplashVisible(false)
+      // which then triggers the main routing logic.
       onDone?.();
-      if (currentUser && userRole) {
-        navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
-      } else {
-        navigation.replace('Login');
-      }
     }, delay);
     return () => clearTimeout(timer);
   }, [isLoading, currentUser, userRole]);

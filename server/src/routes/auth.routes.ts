@@ -25,5 +25,9 @@ router.post('/login',
 
 router.get('/me',               authenticate, authController.me);
 router.post('/change-password', authenticate, authController.changePassword);
+router.post('/refresh',
+  validate([{ field: 'refreshToken', required: true }]),
+  authController.refresh,
+);
 
 export default router;

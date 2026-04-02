@@ -9,7 +9,7 @@ import { ridesApi, vehiclesApi } from '../../services/api';
 
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
-  const [myRides,   setMyRides]   = useState([]);
+  const [myRides, setMyRides] = useState([]);
   const [myVehicle, setMyVehicle] = useState(null);
 
   const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
@@ -27,15 +27,15 @@ export default function DriverHomeScreen({ navigation }) {
     });
   }, []));
 
-  const activeRides     = myRides.filter(r => r.status === 'ACTIVE');
-  const totalEarned     = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
+  const activeRides = myRides.filter(r => r.status === 'ACTIVE');
+  const totalEarned = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
   const totalPassengers = myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
 
   const QUICK_ACTIONS = [
-    { icon: 'add-circle',  label: 'Post Ride',    gradient: GRADIENTS.primary,   screen: 'PostRide',   desc: 'Share your route' },
-    { icon: 'car-sport',   label: 'My Rides',     gradient: GRADIENTS.teal,      screen: 'MyRides',    desc: 'Manage bookings'  },
-    { icon: 'car',         label: 'My Vehicles',  gradient: GRADIENTS.primary,   screen: 'MyVehicles', desc: 'Vehicle details'  },
-    { icon: 'wallet',      label: 'Earnings',     gradient: GRADIENTS.secondary, screen: 'Earnings',   desc: 'View income'      },
+    { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
+    { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRides', desc: 'Manage bookings' },
+    { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehicles', desc: 'Vehicle details' },
+    { icon: 'wallet', label: 'Earnings', gradient: GRADIENTS.secondary, screen: 'Earnings', desc: 'View income' },
   ];
 
   return (
@@ -68,9 +68,9 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Stats */}
         <View style={styles.statsGrid}>
           {[
-            { icon: 'car-sport-outline', value: activeRides.length,             label: 'Active Rides' },
-            { icon: 'people-outline',    value: totalPassengers,                 label: 'Passengers' },
-            { icon: 'wallet-outline',    value: `Rs ${totalEarned > 0 ? (totalEarned/1000).toFixed(1)+'k' : '0'}`, label: 'Total Earned', accent: true },
+            { icon: 'car-sport-outline', value: activeRides.length, label: 'Active Rides' },
+            { icon: 'people-outline', value: totalPassengers, label: 'Passengers' },
+            { icon: 'wallet-outline', value: `Rs ${totalEarned > 0 ? (totalEarned / 1000).toFixed(1) + 'k' : '0'}`, label: 'Total Earned', accent: true },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
               <Ionicons name={s.icon} size={18} color={s.accent ? COLORS.accent : 'rgba(255,255,255,0.9)'} />
@@ -189,13 +189,13 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.75)', textAlign: 'center' },
   body: { padding: 20 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
-  actionsGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
-  actionCard:   { width: '47%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5 },
-  actionGrad:   { padding: 18, minHeight: 130, justifyContent: 'space-between' },
-  actionIconBox:{ width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  actionLabel:  { fontSize: 14, fontWeight: '800', color: '#fff' },
-  actionDesc:   { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  actionArrow:  { alignSelf: 'flex-end', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
+  actionCard: { width: '47%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5 },
+  actionGrad: { padding: 18, minHeight: 130, justifyContent: 'space-between' },
+  actionIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionLabel: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  actionArrow: { alignSelf: 'flex-end', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginTop: 6 },
   vehicleCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
   vehicleGrad: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   vehicleIconBox: { width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(26,115,232,0.1)', alignItems: 'center', justifyContent: 'center' },

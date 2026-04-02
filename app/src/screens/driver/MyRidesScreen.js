@@ -17,7 +17,7 @@ const TABS = [
 export default function MyRidesScreen({ navigation }) {
   const { showModal } = useGlobalModal();
   const { showToast } = useToast();
-  const [activeTab,      setActiveTab]      = useState(0);
+  const [activeTab,      setActiveTab]      = useState(1);
   const [allRides,       setAllRides]       = useState([]);
   const [page,           setPage]           = useState(1);
   const [hasMore,        setHasMore]        = useState(true);
@@ -217,21 +217,11 @@ export default function MyRidesScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.teal}
         title="My Rides"
+        subtitle="Manage your active and completed rides"
         onBack={() => navigation.goBack()}
-      >
-        <View style={styles.headerStats}>
-          {[
-            { val: allRides.length,                                                                           label: 'Total'  },
-            { val: allRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS').length,         label: 'Active' },
-            { val: `Rs ${allRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0).toLocaleString()}`, label: 'Earned', accent: true },
-          ].map((s, i) => (
-            <View key={i} style={styles.headerStat}>
-              <Text style={[styles.headerStatVal, s.accent && { color: COLORS.accent }]}>{s.val}</Text>
-              <Text style={styles.headerStatLabel}>{s.label}</Text>
-            </View>
-          ))}
-        </View>
-      </GradientHeader>
+        rightIcon="add"
+        onRightPress={() => navigation.navigate('PostRide')}
+      />
 
       <TabPills
         tabs={TABS}
@@ -262,7 +252,7 @@ export default function MyRidesScreen({ navigation }) {
         }
       />
 
-      <FAB icon="add" onPress={() => navigation.navigate('PostRide')} colors={GRADIENTS.teal} style={styles.fab} />
+      <View style={{ height: 20 }} />
     </View>
   );
 }

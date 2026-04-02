@@ -44,6 +44,14 @@ export class AuthController {
       ResponseUtil.success(res, user, 'Profile fetched');
     } catch (err) { next(err); }
   };
+
+  refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { refreshToken } = req.body;
+      const result = await authService.refresh(refreshToken);
+      ResponseUtil.success(res, result, 'Token refreshed successfully');
+    } catch (err) { next(err); }
+  };
 }
 
 export const authController = new AuthController();

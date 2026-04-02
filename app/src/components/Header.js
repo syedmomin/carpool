@@ -55,14 +55,14 @@ export const GradientHeader = ({
 
       <View style={styles.rightArea}>
         {onNotif && (
-          <TouchableOpacity onPress={onNotif} style={styles.rightBtn} activeOpacity={0.8}>
+          <TouchableOpacity onPress={onNotif} style={styles.rightBtnSmall} activeOpacity={0.8}>
             <Ionicons name="notifications-outline" size={24} color="#fff" />
             <NotifBadge count={notifCount} />
           </TouchableOpacity>
         )}
         {rightIcon && onRightPress && (
           <TouchableOpacity onPress={onRightPress} style={styles.rightBtn} activeOpacity={0.8}>
-            <Ionicons name={rightIcon} size={24} color="#fff" />
+            <Ionicons name={rightIcon} size={22} color={COLORS.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -85,9 +85,9 @@ export const BackHeader = ({ title, onBack, style }) => (
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: STATUS_BAR_HEIGHT + SPACING.md,
-    paddingBottom: SPACING.xl,
-    paddingHorizontal: SPACING.xl,
+    paddingTop: STATUS_BAR_HEIGHT + 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     overflow: 'hidden',
   },
   circle1: {
@@ -118,18 +118,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backPlaceholder: { width: 38 },
-  titleArea: { flex: 1, paddingHorizontal: SPACING.sm },
-  title: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  titleArea: { flex: 1, paddingHorizontal: 16 },
+  title: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   rightArea: { flexDirection: 'row', alignItems: 'center' },
-  rightBtn: { marginLeft: SPACING.sm },
+  rightBtn: { 
+    marginLeft: 12,
+    backgroundColor: '#fff',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  rightBtnSmall: { marginLeft: 8 },
 
   simpleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: STATUS_BAR_HEIGHT + SPACING.sm,
-    paddingBottom: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+    paddingTop: STATUS_BAR_HEIGHT + 12,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,

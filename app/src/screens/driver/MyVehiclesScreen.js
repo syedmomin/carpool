@@ -120,8 +120,10 @@ export default function MyVehiclesScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.teal}
         title="My Vehicles"
-        subtitle={`${myVehicles.length} vehicle${myVehicles.length !== 1 ? 's' : ''} registered`}
+        subtitle="Manage your registered vehicles for ride-sharing"
         onBack={() => navigation.goBack()}
+        rightIcon="add"
+        onRightPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })}
       />
 
       <FlatList
@@ -137,15 +139,17 @@ export default function MyVehiclesScreen({ navigation }) {
           ) : null
         }
       />
-
-      <FAB icon="add" onPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })} colors={GRADIENTS.teal} style={styles.fab} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  listContent: { padding: 16, paddingBottom: 80 },
+  headerStats: { flexDirection: 'row', gap: 20, marginTop: 4, marginBottom: -4 },
+  headerStat: { alignItems: 'center' },
+  headerStatVal: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  headerStatLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
+  listContent: { padding: 16, paddingBottom: 24 },
   card: { backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
   cardActive: { borderWidth: 2, borderColor: COLORS.secondary },
   activeBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f5e9', paddingHorizontal: 16, paddingVertical: 8, gap: 6 },

@@ -1,7 +1,7 @@
 import { User } from '@prisma/client';
 import prisma from '../data-source';
 import { hashPassword, comparePassword } from '../utils/hash';
-import { signToken, signRefreshToken } from '../utils/jwt';
+import { signToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../utils/AppError';
 
 interface RegisterDto {
@@ -59,12 +59,19 @@ export class AuthService {
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw AppError.notFound('User not found');
-
     const valid = await comparePassword(currentPassword, user.password);
     if (!valid) throw AppError.badRequest('Current password is incorrect');
 
     const hashed = await hashPassword(newPassword);
     await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+  }
+
+  async refresh(token: string): Promise<AuthTokens> {
+    const payload = verifyRefreshToken(token);
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    if (!user || !user.isActive) throw AppError.unauthorized('User not found or inactive');
+
+    return this.buildTokens(user);
   }
 
   private buildTokens(user: User): AuthTokens {
