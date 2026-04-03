@@ -11,7 +11,7 @@ let _debounceTimer = null;
 export async function searchPakistanLocations(query) {
   if (!query || query.trim().length < 2) return [];
   const q = query.trim();
-  const url = `${NOMINATIM_BASE}?q=${encodeURIComponent(q + ', Pakistan')}&format=json&limit=8&countrycodes=pk&addressdetails=1`;
+  const url = `${NOMINATIM_BASE}?q=${encodeURIComponent(q + ', Pakistan')}&format=json&limit=8&countrycodes=pk&addressdetails=1&accept-language=en`;
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'ChalParo/1.0 (carpool app)' },

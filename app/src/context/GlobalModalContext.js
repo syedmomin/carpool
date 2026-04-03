@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  Animated, Pressable,
+  Animated, Pressable, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,25 +55,23 @@ export function GlobalModalProvider({ children }) {
   const [config, setConfig] = useState(null);
   const [visible, setVisible] = useState(false);
 
-  const scaleAnim   = useRef(new Animated.Value(0.85)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const iconBounce  = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(600)).current;
+  const opacityAnim    = useRef(new Animated.Value(0)).current;
+  const iconScale      = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(scaleAnim,   { toValue: 1, tension: 65, friction: 9,  useNativeDriver: true }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 200,             useNativeDriver: true }),
+        Animated.spring(translateYAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
+        Animated.timing(opacityAnim,    { toValue: 1, duration: 300,             useNativeDriver: true }),
       ]).start(() => {
-        Animated.sequence([
-          Animated.spring(iconBounce, { toValue: -8, tension: 80, friction: 5, useNativeDriver: true }),
-          Animated.spring(iconBounce, { toValue:  0, tension: 80, friction: 6, useNativeDriver: true }),
-        ]).start();
+        Animated.spring(iconScale,      { toValue: 1, tension: 80, friction: 5,  useNativeDriver: true }).start();
       });
     } else {
       Animated.parallel([
-        Animated.timing(scaleAnim,   { toValue: 0.85, duration: 160, useNativeDriver: true }),
-        Animated.timing(opacityAnim, { toValue: 0,    duration: 160, useNativeDriver: true }),
+        Animated.timing(translateYAnim, { toValue: 600, duration: 250, useNativeDriver: true }),
+        Animated.timing(opacityAnim,    { toValue: 0,   duration: 250, useNativeDriver: true }),
+        Animated.timing(iconScale,      { toValue: 0,   duration: 200, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
@@ -85,7 +83,7 @@ export function GlobalModalProvider({ children }) {
 
   const hideModal = () => {
     setVisible(false);
-    setTimeout(() => setConfig(null), 200);
+    setTimeout(() => setConfig(null), 300);
   };
 
   const handleConfirm = () => {
@@ -111,16 +109,21 @@ export function GlobalModalProvider({ children }) {
           <Pressable style={StyleSheet.absoluteFill} onPress={isConfirm ? undefined : handleCancel} />
         </Animated.View>
 
-        <View style={styles.centeredView} pointerEvents="box-none">
-          <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
-            {/* Top accent bar — rendered inside a wrapper that enforces top radius */}
-            <View style={styles.topBarWrap}>
-              <LinearGradient colors={cfg.gradient} style={styles.topBar} />
+        <View style={styles.bottomSheetContainer} pointerEvents="box-none">
+          <Animated.View style={[styles.sheet, { transform: [{ translateY: translateYAnim }] }]}>
+            {/* Grab Handle */}
+            <View style={styles.handleWrap}>
+              <View style={styles.handle} />
             </View>
 
-            <Animated.View style={[styles.iconCircle, { backgroundColor: cfg.iconBg, transform: [{ translateY: iconBounce }] }]}>
+            {/* Top accent line */}
+            <View style={styles.accentLineWrap}>
+                <LinearGradient colors={cfg.gradient} style={styles.accentLine} />
+            </View>
+
+            <Animated.View style={[styles.iconCircle, { backgroundColor: cfg.iconBg, transform: [{ scale: iconScale }] }]}>
               <View style={[styles.iconInner, { backgroundColor: cfg.iconBg }]}>
-                <Ionicons name={iconName} size={38} color={cfg.iconColor} />
+                <Ionicons name={iconName} size={42} color={cfg.iconColor} />
               </View>
             </Animated.View>
 
@@ -139,6 +142,8 @@ export function GlobalModalProvider({ children }) {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+            {/* Bottom spacer for safe area (notches) */}
+            <View style={{ height: Platform.OS === 'ios' ? 34 : 24 }} />
           </Animated.View>
         </View>
       </Modal>
@@ -152,108 +157,149 @@ export const useGlobalModal = () => useContext(GlobalModalContext);
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,30,0.55)',
+    backgroundColor: 'rgba(10,10,30,0.65)',
   },
-  centeredView: {
+  bottomSheetContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
+    justifyContent: 'flex-end',
   },
-  card: {
+  sheet: {
     width: '100%',
     backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingBottom: 28,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    paddingHorizontal: 24,
+    paddingBottom: 0,
     paddingTop: 0,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    elevation: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -12 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 24,
+      },
+      web: {
+        boxShadow: '0 -12px 20px rgba(0,0,0,0.15)',
+      },
+    }),
   },
-  topBarWrap: {
+  handleWrap: {
     width: '100%',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-  },
-  topBar: {
-    width: '100%',
-    height: 6,
-  },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
+  },
+  handle: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#e2e8f0',
+  },
+  accentLineWrap: {
+    width: '100%',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  accentLine: {
+    width: '100%',
+    height: 0, // Accent hidden or subtle bar
+  },
+  iconCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 10,
+      },
+      web: {
+        boxShadow: '0 6px 10px rgba(0,0,0,0.12)',
+      },
+    }),
   },
   iconInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
-    letterSpacing: 0.2,
+    letterSpacing: -0.3,
   },
   message: {
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.gray,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 0,
   },
   btnRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 24,
+    marginTop: 28,
     width: '100%',
   },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 16,
+    paddingVertical: 15,
+    borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: '#f1f5f9',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: '#f8fafc',
   },
   cancelText: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: COLORS.textSecondary,
   },
   confirmBtnWrap: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      web: {
+        boxShadow: `0 4px 8px ${COLORS.primary}33`,
+      },
+    }),
   },
   confirmBtn: {
-    paddingVertical: 14,
+    paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmText: {
     color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
