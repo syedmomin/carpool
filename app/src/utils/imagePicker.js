@@ -1,25 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
-import { BASE_URL, tokenStorage } from '../services/api';
+import { uploadApi } from '../services/api';
 
 // type: 'profile' | 'vehicle' | 'documents'
 async function uploadToServer(uri, type = 'profile') {
-  try {
-    const token = await tokenStorage.get();
-    const formData = new FormData();
-    formData.append('image', { uri, type: 'image/jpeg', name: `upload_${Date.now()}.jpg` });
-
-    const res = await fetch(`${BASE_URL}/upload/image?type=${type}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-    const json = await res.json();
-    if (!res.ok) return { error: json.message || 'Upload failed' };
-    return { url: json.data.url };
-  } catch (e) {
-    return { error: e.message || 'Upload failed' };
-  }
+  const { data, error } = await uploadApi.image(uri, type);
+  if (error) return { error };
+  return { url: data.data.url };
 }
 
 export async function pickImageFromLibrary(options = {}, type = 'profile') {
@@ -104,7 +91,7 @@ export async function pickMultipleImages() {
 
 export function showImagePickerOptions(onResult, type = 'profile') {
   Alert.alert('Upload Photo', 'Choose a source', [
-    { text: 'Camera',        onPress: async () => onResult(await pickImageFromCamera({}, type)) },
+    { text: 'Camera', onPress: async () => onResult(await pickImageFromCamera({}, type)) },
     { text: 'Photo Library', onPress: async () => onResult(await pickImageFromLibrary({}, type)) },
     { text: 'Cancel', style: 'cancel' },
   ]);

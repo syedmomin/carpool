@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,80 +35,108 @@ export default function MyVehiclesScreen({ navigation }) {
 
   const renderVehicle = ({ item }) => (
     <View style={[styles.card, item.isActive && styles.cardActive]}>
-      {item.isActive && (
-        <View style={styles.activeBanner}>
-          <Ionicons name="checkmark-circle" size={14} color={COLORS.secondary} />
-          <Text style={styles.activeBannerText}>Active Vehicle</Text>
-        </View>
-      )}
-
-      {/* Image */}
-      {item.images?.[0] ? (
-        <Image source={{ uri: item.images[0] }} style={styles.vehicleImg} resizeMode="cover" />
-      ) : (
-        <View style={[styles.vehicleImg, styles.vehicleImgPlaceholder]}>
-          <Ionicons name="car-sport-outline" size={48} color={COLORS.gray} />
-        </View>
-      )}
-
-      <View style={styles.cardBody}>
-        <View style={styles.cardHeader}>
-          <View>
-            <Text style={styles.vehicleName}>{item.brand}</Text>
-            <Text style={styles.vehicleType}>{item.type} • {item.color} • {item.model}</Text>
-          </View>
-          <Text style={styles.plateBadge}>{item.plateNumber}</Text>
-        </View>
-
-        <View style={styles.featureRow}>
-          <View style={styles.featureChip}>
-            <Ionicons name="people-outline" size={13} color={COLORS.primary} />
-            <Text style={styles.featureText}>{item.totalSeats} seats</Text>
-          </View>
-          {[
-            { key: 'ac', icon: 'snow-outline', label: 'AC', color: COLORS.teal },
-            { key: 'wifi', icon: 'wifi-outline', label: 'WiFi', color: COLORS.purple },
-            { key: 'music', icon: 'musical-notes-outline', label: 'Music', color: '#e91e63' },
-            { key: 'usbCharging', icon: 'flash-outline', label: 'USB', color: '#ff9800' },
-            { key: 'waterCooler', icon: 'water-outline', label: 'Water', color: '#03a9f4' },
-            { key: 'blanket', icon: 'bed-outline', label: 'Blanket', color: '#795548' },
-            { key: 'firstAid', icon: 'medkit-outline', label: 'First Aid', color: COLORS.danger },
-            { key: 'luggageRack', icon: 'briefcase-outline', label: 'Luggage', color: COLORS.gray },
-          ].filter(f => item[f.key]).map(f => (
-            <View key={f.key} style={styles.featureChip}>
-              <Ionicons name={f.icon} size={13} color={f.color} />
-              <Text style={[styles.featureText, { color: f.color }]}>{f.label}</Text>
+      {/* ── Header: Brand & Status ────────────────────────────────────────── */}
+      <View style={styles.cardHeader}>
+        <View style={styles.brandRow}>
+          <Ionicons name="car-sport" size={20} color={COLORS.primary} />
+          <Text style={styles.vehicleBrand}>{item.brand}</Text>
+          {item.isActive && (
+            <View style={styles.activeBadge}>
+              <View style={styles.pulseDot} />
+              <Text style={styles.activeBadgeText}>ACTIVE</Text>
             </View>
-          ))}
+          )}
+        </View>
+        <Text style={styles.plateBadge}>{item.plateNumber}</Text>
+      </View>
+
+      {/* ── Body: Image & Basic Info ─────────────────────────────────────── */}
+      <View style={styles.cardContent}>
+        <View style={styles.imgContainer}>
+          {item.images?.[0] ? (
+            <Image source={{ uri: item.images[0] }} style={styles.thumbnail} resizeMode="cover" />
+          ) : (
+            <View style={styles.imgPlaceholder}>
+              <Ionicons name="images-outline" size={24} color={COLORS.gray} />
+            </View>
+          )}
         </View>
 
-        <View style={styles.actionRow}>
-          {!item.isActive && (
-            <TouchableOpacity style={styles.setActiveBtn} onPress={() => handleSetActive(item.id)}>
-              <LinearGradient colors={GRADIENTS.secondary} style={styles.setActiveBtnGrad}>
-                <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
-                <Text style={styles.setActiveBtnText}>Set Active</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('VehicleSetup', { vehicleId: item.id })}>
-            <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-            <Text style={styles.editBtnText}>Edit</Text>
+        <View style={styles.infoCol}>
+          <Text style={styles.vehicleModel}>{item.model}</Text>
+          <Text style={styles.vehicleMeta}>{item.type} • {item.color}</Text>
+
+          <View style={styles.statRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="people" size={14} color={COLORS.gray} />
+              <Text style={styles.statText}>{item.totalSeats} Seats</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.statItem}>
+              <Ionicons name="flash" size={14} color={COLORS.gray} />
+              <Text style={styles.statText}>{item.type}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Amenities: Clean Icon Row ────────────────────────────────────── */}
+      <View style={styles.amenitiesRow}>
+        {[
+          { key: 'ac', icon: 'snow-outline', color: '#0ea5e9' },
+          { key: 'wifi', icon: 'wifi-outline', color: '#6366f1' },
+          { key: 'music', icon: 'musical-notes-outline', color: '#ec4899' },
+          { key: 'usbCharging', icon: 'flash-outline', color: '#f59e0b' },
+          { key: 'waterCooler', icon: 'water-outline', color: '#06b6d4' },
+          { key: 'blanket', icon: 'bed-outline', color: '#8b5cf6' },
+          { key: 'firstAid', icon: 'medkit-outline', color: '#ef4444' },
+        ].filter(f => item[f.key]).slice(0, 6).map(f => (
+          <View key={f.key} style={[styles.amenityIcon, { backgroundColor: f.color + '10' }]}>
+            <Ionicons name={f.icon} size={14} color={f.color} />
+          </View>
+        ))}
+        {Object.keys(item).filter(k => ['ac', 'wifi', 'music', 'usbCharging', 'waterCooler', 'blanket', 'firstAid'].includes(k) && item[k]).length > 6 && (
+          <Text style={styles.moreText}>+{Object.keys(item).filter(k => ['ac', 'wifi', 'music', 'usbCharging', 'waterCooler', 'blanket', 'firstAid'].includes(k) && item[k]).length - 6} more</Text>
+        )}
+      </View>
+
+      {/* ── Footer: Unified Actions ───────────────────────────────────────── */}
+      <View style={styles.actionRow}>
+        {!item.isActive ? (
+          <TouchableOpacity style={styles.primaryAction} onPress={() => handleSetActive(item.id)}>
+            <LinearGradient colors={GRADIENTS.primary} style={styles.actionGrad}>
+              <Ionicons name="flash" size={16} color="#fff" />
+              <Text style={styles.actionText}>Make Active</Text>
+            </LinearGradient>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => showModal({
-            type: 'danger',
-            title: 'Delete Vehicle?',
-            message: 'This will permanently remove the vehicle.',
-            confirmText: 'Yes, Delete',
-            cancelText: 'Cancel',
-            icon: 'trash-outline',
-            onConfirm: async () => {
-              const { error } = await deleteVehicle(item.id);
-              if (error) showToast(parseApiError(error), 'error');
-              else setMyVehicles(prev => prev.filter(v => v.id !== item.id));
-            },
-          })}>
-            <Ionicons name="trash-outline" size={18} color={COLORS.danger} />
+        ) : (
+          <View style={styles.activeAction}>
+            <Ionicons name="checkmark-done-circle" size={18} color={COLORS.primary} />
+            <Text style={styles.activeActionText}>Currently Used</Text>
+          </View>
+        )}
+
+        <View style={styles.secondaryActions}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('VehicleSetup', { vehicleId: item.id })}>
+            <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, styles.deleteBtn]}
+            onPress={() => showModal({
+              type: 'danger',
+              title: 'Delete Vehicle?',
+              message: 'This will permanently remove the vehicle.',
+              confirmText: 'Yes, Delete',
+              cancelText: 'Cancel',
+              icon: 'trash-outline',
+              onConfirm: async () => {
+                const { error } = await deleteVehicle(item.id);
+                if (error) showToast(parseApiError(error), 'error');
+                else setMyVehicles(prev => prev.filter(v => v.id !== item.id));
+              },
+            })}
+          >
+            <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
           </TouchableOpacity>
         </View>
       </View>
@@ -119,8 +147,8 @@ export default function MyVehiclesScreen({ navigation }) {
     <View style={styles.container}>
       <GradientHeader
         colors={GRADIENTS.teal}
-        title="My Vehicles"
-        subtitle="Manage your registered vehicles"
+        title="My Garage"
+        subtitle="Select the vehicle you're driving today"
         onBack={() => navigation.goBack()}
         rightIcon="add"
         onRightPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })}
@@ -135,8 +163,12 @@ export default function MyVehiclesScreen({ navigation }) {
         onRefresh={fetchVehicles}
         ListEmptyComponent={
           !refreshing ? (
-            <EmptyState icon="car-outline" title="No Vehicles" subtitle="Add your vehicle to start posting rides" />
-          ) : null
+            <EmptyState icon="car-outline" title="No Vehicles Found" subtitle="Add your vehicle to start posting rides" />
+          ) : (
+            <View style={styles.loaderContainer}>
+              <Text style={styles.loaderText}>Loading your fleet...</Text>
+            </View>
+          )
         }
       />
     </View>
@@ -145,31 +177,118 @@ export default function MyVehiclesScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  headerStats: { flexDirection: 'row', gap: 20, marginTop: 4, marginBottom: -4 },
-  headerStat: { alignItems: 'center' },
-  headerStatVal: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  headerStatLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
-  listContent: { padding: 16, paddingBottom: 24 },
-  card: { backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
-  cardActive: { borderWidth: 2, borderColor: COLORS.secondary },
-  activeBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f5e9', paddingHorizontal: 16, paddingVertical: 8, gap: 6 },
-  activeBannerText: { fontSize: 12, fontWeight: '700', color: COLORS.secondary },
-  vehicleImg: { width: '100%', height: 160 },
-  vehicleImgPlaceholder: { backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
-  cardBody: { padding: 16 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  vehicleName: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleType: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  plateBadge: { fontSize: 12, fontWeight: '700', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, color: COLORS.textPrimary },
-  featureRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  featureChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, gap: 5 },
-  featureText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
-  actionRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  setActiveBtn: { flex: 1, borderRadius: 12, overflow: 'hidden' },
-  setActiveBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, gap: 6 },
-  setActiveBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
-  editBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
-  deleteBtn: { width: 42, height: 42, backgroundColor: '#fdecea', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  fab: { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  listContent: { padding: 16, paddingBottom: 100 },
+
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    marginBottom: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#f0f3ff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  cardActive: {
+    borderColor: COLORS.primary + '40',
+    backgroundColor: '#f8faff',
+  },
+
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  vehicleBrand: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#e8f5e9',
+  },
+  pulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.secondary },
+  activeBadgeText: { fontSize: 9, fontWeight: '900', color: COLORS.secondary, letterSpacing: 1 },
+  plateBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    backgroundColor: '#111827',
+    color: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+
+  cardContent: { flexDirection: 'row', gap: 16, marginBottom: 16 },
+  imgContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  thumbnail: { width: '100%', height: '100%' },
+  imgPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  infoCol: { flex: 1, justifyContent: 'center' },
+  vehicleModel: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  vehicleMeta: { fontSize: 13, color: COLORS.gray, marginTop: 2, marginBottom: 8 },
+
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
+  divider: { width: 1, height: 12, backgroundColor: '#e2e8f0' },
+
+  amenitiesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    marginBottom: 20,
+  },
+  amenityIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreText: { fontSize: 11, color: COLORS.gray, fontWeight: '600', marginLeft: 4 },
+
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  primaryAction: { flex: 1, height: 46, borderRadius: 14, overflow: 'hidden', marginRight: 12 },
+  activeAction: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, opacity: 0.8 },
+  activeActionText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  actionGrad: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  actionText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  secondaryActions: { flexDirection: 'row', gap: 8 },
+  iconBtn: {
+    width: 46,
+    height: 46,
+    backgroundColor: '#eff6ff',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  deleteBtn: { backgroundColor: '#fff1f2', borderColor: '#ffe4e6' },
+
+  loaderContainer: { padding: 40, alignItems: 'center' },
+  loaderText: { color: COLORS.gray, fontSize: 14, fontWeight: '500' },
 });

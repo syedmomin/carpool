@@ -59,23 +59,22 @@ export function CustomTabBar({ state, descriptors, navigation }) {
 
   // Exact curve calculation based on the image
   const getPath = () => {
-    const s = tabWidth * activeIndex; // start point
-    const c = s + tabWidth / 2; // center point
-    const r = 24; // narrower radius
-    const h = 34; // deeper curve
+    const s = tabWidth * activeIndex;
+    const c = s + tabWidth / 2;
+    const r = 32;
+    const h = 36; // slightly less deep
 
     return `
-      M 0,0 
-      L ${c - r - 10},0 
-      C ${c - r},0 ${c - r + 4},${h} ${c},${h} 
-      C ${c + r - 4},${h} ${c + r},0 ${c + r + 10},0 
-      L ${width},0 
-      L ${width},${TAB_BAR_HEIGHT} 
-      L 0,${TAB_BAR_HEIGHT} 
-      Z
-    `;
+    M 0,0 
+    L ${c - r - 22},0 
+    C ${c - r},0 ${c - r + 18},${h} ${c},${h} 
+    C ${c + r - 18},${h} ${c + r},0 ${c + r + 22},0 
+    L ${width},0 
+    L ${width},${TAB_BAR_HEIGHT} 
+    L 0,${TAB_BAR_HEIGHT} 
+    Z
+  `;
   };
-
   return (
     <View style={styles.container}>
       {/* SVG Background with shadow for the cutout look */}
@@ -113,12 +112,14 @@ export function CustomTabBar({ state, descriptors, navigation }) {
               style={styles.tabItem}
               activeOpacity={1}
             >
-              <View style={[styles.iconWrapper, isFocused && styles.activeIconWrapper]}>
-                <Ionicons
-                  name={isFocused ? options._iconFocused : options._iconName}
-                  size={24}
-                  color={isFocused ? COLORS.primary : COLORS.gray}
-                />
+              <View style={styles.iconContainer}>
+                <View style={[styles.iconWrapper, isFocused && styles.activeIconWrapper]}>
+                  <Ionicons
+                    name={isFocused ? options._iconFocused : options._iconName}
+                    size={24}
+                    color={isFocused ? COLORS.primary : COLORS.gray}
+                  />
+                </View>
               </View>
               <Text style={[styles.label, isFocused && styles.activeLabel]}>
                 {label}
@@ -144,17 +145,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
+    elevation: 10,
   },
   content: {
     flexDirection: 'row',
     height: TAB_BAR_HEIGHT,
-    alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 15 : 0,
+    alignItems: 'flex-end',
+    paddingBottom: Platform.OS === 'ios' ? 12 : 8,
   },
   tabItem: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: TAB_BAR_HEIGHT + 30, // Extra space for floating icon
+  },
+  iconContainer: {
+    height: 45, // Fixed container height to prevent shifting
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -164,26 +172,30 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    transition: '0.3s',
+    backgroundColor: 'transparent',
   },
   activeIconWrapper: {
-    backgroundColor: 'white',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
+    backgroundColor: '#fff',
+    width: 38,
+    height: 38,
+    borderRadius: 21,
+    marginBottom: 20, // Dropped lower (closer to label)
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
-    marginTop: -10, // Pushes icon into the cutout
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 10,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.gray,
-    fontWeight: '500',
-    marginTop: 2,
+    fontWeight: '600',
+    marginTop: 4,
   },
   activeLabel: {
     color: COLORS.primary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
 
@@ -249,18 +261,19 @@ function PassengerRidesStack() {
   );
 }
 
-const DRIVER_TABS = [
-  { name: 'DriverHome', icon: 'grid-outline', iconFocused: 'grid', label: 'Dashboard', component: DriverDashboardStack },
-  { name: 'PostRide', icon: 'add-circle-outline', iconFocused: 'add-circle', label: 'Post Ride', component: PostRideScreen },
-  { name: 'MyRides', icon: 'car-sport-outline', iconFocused: 'car-sport', label: 'My Rides', component: DriverRidesStack },
-  { name: 'MyVehicles', icon: 'car-outline', iconFocused: 'car', label: 'Vehicles', component: DriverVehiclesStack },
-  { name: 'DriverProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
+const PASSENGER_TABS = [
+  { name: 'PassengerHomeTab', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerRidesStack },
+  { name: 'SearchTab', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: SearchScreen },
+  { name: 'BookingHistoryTab', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
+  { name: 'PassengerProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];
 
-const PASSENGER_TABS = [
-  { name: 'PassengerHome', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerRidesStack },
-  { name: 'BookingHistory', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
-  { name: 'PassengerProfile', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
+const DRIVER_TABS = [
+  { name: 'DriverHomeTab', icon: 'grid-outline', iconFocused: 'grid', label: 'Dashboard', component: DriverDashboardStack },
+  { name: 'PostRideTab', icon: 'add-circle-outline', iconFocused: 'add-circle', label: 'Post Ride', component: PostRideScreen },
+  { name: 'MyRidesTab', icon: 'car-sport-outline', iconFocused: 'car-sport', label: 'My Rides', component: DriverRidesStack },
+  { name: 'MyVehiclesTab', icon: 'car-outline', iconFocused: 'car', label: 'Vehicles', component: DriverVehiclesStack },
+  { name: 'DriverProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];
 
 function PassengerTabNav() {

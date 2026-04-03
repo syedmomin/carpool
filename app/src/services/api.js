@@ -1,9 +1,10 @@
 // ─── ChalParo API Service ─────────────────────────────────────────────────────
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { encryptValue, decryptValue } from '../utils/secureStorage';
 
-// export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
-export const BASE_URL = 'http://localhost:5000/api/v1';
+export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
+// export const BASE_URL = 'http://localhost:5000/api/v1';
 
 const TOKEN_KEY = '@chalparo_token';
 const REFRESH_TOKEN_KEY = '@chalparo_refresh_token';
@@ -14,11 +15,11 @@ export const tokenStorage = {
   get: async () => AsyncStorage.getItem(TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
   set: async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
   remove: async () => AsyncStorage.removeItem(TOKEN_KEY),
-  
+
   getRefresh: async () => AsyncStorage.getItem(REFRESH_TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
   setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, encryptValue(token)),
   removeRefresh: async () => AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
-  
+
   clearAll: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -61,9 +62,9 @@ async function request(method, path, body = null, isRetry = false) {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
-    const options = { 
-      method, 
-      headers, 
+    const options = {
+      method,
+      headers,
       signal: controller.signal,
       ...(body ? { body: isFormData ? body : JSON.stringify(body) } : {}),
     };
@@ -90,12 +91,12 @@ async function request(method, path, body = null, isRetry = false) {
           const { accessToken, refreshToken: newRefresh } = refreshJson.data;
           await tokenStorage.set(accessToken);
           await tokenStorage.setRefresh(newRefresh);
-          
+
           // Retry the original request
           return request(method, path, body, true);
         }
       }
-      
+
       // If no refresh token or refresh failed: logout
       await tokenStorage.clearAll();
       if (onLogout) onLogout();
@@ -200,32 +201,47 @@ export const earningsApi = {
 // ─── Image Upload ─────────────────────────────────────────────────────────────
 export const uploadApi = {
   image: async (uri, type = 'profile') => {
-    const token = await tokenStorage.get();
-    const filename = uri.split('/').pop();
-    const mimeType = filename?.endsWith('.png') ? 'image/png' : 'image/jpeg';
-
-    const form = new FormData();
-    form.append('image', { uri, name: filename, type: mimeType });
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
     try {
+      const token = await tokenStorage.get();
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename || '');
+      const ext = match ? match[1] : 'jpg';
+      const mimeType = `image/${ext === 'png' ? 'png' : 'jpeg'}`;
+
+      const formData = new FormData();
+      formData.append('image', {
+        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+        name: filename || `upload-${Date.now()}.${ext}`,
+        type: mimeType,
+      });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      console.log(`📤 Uploading image: ${uri} (${mimeType}) to ${BASE_URL}/upload/image?type=${type}`);
+
       const res = await fetch(`${BASE_URL}/upload/image?type=${type}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: form,
+        body: formData,
         signal: controller.signal,
       });
+
       clearTimeout(timeoutId);
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) return { data: null, error: parseError(json, res.status), errors: null };
+
+      if (!res.ok) {
+        console.error('❌ Upload Response Error:', json);
+        return { data: null, error: parseError(json, res.status), errors: null };
+      }
+
+      console.log('✅ Upload Success:', json);
       return { data: json, error: null, errors: null };
     } catch (err) {
-      clearTimeout(timeoutId);
+      console.error('❌ Upload Catch Error:', err);
       return { data: null, error: err.message || 'Upload failed', errors: null };
     }
   },

@@ -16,9 +16,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { vehiclesApi } from '../../services/api';
 
 const TEXT_FIELDS = [
-  { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline',     placeholder: 'e.g. 1500', type: 'numeric' },
-  { key: 'pickupPoint',  label: 'Pickup Location',       icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
-  { key: 'dropPoint',    label: 'Drop Location',         icon: 'flag-outline',     placeholder: 'e.g. Larkana Bus Stop' },
+  { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline', placeholder: 'e.g. 1500', type: 'numeric' },
+  { key: 'pickupPoint', label: 'Pickup Location', icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
+  { key: 'dropPoint', label: 'Drop Location', icon: 'flag-outline', placeholder: 'e.g. Larkana Bus Stop' },
 ];
 
 // ─── City Search Modal ────────────────────────────────────────────────────────
@@ -95,12 +95,12 @@ function CitySearchModal({ visible, title, onSelect, onClose }) {
 }
 
 export default function PostRideScreen({ navigation }) {
-  const { postRide } = useApp();
+  const { postRide, currentUser } = useApp();
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
 
-  const [driverVehicles,   setDriverVehicles]   = useState([]);
-  const [selectedVehicle,  setSelectedVehicle]  = useState(null);
+  const [driverVehicles, setDriverVehicles] = useState([]);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
 
   useFocusEffect(useCallback(() => {
     vehiclesApi.myVehicles().then(({ data }) => {
@@ -119,16 +119,16 @@ export default function PostRideScreen({ navigation }) {
   });
   const [isMultiStop, setIsMultiStop] = useState(false);
   const [stops, setStops] = useState([]); // [{ city, arrivalTime }]
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // City search modal state
   const [cityModal, setCityModal] = useState(null); // 'from' | 'to' | { type:'stop', idx }
 
   const vehicleSeats = selectedVehicle?.totalSeats || '—';
   const vehicleAmenities = [
-    ...(selectedVehicle?.ac          ? ['AC']           : []),
-    ...(selectedVehicle?.wifi        ? ['WiFi']         : []),
-    ...(selectedVehicle?.music       ? ['Music']        : []),
+    ...(selectedVehicle?.ac ? ['AC'] : []),
+    ...(selectedVehicle?.wifi ? ['WiFi'] : []),
+    ...(selectedVehicle?.music ? ['Music'] : []),
     ...(selectedVehicle?.usbCharging ? ['USB Charging'] : []),
   ];
 
@@ -174,43 +174,53 @@ export default function PostRideScreen({ navigation }) {
         title: 'Vehicle Required',
         message: 'Please register your vehicle before posting a ride.',
         confirmText: 'Add Vehicle',
-        cancelText:  'Cancel',
+        cancelText: 'Cancel',
         onConfirm: () => navigation.navigate('VehicleSetup'),
       });
       return;
     }
-    setLoading(true);
-    const stopsPayload = isMultiStop
-      ? stops.map((s, i) => ({ city: s.city, order: i + 1, arrivalTime: s.arrivalTime || '' }))
-      : [];
+    try {
+      setLoading(true);
+      const stopsPayload = isMultiStop
+        ? stops.map((s, i) => ({ city: s.city, order: i + 1, arrivalTime: s.arrivalTime || '' }))
+        : [];
 
-    const { data, error } = await postRide({
-      ...form,
-      driverId:     currentUser?.id,
-      vehicleId:    selectedVehicle.id,
-      pricePerSeat: parseInt(form.pricePerSeat),
-      totalSeats:   selectedVehicle.totalSeats,
-      amenities:    vehicleAmenities,
-      isMultiStop,
-      stops:        stopsPayload,
-    });
-    setLoading(false);
-    if (error) {
-      showToast(parseApiError(error), 'error');
-      return;
+      const payload = {
+        ...form,
+        driverId: currentUser?.id,
+        vehicleId: selectedVehicle.id,
+        pricePerSeat: parseInt(form.pricePerSeat),
+        totalSeats: selectedVehicle.totalSeats,
+        amenities: vehicleAmenities,
+        isMultiStop,
+        stops: stopsPayload,
+      };
+
+      const { data, error } = await postRide(payload);
+
+      if (error) {
+        showToast(parseApiError(error), 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Reset form
+      setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
+      setStops([]);
+      setIsMultiStop(false);
+      showToast('Ride posted successfully!', 'success');
+      navigation.navigate('MyRides');
+    } catch (err) {
+      showToast('An unexpected error occurred. Please try again.', 'error');
+    } finally {
+      setLoading(false);
     }
-    // Reset form
-    setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
-    setStops([]);
-    setIsMultiStop(false);
-    showToast('Ride posted successfully!', 'success');
-    navigation.navigate('MyRides');
   };
 
   const cityModalTitle =
     cityModal === 'from' ? 'Departure City' :
-    cityModal === 'to'   ? 'Destination City' :
-    cityModal?.type === 'stop' ? `Stop ${cityModal.idx + 1} City` : '';
+      cityModal === 'to' ? 'Destination City' :
+        cityModal?.type === 'stop' ? `Stop ${cityModal.idx + 1} City` : '';
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -222,7 +232,7 @@ export default function PostRideScreen({ navigation }) {
           onBack={() => navigation.goBack()}
         />
 
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.body, { paddingBottom: 100 }]} keyboardShouldPersistTaps="handled">
 
           {/* ── Vehicle Selector ─────────────────────────────────────────── */}
           <Text style={styles.sectionTitle}>Vehicle</Text>
@@ -430,70 +440,70 @@ export default function PostRideScreen({ navigation }) {
 
 // ─── City Search Modal Styles ─────────────────────────────────────────────────
 const ms = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#fff' },
-  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title:      { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
   searchWrap: { padding: 16, paddingBottom: 8 },
-  spinner:    { marginTop: 8 },
-  item:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
-  itemName:   { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  itemSub:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  empty:      { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText:  { fontSize: 14, color: COLORS.gray },
-  hint:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingTop: 24 },
-  hintText:   { fontSize: 13, color: COLORS.gray },
+  spinner: { marginTop: 8 },
+  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
+  itemName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  itemSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText: { fontSize: 14, color: COLORS.gray },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingTop: 24 },
+  hintText: { fontSize: 13, color: COLORS.gray },
 });
 
 const styles = StyleSheet.create({
-  container:       { flex: 1, backgroundColor: COLORS.bg },
-  body:            { padding: 20, paddingBottom: 40 },
-  sectionTitle:    { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginTop: 16, marginBottom: 12 },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  body: { padding: 20, paddingBottom: 40 },
+  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginTop: 16, marginBottom: 12 },
 
   // Vehicle selector
   vehicleSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 12, marginBottom: 4, borderWidth: 1.5, borderColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  vehicleIconBox:  { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  vehicleName:     { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleDetail:   { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  noVehicleCard:   { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1', borderRadius: 12, padding: 14, marginBottom: 4, gap: 10 },
-  noVehicleText:   { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.accent },
+  vehicleIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  vehicleName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  vehicleDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  noVehicleCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1', borderRadius: 12, padding: 14, marginBottom: 4, gap: 10 },
+  noVehicleText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.accent },
 
   // Route
-  routeRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  cityBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 13, gap: 8 },
-  cityDot:     { width: 8, height: 8, borderRadius: 4 },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  cityBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 13, gap: 8 },
+  cityDot: { width: 8, height: 8, borderRadius: 4 },
   cityBtnText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   placeholder: { color: COLORS.gray, fontWeight: '400' },
-  swapBtn:     { padding: 8, backgroundColor: COLORS.lightGray, borderRadius: 10 },
+  swapBtn: { padding: 8, backgroundColor: COLORS.lightGray, borderRadius: 10 },
 
   // Multi-stop toggle
-  toggleRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: COLORS.border, marginBottom: 4 },
-  toggleLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: COLORS.border, marginBottom: 4 },
+  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   toggleLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  toggleSub:   { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+  toggleSub: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
 
   // Stops
-  stopsContainer:  { backgroundColor: '#f8faff', borderRadius: 16, padding: 16, marginVertical: 8, borderWidth: 1, borderColor: COLORS.border },
-  stopsHint:       { fontSize: 12, color: COLORS.gray, marginBottom: 16, lineHeight: 18 },
-  stopRow:         { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, gap: 8 },
-  stopNumCol:      { alignItems: 'center', width: 28, paddingTop: 4 },
-  stopLine:        { width: 2, height: 14, backgroundColor: COLORS.border },
-  stopNum:         { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
-  stopNumText:     { fontSize: 11, fontWeight: '700', color: '#fff' },
-  stopFields:      { flex: 1, gap: 8 },
-  stopCityBtn:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 11, gap: 8 },
-  stopCityText:    { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  stopRemoveBtn:   { paddingTop: 8 },
-  addStopBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary, borderStyle: 'dashed', marginTop: 4 },
-  addStopText:     { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  stopsContainer: { backgroundColor: '#f8faff', borderRadius: 16, padding: 16, marginVertical: 8, borderWidth: 1, borderColor: COLORS.border },
+  stopsHint: { fontSize: 12, color: COLORS.gray, marginBottom: 16, lineHeight: 18 },
+  stopRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, gap: 8 },
+  stopNumCol: { alignItems: 'center', width: 28, paddingTop: 4 },
+  stopLine: { width: 2, height: 14, backgroundColor: COLORS.border },
+  stopNum: { width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', marginVertical: 2 },
+  stopNumText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  stopFields: { flex: 1, gap: 8 },
+  stopCityBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 11, gap: 8 },
+  stopCityText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  stopRemoveBtn: { paddingTop: 8 },
+  addStopBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary, borderStyle: 'dashed', marginTop: 4 },
+  addStopText: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
 
   // Modals
-  modal:       { flex: 1, backgroundColor: '#fff' },
+  modal: { flex: 1, backgroundColor: '#fff' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  modalTitle:  { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
 
   // Vehicle picker items
-  vehiclePickerItem:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: COLORS.border, gap: 12 },
+  vehiclePickerItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: COLORS.border, gap: 12 },
   vehiclePickerItemActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
-  vehiclePickerName:       { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  vehiclePickerDetail:     { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  vehiclePickerName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  vehiclePickerDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
 });

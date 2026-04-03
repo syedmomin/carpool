@@ -39,7 +39,7 @@ export default function DriverHomeScreen({ navigation }) {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <LinearGradient colors={GRADIENTS.teal} style={styles.header}>
         <View style={styles.bgCircle} />
@@ -105,9 +105,9 @@ export default function DriverHomeScreen({ navigation }) {
         <SectionHeader title="Active Vehicle" onSeeAll={() => navigation.navigate('MyVehicles')} />
         {myVehicle ? (
           <TouchableOpacity style={styles.vehicleCard} onPress={() => navigation.navigate('MyVehicles')}>
-            <LinearGradient colors={['#eff6ff', '#dbeafe']} style={styles.vehicleGrad}>
+            <View style={styles.vehicleInner}>
               <View style={styles.vehicleIconBox}>
-                <Ionicons name="car-sport" size={30} color={COLORS.primary} />
+                <Ionicons name="car-sport" size={28} color={COLORS.primary} />
               </View>
               <View style={styles.vehicleInfo}>
                 <View style={styles.vehicleRow}>
@@ -124,8 +124,8 @@ export default function DriverHomeScreen({ navigation }) {
                   {myVehicle.ac && <Text style={styles.featureTag}>AC</Text>}
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.primary} />
-            </LinearGradient>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+            </View>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.addVehicleCard} onPress={() => navigation.navigate('MyVehicles')}>
@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
   actionLabel: { fontSize: 14, fontWeight: '800', color: '#fff' },
   actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   actionArrow: { alignSelf: 'flex-end', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginTop: 6 },
-  vehicleCard: { borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
-  vehicleGrad: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  vehicleIconBox: { width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(26,115,232,0.1)', alignItems: 'center', justifyContent: 'center' },
+  vehicleCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: COLORS.border },
+  vehicleInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  vehicleIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   vehicleInfo: { flex: 1 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
   vehicleName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },

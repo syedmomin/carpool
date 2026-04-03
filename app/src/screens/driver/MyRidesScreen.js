@@ -17,14 +17,14 @@ const TABS = [
 export default function MyRidesScreen({ navigation }) {
   const { showModal } = useGlobalModal();
   const { showToast } = useToast();
-  const [activeTab,      setActiveTab]      = useState(1);
-  const [allRides,       setAllRides]       = useState([]);
-  const [page,           setPage]           = useState(1);
-  const [hasMore,        setHasMore]        = useState(true);
-  const [loading,        setLoading]        = useState(false);
-  const [refreshing,     setRefreshing]     = useState(false);
+  const [activeTab, setActiveTab] = useState(1);
+  const [allRides, setAllRides] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const [actionLoading,  setActionLoading]  = useState(null); // rideId being actioned
+  const [actionLoading, setActionLoading] = useState(null); // rideId being actioned
 
   const todayStr = (() => {
     const d = new Date();
@@ -55,18 +55,18 @@ export default function MyRidesScreen({ navigation }) {
   };
 
   const handleStatusChange = (ride, newStatus) => {
-    const isStart    = newStatus === 'IN_PROGRESS';
+    const isStart = newStatus === 'IN_PROGRESS';
     const isComplete = newStatus === 'COMPLETED';
     showModal({
-      type:        isComplete ? 'info' : 'primary',
-      title:       isStart ? 'Start Ride?' : 'Complete Ride?',
-      message:     isStart
+      type: isComplete ? 'info' : 'primary',
+      title: isStart ? 'Start Ride?' : 'Complete Ride?',
+      message: isStart
         ? 'This will notify all passengers that the ride has started.'
         : 'This will mark the ride as completed and notify passengers to rate their experience.',
       confirmText: isStart ? 'Start Ride' : 'Complete Ride',
-      cancelText:  'Cancel',
-      icon:        isStart ? 'play-circle-outline' : 'checkmark-circle-outline',
-      onConfirm:   async () => {
+      cancelText: 'Cancel',
+      icon: isStart ? 'play-circle-outline' : 'checkmark-circle-outline',
+      onConfirm: async () => {
         setActionLoading(ride.id);
         const { data, error } = await ridesApi.updateStatus(ride.id, newStatus);
         setActionLoading(null);
@@ -86,14 +86,14 @@ export default function MyRidesScreen({ navigation }) {
     : allRides;
 
   const renderRide = ({ item }) => {
-    const vehicle      = item.vehicle;
-    const available    = item.totalSeats - item.bookedSeats;
-    const fillPercent  = item.bookedSeats / item.totalSeats;
-    const earned       = item.bookedSeats * item.pricePerSeat;
-    const isActioning  = actionLoading === item.id;
-    const isActive     = item.status === 'ACTIVE';
+    const vehicle = item.vehicle;
+    const available = item.totalSeats - item.bookedSeats;
+    const fillPercent = item.bookedSeats / item.totalSeats;
+    const earned = item.bookedSeats * item.pricePerSeat;
+    const isActioning = actionLoading === item.id;
+    const isActive = item.status === 'ACTIVE';
     const isInProgress = item.status === 'IN_PROGRESS';
-    const isToday      = item.date === todayStr;
+    const isToday = item.date === todayStr;
 
     return (
       <View style={styles.rideCard}>
@@ -155,9 +155,9 @@ export default function MyRidesScreen({ navigation }) {
               {isActioning
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
-                    <Ionicons name="play-circle-outline" size={16} color="#fff" />
-                    <Text style={styles.startBtnText}>Start Ride</Text>
-                  </>
+                  <Ionicons name="play-circle-outline" size={16} color="#fff" />
+                  <Text style={styles.startBtnText}>Start Ride</Text>
+                </>
               }
             </TouchableOpacity>
           )}
@@ -172,9 +172,9 @@ export default function MyRidesScreen({ navigation }) {
               {isActioning
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
-                    <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
-                    <Text style={styles.startBtnText}>Complete</Text>
-                  </>
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
+                  <Text style={styles.startBtnText}>Complete</Text>
+                </>
               }
             </TouchableOpacity>
           )}
@@ -184,11 +184,11 @@ export default function MyRidesScreen({ navigation }) {
             <TouchableOpacity
               style={[styles.actionBtn, { borderColor: COLORS.danger + '50' }]}
               onPress={() => showModal({
-                type:        'danger',
-                title:       'Cancel Ride?',
-                message:     'Are you sure you want to cancel this ride? Passengers will be notified.',
+                type: 'danger',
+                title: 'Cancel Ride?',
+                message: 'Are you sure you want to cancel this ride? Passengers will be notified.',
                 confirmText: 'Yes, Cancel',
-                cancelText:  'No',
+                cancelText: 'No',
               })}
             >
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
@@ -258,30 +258,30 @@ export default function MyRidesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:        { flex: 1, backgroundColor: COLORS.bg },
-  loadingCenter:    { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText:      { fontSize: 14, color: COLORS.gray },
-  headerStats:      { flexDirection: 'row', gap: 20, marginTop: 12 },
-  headerStat:       { alignItems: 'center' },
-  headerStatVal:    { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerStatLabel:  { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-  tabs:             { margin: 16 },
-  listContent:      { padding: 16, paddingBottom: 80 },
-  rideCard:         { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: COLORS.gray },
+  headerStats: { flexDirection: 'row', gap: 20, marginTop: 12 },
+  headerStat: { alignItems: 'center' },
+  headerStatVal: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerStatLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  tabs: { margin: 16 },
+  listContent: { padding: 16, paddingBottom: 100 },
+  rideCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
   inProgressBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
-  inProgressText:   { fontSize: 12, fontWeight: '700', color: '#fff' },
-  rideHeader:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
-  rideRoute:        { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  rideDate:         { fontSize: 12, color: COLORS.gray, marginTop: 3 },
-  progress:         { marginHorizontal: 16, marginBottom: 12 },
-  statsRow:         { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12 },
-  stat:             { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statText:         { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
-  actionRow:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
-  actionBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
-  actionBtnText:    { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  startBtn:         { backgroundColor: COLORS.secondary, borderColor: 'transparent' },
-  completeBtn:      { backgroundColor: COLORS.teal || '#009688', borderColor: 'transparent' },
-  startBtnText:     { fontSize: 13, fontWeight: '700', color: '#fff' },
-  fab:              { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+  inProgressText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  rideHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
+  rideRoute: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
+  rideDate: { fontSize: 12, color: COLORS.gray, marginTop: 3 },
+  progress: { marginHorizontal: 16, marginBottom: 12 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12 },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
+  actionBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  startBtn: { backgroundColor: COLORS.secondary, borderColor: 'transparent' },
+  completeBtn: { backgroundColor: COLORS.teal || '#009688', borderColor: 'transparent' },
+  startBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  fab: { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
 });
