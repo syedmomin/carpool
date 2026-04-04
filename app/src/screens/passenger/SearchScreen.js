@@ -5,7 +5,7 @@ import {
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RideCard, EmptyState, Chip, SearchInput } from '../../components';
+import { COLORS, GRADIENTS, RideCard, EmptyState, Chip, SearchInput, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { searchPakistanLocations } from '../../utils/locationSearch';
 import { ridesApi } from '../../services/api';
@@ -25,10 +25,10 @@ const VEHICLE_BRANDS = [
 ];
 
 const TIME_SLOTS = [
-  { label: 'Morning',   icon: 'sunny-outline',     from: '05:00', to: '12:00' },
+  { label: 'Morning', icon: 'sunny-outline', from: '05:00', to: '12:00' },
   { label: 'Afternoon', icon: 'partly-sunny-outline', from: '12:00', to: '17:00' },
-  { label: 'Evening',   icon: 'moon-outline',       from: '17:00', to: '21:00' },
-  { label: 'Night',     icon: 'cloudy-night-outline', from: '21:00', to: '23:59' },
+  { label: 'Evening', icon: 'moon-outline', from: '17:00', to: '21:00' },
+  { label: 'Night', icon: 'cloudy-night-outline', from: '21:00', to: '23:59' },
 ];
 
 // ─── City Search Modal ────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ function MaxPriceModal({ visible, value, onApply, onClose }) {
 function timeInSlot(departureTime, slot) {
   if (!departureTime || !slot) return true;
   const [h, m] = departureTime.split(':').map(Number);
-  const mins    = h * 60 + m;
+  const mins = h * 60 + m;
   const [fh, fm] = slot.from.split(':').map(Number);
   const [th, tm] = slot.to.split(':').map(Number);
   return mins >= fh * 60 + fm && mins <= th * 60 + tm;
@@ -229,24 +229,24 @@ function timeInSlot(departureTime, slot) {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function SearchScreen({ navigation, route }) {
   const { searchRides } = useApp();
-  const [allRides,      setAllRides]      = useState([]);
-  const [from,          setFrom]          = useState(route.params?.from || '');
-  const [to,            setTo]            = useState(route.params?.to   || '');
-  const [date,          setDate]          = useState(route.params?.date || '');
+  const [allRides, setAllRides] = useState([]);
+  const [from, setFrom] = useState(route.params?.from || '');
+  const [to, setTo] = useState(route.params?.to || '');
+  const [date, setDate] = useState(route.params?.date || '');
   const [searchResults, setSearchResults] = useState(null);
-  const [loading,       setLoading]       = useState(false);
-  const [sort,          setSort]          = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [sort, setSort] = useState(null);
   const [showSortModal, setShowSortModal] = useState(false);
-  const [filterAC,        setFilterAC]        = useState(false);
-  const [filterFemale,    setFilterFemale]    = useState(false);
-  const [filterVehicle,   setFilterVehicle]   = useState('');
-  const [filterBrand,     setFilterBrand]     = useState('');
-  const [filterTime,      setFilterTime]      = useState(null);
-  const [filterMaxPrice,  setFilterMaxPrice]  = useState('');
-  const [showBrandModal,     setShowBrandModal]     = useState(false);
-  const [showTimeModal,      setShowTimeModal]      = useState(false);
-  const [showMaxPriceModal,  setShowMaxPriceModal]  = useState(false);
-  const [cityModal,          setCityModal]          = useState(null);
+  const [filterAC, setFilterAC] = useState(false);
+  const [filterFemale, setFilterFemale] = useState(false);
+  const [filterVehicle, setFilterVehicle] = useState('');
+  const [filterBrand, setFilterBrand] = useState('');
+  const [filterTime, setFilterTime] = useState(null);
+  const [filterMaxPrice, setFilterMaxPrice] = useState('');
+  const [showBrandModal, setShowBrandModal] = useState(false);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [showMaxPriceModal, setShowMaxPriceModal] = useState(false);
+  const [cityModal, setCityModal] = useState(null);
 
   const activeFilterCount = [filterAC, filterFemale, filterVehicle, filterBrand, filterTime !== null, !!filterMaxPrice].filter(Boolean).length;
 
@@ -257,10 +257,10 @@ export default function SearchScreen({ navigation, route }) {
       : allRides.filter(r => r.status === 'ACTIVE');
 
     let list = [...base];
-    if (filterAC)           list = list.filter(r => r.vehicle?.ac);
-    if (filterFemale)       list = list.filter(r => r.femaleOnly || r.genderPreference === 'FEMALE');
-    if (filterVehicle)      list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
-    if (filterBrand)        list = list.filter(r => r.vehicle?.brand?.toLowerCase() === filterBrand.toLowerCase());
+    if (filterAC) list = list.filter(r => r.vehicle?.ac);
+    if (filterFemale) list = list.filter(r => r.femaleOnly || r.genderPreference === 'FEMALE');
+    if (filterVehicle) list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
+    if (filterBrand) list = list.filter(r => r.vehicle?.brand?.toLowerCase() === filterBrand.toLowerCase());
     if (filterTime !== null) {
       const slot = TIME_SLOTS[filterTime];
       list = list.filter(r => timeInSlot(r.departureTime, slot));
@@ -314,115 +314,113 @@ export default function SearchScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* ── Search Header ────────────────────────────────────────────── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Find a Ride</Text>
-        {activeFilterCount > 0 && (
-          <View style={styles.filterBadge}>
-            <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-          </View>
-        )}
-      </View>
+      {/* ── Gradient Header ─────────────────────────────────────────── */}
+      <GradientHeader
+        colors={GRADIENTS.primary}
+        title="Find a Ride"
+        subtitle={from && to ? `${from} to ${to}` : "Search for your next journey"}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+      />
 
       {/* ── Search Form ──────────────────────────────────────────────── */}
-      <View style={styles.searchForm}>
-        <View style={styles.searchRow}>
-          <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('from')}>
-            <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
-            <Text style={[styles.cityInputText, !from && styles.placeholder]}>{from || 'Leaving from?'}</Text>
-            {from ? (
-              <TouchableOpacity onPress={() => setFrom('')}>
-                <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-              </TouchableOpacity>
-            ) : (
-              <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
-            <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('to')}>
-            <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
-            <Text style={[styles.cityInputText, !to && styles.placeholder]}>{to || 'Going to?'}</Text>
-            {to ? (
-              <TouchableOpacity onPress={() => setTo('')}>
-                <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-              </TouchableOpacity>
-            ) : (
-              <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-            )}
-          </TouchableOpacity>
-        </View>
+      <View style={styles.searchContainer}>
+        <View style={styles.searchCard}>
+          <View style={styles.searchRow}>
+            <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('from')}>
+              <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
+              <Text style={[styles.cityInputText, !from && styles.placeholder]} numberOfLines={1}>
+                {from || 'Leaving from?'}
+              </Text>
+              {from ? (
+                <TouchableOpacity onPress={() => setFrom('')}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.gray} />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
+              )}
+            </TouchableOpacity>
 
-        {/* Search Button */}
-        <TouchableOpacity style={styles.searchBtn} onPress={doSearch} disabled={loading}>
-          {loading
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <><Ionicons name="search" size={18} color="#fff" /><Text style={styles.searchBtnText}>Search Rides</Text></>
-          }
-        </TouchableOpacity>
+            <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
+              <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
+            </TouchableOpacity>
 
-        {/* Filters Row */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-          <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
-          <Chip label="Female Only" icon="female-outline" active={filterFemale} onPress={() => setFilterFemale(!filterFemale)} style={styles.filterChip} />
-
-          {/* Vehicle type chips */}
-          {['Car', 'Hiace', 'Coaster', 'Bus'].map(v => (
-            <Chip key={v} label={v} icon="car-outline" active={filterVehicle === v} onPress={() => setFilterVehicle(filterVehicle === v ? '' : v)} style={styles.filterChip} />
-          ))}
-
-          {/* Brand picker chip */}
-          <Chip
-            label={filterBrand || 'Brand'}
-            icon="business-outline"
-            active={!!filterBrand}
-            onPress={() => setShowBrandModal(true)}
-            style={styles.filterChip}
-          />
-
-          {/* Time picker chip */}
-          <Chip
-            label={filterTime !== null ? TIME_SLOTS[filterTime].label : 'Time'}
-            icon="time-outline"
-            active={filterTime !== null}
-            onPress={() => setShowTimeModal(true)}
-            style={styles.filterChip}
-          />
-
-          {/* Max price chip */}
-          <Chip
-            label={filterMaxPrice ? `Max Rs ${filterMaxPrice}` : 'Max Price'}
-            icon="pricetag-outline"
-            active={!!filterMaxPrice}
-            onPress={() => setShowMaxPriceModal(true)}
-            style={styles.filterChip}
-          />
-
-          {/* Sort chip */}
-          <Chip label="Sort" icon="funnel-outline" active={sort !== null} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
-        </ScrollView>
-
-        {/* Active filter pills */}
-        {activeFilters.length > 0 && (
-          <View style={styles.activeFiltersRow}>
-            {activeFilters.map((f, i) => (
-              <View key={i} style={styles.activePill}>
-                <Text style={styles.activePillText}>{f}</Text>
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.clearAllBtn}
-              onPress={() => { setFilterAC(false); setFilterFemale(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setFilterMaxPrice(''); setSort(null); }}
-            >
-              <Text style={styles.clearAllText}>Clear all</Text>
+            <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('to')}>
+              <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
+              <Text style={[styles.cityInputText, !to && styles.placeholder]} numberOfLines={1}>
+                {to || 'Going to?'}
+              </Text>
+              {to ? (
+                <TouchableOpacity onPress={() => setTo('')}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.gray} />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
+              )}
             </TouchableOpacity>
           </View>
-        )}
+
+          {/* Search Button */}
+          <TouchableOpacity style={styles.searchBtn} onPress={doSearch} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="search" size={18} color="#fff" />
+                <Text style={styles.searchBtnText}>Search Rides</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Quick Filters */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+            <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
+            <Chip label="Female Only" icon="woman-outline" active={filterFemale} onPress={() => setFilterFemale(!filterFemale)} style={styles.filterChip} />
+
+            <Chip
+              label={filterBrand || 'Brand'}
+              icon="business-outline"
+              active={!!filterBrand}
+              onPress={() => setShowBrandModal(true)}
+              style={styles.filterChip}
+            />
+
+            <Chip
+              label={filterTime !== null ? TIME_SLOTS[filterTime].label : 'Time'}
+              icon="time-outline"
+              active={filterTime !== null}
+              onPress={() => setShowTimeModal(true)}
+              style={styles.filterChip}
+            />
+
+            <Chip
+              label={filterMaxPrice ? `Max Rs ${filterMaxPrice}` : 'Max Price'}
+              icon="pricetag-outline"
+              active={!!filterMaxPrice}
+              onPress={() => setShowMaxPriceModal(true)}
+              style={styles.filterChip}
+            />
+
+            <Chip label="Sort" icon="funnel-outline" active={sort !== null} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
+          </ScrollView>
+        </View>
       </View>
+
+      {/* Active filter pills */}
+      {activeFilters.length > 0 && (
+        <View style={styles.activeFiltersRow}>
+          {activeFilters.map((f, i) => (
+            <View key={i} style={styles.activePill}>
+              <Text style={styles.activePillText}>{f}</Text>
+            </View>
+          ))}
+          <TouchableOpacity
+            style={styles.clearAllBtn}
+            onPress={() => { setFilterAC(false); setFilterFemale(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setFilterMaxPrice(''); setSort(null); }}
+          >
+            <Text style={styles.clearAllText}>Clear all</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* ── Results header ───────────────────────────────────────────── */}
       {!loading && (
@@ -527,60 +525,56 @@ export default function SearchScreen({ navigation, route }) {
 }
 
 const ms = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#fff' },
-  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title:      { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
   searchWrap: { padding: 16, paddingBottom: 8 },
-  item:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
-  itemName:   { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  itemSub:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  empty:      { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText:  { fontSize: 14, color: COLORS.gray },
-  hint:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingTop: 24 },
-  hintText:   { fontSize: 13, color: COLORS.gray },
+  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
+  itemName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  itemSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  emptyText: { fontSize: 14, color: COLORS.gray },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingTop: 24 },
+  hintText: { fontSize: 13, color: COLORS.gray },
 });
 
 const styles = StyleSheet.create({
-  container:        { flex: 1, backgroundColor: COLORS.bg },
-  header:           { flexDirection: 'row', alignItems: 'center', paddingTop: 55, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  backBtn:          { marginRight: 16 },
-  headerTitle:      { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
-  filterBadge:      { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  filterBadgeText:  { fontSize: 11, fontWeight: '800', color: '#fff' },
-  searchForm:       { backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12 },
-  searchRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 8 },
-  cityInput:        { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-  dot:              { width: 8, height: 8, borderRadius: 4 },
-  cityInputText:    { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  placeholder:      { color: COLORS.gray, fontWeight: '400' },
-  swapBtn:          { paddingHorizontal: 8 },
-  searchBtn:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 10 },
-  searchBtnText:    { color: '#fff', fontWeight: '700', fontSize: 14 },
-  filtersScroll:    { flexDirection: 'row' },
-  filterChip:       { marginRight: 8 },
+  container: { flex: 1, backgroundColor: COLORS.bg },
+  searchContainer: { marginTop: 0, paddingHorizontal: 0 },
+  searchCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  cityInput: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  cityInputText: { flex: 1, fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  placeholder: { color: COLORS.gray, fontWeight: '400' },
+  swapBtn: { paddingHorizontal: 4 },
+  searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 16 },
+  searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  filtersScroll: { flexDirection: 'row' },
+  filterChip: { marginRight: 8 },
   activeFiltersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  activePill:       { backgroundColor: COLORS.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  activePillText:   { fontSize: 12, fontWeight: '600', color: COLORS.primary },
-  clearAllBtn:      { paddingHorizontal: 10, paddingVertical: 4 },
-  clearAllText:     { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
-  resultsHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  resultsCount:     { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  sortLabel:        { fontSize: 12, color: COLORS.gray },
-  listContent:      { paddingHorizontal: 20, paddingBottom: 24 },
-  sortOverlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sortSheet:        { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
-  sheetHandleRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sortTitle:        { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  sortOption:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  activePill: { backgroundColor: COLORS.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  activePillText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  clearAllBtn: { paddingHorizontal: 10, paddingVertical: 4 },
+  clearAllText: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
+  resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
+  resultsCount: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  sortLabel: { fontSize: 12, color: COLORS.gray },
+  listContent: { paddingHorizontal: 20, paddingBottom: 24 },
+  sortOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sortSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  sheetHandleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sortTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  sortOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   sortOptionActive: { backgroundColor: COLORS.primary + '08' },
-  sortOptionText:   { fontSize: 15, color: COLORS.textPrimary },
-  timeSlotRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  timeSlotSub:      { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  sheetCloseBtn:    { marginTop: 16, alignItems: 'center', paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.primary },
-  sheetCloseBtnText:{ fontSize: 15, fontWeight: '700', color: '#fff' },
-  priceInput:       { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, padding: 14, fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16, textAlign: 'center' },
-  brandGrid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
-  brandChip:        { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.lightGray },
-  brandChipActive:  { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  brandChipText:    { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  sortOptionText: { fontSize: 15, color: COLORS.textPrimary },
+  timeSlotRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  timeSlotSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  sheetCloseBtn: { marginTop: 16, alignItems: 'center', paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.primary },
+  sheetCloseBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  priceInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, padding: 14, fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16, textAlign: 'center' },
+  brandGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
+  brandChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.lightGray },
+  brandChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  brandChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
 });

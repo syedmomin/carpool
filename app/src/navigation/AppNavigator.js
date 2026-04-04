@@ -261,9 +261,20 @@ function PassengerRidesStack() {
   );
 }
 
+const PassengerSearchActivityStack = createNativeStackNavigator();
+function PassengerSearchStack() {
+  return (
+    <PassengerSearchActivityStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <PassengerSearchActivityStack.Screen name="SearchMain" component={SearchScreen} />
+      <PassengerSearchActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
+      <PassengerSearchActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
+    </PassengerSearchActivityStack.Navigator>
+  );
+}
+
 const PASSENGER_TABS = [
   { name: 'PassengerHomeTab', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerRidesStack },
-  { name: 'SearchTab', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: SearchScreen },
+  { name: 'SearchTab', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: PassengerSearchStack },
   { name: 'BookingHistoryTab', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
   { name: 'PassengerProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];

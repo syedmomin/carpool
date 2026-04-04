@@ -194,9 +194,13 @@ export default function BookingHistoryScreen({ navigation }) {
         isFetching.current = true;
         try {
             pageNum === 1 ? setRefreshing(true) : setLoading(true);
-            const { data } = await bookingsApi.myBookings(pageNum, PAGE_SIZE);
+            const { data: responseBody } = await bookingsApi.myBookings(pageNum, PAGE_SIZE);
+            
+            // Handle both data being the array and data.data being the array
+            const apiData = responseBody?.data;
+            const bookingsArray = Array.isArray(apiData) ? apiData : (Array.isArray(apiData?.data) ? apiData.data : []);
 
-            if (!data?.data) {
+            if (bookingsArray.length === 0 && pageNum === 1) {
                 if (replace) setBookings([]);
                 setHasMore(false);
                 return;
@@ -206,9 +210,9 @@ export default function BookingHistoryScreen({ navigation }) {
                 ...b,
                 ride: b.ride ? { ...b.ride, from: b.ride.fromCity || b.ride.from, to: b.ride.toCity || b.ride.to } : null,
             });
-            const items = (data.data || []).map(normalize);
+            const items = bookingsArray.map(normalize);
             setBookings(prev => replace ? items : [...prev, ...items]);
-            setHasMore(data.meta?.hasNext ?? false);
+            setHasMore(apiData?.meta?.hasNext ?? (responseBody?.meta?.hasNext ?? false));
             setPage(pageNum);
         } catch (err) {
             console.error('Fetch bookings error:', err);
