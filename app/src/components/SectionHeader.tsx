@@ -1,8 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { COLORS, SPACING } from './theme';
 
-export const SectionHeader = ({ title, onSeeAll, style }) => (
+interface SectionHeaderProps {
+  title: string;
+  onSeeAll?: () => void;
+  style?: StyleProp<ViewStyle>;
+}
+export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, onSeeAll, style }) => (
   <View style={[styles.row, style]}>
     <Text style={styles.title}>{title}</Text>
     {onSeeAll && (

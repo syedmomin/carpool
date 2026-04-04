@@ -138,6 +138,8 @@ model Ride {
   driver        User       @relation("DriverRides", fields: [driverId], references: [id])
   vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
   bookings      Booking[]
+  route         RideRoute?
+  locations     RideLocation[]
 
   @@index([fromCity, toCity, date, status])
   @@map("rides")
@@ -236,4 +238,33 @@ model UserVerification {
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_verifications")
+}
+
+model RideRoute {
+  id        String   @id @default(cuid())
+  rideId    String   @unique
+  polyline  String
+  distance  Float
+  duration  Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@map("ride_routes")
+}
+
+model RideLocation {
+  id        String   @id @default(cuid())
+  rideId    String
+  latitude  Float
+  longitude Float
+  speed     Float?
+  heading   Float?
+  timestamp DateTime @default(now())
+
+  ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId, timestamp])
+  @@map("ride_locations")
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from './theme';
 
@@ -13,7 +13,11 @@ const AMENITY_ICONS = {
   'Blanket': 'bed-outline',
 };
 
-export const AmenityBadge = ({ name }) => (
+interface AmenityBadgeProps {
+  name: string;
+}
+
+export const AmenityBadge: React.FC<AmenityBadgeProps> = ({ name }) => (
   <View style={styles.amenity}>
     <Ionicons name={AMENITY_ICONS[name] || 'checkmark-circle-outline'} size={12} color={COLORS.primary} />
     <Text style={styles.amenityText}>{name}</Text>
@@ -28,7 +32,13 @@ const STATUS_CONFIG = {
   pending:   { bg: '#fff8e1', color: '#f59e0b',        label: 'Pending' },
 };
 
-export const StatusBadge = ({ status, label, style }) => {
+interface StatusBadgeProps {
+  status: 'active' | 'completed' | 'cancelled' | 'pending';
+  label?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, style }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
   return (
     <View style={[styles.status, { backgroundColor: cfg.bg }, style]}>
@@ -38,7 +48,13 @@ export const StatusBadge = ({ status, label, style }) => {
 };
 
 // ─── Notification Badge (count dot) ─────────────────────────────────────────
-export const NotifBadge = ({ count, style }) => {
+
+interface NotifBadgeProps {
+  count?: number;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const NotifBadge: React.FC<NotifBadgeProps> = ({ count, style }) => {
   if (!count || count < 1) return null;
   return (
     <View style={[styles.notif, style]}>
@@ -48,7 +64,13 @@ export const NotifBadge = ({ count, style }) => {
 };
 
 // ─── Role Badge (Passenger / Driver) ────────────────────────────────────────
-export const RoleBadge = ({ role, style }) => (
+
+interface RoleBadgeProps {
+  role: 'driver' | 'passenger';
+  style?: StyleProp<ViewStyle>;
+}
+
+export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, style }) => (
   <View style={[styles.role, { backgroundColor: role === 'driver' ? '#e8f5e9' : '#eff6ff' }, style]}>
     <Ionicons
       name={role === 'driver' ? 'car-outline' : 'person-outline'}
@@ -62,7 +84,12 @@ export const RoleBadge = ({ role, style }) => (
 );
 
 // ─── Verified Badge ──────────────────────────────────────────────────────────
-export const VerifiedBadge = ({ style }) => (
+
+interface VerifiedBadgeProps {
+  style?: StyleProp<ViewStyle>;
+}
+
+export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({ style }) => (
   <View style={[styles.verified, style]}>
     <Ionicons name="shield-checkmark" size={12} color={COLORS.secondary} />
     <Text style={styles.verifiedText}>Verified</Text>

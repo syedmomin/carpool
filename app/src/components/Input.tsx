@@ -1,10 +1,27 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, KeyboardTypeOptions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from './theme';
 
 // ─── Form Input (icon + label + optional right action) ───────────────────────
-export const FormInput = ({
+interface FormInputProps {
+  label?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  placeholder?: string;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightIconPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  editable?: boolean;
+  multiline?: boolean;
+  numberOfLines?: number;
+  error?: boolean;
+  errorMsg?: string;
+}
+export const FormInput: React.FC<FormInputProps> = ({
   label,
   icon,
   placeholder,
@@ -48,7 +65,14 @@ export const FormInput = ({
 );
 
 // ─── Search Input ────────────────────────────────────────────────────────────
-export const SearchInput = ({ placeholder, value, onChangeText, onClear, style }) => (
+interface SearchInputProps {
+  placeholder?: string;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  onClear?: () => void;
+  style?: StyleProp<ViewStyle>;
+}
+export const SearchInput: React.FC<SearchInputProps> = ({ placeholder, value, onChangeText, onClear, style }) => (
   <View style={[styles.searchRow, style]}>
     <Ionicons name="search-outline" size={18} color={COLORS.gray} style={styles.leftIcon} />
     <TextInput
@@ -67,7 +91,11 @@ export const SearchInput = ({ placeholder, value, onChangeText, onClear, style }
 );
 
 // ─── OTP Input (6 boxes) ─────────────────────────────────────────────────────
-export const OTPInput = ({ value = '', onChange }) => {
+interface OTPInputProps {
+  value?: string;
+  onChange?: (val: string) => void;
+}
+export const OTPInput: React.FC<OTPInputProps> = ({ value = '', onChange }) => {
   const boxes = Array(6).fill('');
   return (
     <View style={styles.otpRow}>

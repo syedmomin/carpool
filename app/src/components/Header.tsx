@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SPACING } from './theme';
@@ -18,7 +18,19 @@ const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight ||
 //   notifCount   - shows notification badge if > 0
 //   onNotif      - handler for notification icon
 //   children     - extra content inside header (e.g. search box)
-export const GradientHeader = ({
+interface GradientHeaderProps {
+  title?: string;
+  subtitle?: string;
+  colors?: readonly [string, string, ...string[]];
+  onBack?: () => void;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  onRightPress?: () => void;
+  notifCount?: number;
+  onNotif?: () => void;
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+export const GradientHeader: React.FC<GradientHeaderProps> = ({
   title,
   subtitle,
   colors,
@@ -31,7 +43,7 @@ export const GradientHeader = ({
   style,
 }) => (
   <LinearGradient
-    colors={colors || GRADIENTS.primary}
+    colors={(colors || GRADIENTS.primary) as any}
     style={[styles.header, style]}
   >
     {/* Decorative circles */}
@@ -73,7 +85,12 @@ export const GradientHeader = ({
 );
 
 // ─── Simple Back Header (non-gradient) ───────────────────────────────────────
-export const BackHeader = ({ title, onBack, style }) => (
+interface BackHeaderProps {
+  title?: string;
+  onBack: () => void;
+  style?: StyleProp<ViewStyle>;
+}
+export const BackHeader: React.FC<BackHeaderProps> = ({ title, onBack, style }) => (
   <View style={[styles.simpleHeader, style]}>
     <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.8}>
       <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />

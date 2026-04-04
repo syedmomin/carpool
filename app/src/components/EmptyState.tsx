@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { COLORS, SPACING } from './theme';
 import {
   EmptyRidesIllustration,
@@ -15,7 +15,13 @@ const ILLUSTRATION_MAP = {
   'notifications-off-outline':  EmptyNotificationsIllustration,
 };
 
-export const EmptyState = ({ icon, title, subtitle, style }) => {
+interface EmptyStateProps {
+  icon?: string;
+  title: string;
+  subtitle?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle, style }) => {
   const IllustrationComponent = ILLUSTRATION_MAP[icon] || EmptyGeneralIllustration;
 
   return (

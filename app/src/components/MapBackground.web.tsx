@@ -1,6 +1,6 @@
 // Web fallback — gradient placeholder that mimics a map
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './theme';
@@ -21,18 +21,23 @@ const FAKE_CARS = [
   { top: '70%', left: '30%' },
 ];
 
-export default function MapBackground({ children, style }) {
+interface MapBackgroundProps {
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
+export default function MapBackground({ children, style }: MapBackgroundProps) {
   return (
     <View style={[styles.container, style]}>
       {/* Map-like background */}
       <View style={styles.mapBg}>
         {/* Grid lines (roads) */}
         {FAKE_ROADS.map((road, i) => (
-          <View key={i} style={[styles.road, road]} />
+          <View key={i} style={[styles.road, road as any]} />
         ))}
         {/* Fake car icons */}
         {FAKE_CARS.map((pos, i) => (
-          <View key={i} style={[styles.carMarker, pos]}>
+          <View key={i} style={[styles.carMarker, pos as any]}>
             <Ionicons name="car" size={12} color={COLORS.primary} />
           </View>
         ))}

@@ -1,11 +1,23 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, RADIUS } from './theme';
 
+interface ButtonProps {
+  title?: string;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+  loading?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  colors?: string[];
+  color?: string;
+  size?: number;
+  bg?: string;
+}
+
 // ─── Primary Button (Gradient) ───────────────────────────────────────────────
-export const PrimaryButton = ({ title, onPress, style, loading, icon, colors }) => (
+export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, colors }) => (
   <TouchableOpacity
     onPress={onPress}
     disabled={!!loading}
@@ -31,7 +43,7 @@ export const PrimaryButton = ({ title, onPress, style, loading, icon, colors }) 
 );
 
 // ─── Ghost Button (Outlined) ─────────────────────────────────────────────────
-export const GhostButton = ({ title, onPress, style, color, icon }) => (
+export const GhostButton: React.FC<ButtonProps> = ({ title, onPress, style, color, icon }) => (
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.7}
@@ -43,7 +55,7 @@ export const GhostButton = ({ title, onPress, style, color, icon }) => (
 );
 
 // ─── Icon Button (Circle) ────────────────────────────────────────────────────
-export const IconButton = ({ icon, onPress, size = 40, color = COLORS.primary, bg, style }) => (
+export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, color = COLORS.primary, bg, style }) => (
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.8}
@@ -58,7 +70,7 @@ export const IconButton = ({ icon, onPress, size = 40, color = COLORS.primary, b
 );
 
 // ─── FAB (Floating Action Button) ────────────────────────────────────────────
-export const FAB = ({ icon, onPress, colors, style }) => (
+export const FAB: React.FC<ButtonProps> = ({ icon, onPress, colors, style }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={[styles.fabContainer, style]}>
     <LinearGradient
       colors={colors || GRADIENTS.primary}

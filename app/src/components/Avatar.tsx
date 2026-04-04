@@ -1,17 +1,21 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from './theme';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 // Shows initials or an image placeholder.
-// Props:
-//   name       - user name (first letter shown)
-//   size       - diameter in px (default 48)
-//   color      - background color
-//   onlineIndicator - shows green dot if true
-//   onEdit     - shows camera button if provided
-export const Avatar = ({ name, size = 48, color, onlineIndicator, onEdit, style }) => {
+
+interface AvatarProps {
+  name?: string;
+  size?: number;
+  color?: string;
+  onlineIndicator?: boolean;
+  onEdit?: () => void;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const Avatar: React.FC<AvatarProps> = ({ name, size = 48, color, onlineIndicator, onEdit, style }) => {
   const fontSize = size * 0.38;
   return (
     <View style={[styles.wrapper, style]}>

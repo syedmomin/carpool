@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { COLORS, RADIUS } from './theme';
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
@@ -9,7 +9,15 @@ import { COLORS, RADIUS } from './theme';
 //   height  - bar height (default: 6)
 //   label   - optional label on left
 //   caption - optional text on right (e.g. "3/5 seats")
-export const ProgressBar = ({ value = 0, color, height = 6, label, caption, style }) => {
+interface ProgressBarProps {
+  value?: number;
+  color?: string;
+  height?: number;
+  label?: string;
+  caption?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const ProgressBar: React.FC<ProgressBarProps> = ({ value = 0, color, height = 6, label, caption, style }) => {
   const pct = Math.min(Math.max(value, 0), 1);
   return (
     <View style={[styles.wrapper, style]}>

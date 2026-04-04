@@ -31,6 +31,19 @@ const CONFIGS = {
   },
 };
 
+interface ConfirmModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'danger' | 'success' | 'default';
+  icon?: keyof typeof Ionicons.glyphMap;
+  loading?: boolean;
+}
+
 export function ConfirmModal({
   visible,
   onClose,
@@ -42,7 +55,7 @@ export function ConfirmModal({
   type         = 'default',
   icon,
   loading      = false,
-}) {
+}: ConfirmModalProps) {
   const scaleAnim   = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const iconBounce  = useRef(new Animated.Value(0)).current;
@@ -80,12 +93,12 @@ export function ConfirmModal({
       <View style={styles.centeredView} pointerEvents="box-none">
         <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
           {/* Decorative top bar */}
-          <LinearGradient colors={cfg.gradient} style={styles.topBar} />
+          <LinearGradient colors={cfg.gradient as any} style={styles.topBar} />
 
           {/* Icon */}
           <Animated.View style={[styles.iconCircle, { backgroundColor: cfg.iconBg, transform: [{ translateY: iconBounce }] }]}>
             <View style={[styles.iconInner, { backgroundColor: cfg.iconBg }]}>
-              <Ionicons name={iconName} size={38} color={cfg.iconColor} />
+              <Ionicons name={iconName as any} size={38} color={cfg.iconColor} />
             </View>
           </Animated.View>
 
@@ -107,7 +120,7 @@ export function ConfirmModal({
               disabled={!!loading}
               activeOpacity={0.85}
             >
-              <LinearGradient colors={cfg.gradient} style={styles.confirmBtn}>
+              <LinearGradient colors={cfg.gradient as any} style={styles.confirmBtn}>
                 {loading
                   ? <Ionicons name="sync-outline" size={18} color="#fff" />
                   : <Text style={styles.confirmText}>{confirmText}</Text>

@@ -1,11 +1,17 @@
 // Native (Android/iOS) — real map
 import React from 'react';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './theme';
 
-export default function MapBackground({ markers = [], children, style }) {
+interface MapBackgroundProps {
+  markers?: { id: string | number; latitude: number; longitude: number }[];
+  children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}
+
+export default function MapBackground({ markers = [], children, style }: MapBackgroundProps) {
   return (
     <View style={[styles.container, style]}>
       <MapView

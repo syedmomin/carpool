@@ -9,7 +9,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS } from './theme';
 
 // ─── Shared Modal Wrapper (iOS) ───────────────────────────────────────────────
-function PickerModal({ visible, title, onDone, onCancel, children }) {
+interface PickerModalProps {
+  visible: boolean;
+  title?: string;
+  onDone: () => void;
+  onCancel: () => void;
+  children: React.ReactNode;
+}
+function PickerModal({ visible, title, onDone, onCancel, children }: PickerModalProps) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <View style={ms.overlay}>
@@ -21,7 +28,7 @@ function PickerModal({ visible, title, onDone, onCancel, children }) {
             </TouchableOpacity>
             <Text style={ms.title}>{title}</Text>
             <TouchableOpacity onPress={onDone}>
-              <LinearGradient colors={GRADIENTS.primary} style={ms.doneBtn}>
+              <LinearGradient colors={GRADIENTS.primary as any} style={ms.doneBtn}>
                 <Text style={ms.doneText}>Done</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -34,7 +41,14 @@ function PickerModal({ visible, title, onDone, onCancel, children }) {
 }
 
 // ─── DatePickerInput ──────────────────────────────────────────────────────────
-export function DatePickerInput({ label, value, onChange, minDate, placeholder = 'Select date' }) {
+interface DatePickerInputProps {
+  label?: string;
+  value?: string | Date | null;
+  onChange: (d: string) => void;
+  minDate?: Date;
+  placeholder?: string;
+}
+export function DatePickerInput({ label, value, onChange, minDate, placeholder = 'Select date' }: DatePickerInputProps) {
   const [show, setShow] = useState(false);
   const [tempDate, setTempDate] = useState(value ? new Date(value) : new Date());
 
@@ -100,7 +114,13 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
 }
 
 // ─── TimePickerInput ──────────────────────────────────────────────────────────
-export function TimePickerInput({ label, value, onChange, placeholder = 'Select time' }) {
+interface TimePickerInputProps {
+  label?: string;
+  value?: string | null;
+  onChange: (t: string) => void;
+  placeholder?: string;
+}
+export function TimePickerInput({ label, value, onChange, placeholder = 'Select time' }: TimePickerInputProps) {
   const [show, setShow] = useState(false);
   const [tempTime, setTempTime] = useState(() => {
     if (value) {

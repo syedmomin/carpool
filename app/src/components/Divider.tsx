@@ -1,12 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { COLORS, SPACING } from './theme';
 
 // ─── Simple Divider ───────────────────────────────────────────────────────────
-export const Divider = ({ style }) => <View style={[styles.line, style]} />;
+interface DividerProps {
+  style?: StyleProp<ViewStyle>;
+}
+export const Divider: React.FC<DividerProps> = ({ style }) => <View style={[styles.line, style]} />;
 
 // ─── Divider with Text (e.g. "OR") ───────────────────────────────────────────
-export const DividerText = ({ label = 'OR', style }) => (
+interface DividerTextProps {
+  label?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const DividerText: React.FC<DividerTextProps> = ({ label = 'OR', style }) => (
   <View style={[styles.row, style]}>
     <View style={styles.half} />
     <Text style={styles.label}>{label}</Text>

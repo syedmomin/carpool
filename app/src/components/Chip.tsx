@@ -1,10 +1,18 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from './theme';
 
 // ─── Filter Chip (toggle) ────────────────────────────────────────────────────
-export const Chip = ({ label, icon, active, onPress, color, style }) => {
+interface ChipProps {
+  label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  active?: boolean;
+  onPress: () => void;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const Chip: React.FC<ChipProps> = ({ label, icon, active, onPress, color, style }) => {
   const isActive = !!active;
   const activeColor = color || COLORS.primary;
   return (
@@ -35,7 +43,19 @@ export const Chip = ({ label, icon, active, onPress, color, style }) => {
 };
 
 // ─── Chip Group (horizontal scrollable row helper) ───────────────────────────
-export const ChipGroup = ({ chips, activeValue, onSelect, color, style }) => (
+interface ChipItem {
+  label: string;
+  value?: any;
+  icon?: keyof typeof Ionicons.glyphMap;
+}
+interface ChipGroupProps {
+  chips: ChipItem[];
+  activeValue: any;
+  onSelect: (value: any) => void;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const ChipGroup: React.FC<ChipGroupProps> = ({ chips, activeValue, onSelect, color, style }) => (
   <View style={[styles.group, style]}>
     {chips.map(chip => (
       <Chip
@@ -52,7 +72,18 @@ export const ChipGroup = ({ chips, activeValue, onSelect, color, style }) => (
 );
 
 // ─── Tab Pills ───────────────────────────────────────────────────────────────
-export const TabPills = ({ tabs, activeTab, onSelect, color, style }) => (
+interface TabItem {
+  label: string;
+  value: any;
+}
+interface TabPillsProps {
+  tabs: TabItem[];
+  activeTab: any;
+  onSelect: (value: any) => void;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onSelect, color, style }) => (
   <View style={[styles.tabRow, style]}>
     {tabs.map(tab => {
       const isActive = activeTab === tab.value;

@@ -1,12 +1,21 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING } from './theme';
 import { StarRating } from './StarRating';
 
 // ─── Ride Card ────────────────────────────────────────────────────────────────
-export const RideCard = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice }) => {
+interface RideCardProps {
+  ride: any;
+  driver?: any;
+  vehicle?: any;
+  onPress: () => void;
+  boardingCity?: string;
+  exitCity?: string;
+  segmentPrice?: number;
+}
+export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice }) => {
   const available = (ride.totalSeats || 0) - (ride.bookedSeats || 0);
   const isSegment = !!(boardingCity && exitCity);
   const displayFrom = isSegment ? boardingCity : ride.from;
@@ -90,9 +99,16 @@ export const RideCard = ({ ride, driver, vehicle, onPress, boardingCity, exitCit
 };
 
 // ─── Stats Card ───────────────────────────────────────────────────────────────
-export const StatsCard = ({ icon, value, label, colors, style }) => (
+interface StatsCardProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: string | number;
+  label: string;
+  colors?: readonly [string, string, ...string[]];
+  style?: StyleProp<ViewStyle>;
+}
+export const StatsCard: React.FC<StatsCardProps> = ({ icon, value, label, colors, style }) => (
   <View style={[styles.statsCard, SHADOWS.sm, style]}>
-    <LinearGradient colors={colors || GRADIENTS.primary} style={styles.statsIcon}>
+    <LinearGradient colors={(colors || GRADIENTS.primary) as any} style={styles.statsIcon}>
       <Ionicons name={icon} size={20} color="#fff" />
     </LinearGradient>
     <Text style={styles.statsValue}>{value}</Text>
@@ -101,7 +117,16 @@ export const StatsCard = ({ icon, value, label, colors, style }) => (
 );
 
 // ─── Menu Card (Profile menu item) ───────────────────────────────────────────
-export const MenuCard = ({ icon, label, subtitle, color, onPress, rightIcon = 'chevron-forward', style }) => (
+interface MenuCardProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  subtitle?: string;
+  color?: string;
+  onPress: () => void;
+  rightIcon?: keyof typeof Ionicons.glyphMap;
+  style?: StyleProp<ViewStyle>;
+}
+export const MenuCard: React.FC<MenuCardProps> = ({ icon, label, subtitle, color, onPress, rightIcon = 'chevron-forward', style }) => (
   <TouchableOpacity style={[styles.menuCard, SHADOWS.sm, style]} onPress={onPress} activeOpacity={0.7}>
     <View style={[styles.menuIcon, { backgroundColor: color ? color + '20' : COLORS.lightGray }]}>
       <Ionicons name={icon} size={20} color={color || COLORS.gray} />
@@ -115,7 +140,14 @@ export const MenuCard = ({ icon, label, subtitle, color, onPress, rightIcon = 'c
 );
 
 // ─── Info Grid Item ───────────────────────────────────────────────────────────
-export const InfoItem = ({ icon, label, value, color, style }) => (
+interface InfoItemProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string | number;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}
+export const InfoItem: React.FC<InfoItemProps> = ({ icon, label, value, color, style }) => (
   <View style={[styles.infoItem, style]}>
     <Ionicons name={icon} size={16} color={color || COLORS.primary} />
     <Text style={styles.infoLabel}>{label}</Text>

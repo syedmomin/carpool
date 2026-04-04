@@ -10,7 +10,12 @@ import routes from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import prisma from './data-source';
 
+import { createServer } from 'http';
+import { initSocket } from './socket';
+
 const app = express();
+const httpServer = createServer(app);
+initSocket(httpServer);
 const PORT = Number(process.env.PORT) || 5000;
 const ENV = process.env.NODE_ENV || 'development';
 const isProd = ENV === 'production';
@@ -37,7 +42,7 @@ async function bootstrap(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('✅ Database connected');
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`🚀 SafariShare API running on port ${PORT} [${ENV}]`);
       console.log(`📍 http://localhost:${PORT}/api/v1/health`);
     });

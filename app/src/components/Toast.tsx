@@ -9,7 +9,14 @@ const CONFIGS = {
   info:    { bg: '#1a73e8', icon: 'information-circle',    text: '#fff' },
 };
 
-export default function Toast({ visible, message, type = 'info', onHide }) {
+interface ToastProps {
+  visible: boolean;
+  message: string;
+  type?: 'success' | 'error' | 'warning' | 'info';
+  onHide: () => void;
+}
+
+export default function Toast({ visible, message, type = 'info', onHide }: ToastProps) {
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity    = useRef(new Animated.Value(0)).current;
 
@@ -35,7 +42,7 @@ export default function Toast({ visible, message, type = 'info', onHide }) {
     <Animated.View
       style={[styles.container, { backgroundColor: cfg.bg, transform: [{ translateY }], opacity, pointerEvents: visible ? 'auto' : 'none' }]}
     >
-      <Ionicons name={cfg.icon} size={20} color={cfg.text} />
+      <Ionicons name={cfg.icon as any} size={20} color={cfg.text} />
       <Text style={[styles.message, { color: cfg.text }]} numberOfLines={2}>{message}</Text>
       <TouchableOpacity onPress={onHide} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
         <Ionicons name="close" size={18} color={cfg.text} />

@@ -3,7 +3,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './theme';
 
-export const StarRating = ({ rating, size = 14, showNumber = true }) => (
+interface StarRatingProps {
+  rating: number;
+  size?: number;
+  showNumber?: boolean;
+}
+export const StarRating: React.FC<StarRatingProps> = ({ rating, size = 14, showNumber = true }) => (
   <View style={styles.row}>
     {[1, 2, 3, 4, 5].map(i => (
       <Ionicons
