@@ -18,7 +18,8 @@ export class BookingController extends BaseController<Booking, any, any> {
 
   cancel = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const booking = await bookingService.cancelBooking(req.params.id as string, req.user!.id);
+      const { reason } = req.body;
+      const booking = await bookingService.cancelBooking(req.params.id as string, req.user!.id, reason);
       ResponseUtil.success(res, booking, 'Booking cancelled');
     } catch (err) { next(err); }
   };

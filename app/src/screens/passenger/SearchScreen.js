@@ -256,7 +256,7 @@ export default function SearchScreen({ navigation, route }) {
       ? searchResults
       : allRides.filter(r => r.status === 'ACTIVE');
 
-    let list = [...base];
+    let list = base.filter(r => (r.totalSeats - r.bookedSeats) > 0);
     if (filterAC) list = list.filter(r => r.vehicle?.ac);
     if (filterFemale) list = list.filter(r => r.femaleOnly || r.genderPreference === 'FEMALE');
     if (filterVehicle) list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());

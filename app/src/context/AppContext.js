@@ -141,8 +141,8 @@ export const AppProvider = ({ children }) => {
     return { data: data.data };
   };
 
-  const cancelBooking = async (bookingId) => {
-    const { error } = await bookingsApi.cancel(bookingId);
+  const cancelBooking = async (bookingId, reason) => {
+    const { error } = await bookingsApi.cancel(bookingId, reason);
     return { error };
   };
 

@@ -115,6 +115,59 @@ function ReviewModal({ booking, onClose, onSubmit }) {
     );
 }
 
+// ─── Cancel Reason Modal ─────────────────────────────────────────────────────────────
+function CancelReasonModal({ visible, onClose, onSubmit }) {
+    const [reason, setReason] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    const submit = async () => {
+        if (!reason.trim()) return;
+        setSubmitting(true);
+        await onSubmit(reason.trim());
+        setSubmitting(false);
+    };
+
+    return (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+            <View style={rStyles.overlay}>
+                <View style={rStyles.sheet}>
+                    <LinearGradient colors={['#fee2e2', '#fecaca']} style={rStyles.sheetHeader}>
+                        <View style={[rStyles.starIcon, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                            <Ionicons name="alert-circle" size={32} color="#ef4444" />
+                        </View>
+                        <Text style={[rStyles.sheetTitle, { color: '#b91c1c' }]}>Cancel Booking</Text>
+                        <Text style={[rStyles.sheetSub, { color: '#991b1b' }]}>Please tell the driver why you are cancelling.</Text>
+                    </LinearGradient>
+                    <View style={rStyles.sheetBody}>
+                        <TextInput
+                            style={rStyles.commentInput}
+                            placeholder="Reason for cancellation..."
+                            placeholderTextColor={COLORS.gray}
+                            value={reason}
+                            onChangeText={setReason}
+                            multiline
+                            numberOfLines={3}
+                            maxLength={200}
+                        />
+                        <View style={rStyles.btnRow}>
+                            <TouchableOpacity style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
+                                <Text style={rStyles.skipBtnText}>Go Back</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[rStyles.submitBtn, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
+                                onPress={submit}
+                                disabled={!reason.trim().length || submitting}
+                            >
+                                {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={rStyles.submitBtnText}>Cancel Booking</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
 // ─── SOS Modal ────────────────────────────────────────────────────────────────
 function SOSModal({ visible, onClose }) {
     const emergencyNumbers = [
@@ -187,6 +240,7 @@ export default function BookingHistoryScreen({ navigation }) {
     const [reviewBooking, setReviewBooking] = useState(null);
     const [reviewedIds, setReviewedIds] = useState(new Set());
     const [sosVisible, setSosVisible] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState(null);
     const isFetching = useRef(false); // prevents stale-closure double-fetch
 
     const fetchBookings = useCallback(async (pageNum, replace = false) => {
@@ -195,7 +249,7 @@ export default function BookingHistoryScreen({ navigation }) {
         try {
             pageNum === 1 ? setRefreshing(true) : setLoading(true);
             const { data: responseBody } = await bookingsApi.myBookings(pageNum, PAGE_SIZE);
-            
+
             // Handle both data being the array and data.data being the array
             const apiData = responseBody?.data;
             const bookingsArray = Array.isArray(apiData) ? apiData : (Array.isArray(apiData?.data) ? apiData.data : []);
@@ -235,23 +289,34 @@ export default function BookingHistoryScreen({ navigation }) {
         }
     };
 
-    const confirmCancel = (bookingId) => {
-        showModal({
-            type: 'danger',
-            title: 'Cancel Booking?',
-            message: 'Are you sure you want to cancel this booking? This action cannot be undone.',
-            confirmText: 'Yes, Cancel',
-            cancelText: 'Keep Booking',
-            icon: 'close-circle-outline',
-            onConfirm: async () => {
-                const { error } = await cancelBooking(bookingId);
-                if (error) showToast(parseApiError(error), 'error');
-                else {
-                    showToast('Booking cancelled.', 'info');
-                    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'CANCELLED' } : b));
-                }
-            },
-        });
+    const executeCancel = async (reason) => {
+        if (!cancelTarget) return;
+        const { error } = await cancelBooking(cancelTarget, reason);
+        if (error) showToast(parseApiError(error), 'error');
+        else {
+            showToast('Booking cancelled.', 'info');
+            setBookings(prev => prev.map(b => b.id === cancelTarget ? { ...b, status: 'CANCELLED' } : b));
+        }
+        setCancelTarget(null);
+    };
+
+    const confirmCancel = (booking) => {
+        if (booking.status === 'CONFIRMED') {
+            setCancelTarget(booking.id);
+        } else {
+            showModal({
+                type: 'danger',
+                title: 'Cancel Booking?',
+                message: 'Are you sure you want to cancel this booking? This action cannot be undone.',
+                confirmText: 'Yes, Cancel',
+                cancelText: 'Keep Booking',
+                icon: 'close-circle-outline',
+                onConfirm: () => {
+                    setCancelTarget(booking.id);
+                    executeCancel(null);
+                },
+            });
+        }
     };
 
     const handleReviewSubmitted = (bookingId) => {
@@ -307,9 +372,7 @@ export default function BookingHistoryScreen({ navigation }) {
 
                 <View style={styles.detailRow}>
                     <View style={styles.detailItem}>
-                        <View style={styles.detailIcon}>
-                            <Ionicons name="person" size={14} color={COLORS.primary} />
-                        </View>
+
                         <View>
                             <Text style={styles.detailLabel}>Driver</Text>
                             <Text style={styles.detailValue}>{driverName}</Text>
@@ -317,34 +380,30 @@ export default function BookingHistoryScreen({ navigation }) {
                         </View>
                     </View>
                     <View style={styles.detailDivider} />
-                    <View style={styles.detailItem}>
-                        <View style={[styles.detailIcon, { backgroundColor: '#e0f7fa' }]}>
-                            <Ionicons name="car" size={14} color={COLORS.teal} />
-                        </View>
-                        <View>
-                            <Text style={styles.detailLabel}>Vehicle</Text>
+                    <View style={[styles.detailItem, { flexDirection: 'column', alignItems: 'flex-end', gap: 6 }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Text style={styles.detailValue}>{vehicleLabel}</Text>
-                            {vehicle?.type && <Text style={styles.detailSub}>{vehicle.type}{vehicle.ac ? ' · AC' : ''}</Text>}
+                            <Ionicons name="car-outline" size={14} color={COLORS.teal} />
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.detailSub}>{ride.departureTime}</Text>
+                            <Ionicons name="time-outline" size={14} color={COLORS.gray} />
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.detailSub}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
+                            <Ionicons name="people-outline" size={14} color={COLORS.gray} />
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.chipsRow}>
-                    <View style={styles.chip}>
-                        <Ionicons name="time-outline" size={12} color={COLORS.gray} />
-                        <Text style={styles.chipText}>{ride.departureTime}</Text>
-                    </View>
-                    <View style={styles.chip}>
-                        <Ionicons name="people-outline" size={12} color={COLORS.gray} />
-                        <Text style={styles.chipText}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
-                    </View>
-                    {item.boardingCity && item.boardingCity !== ride.from && (
+                {item.boardingCity && item.boardingCity !== ride.from && (
+                    <View style={styles.chipsRow}>
                         <View style={[styles.chip, { backgroundColor: '#eff6ff' }]}>
                             <Ionicons name="git-branch-outline" size={12} color={COLORS.primary} />
-                            <Text style={[styles.chipText, { color: COLORS.primary }]}>Segment</Text>
+                            <Text style={[styles.chipText, { color: COLORS.primary }]}>Partial Route Segment</Text>
                         </View>
-                    )}
-                </View>
+                    </View>
+                )}
 
                 <View style={styles.cardFooter}>
                     <View>
@@ -353,15 +412,15 @@ export default function BookingHistoryScreen({ navigation }) {
                     </View>
                     <View style={styles.footerActions}>
                         {/* SOS button for active bookings */}
-                        {isActive && (
+                        {isInProgress && (
                             <TouchableOpacity style={styles.sosBtn} onPress={() => setSosVisible(true)}>
                                 <Ionicons name="warning-outline" size={15} color="#ef4444" />
                                 <Text style={styles.sosBtnText}>SOS</Text>
                             </TouchableOpacity>
                         )}
                         {/* Cancel button */}
-                        {isActive && (
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => confirmCancel(item.id)}>
+                        {isActive && !isInProgress && (
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => confirmCancel(item)}>
                                 <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
                                 <Text style={styles.cancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
@@ -436,6 +495,13 @@ export default function BookingHistoryScreen({ navigation }) {
                     onSubmit={handleReviewSubmitted}
                 />
             )}
+
+            {/* Cancel Reason Modal */}
+            <CancelReasonModal
+                visible={!!cancelTarget}
+                onClose={() => setCancelTarget(null)}
+                onSubmit={executeCancel}
+            />
 
             {/* SOS Modal */}
             <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />

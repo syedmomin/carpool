@@ -98,7 +98,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
     });
   }
 
-  async cancelBooking(bookingId: string, userId: string): Promise<Booking> {
+  async cancelBooking(bookingId: string, userId: string, reason?: string): Promise<Booking> {
     return prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({ where: { id: bookingId } });
       if (!booking)                         throw AppError.notFound('Booking not found');
@@ -107,7 +107,11 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
 
       const updated = await tx.booking.update({
         where: { id: bookingId },
-        data:  { status: 'CANCELLED', updatedBy: userId },
+        data:  { 
+          status: 'CANCELLED', 
+          cancellationReason: reason,
+          updatedBy: userId 
+        },
       });
 
       const ride = await tx.ride.update({
@@ -121,10 +125,14 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         select: { fcmToken: true },
       });
       if (driver?.fcmToken) {
+        const msg = reason 
+          ? `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride. Reason: ${reason}`
+          : `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride`;
+          
         await sendPushNotification(
           driver.fcmToken,
           'Booking Cancelled ❌',
-          `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride`,
+          msg,
           { rideId: ride.id, screen: 'MyRides' },
         );
       }

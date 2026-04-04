@@ -153,7 +153,7 @@ export const bookingsApi = {
       ...(boardingCity ? { boardingCity } : {}),
       ...(exitCity ? { exitCity } : {}),
     }),
-  cancel: (bookingId) => request('DELETE', `/bookings/${bookingId}`),
+  cancel: (bookingId, reason) => request('DELETE', `/bookings/${bookingId}`, { reason }),
   myBookings: (page = 1, limit = 10) => request('GET', `/bookings/mine?page=${page}&limit=${limit}`),
   getById: (bookingId) => request('GET', `/bookings/${bookingId}`),
 };
