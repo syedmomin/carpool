@@ -243,7 +243,7 @@ export default function BookingHistoryScreen({ navigation }) {
     const isFetching = useRef(false); // prevents stale-closure double-fetch
 
     const fetchBookings = useCallback(async (pageNum, replace = false) => {
-        if (isFetching.current && !replace) return;
+        if (isFetching.current) return;
         isFetching.current = true;
         try {
             pageNum === 1 ? setRefreshing(true) : setLoading(true);
@@ -277,9 +277,7 @@ export default function BookingHistoryScreen({ navigation }) {
     }, []);
 
     useFocusEffect(useCallback(() => {
-        let active = true;
-        if (active) fetchBookings(1, true);
-        return () => { active = false; };
+        fetchBookings(1, true);
     }, [fetchBookings]));
 
     const loadMore = () => {

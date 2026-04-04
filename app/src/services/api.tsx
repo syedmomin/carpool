@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { encryptValue, decryptValue } from '../utils/secureStorage';
 
-export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
-// export const BASE_URL = 'http://localhost:5000/api/v1';
+// export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
+export const BASE_URL = 'http://localhost:5000/api/v1';
 
 const TOKEN_KEY = '@chalparo_token';
 const REFRESH_TOKEN_KEY = '@chalparo_refresh_token';
@@ -154,6 +154,8 @@ export const bookingsApi = {
       ...(exitCity ? { exitCity } : {}),
     }),
   cancel: (bookingId, reason) => request('DELETE', `/bookings/${bookingId}`, { reason }),
+  accept: (bookingId) => request('POST', `/bookings/accept/${bookingId}`),
+  reject: (bookingId) => request('POST', `/bookings/reject/${bookingId}`),
   myBookings: (page = 1, limit = 10) => request('GET', `/bookings/mine?page=${page}&limit=${limit}`),
   getById: (bookingId) => request('GET', `/bookings/${bookingId}`),
 };

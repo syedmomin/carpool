@@ -16,6 +16,8 @@ router.post('/',
 );
 router.get('/mine',   bookingController.myBookings);
 router.get('/:id',    bookingController.getById);
+router.post('/accept/:id', bookingController.accept);
+router.post('/reject/:id', bookingController.reject);
 router.delete('/:id', bookingController.cancel);
 
 export default router;

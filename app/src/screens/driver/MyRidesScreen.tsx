@@ -140,7 +140,10 @@ export default function MyRidesScreen({ navigation }) {
 
         <View style={styles.actionRow}>
           {/* Passengers button */}
-          <TouchableOpacity style={styles.actionBtn}>
+          <TouchableOpacity 
+            style={styles.actionBtn}
+            onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}
+          >
             <Ionicons name="people-outline" size={16} color={COLORS.primary} />
             <Text style={styles.actionBtnText}>Passengers ({item.bookedSeats})</Text>
           </TouchableOpacity>

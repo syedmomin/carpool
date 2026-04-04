@@ -71,7 +71,7 @@ export default function RegisterScreen({ navigation }) {
         setLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
         showToast('Account created successfully! Welcome to ChalParo.', 'success');
-        navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
+        // navigation.replace(userRole === 'driver' ? 'DriverApp' : 'PassengerApp');
     };
 
     // ─── Step 1: Role ─────────────────────────────────────────────────────────

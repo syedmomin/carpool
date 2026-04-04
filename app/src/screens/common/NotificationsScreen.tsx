@@ -66,13 +66,14 @@ export default function NotificationsScreen({ navigation }) {
         title="Notifications"
         subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
         onBack={() => navigation.goBack()}
-      >
-        {unreadCount > 0 && (
-          <TouchableOpacity onPress={handleMarkAll} style={styles.markAllBtn}>
-            <Text style={styles.markAllText}>Mark all read</Text>
-          </TouchableOpacity>
-        )}
-      </GradientHeader>
+        rightAction={
+          unreadCount > 0 && (
+            <TouchableOpacity onPress={handleMarkAll} style={styles.markAllBtn}>
+              <Text style={styles.markAllText}>Mark all read</Text>
+            </TouchableOpacity>
+          )
+        }
+      />
 
       <FlatList
         data={notifications}
@@ -140,8 +141,8 @@ const styles = StyleSheet.create({
     borderRadius: 16, padding: 14, marginBottom: 10,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
-  markAllBtn: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
-  markAllText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  markAllBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  markAllText: { fontSize: 11, fontWeight: '700', color: '#fff' },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary },
   cardNewRide: { borderLeftWidth: 3, borderLeftColor: COLORS.teal },
   iconBox: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },

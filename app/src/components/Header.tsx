@@ -28,6 +28,7 @@ interface GradientHeaderProps {
   notifCount?: number;
   onNotif?: () => void;
   children?: React.ReactNode;
+  rightAction?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
@@ -40,6 +41,7 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   notifCount,
   onNotif,
   children,
+  rightAction,
   style,
 }) => (
   <LinearGradient
@@ -77,6 +79,7 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
             <Ionicons name={(rightIcon) as any} size={22} color={COLORS.primary} />
           </TouchableOpacity>
         )}
+        {rightAction}
       </View>
     </View>
 

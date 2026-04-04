@@ -144,10 +144,14 @@ export default function PassengerHomeScreen({ navigation }) {
           style={styles.notifBtn}
           onPress={() => navigation.navigate('Notifications')}
         >
-          <View style={styles.avatarBox}>
-            <Text style={styles.avatarText}>{currentUser?.name?.charAt(0) || 'U'}</Text>
+          <View style={styles.notifIconContainer}>
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadgeMini}>
+                <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+              </View>
+            )}
           </View>
-          {unreadCount > 0 && <NotifBadge count={unreadCount} />}
         </TouchableOpacity>
       </View>
 
@@ -289,13 +293,30 @@ const styles = StyleSheet.create({
   },
   locationText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   notifBtn: { position: 'relative' },
-  avatarBox: {
+  notifIconContainer: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: COLORS.primary,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4,
   },
-  avatarText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  notifBadgeMini: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: COLORS.danger,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  notifBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+  },
 
   bottomSheet: {
     backgroundColor: '#fff',

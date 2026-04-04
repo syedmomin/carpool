@@ -456,7 +456,12 @@ export default function SearchScreen({ navigation, route }) {
           />
         )}
         ListEmptyComponent={
-          !loading ? (
+          loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={styles.loadingText}>Searching for your best ride...</Text>
+            </View>
+          ) : (
             <EmptyState
               icon="car-outline"
               title={searchResults !== null ? 'No Rides Found' : 'No Rides Available'}
@@ -464,7 +469,7 @@ export default function SearchScreen({ navigation, route }) {
                 ? 'No rides on this route. Try different cities or check back later.'
                 : 'No active rides right now. Check back soon!'}
             />
-          ) : null
+          )
         }
       />
 
@@ -577,4 +582,15 @@ const styles = StyleSheet.create({
   brandChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.lightGray },
   brandChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   brandChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  loadingContainer: {
+    paddingTop: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    fontWeight: '500',
+  },
 });

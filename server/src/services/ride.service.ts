@@ -33,6 +33,14 @@ const INCLUDE = {
       waterCooler: true, blanket: true, firstAid: true, luggageRack: true,
     },
   },
+  bookings: {
+    include: {
+      passenger: {
+        select: { id: true, name: true, phone: true, avatar: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' as any },
+  },
 };
 
 // ─── Compute avg rating from nested reviewsReceived ──────────────────────────

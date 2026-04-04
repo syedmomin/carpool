@@ -28,6 +28,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       const booking = await tx.booking.create({
         data: {
           rideId, passengerId, seats,
+          status: 'PENDING',
           totalAmount: ride.pricePerSeat * seats,
           boardingCity: (data as any)?.boardingCity || ride.fromCity,
           exitCity:     (data as any)?.exitCity     || ride.toCity,
@@ -38,6 +39,12 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         },
       });
 
+      // Notice: We do NOT increment bookedSeats yet.
+      // We only reserve them if we want to prevent over-requesting, 
+      // but the user said "not auto confirm".
+      // Usually, it's safer to increment it now (as pending) to avoid overbooking,
+      // and decrement if rejected. 
+      // I'll keep the increment on request to ensure availability.
       await tx.ride.update({
         where: { id: rideId },
         data:  { bookedSeats: { increment: seats } },
@@ -47,8 +54,8 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       await tx.notification.create({
         data: {
           userId:  passengerId,
-          title:   'Booking Confirmed!',
-          message: `Your ${ride.fromCity} → ${ride.toCity} booking for ${ride.date} is confirmed.`,
+          title:   'Booking Request Sent!',
+          message: `Your request for ${ride.fromCity} → ${ride.toCity} is sent to the driver.`,
           type:    'BOOKING',
           rideId,
         },
@@ -62,8 +69,8 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       if (passenger?.fcmToken) {
         await sendPushNotification(
           passenger.fcmToken,
-          'Booking Confirmed! 🎉',
-          `Your ${ride.fromCity} → ${ride.toCity} seat is confirmed for ${ride.date}`,
+          'Booking Request Sent! 📩',
+          `Your ${ride.fromCity} → ${ride.toCity} request is pending driver approval.`,
           { rideId, screen: 'BookingHistory' },
         );
       }
@@ -98,12 +105,105 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
     });
   }
 
+  async acceptBooking(bookingId: string, driverId: string): Promise<Booking> {
+    return prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        include: { ride: true }
+      });
+      if (!booking) throw AppError.notFound('Booking not found');
+      if (booking.ride.driverId !== driverId) throw AppError.forbidden('Not your ride');
+      if (booking.status !== 'PENDING') throw AppError.badRequest('Booking is not pending');
+
+      const updated = await tx.booking.update({
+        where: { id: bookingId },
+        data: { status: 'CONFIRMED' },
+      });
+
+      // Notify passenger
+      await tx.notification.create({
+        data: {
+          userId:  booking.passengerId,
+          title:   'Booking Confirmed!',
+          message: `Your ${booking.ride.fromCity} → ${booking.ride.toCity} booking is accepted.`,
+          type:    'BOOKING',
+          rideId:  booking.rideId,
+        },
+      });
+
+      const passenger = await tx.user.findUnique({
+        where: { id: booking.passengerId },
+        select: { fcmToken: true },
+      });
+      if (passenger?.fcmToken) {
+        await sendPushNotification(
+          passenger.fcmToken,
+          'Booking Confirmed! 🎉',
+          `Your ${booking.ride.fromCity} → ${booking.ride.toCity} seat is confirmed!`,
+          { rideId: booking.rideId, screen: 'BookingHistory' },
+        );
+      }
+
+      return updated;
+    });
+  }
+
+  async rejectBooking(bookingId: string, driverId: string): Promise<Booking> {
+    return prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.findUnique({
+        where: { id: bookingId },
+        include: { ride: true }
+      });
+      if (!booking) throw AppError.notFound('Booking not found');
+      if (booking.ride.driverId !== driverId) throw AppError.forbidden('Not your ride');
+      if (booking.status !== 'PENDING') throw AppError.badRequest('Booking is not pending');
+
+      const updated = await tx.booking.update({
+        where: { id: bookingId },
+        data: { status: 'REJECTED' },
+      });
+
+      // Release seats
+      await tx.ride.update({
+        where: { id: booking.rideId },
+        data: { bookedSeats: { decrement: booking.seats } },
+      });
+
+      // Notify passenger
+      await tx.notification.create({
+        data: {
+          userId:  booking.passengerId,
+          title:   'Booking Rejected',
+          message: `Your request for ${booking.ride.fromCity} → ${booking.ride.toCity} was not accepted.`,
+          type:    'BOOKING',
+          rideId:  booking.rideId,
+        },
+      });
+
+      const passenger = await tx.user.findUnique({
+        where: { id: booking.passengerId },
+        select: { fcmToken: true },
+      });
+      if (passenger?.fcmToken) {
+        await sendPushNotification(
+          passenger.fcmToken,
+          'Booking Rejected ❌',
+          `Sorry, your request for ${booking.ride.fromCity} → ${booking.ride.toCity} was rejected.`,
+          { rideId: booking.rideId, screen: 'BookingHistory' },
+        );
+      }
+
+      return updated;
+    });
+  }
+
   async cancelBooking(bookingId: string, userId: string, reason?: string): Promise<Booking> {
     return prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({ where: { id: bookingId } });
       if (!booking)                         throw AppError.notFound('Booking not found');
       if (booking.passengerId !== userId)   throw AppError.forbidden('Not your booking');
-      if (booking.status !== 'CONFIRMED')   throw AppError.badRequest('Booking is already cancelled');
+      if (booking.status !== 'PENDING' && booking.status !== 'CONFIRMED')
+        throw AppError.badRequest('Booking cannot be cancelled in current state');
 
       const updated = await tx.booking.update({
         where: { id: bookingId },

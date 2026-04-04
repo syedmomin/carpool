@@ -28,6 +28,7 @@ import MyRidesScreen from '../screens/driver/MyRidesScreen';
 import MyVehiclesScreen from '../screens/driver/MyVehiclesScreen';
 import VehicleSetupScreen from '../screens/driver/VehicleSetupScreen';
 import EarningsScreen from '../screens/driver/EarningsScreen';
+import RideBookingsScreen from '../screens/driver/RideBookingsScreen';
 
 // Common
 import ProfileScreen from '../screens/common/ProfileScreen';
@@ -216,6 +217,7 @@ function DriverRidesStack() {
   return (
     <UserRidesStack.Navigator id="DriverRides" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <UserRidesStack.Screen name="MyRidesMain" component={MyRidesScreen} />
+      <UserRidesStack.Screen name="RideBookings" component={RideBookingsScreen} />
       <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
     </UserRidesStack.Navigator>
   );
@@ -252,6 +254,7 @@ function PassengerRidesStack() {
   return (
     <PassengerActivityStack.Navigator id="PassengerActivity" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <PassengerActivityStack.Screen name="PassengerHomeMain" component={PassengerHomeScreen} />
+      <PassengerActivityStack.Screen name="Notifications" component={NotificationsScreen} />
       <PassengerActivityStack.Screen name="Search" component={SearchScreen} />
       <PassengerActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
       <PassengerActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
@@ -265,6 +268,7 @@ function PassengerSearchStack() {
   return (
     <PassengerSearchActivityStack.Navigator id="PassengerSearch" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <PassengerSearchActivityStack.Screen name="SearchMain" component={SearchScreen} />
+      <PassengerSearchActivityStack.Screen name="Notifications" component={NotificationsScreen} />
       <PassengerSearchActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
       <PassengerSearchActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
     </PassengerSearchActivityStack.Navigator>

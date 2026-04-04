@@ -12,7 +12,21 @@ export class BookingController extends BaseController<Booking, any, any> {
     try {
       const { rideId, seats } = req.body;
       const booking = await bookingService.bookRide(rideId, req.user!.id, Number(seats), req.body);
-      ResponseUtil.created(res, booking, 'Booking confirmed');
+      ResponseUtil.created(res, booking, 'Booking request sent');
+    } catch (err) { next(err); }
+  };
+
+  accept = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const booking = await bookingService.acceptBooking(req.params.id as string, req.user!.id);
+      ResponseUtil.success(res, booking, 'Booking accepted');
+    } catch (err) { next(err); }
+  };
+
+  reject = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const booking = await bookingService.rejectBooking(req.params.id as string, req.user!.id);
+      ResponseUtil.success(res, booking, 'Booking rejected');
     } catch (err) { next(err); }
   };
 
