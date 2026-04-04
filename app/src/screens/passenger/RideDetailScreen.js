@@ -281,8 +281,9 @@ export default function RideDetailScreen({ navigation, route }) {
           </View>
         )}
 
-
-        <View style={{ height: 100 }} />
+        {available == 0 && (
+          <View style={{ height: 80 }} />
+        )}
       </ScrollView>
 
       {/* Book Bar */}
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
   reviewerName: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 3 },
   reviewDate: { fontSize: 11, color: COLORS.gray },
   reviewComment: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20 },
-  bookingBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 28, borderTopWidth: 1, borderTopColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
+  bookingBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 78, borderTopWidth: 1, borderTopColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
   seatsSelector: { flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 8 },
   seatsSelectorLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   seatBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
