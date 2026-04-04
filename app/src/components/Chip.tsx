@@ -28,8 +28,7 @@ export const Chip: React.FC<ChipProps> = ({ label, icon, active, onPress, color,
       ]}
     >
       {icon && (
-        <Ionicons
-          name={icon}
+        <Ionicons name={(icon) as any}
           size={14}
           color={isActive ? '#fff' : COLORS.gray}
           style={styles.chipIcon}

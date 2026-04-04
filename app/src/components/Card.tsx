@@ -109,7 +109,7 @@ interface StatsCardProps {
 export const StatsCard: React.FC<StatsCardProps> = ({ icon, value, label, colors, style }) => (
   <View style={[styles.statsCard, SHADOWS.sm, style]}>
     <LinearGradient colors={(colors || GRADIENTS.primary) as any} style={styles.statsIcon}>
-      <Ionicons name={icon} size={20} color="#fff" />
+      <Ionicons name={(icon) as any} size={20} color="#fff" />
     </LinearGradient>
     <Text style={styles.statsValue}>{value}</Text>
     <Text style={styles.statsLabel}>{label}</Text>
@@ -129,13 +129,13 @@ interface MenuCardProps {
 export const MenuCard: React.FC<MenuCardProps> = ({ icon, label, subtitle, color, onPress, rightIcon = 'chevron-forward', style }) => (
   <TouchableOpacity style={[styles.menuCard, SHADOWS.sm, style]} onPress={onPress} activeOpacity={0.7}>
     <View style={[styles.menuIcon, { backgroundColor: color ? color + '20' : COLORS.lightGray }]}>
-      <Ionicons name={icon} size={20} color={color || COLORS.gray} />
+      <Ionicons name={(icon) as any} size={20} color={color || COLORS.gray} />
     </View>
     <View style={styles.menuInfo}>
       <Text style={styles.menuLabel}>{label}</Text>
       {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
     </View>
-    <Ionicons name={rightIcon} size={18} color={COLORS.gray} />
+    <Ionicons name={(rightIcon) as any} size={18} color={COLORS.gray} />
   </TouchableOpacity>
 );
 
@@ -149,7 +149,7 @@ interface InfoItemProps {
 }
 export const InfoItem: React.FC<InfoItemProps> = ({ icon, label, value, color, style }) => (
   <View style={[styles.infoItem, style]}>
-    <Ionicons name={icon} size={16} color={color || COLORS.primary} />
+    <Ionicons name={(icon) as any} size={16} color={color || COLORS.primary} />
     <Text style={styles.infoLabel}>{label}</Text>
     <Text style={styles.infoValue}>{value}</Text>
   </View>

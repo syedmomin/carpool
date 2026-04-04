@@ -222,7 +222,7 @@ export const uploadApi = {
         uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
         name: filename || `upload-${Date.now()}.${ext}`,
         type: mimeType,
-      });
+      } as any);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);

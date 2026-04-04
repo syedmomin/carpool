@@ -16,11 +16,11 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.primary} title="About ChalParo" onBack={() => navigation.goBack()} />
+      <GradientHeader colors={GRADIENTS.primary as any} title="About ChalParo" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
-          <LinearGradient colors={GRADIENTS.primary} style={styles.logoBox}>
+          <LinearGradient colors={GRADIENTS.primary as any} style={styles.logoBox}>
             <Ionicons name="car-sport" size={48} color="#fff" />
           </LinearGradient>
           <Text style={styles.appName}>ChalParo</Text>
@@ -40,7 +40,7 @@ export default function AboutScreen({ navigation }) {
           {FEATURES.map((f, i) => (
             <View key={i} style={styles.featureRow}>
               <View style={styles.featureIcon}>
-                <Ionicons name={f.icon} size={18} color={COLORS.primary} />
+                <Ionicons name={(f.icon) as any} size={18} color={COLORS.primary} />
               </View>
               <Text style={styles.featureText}>{f.label}</Text>
             </View>

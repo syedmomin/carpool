@@ -42,7 +42,7 @@ export default function ChangePasswordScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <GradientHeader colors={GRADIENTS.primary} title="Change Password" subtitle="Keep your account secure" onBack={() => navigation.goBack()} />
+        <GradientHeader colors={GRADIENTS.primary as any} title="Change Password" subtitle="Keep your account secure" onBack={() => navigation.goBack()} />
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <View style={styles.tipCard}>
@@ -93,7 +93,7 @@ export default function ChangePasswordScreen({ navigation }) {
             onRightIconPress={() => toggleShow('confirm')}
           />
 
-          <PrimaryButton title="Change Password" onPress={handleChange} loading={loading} icon="shield-checkmark-outline" colors={GRADIENTS.primary} style={{ marginTop: 24 }} />
+          <PrimaryButton title="Change Password" onPress={handleChange} loading={loading} icon="shield-checkmark-outline" colors={GRADIENTS.primary as any} style={{ marginTop: 24 }} />
           <View style={{ height: 24 }} />
         </ScrollView>
       </View>

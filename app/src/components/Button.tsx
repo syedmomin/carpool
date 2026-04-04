@@ -25,7 +25,7 @@ export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, lo
     style={[styles.container, style]}
   >
     <LinearGradient
-      colors={colors || GRADIENTS.primary}
+      colors={(colors || GRADIENTS.primary) as any}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
       style={styles.gradient}
@@ -34,7 +34,7 @@ export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, lo
         <ActivityIndicator color="#fff" />
       ) : (
         <>
-          {icon && <Ionicons name={icon} size={18} color="#fff" style={styles.btnIcon} />}
+          {icon && <Ionicons name={(icon) as any} size={18} color="#fff" style={styles.btnIcon} />}
           <Text style={styles.btnText}>{title}</Text>
         </>
       )}
@@ -49,7 +49,7 @@ export const GhostButton: React.FC<ButtonProps> = ({ title, onPress, style, colo
     activeOpacity={0.7}
     style={[styles.ghost, { borderColor: color || COLORS.primary }, style]}
   >
-    {icon && <Ionicons name={icon} size={16} color={color || COLORS.primary} style={styles.btnIcon} />}
+    {icon && <Ionicons name={(icon) as any} size={16} color={color || COLORS.primary} style={styles.btnIcon} />}
     <Text style={[styles.ghostText, { color: color || COLORS.primary }]}>{title}</Text>
   </TouchableOpacity>
 );
@@ -65,7 +65,7 @@ export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, co
       style,
     ]}
   >
-    <Ionicons name={icon} size={size * 0.5} color={color} />
+    <Ionicons name={(icon) as any} size={size * 0.5} color={color} />
   </TouchableOpacity>
 );
 
@@ -73,10 +73,10 @@ export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, co
 export const FAB: React.FC<ButtonProps> = ({ icon, onPress, colors, style }) => (
   <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={[styles.fabContainer, style]}>
     <LinearGradient
-      colors={colors || GRADIENTS.primary}
+      colors={(colors || GRADIENTS.primary) as any}
       style={styles.fab}
     >
-      <Ionicons name={icon} size={20} color="#fff" />
+      <Ionicons name={(icon) as any} size={20} color="#fff" />
     </LinearGradient>
   </TouchableOpacity>
 );

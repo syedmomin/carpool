@@ -62,7 +62,7 @@ export default function NotificationsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.primary}
+        colors={GRADIENTS.primary as any}
         title="Notifications"
         subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
         onBack={() => navigation.goBack()}
@@ -96,7 +96,7 @@ export default function NotificationsScreen({ navigation }) {
               activeOpacity={0.8}
             >
               <View style={[styles.iconBox, { backgroundColor: config.bg }]}>
-                <Ionicons name={config.icon} size={22} color={config.color} />
+                <Ionicons name={(config.icon) as any} size={22} color={config.color} />
               </View>
               <View style={styles.content}>
                 <View style={styles.titleRow}>
@@ -112,7 +112,7 @@ export default function NotificationsScreen({ navigation }) {
                     onPress={() => handleViewRide(item)}
                     activeOpacity={0.85}
                   >
-                    <LinearGradient colors={GRADIENTS.teal} style={styles.interestedGrad}>
+                    <LinearGradient colors={GRADIENTS.teal as any} style={styles.interestedGrad}>
                       <Ionicons name="eye-outline" size={15} color="#fff" />
                       <Text style={styles.interestedText}>View Ride</Text>
                     </LinearGradient>

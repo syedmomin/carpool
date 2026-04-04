@@ -81,7 +81,7 @@ export default function RideDetailScreen({ navigation, route }) {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
+        <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -172,7 +172,7 @@ export default function RideDetailScreen({ navigation, route }) {
               style={styles.callBtn}
               onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Call ${driver?.name} at ${driver?.phone || 'N/A'}?`, confirmText: 'Call' })}
             >
-              <LinearGradient colors={GRADIENTS.secondary} style={styles.callBtnGrad}>
+              <LinearGradient colors={GRADIENTS.secondary as any} style={styles.callBtnGrad}>
                 <Ionicons name="call" size={18} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
@@ -225,7 +225,7 @@ export default function RideDetailScreen({ navigation, route }) {
                   { key: 'luggageRack', icon: 'briefcase-outline', label: 'Luggage', color: COLORS.gray },
                 ].filter(f => vehicle?.[f.key]).map(f => (
                   <View key={f.key} style={[styles.amenityChip, { backgroundColor: f.color + '15' }]}>
-                    <Ionicons name={f.icon} size={13} color={f.color} />
+                    <Ionicons name={(f.icon) as any} size={13} color={f.color} />
                     <Text style={[styles.amenityChipText, { color: f.color }]}>{f.label}</Text>
                   </View>
                 ))}
@@ -300,7 +300,7 @@ export default function RideDetailScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={handleBook} style={styles.bookBtn} disabled={booking}>
-            <LinearGradient colors={GRADIENTS.primary} style={styles.bookBtnGrad}>
+            <LinearGradient colors={GRADIENTS.primary as any} style={styles.bookBtnGrad}>
               <Text style={styles.bookBtnText}>Book • Rs {(selectedSeats * ride.pricePerSeat)?.toLocaleString()}</Text>
             </LinearGradient>
           </TouchableOpacity>

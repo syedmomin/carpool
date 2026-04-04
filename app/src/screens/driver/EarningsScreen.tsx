@@ -27,7 +27,7 @@ export default function EarningsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.secondary}
+        colors={GRADIENTS.secondary as any}
         title="My Earnings"
         subtitle="Track your income"
         onBack={() => navigation.goBack()}
@@ -49,7 +49,7 @@ export default function EarningsScreen({ navigation }) {
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: s.color + '15' }]}>
-                <Ionicons name={s.icon} size={20} color={s.color} />
+                <Ionicons name={(s.icon) as any} size={20} color={s.color} />
               </View>
               <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
@@ -76,7 +76,7 @@ export default function EarningsScreen({ navigation }) {
             return (
               <View key={ride.id} style={styles.rideCard}>
                 <View style={styles.rideLeft}>
-                  <LinearGradient colors={GRADIENTS.secondary} style={styles.rideIconBox}>
+                  <LinearGradient colors={GRADIENTS.secondary as any} style={styles.rideIconBox}>
                     <Ionicons name="car-sport" size={18} color="#fff" />
                   </LinearGradient>
                   <View>

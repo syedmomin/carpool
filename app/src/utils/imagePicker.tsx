@@ -2,6 +2,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
 import { uploadApi } from '../services/api';
 
+interface PickerOptions {
+  aspect?: [number, number];
+}
+
 // type: 'profile' | 'vehicle' | 'documents'
 async function uploadToServer(uri, type = 'profile') {
   const { data, error } = await uploadApi.image(uri, type);
@@ -9,7 +13,7 @@ async function uploadToServer(uri, type = 'profile') {
   return { url: data.data.url };
 }
 
-export async function pickImageFromLibrary(options = {}, type = 'profile') {
+export async function pickImageFromLibrary(options: PickerOptions = {}, type = 'profile') {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
     Alert.alert('Permission Required', 'Please allow access to your photo library.');
@@ -25,7 +29,7 @@ export async function pickImageFromLibrary(options = {}, type = 'profile') {
   return uploadToServer(result.assets[0].uri, type);
 }
 
-export async function pickImageFromCamera(options = {}, type = 'profile') {
+export async function pickImageFromCamera(options: PickerOptions = {}, type = 'profile') {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') {
     Alert.alert('Permission Required', 'Please allow camera access.');
@@ -58,7 +62,7 @@ export async function pickMultipleImagesLocal() {
 }
 
 // Pick single image from camera locally (no upload)
-export async function pickImageFromCameraLocal(options = {}) {
+export async function pickImageFromCameraLocal(options: PickerOptions = {}) {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') {
     Alert.alert('Permission Required', 'Please allow camera access.');

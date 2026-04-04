@@ -99,7 +99,7 @@ export default function MyRidesScreen({ navigation }) {
       <View style={styles.rideCard}>
         {/* Status banner for IN_PROGRESS */}
         {isInProgress && (
-          <LinearGradient colors={GRADIENTS.teal} style={styles.inProgressBanner}>
+          <LinearGradient colors={GRADIENTS.teal as any} style={styles.inProgressBanner}>
             <Ionicons name="navigate-outline" size={14} color="#fff" />
             <Text style={styles.inProgressText}>Ride In Progress</Text>
           </LinearGradient>
@@ -203,7 +203,7 @@ export default function MyRidesScreen({ navigation }) {
   if (initialLoading) {
     return (
       <View style={styles.container}>
-        <GradientHeader colors={GRADIENTS.teal} title="My Rides" onBack={() => navigation.goBack()} />
+        <GradientHeader colors={GRADIENTS.teal as any} title="My Rides" onBack={() => navigation.goBack()} />
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={COLORS.teal} />
           <Text style={styles.loadingText}>Loading your rides...</Text>
@@ -215,7 +215,7 @@ export default function MyRidesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.teal}
+        colors={GRADIENTS.teal as any}
         title="My Rides"
         subtitle="Manage your active and completed rides"
         onBack={() => navigation.goBack()}

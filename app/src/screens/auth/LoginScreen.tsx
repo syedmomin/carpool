@@ -20,10 +20,10 @@ export default function LoginScreen({ navigation }) {
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<any>({});
 
     const validate = () => {
-        const e = {};
+        const e: any = {};
         if (!phone.trim()) e.phone = 'Phone number is required';
         else if (!isValidPhone(phone)) e.phone = 'Enter exactly 10 digits after +92 (e.g. 3001234567)';
         if (!password) e.password = 'Password is required';

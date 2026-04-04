@@ -24,7 +24,7 @@ export default function RegisterScreen({ navigation }) {
     const [role, setRole] = useState('passenger');
     const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', city: '' });
     const [showPass, setShowPass] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<any>({});
     const [loading, setLoading] = useState(false);
 
     const set = (key, val) => {
@@ -35,7 +35,7 @@ export default function RegisterScreen({ navigation }) {
     const validateStep1 = () => true; // just role selection
 
     const validateStep2 = () => {
-        const e = {};
+        const e: any = {};
         if (!form.name.trim()) e.name = 'Full name is required';
         else if (form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
 
@@ -90,11 +90,11 @@ export default function RegisterScreen({ navigation }) {
                     activeOpacity={0.85}
                 >
                     <LinearGradient
-                        colors={role === r.value ? r.colors : ['#f8f9fa', '#f8f9fa']}
+                        colors={(role === r.value ? r.colors : ['#f8f9fa', '#f8f9fa']) as any}
                         style={styles.roleCardInner}
                     >
                         <View style={[styles.roleIcon, { backgroundColor: role === r.value ? 'rgba(255,255,255,0.25)' : COLORS.lightGray }]}>
-                            <Ionicons name={r.icon} size={26} color={role === r.value ? '#fff' : COLORS.gray} />
+                            <Ionicons name={(r.icon) as any} size={26} color={role === r.value ? '#fff' : COLORS.gray} />
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={[styles.roleLabel, { color: role === r.value ? '#fff' : COLORS.textPrimary }]}>{r.label}</Text>
@@ -146,7 +146,7 @@ export default function RegisterScreen({ navigation }) {
                 value={form.email}
                 onChangeText={v => set('email', v)}
                 keyboardType="email-address"
-                autoCapitalize="none"
+                autoCapitalize={"none" as any}
             />
             {!!errors.email && <Text style={styles.errText}>{errors.email}</Text>}
 
@@ -175,7 +175,7 @@ export default function RegisterScreen({ navigation }) {
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             {/* Header */}
-            <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
+            <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
                 <View style={styles.headerRow}>
                     <TouchableOpacity
                         onPress={() => step > 0 ? setStep(step - 1) : navigation.goBack()}

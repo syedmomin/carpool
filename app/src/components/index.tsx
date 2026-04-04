@@ -49,10 +49,6 @@ export { default as Toast } from './Toast';
 // ─── Illustrations ────────────────────────────────────────────────────────────
 export {
   SplashIllustration,
-  SearchIllustration,
-  ShareRideIllustration,
-  SafetyIllustration,
-  AffordableIllustration,
   EmptyRidesIllustration,
   EmptyBookingsIllustration,
   EmptyNotificationsIllustration,

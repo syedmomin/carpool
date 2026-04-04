@@ -133,7 +133,7 @@ export default function CnicVerificationScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.secondary}
+        colors={GRADIENTS.secondary as any}
         title="Identity Verification"
         subtitle={isDriver ? 'CNIC & Driving Licence required' : 'CNIC verification (optional)'}
         onBack={() => navigation.goBack()}
@@ -143,8 +143,7 @@ export default function CnicVerificationScreen({ navigation }) {
 
         {/* Info Banner */}
         <View style={[styles.infoBanner, isDriver ? styles.infoBannerDriver : styles.infoBannerPassenger]}>
-          <Ionicons
-            name={isDriver ? 'car-outline' : 'shield-checkmark'}
+          <Ionicons name={(isDriver ? 'car-outline' : 'shield-checkmark') as any}
             size={28}
             color={isDriver ? COLORS.teal : COLORS.secondary}
           />
@@ -231,7 +230,7 @@ export default function CnicVerificationScreen({ navigation }) {
           onPress={handleSubmit}
           loading={loading}
           icon={isDriver ? 'shield-checkmark-outline' : (cnic || frontImg ? 'shield-checkmark-outline' : 'arrow-forward-outline')}
-          colors={GRADIENTS.secondary}
+          colors={GRADIENTS.secondary as any}
           style={{ marginTop: 28 }}
         />
         <View style={{ height: 32 }} />

@@ -161,7 +161,7 @@ function TimeModal({ visible, selected, onSelect, onClose }) {
               onPress={() => { onSelect(selected === i ? null : i); onClose(); }}
             >
               <View style={styles.timeSlotRow}>
-                <Ionicons name={slot.icon} size={18} color={selected === i ? COLORS.primary : COLORS.gray} />
+                <Ionicons name={(slot.icon) as any} size={18} color={selected === i ? COLORS.primary : COLORS.gray} />
                 <View>
                   <Text style={[styles.sortOptionText, selected === i && { color: COLORS.primary, fontWeight: '700' }]}>
                     {slot.label}
@@ -316,7 +316,7 @@ export default function SearchScreen({ navigation, route }) {
     <View style={styles.container}>
       {/* ── Gradient Header ─────────────────────────────────────────── */}
       <GradientHeader
-        colors={GRADIENTS.primary}
+        colors={GRADIENTS.primary as any}
         title="Find a Ride"
         subtitle={from && to ? `${from} to ${to}` : "Search for your next journey"}
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}

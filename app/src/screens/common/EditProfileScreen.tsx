@@ -52,7 +52,7 @@ export default function EditProfileScreen({ navigation }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
         <GradientHeader
-          colors={GRADIENTS.primary}
+          colors={GRADIENTS.primary as any}
           title="Edit Profile"
           subtitle="Update your personal information"
           onBack={() => navigation.goBack()}
@@ -63,17 +63,17 @@ export default function EditProfileScreen({ navigation }) {
           <View style={styles.avatarSection}>
             <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.85}>
               {uploading ? (
-                <LinearGradient colors={GRADIENTS.primary} style={styles.avatarPlaceholder}>
+                <LinearGradient colors={GRADIENTS.primary as any} style={styles.avatarPlaceholder}>
                   <ActivityIndicator color="#fff" size="large" />
                 </LinearGradient>
               ) : avatar ? (
                 <Image source={{ uri: avatar }} style={styles.avatarImg} />
               ) : (
-                <LinearGradient colors={GRADIENTS.primary} style={styles.avatarPlaceholder}>
+                <LinearGradient colors={GRADIENTS.primary as any} style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 </LinearGradient>
               )}
-              <LinearGradient colors={GRADIENTS.primary} style={styles.cameraBtn}>
+              <LinearGradient colors={GRADIENTS.primary as any} style={styles.cameraBtn}>
                 <Ionicons name="camera" size={15} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
@@ -83,7 +83,7 @@ export default function EditProfileScreen({ navigation }) {
           {/* Role / verified badges */}
           <View style={styles.badgeRow}>
             <View style={styles.badge}>
-              <Ionicons name={currentUser?.role === 'DRIVER' ? 'car-sport' : 'person'} size={14} color={COLORS.primary} />
+              <Ionicons name={(currentUser?.role === 'DRIVER' ? 'car-sport' : 'person') as any} size={14} color={COLORS.primary} />
               <Text style={styles.badgeText}>{currentUser?.role === 'DRIVER' ? 'Driver' : 'Passenger'}</Text>
             </View>
             {currentUser?.isVerified && (

@@ -20,6 +20,7 @@ interface FormInputProps {
   numberOfLines?: number;
   error?: boolean;
   errorMsg?: string;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 export const FormInput: React.FC<FormInputProps> = ({
   label,
@@ -37,11 +38,12 @@ export const FormInput: React.FC<FormInputProps> = ({
   numberOfLines,
   error,
   errorMsg,
+  autoCapitalize,
 }) => (
   <View style={[styles.wrapper, style]}>
     {label && <Text style={[styles.label, error && { color: COLORS.danger }]}>{label}</Text>}
     <View style={[styles.inputRow, !editable && styles.disabled, error && styles.inputError]}>
-      {icon && <Ionicons name={icon} size={20} color={error ? COLORS.danger : COLORS.gray} style={styles.leftIcon} />}
+      {icon && <Ionicons name={(icon) as any} size={20} color={error ? COLORS.danger : COLORS.gray} style={styles.leftIcon} />}
       <TextInput
         style={[styles.input, multiline && styles.multiline]}
         placeholder={placeholder}
@@ -53,10 +55,11 @@ export const FormInput: React.FC<FormInputProps> = ({
         editable={editable}
         multiline={multiline}
         numberOfLines={numberOfLines}
+        autoCapitalize={autoCapitalize}
       />
       {rightIcon && (
         <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>
-          <Ionicons name={rightIcon} size={20} color={error ? COLORS.danger : COLORS.gray} />
+          <Ionicons name={(rightIcon) as any} size={20} color={error ? COLORS.danger : COLORS.gray} />
         </TouchableOpacity>
       )}
     </View>

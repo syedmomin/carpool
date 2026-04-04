@@ -164,7 +164,7 @@ export default function ScheduleScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.primary}
+        colors={GRADIENTS.primary as any}
         title="Schedule a Ride"
         subtitle="Set alerts for upcoming routes"
         onBack={() => navigation.goBack()}
@@ -218,7 +218,7 @@ export default function ScheduleScreen({ navigation }) {
                   activeOpacity={0.7}
                 >
                   {isSelected ? (
-                    <LinearGradient colors={GRADIENTS.primary} style={styles.cellSelected}>
+                    <LinearGradient colors={GRADIENTS.primary as any} style={styles.cellSelected}>
                       <Text style={styles.cellTextSelected}>{day}</Text>
                     </LinearGradient>
                   ) : (
@@ -297,7 +297,7 @@ export default function ScheduleScreen({ navigation }) {
             title="Set Ride Alert"
             icon="notifications-outline"
             onPress={handleSetAlert}
-            colors={GRADIENTS.primary}
+            colors={GRADIENTS.primary as any}
           />
         </View>
 

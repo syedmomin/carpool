@@ -113,7 +113,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const [yearModal,  setYearModal]  = useState(false);
   const [brandModal, setBrandModal] = useState(false);
   const [loading,    setLoading]    = useState(false);
-  const [errors,     setErrors]     = useState({});
+  const [errors,     setErrors]     = useState<any>({});
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
@@ -146,7 +146,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   };
 
   const validate = () => {
-    const newErrors = {};
+    const newErrors: any = {};
     if (!form.brand?.trim()) newErrors.brand = true;
     if (!form.plateNumber?.trim()) newErrors.plateNumber = true;
     if (!form.totalSeats) newErrors.totalSeats = true;
@@ -214,7 +214,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
           uri: cleanUri,
           name: filename,
           type: mimeType,
-        });
+        } as any);
       }
     }));
 
@@ -248,9 +248,9 @@ export default function VehicleSetupScreen({ navigation, route }) {
               onPress={() => setSelectedType(vt.value)}
               activeOpacity={0.85}
             >
-              <LinearGradient colors={active ? GRADIENTS.primary : ['#f8f9fa', '#f0f0f0']} style={styles.typeCardInner}>
+              <LinearGradient colors={(active ? GRADIENTS.primary : ['#f8f9fa', '#f0f0f0']) as any} style={styles.typeCardInner}>
                 <View style={[styles.typeIconBox, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : COLORS.lightGray }]}>
-                  <Ionicons name={vt.icon} size={26} color={active ? '#fff' : COLORS.gray} />
+                  <Ionicons name={(vt.icon) as any} size={26} color={active ? '#fff' : COLORS.gray} />
                 </View>
                 <Text style={[styles.typeLabel, { color: active ? '#fff' : COLORS.textPrimary }]}>{vt.label}</Text>
                 <View style={[styles.typeRadio, active && styles.typeRadioActive]}>
@@ -344,7 +344,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
         placeholder="e.g. KHI-2022"
         value={form.plateNumber}
         onChangeText={v => { update('plateNumber', v); if (errors.plateNumber) setErrors(prev => ({...prev, plateNumber: false})); }}
-        autoCapitalize="characters"
+        autoCapitalize={"characters" as any}
         error={errors.plateNumber}
       />
       <FormInput
@@ -371,7 +371,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
               activeOpacity={0.8}
             >
               <View style={[styles.featureIconBox, active && styles.featureIconBoxActive]}>
-                <Ionicons name={feat.icon} size={16} color={active ? '#fff' : COLORS.gray} />
+                <Ionicons name={(feat.icon) as any} size={16} color={active ? '#fff' : COLORS.gray} />
               </View>
               <Text style={[styles.featureLabel, active && styles.featureLabelActive]}>{feat.label}</Text>
               {active && <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} style={{ marginLeft: 'auto' }} />}
@@ -397,7 +397,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
         <GradientHeader
-          colors={headerGradient}
+          colors={headerGradient as any}
           title={existing ? 'Edit Vehicle' : 'Register Vehicle'}
           subtitle={`Step ${step + 1} of 2 — ${STEPS[step]}`}
           onBack={goBack}
@@ -431,7 +431,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
             onPress={goNext}
             loading={loading}
             icon={step === 0 ? 'arrow-forward-outline' : 'checkmark-circle-outline'}
-            colors={headerGradient}
+            colors={headerGradient as any}
             style={{ marginTop: 28 }}
           />
           <View style={{ height: 32 }} />

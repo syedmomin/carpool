@@ -123,7 +123,7 @@ export function GlobalModalProvider({ children }) {
 
             <Animated.View style={[styles.iconCircle, { backgroundColor: cfg.iconBg, transform: [{ scale: iconScale }] }]}>
               <View style={[styles.iconInner, { backgroundColor: cfg.iconBg }]}>
-                <Ionicons name={iconName} size={42} color={cfg.iconColor} />
+                <Ionicons name={(iconName) as any} size={42} color={cfg.iconColor} />
               </View>
             </Animated.View>
 

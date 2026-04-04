@@ -202,7 +202,7 @@ export default function PassengerHomeScreen({ navigation }) {
 
         {/* Find Rides Button */}
         <TouchableOpacity onPress={handleFindRide} activeOpacity={0.85}>
-          <LinearGradient colors={GRADIENTS.primary} style={styles.findBtn}>
+          <LinearGradient colors={GRADIENTS.primary as any} style={styles.findBtn}>
             <Text style={styles.findBtnText}>Find Ride</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </LinearGradient>

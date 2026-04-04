@@ -40,8 +40,8 @@ import TermsScreen from '../screens/common/TermsScreen';
 import PrivacyScreen from '../screens/common/PrivacyScreen';
 import AboutScreen from '../screens/common/AboutScreen';
 
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator<any>();
+const Tab = createBottomTabNavigator<any>();
 
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ const { width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 65;
 
 
-export function CustomTabBar({ state, descriptors, navigation }) {
+export function CustomTabBar({ state, descriptors, navigation }: any) {
   const activeIndex = state.index;
   const tabWidth = width / state.routes.length;
 
@@ -90,7 +90,7 @@ export function CustomTabBar({ state, descriptors, navigation }) {
       {/* Interactive Tabs */}
       <View style={styles.content}>
         {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
+          const options = descriptors[route.key].options as any;
           const isFocused = state.index === index;
           const label = options.tabBarLabel || route.name;
 
@@ -114,8 +114,7 @@ export function CustomTabBar({ state, descriptors, navigation }) {
             >
               <View style={styles.iconContainer}>
                 <View style={[styles.iconWrapper, isFocused && styles.activeIconWrapper]}>
-                  <Ionicons
-                    name={isFocused ? options._iconFocused : options._iconName}
+                  <Ionicons name={(isFocused ? options._iconFocused : options._iconName) as any}
                     size={24}
                     color={isFocused ? COLORS.primary : COLORS.gray}
                   />
@@ -201,10 +200,10 @@ const styles = StyleSheet.create({
 
 // ─── Tab Stacks ───────────────────────────────────────────────────────────────
 
-const UserDashboardStack = createNativeStackNavigator();
+const UserDashboardStack = createNativeStackNavigator<any>();
 function DriverDashboardStack() {
   return (
-    <UserDashboardStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserDashboardStack.Navigator id="UserDashboard" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <UserDashboardStack.Screen name="DriverHome" component={DriverHomeScreen} />
       <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
       <UserDashboardStack.Screen name="Earnings" component={EarningsScreen} />
@@ -212,30 +211,30 @@ function DriverDashboardStack() {
   );
 }
 
-const UserRidesStack = createNativeStackNavigator();
+const UserRidesStack = createNativeStackNavigator<any>();
 function DriverRidesStack() {
   return (
-    <UserRidesStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserRidesStack.Navigator id="DriverRides" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <UserRidesStack.Screen name="MyRidesMain" component={MyRidesScreen} />
       <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
     </UserRidesStack.Navigator>
   );
 }
 
-const UserVehiclesStack = createNativeStackNavigator();
+const UserVehiclesStack = createNativeStackNavigator<any>();
 function DriverVehiclesStack() {
   return (
-    <UserVehiclesStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserVehiclesStack.Navigator id="DriverVehicles" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <UserVehiclesStack.Screen name="MyVehiclesMain" component={MyVehiclesScreen} />
       <UserVehiclesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
     </UserVehiclesStack.Navigator>
   );
 }
 
-const UserProfileStack = createNativeStackNavigator();
+const UserProfileStack = createNativeStackNavigator<any>();
 function CommonProfileStack() {
   return (
-    <UserProfileStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserProfileStack.Navigator id="ProfileStack" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <UserProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
       <UserProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <UserProfileStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
@@ -248,10 +247,10 @@ function CommonProfileStack() {
   );
 }
 
-const PassengerActivityStack = createNativeStackNavigator();
+const PassengerActivityStack = createNativeStackNavigator<any>();
 function PassengerRidesStack() {
   return (
-    <PassengerActivityStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <PassengerActivityStack.Navigator id="PassengerActivity" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <PassengerActivityStack.Screen name="PassengerHomeMain" component={PassengerHomeScreen} />
       <PassengerActivityStack.Screen name="Search" component={SearchScreen} />
       <PassengerActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
@@ -261,10 +260,10 @@ function PassengerRidesStack() {
   );
 }
 
-const PassengerSearchActivityStack = createNativeStackNavigator();
+const PassengerSearchActivityStack = createNativeStackNavigator<any>();
 function PassengerSearchStack() {
   return (
-    <PassengerSearchActivityStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <PassengerSearchActivityStack.Navigator id="PassengerSearch" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <PassengerSearchActivityStack.Screen name="SearchMain" component={SearchScreen} />
       <PassengerSearchActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
       <PassengerSearchActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
@@ -290,6 +289,7 @@ const DRIVER_TABS = [
 function PassengerTabNav() {
   return (
     <Tab.Navigator
+      id="PassengerTab"
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
     >
@@ -298,7 +298,7 @@ function PassengerTabNav() {
           key={t.name}
           name={t.name}
           component={t.component}
-          options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused }}
+          options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused } as any}
         />
       ))}
     </Tab.Navigator>
@@ -308,6 +308,7 @@ function PassengerTabNav() {
 function DriverTabNav() {
   return (
     <Tab.Navigator
+      id="DriverTab"
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
     >
@@ -316,7 +317,7 @@ function DriverTabNav() {
           key={t.name}
           name={t.name}
           component={t.component}
-          options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused }}
+          options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused } as any}
         />
       ))}
     </Tab.Navigator>
@@ -324,14 +325,14 @@ function DriverTabNav() {
 }
 
 // ─── Root Navigator ───────────────────────────────────────────────────────────
-export default function AppNavigator({ navigationRef }) {
+export default function AppNavigator({ navigationRef }: any) {
   const { currentUser, userRole, isLoading } = useApp();
   const [splashVisible, setSplashVisible] = useState(true);
 
   if (isLoading || splashVisible) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0d1b4b' }}>
-        <SplashScreen onDone={() => setSplashVisible(false)} />
+        <SplashScreen navigation={null} onDone={() => setSplashVisible(false)} />
       </View>
     );
   }
@@ -339,6 +340,7 @@ export default function AppNavigator({ navigationRef }) {
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
+        id="RootStack"
         screenOptions={{ headerShown: false, animation: 'fade' }}
       >
         {/* Protected app stacks */}

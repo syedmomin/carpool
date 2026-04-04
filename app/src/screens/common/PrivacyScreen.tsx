@@ -15,7 +15,7 @@ const SECTIONS = [
 export default function PrivacyScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.teal} title="Privacy Policy" subtitle="Last updated: March 2026" onBack={() => navigation.goBack()} />
+      <GradientHeader colors={GRADIENTS.teal as any} title="Privacy Policy" subtitle="Last updated: March 2026" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={styles.intro}>Your privacy is important to us. This policy explains how we handle your data.</Text>
         {SECTIONS.map((s, i) => (

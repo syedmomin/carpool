@@ -21,8 +21,7 @@ function StarPicker({ rating, onChange }) {
         <View style={rStyles.stars}>
             {[1, 2, 3, 4, 5].map(n => (
                 <TouchableOpacity key={n} onPress={() => onChange(n)}>
-                    <Ionicons
-                        name={n <= rating ? 'star' : 'star-outline'}
+                    <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any}
                         size={36}
                         color={n <= rating ? '#f59e0b' : COLORS.border}
                     />
@@ -59,7 +58,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
             <View style={rStyles.overlay}>
                 <View style={rStyles.sheet}>
                     {/* Header */}
-                    <LinearGradient colors={GRADIENTS.primary} style={rStyles.sheetHeader}>
+                    <LinearGradient colors={GRADIENTS.primary as any} style={rStyles.sheetHeader}>
                         <View style={rStyles.starIcon}>
                             <Ionicons name="star" size={32} color="#f59e0b" />
                         </View>
@@ -203,7 +202,7 @@ function SOSModal({ visible, onClose }) {
                             onPress={() => call(item.number)}
                         >
                             <View style={[sosStyles.numIcon, { backgroundColor: item.color + '20' }]}>
-                                <Ionicons name={item.icon} size={20} color={item.color} />
+                                <Ionicons name={(item.icon) as any} size={20} color={item.color} />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={sosStyles.numLabel}>{item.label}</Text>
@@ -342,7 +341,7 @@ export default function BookingHistoryScreen({ navigation }) {
             <View style={styles.card}>
                 {/* In-progress banner */}
                 {isInProgress && isActive && (
-                    <LinearGradient colors={GRADIENTS.teal} style={styles.activeBanner}>
+                    <LinearGradient colors={GRADIENTS.teal as any} style={styles.activeBanner}>
                         <Ionicons name="navigate-outline" size={13} color="#fff" />
                         <Text style={styles.activeBannerText}>Ride is in progress</Text>
                         <TouchableOpacity style={styles.sosBannerBtn} onPress={() => setSosVisible(true)}>
@@ -445,7 +444,7 @@ export default function BookingHistoryScreen({ navigation }) {
         return (
             <View style={styles.container}>
                 <GradientHeader
-                    colors={GRADIENTS.primary}
+                    colors={GRADIENTS.primary as any}
                     title="My Bookings"
                     subtitle="Loading..."
                     onBack={() => navigation.goBack()}
@@ -461,7 +460,7 @@ export default function BookingHistoryScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <GradientHeader
-                colors={GRADIENTS.primary}
+                colors={GRADIENTS.primary as any}
                 title="My Bookings"
                 subtitle={`${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
                 onBack={() => navigation.goBack()}

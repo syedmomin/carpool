@@ -5,13 +5,45 @@ import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, 
 const USER_STORAGE_KEY = '@chalparo_user';
 const ROLE_STORAGE_KEY = '@chalparo_role';
 
-const AppContext = createContext();
+export interface AppContextState {
+  currentUser: any;
+  userRole: string | null;
+  isLoading: boolean;
+  unreadCount: number;
+  scheduleAlerts: any[]; // Data array used in screens
+
+  login: (phone: string, val: string) => Promise<{ user?: any, role?: string, error?: any }>;
+  logout: () => Promise<void>;
+  register: (userData: any) => Promise<{ user?: any, role?: string, error?: any }>;
+  updateProfile: (updates: any) => Promise<{ error?: any }>;
+  
+  postRide: (rideData: any) => Promise<{ data?: any, error?: any }>;
+  searchRides: (from: string, to: string, date: string) => Promise<{ data: any[], error?: any }>;
+  bookRide: (rideId: string, seats: number, boardingCity?: string, exitCity?: string) => Promise<{ data?: any, error?: any }>;
+  cancelBooking: (bookingId: string, reason: string) => Promise<{ error?: any }>;
+  
+  registerVehicle: (vehicleData: any) => Promise<{ data?: any, error?: any }>;
+  updateVehicle: (vehicleId: string, updates: any) => Promise<{ error?: any }>;
+  deleteVehicle: (vehicleId: string) => Promise<{ error?: any }>;
+  setActiveVehicle: (vehicleId: string) => Promise<{ error?: any }>;
+  
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  refreshUnreadCount: () => Promise<void>;
+  
+  addScheduleAlert: (alertData: any) => Promise<{ data?: any, error?: any }>;
+  removeScheduleAlert: (id: string) => Promise<void>;
+  loadScheduleAlerts: () => Promise<void>;
+}
+
+const AppContext = createContext<AppContextState | null>(null);
 
 export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [scheduleAlertsList, setScheduleAlertsList] = useState<any[]>([]);
 
   // ─── Restore session on app start ────────────────────────────────────────
   useEffect(() => {
@@ -196,6 +228,14 @@ export const AppProvider = ({ children }) => {
 
   const removeScheduleAlert = async (id) => {
     await scheduleAlertsApi.delete(id);
+    setScheduleAlertsList(prev => prev.filter(x => x.id !== id));
+  };
+  
+  const loadScheduleAlerts = async () => {
+    const { data } = await scheduleAlertsApi.getAll();
+    if (data?.data) {
+      setScheduleAlertsList(data.data);
+    }
   };
 
   return (
@@ -218,11 +258,15 @@ export const AppProvider = ({ children }) => {
       markNotificationRead, markAllNotificationsRead, refreshUnreadCount,
 
       // Schedule Alerts
-      addScheduleAlert, removeScheduleAlert,
+      addScheduleAlert, removeScheduleAlert, loadScheduleAlerts, scheduleAlerts: scheduleAlertsList,
     }}>
       {children}
     </AppContext.Provider>
   );
 };
 
-export const useApp = () => useContext(AppContext);
+export const useApp = () => {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useApp must be used inside AppProvider');
+  return ctx;
+};

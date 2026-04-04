@@ -41,7 +41,7 @@ export default function DriverHomeScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={GRADIENTS.teal} style={styles.header}>
+      <LinearGradient colors={GRADIENTS.teal as any} style={styles.header}>
         <View style={styles.bgCircle} />
         <View style={styles.bgCircle2} />
 
@@ -73,7 +73,7 @@ export default function DriverHomeScreen({ navigation }) {
             { icon: 'wallet-outline', value: `Rs ${totalEarned > 0 ? (totalEarned / 1000).toFixed(1) + 'k' : '0'}`, label: 'Total Earned', accent: true },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
-              <Ionicons name={s.icon} size={18} color={s.accent ? COLORS.accent : 'rgba(255,255,255,0.9)'} />
+              <Ionicons name={(s.icon) as any} size={18} color={s.accent ? COLORS.accent : 'rgba(255,255,255,0.9)'} />
               <Text style={[styles.statVal, s.accent && { color: COLORS.accent }]}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
             </View>
@@ -87,9 +87,9 @@ export default function DriverHomeScreen({ navigation }) {
         <View style={styles.actionsGrid}>
           {QUICK_ACTIONS.map((action, i) => (
             <TouchableOpacity key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)} activeOpacity={0.88}>
-              <LinearGradient colors={action.gradient} style={styles.actionGrad}>
+              <LinearGradient colors={action.gradient as any} style={styles.actionGrad}>
                 <View style={styles.actionIconBox}>
-                  <Ionicons name={action.icon} size={28} color="#fff" />
+                  <Ionicons name={(action.icon) as any} size={28} color="#fff" />
                 </View>
                 <Text style={styles.actionLabel}>{action.label}</Text>
                 <Text style={styles.actionDesc}>{action.desc}</Text>

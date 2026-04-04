@@ -20,7 +20,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={GRADIENTS.primary} style={styles.header}>
+      <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
         <View style={styles.successIcon}>
           <Ionicons name="checkmark-circle" size={70} color="#fff" />
         </View>
@@ -64,7 +64,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
           {TICKET_ROWS.map((item, i) => (
             <View key={i} style={styles.ticketInfoRow}>
               <View style={styles.ticketInfoLeft}>
-                <Ionicons name={item.icon} size={16} color={COLORS.gray} />
+                <Ionicons name={(item.icon) as any} size={16} color={COLORS.gray} />
                 <Text style={styles.ticketInfoLabel}>{item.label}</Text>
               </View>
               <Text style={[styles.ticketInfoValue, item.highlight && { color: COLORS.primary, fontWeight: '800', fontSize: 16 }]}>

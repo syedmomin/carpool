@@ -23,7 +23,7 @@ export default function SupportScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.primary} title="Help & Support" subtitle="We're here to help" onBack={() => navigation.goBack()} />
+      <GradientHeader colors={GRADIENTS.primary as any} title="Help & Support" subtitle="We're here to help" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* Contact Options */}
@@ -31,7 +31,7 @@ export default function SupportScreen({ navigation }) {
         {CONTACT.map((c, i) => (
           <TouchableOpacity key={i} style={styles.contactCard} onPress={c.onPress}>
             <View style={[styles.contactIcon, { backgroundColor: c.color + '15' }]}>
-              <Ionicons name={c.icon} size={22} color={c.color} />
+              <Ionicons name={(c.icon) as any} size={22} color={c.color} />
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>{c.label}</Text>
@@ -47,7 +47,7 @@ export default function SupportScreen({ navigation }) {
           <TouchableOpacity key={i} style={styles.faqCard} onPress={() => setExpanded(expanded === i ? null : i)}>
             <View style={styles.faqHeader}>
               <Text style={styles.faqQ}>{item.q}</Text>
-              <Ionicons name={expanded === i ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.gray} />
+              <Ionicons name={(expanded === i ? 'chevron-up' : 'chevron-down') as any} size={18} color={COLORS.gray} />
             </View>
             {expanded === i && <Text style={styles.faqA}>{item.a}</Text>}
           </TouchableOpacity>
@@ -61,7 +61,7 @@ export default function SupportScreen({ navigation }) {
           { icon: 'information-circle-outline', label: 'About App',     screen: 'About' },
         ].map((item, i) => (
           <TouchableOpacity key={i} style={styles.linkCard} onPress={() => navigation.navigate(item.screen)}>
-            <Ionicons name={item.icon} size={20} color={COLORS.primary} />
+            <Ionicons name={(item.icon) as any} size={20} color={COLORS.primary} />
             <Text style={styles.linkLabel}>{item.label}</Text>
             <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
           </TouchableOpacity>

@@ -226,7 +226,7 @@ export default function PostRideScreen({ navigation }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
         <GradientHeader
-          colors={GRADIENTS.teal}
+          colors={GRADIENTS.teal as any}
           title="Post a Ride"
           subtitle="Share your route and find passengers"
           onBack={() => navigation.goBack()}
@@ -247,7 +247,7 @@ export default function PostRideScreen({ navigation }) {
               onPress={() => driverVehicles.length > 1 && setVehiclePickerOpen(true)}
               activeOpacity={driverVehicles.length > 1 ? 0.7 : 1}
             >
-              <LinearGradient colors={GRADIENTS.teal} style={styles.vehicleIconBox}>
+              <LinearGradient colors={GRADIENTS.teal as any} style={styles.vehicleIconBox}>
                 <Ionicons name="car-sport" size={20} color="#fff" />
               </LinearGradient>
               <View style={{ flex: 1 }}>
@@ -367,11 +367,11 @@ export default function PostRideScreen({ navigation }) {
             <FormInput
               key={field.key}
               label={field.label}
-              icon={field.icon}
+              icon={field.icon as any}
               placeholder={field.placeholder}
               value={form[field.key]}
               onChangeText={v => update(field.key, v)}
-              keyboardType={field.type || 'default'}
+              keyboardType={(field.type || 'default') as any}
             />
           ))}
 
@@ -390,7 +390,7 @@ export default function PostRideScreen({ navigation }) {
             onPress={handlePost}
             loading={loading}
             icon="rocket-outline"
-            colors={GRADIENTS.teal}
+            colors={GRADIENTS.teal as any}
             style={{ marginTop: 24 }}
           />
           <View style={{ height: 24 }} />

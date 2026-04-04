@@ -16,7 +16,7 @@ const SECTIONS = [
 export default function TermsScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.primary} title="Terms & Conditions" subtitle="Last updated: March 2026" onBack={() => navigation.goBack()} />
+      <GradientHeader colors={GRADIENTS.primary as any} title="Terms & Conditions" subtitle="Last updated: March 2026" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={styles.intro}>Please read these terms carefully before using ChalParo.</Text>
         {SECTIONS.map((s, i) => (

@@ -130,7 +130,7 @@ export default function SplashScreen({ navigation, onDone }) {
         {FEATURES.map((f, i) => (
           <View key={i} style={styles.featureBadge}>
             <View style={styles.featureIconWrap}>
-              <Ionicons name={f.icon} size={15} color="#64b5f6" />
+              <Ionicons name={(f.icon) as any} size={15} color="#64b5f6" />
             </View>
             <Text style={styles.featureText}>{f.label}</Text>
           </View>

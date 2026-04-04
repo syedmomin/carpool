@@ -53,7 +53,7 @@ function VerificationProgress({ user, onNavigate }) {
     <View style={vStyles.card}>
       <View style={vStyles.header}>
         <View style={vStyles.headerLeft}>
-          <Ionicons name={fullyVerified ? 'shield-checkmark' : 'shield-outline'} size={22} color={fullyVerified ? COLORS.secondary : COLORS.warning} />
+          <Ionicons name={(fullyVerified ? 'shield-checkmark' : 'shield-outline') as any} size={22} color={fullyVerified ? COLORS.secondary : COLORS.warning} />
           <Text style={vStyles.title}>Identity Verification</Text>
         </View>
         {fullyVerified && (
@@ -80,7 +80,7 @@ function VerificationProgress({ user, onNavigate }) {
             activeOpacity={s.screen && !s.done ? 0.7 : 1}
           >
             <View style={[vStyles.stepIcon, { backgroundColor: s.done ? s.color + '20' : COLORS.lightGray }]}>
-              <Ionicons name={s.done ? 'checkmark-circle' : s.icon} size={16} color={s.done ? s.color : COLORS.gray} />
+              <Ionicons name={(s.done ? 'checkmark-circle' : s.icon) as any} size={16} color={s.done ? s.color : COLORS.gray} />
             </View>
             <Text style={[vStyles.stepLabel, s.done && { color: s.color }]}>{s.label}</Text>
             {!s.done && s.screen && <Ionicons name="chevron-forward" size={12} color={COLORS.gray} />}
@@ -105,7 +105,7 @@ export default function ProfileScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={headerColors} style={styles.header}>
+      <LinearGradient colors={headerColors as any} style={styles.header}>
         <View style={styles.bgCircle} />
 
         {/* Avatar + Info row */}
@@ -128,7 +128,7 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.userPhone}>{currentUser?.phone}</Text>
             <View style={styles.profileBadges}>
               <View style={styles.badge}>
-                <Ionicons name={userRole === 'driver' ? 'car-outline' : 'person-outline'} size={11} color="#fff" />
+                <Ionicons name={(userRole === 'driver' ? 'car-outline' : 'person-outline') as any} size={11} color="#fff" />
                 <Text style={styles.badgeText}>{userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
               </View>
               {(currentUser?.isVerified || currentUser?.verification?.cnicStatus === 'APPROVED') && (
@@ -181,7 +181,7 @@ export default function ProfileScreen({ navigation }) {
                 onPress={() => item.screen ? navigation.navigate(item.screen) : null}
               >
                 <View style={[styles.menuItemIcon, { backgroundColor: item.color + '15' }]}>
-                  <Ionicons name={item.icon} size={18} color={item.color} />
+                  <Ionicons name={(item.icon) as any} size={18} color={item.color} />
                 </View>
                 <Text style={styles.menuItemLabel}>{item.label}</Text>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />

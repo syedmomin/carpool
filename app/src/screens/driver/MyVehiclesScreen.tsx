@@ -92,7 +92,7 @@ export default function MyVehiclesScreen({ navigation }) {
           { key: 'firstAid', icon: 'medkit-outline', color: '#ef4444' },
         ].filter(f => item[f.key]).slice(0, 6).map(f => (
           <View key={f.key} style={[styles.amenityIcon, { backgroundColor: f.color + '10' }]}>
-            <Ionicons name={f.icon} size={14} color={f.color} />
+            <Ionicons name={(f.icon) as any} size={14} color={f.color} />
           </View>
         ))}
         {Object.keys(item).filter(k => ['ac', 'wifi', 'music', 'usbCharging', 'waterCooler', 'blanket', 'firstAid'].includes(k) && item[k]).length > 6 && (
@@ -104,7 +104,7 @@ export default function MyVehiclesScreen({ navigation }) {
       <View style={styles.actionRow}>
         {!item.isActive ? (
           <TouchableOpacity style={styles.primaryAction} onPress={() => handleSetActive(item.id)}>
-            <LinearGradient colors={GRADIENTS.primary} style={styles.actionGrad}>
+            <LinearGradient colors={GRADIENTS.primary as any} style={styles.actionGrad}>
               <Ionicons name="flash" size={16} color="#fff" />
               <Text style={styles.actionText}>Make Active</Text>
             </LinearGradient>
@@ -146,7 +146,7 @@ export default function MyVehiclesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.teal}
+        colors={GRADIENTS.teal as any}
         title="My Garage"
         subtitle="Select the vehicle you're driving today"
         onBack={() => navigation.goBack()}

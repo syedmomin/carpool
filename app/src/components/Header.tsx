@@ -74,7 +74,7 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
         )}
         {rightIcon && onRightPress && (
           <TouchableOpacity onPress={onRightPress} style={styles.rightBtn} activeOpacity={0.8}>
-            <Ionicons name={rightIcon} size={22} color={COLORS.primary} />
+            <Ionicons name={(rightIcon) as any} size={22} color={COLORS.primary} />
           </TouchableOpacity>
         )}
       </View>

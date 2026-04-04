@@ -19,7 +19,7 @@ interface AmenityBadgeProps {
 
 export const AmenityBadge: React.FC<AmenityBadgeProps> = ({ name }) => (
   <View style={styles.amenity}>
-    <Ionicons name={AMENITY_ICONS[name] || 'checkmark-circle-outline'} size={12} color={COLORS.primary} />
+    <Ionicons name={(AMENITY_ICONS[name] || 'checkmark-circle-outline') as any} size={12} color={COLORS.primary} />
     <Text style={styles.amenityText}>{name}</Text>
   </View>
 );
@@ -30,10 +30,11 @@ const STATUS_CONFIG = {
   completed: { bg: '#e3f2fd', color: COLORS.primary,   label: 'Completed' },
   cancelled: { bg: '#ffebee', color: COLORS.danger,    label: 'Cancelled' },
   pending:   { bg: '#fff8e1', color: '#f59e0b',        label: 'Pending' },
+  in_progress: { bg: '#e0f2fe', color: '#0284c7',        label: 'In Progress' },
 };
 
 interface StatusBadgeProps {
-  status: 'active' | 'completed' | 'cancelled' | 'pending';
+  status: 'active' | 'completed' | 'cancelled' | 'pending' | 'in_progress';
   label?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -72,8 +73,7 @@ interface RoleBadgeProps {
 
 export const RoleBadge: React.FC<RoleBadgeProps> = ({ role, style }) => (
   <View style={[styles.role, { backgroundColor: role === 'driver' ? '#e8f5e9' : '#eff6ff' }, style]}>
-    <Ionicons
-      name={role === 'driver' ? 'car-outline' : 'person-outline'}
+    <Ionicons name={(role === 'driver' ? 'car-outline' : 'person-outline') as any}
       size={12}
       color={role === 'driver' ? COLORS.secondary : COLORS.primary}
     />
