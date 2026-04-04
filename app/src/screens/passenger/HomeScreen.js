@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 110 : 100,
     shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 20,
   },
   sheetHandle: {

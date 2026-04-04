@@ -4,14 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING } from './theme';
 import { StarRating } from './StarRating';
-import { AmenityBadge } from './Badge';
 
 // ─── Ride Card ────────────────────────────────────────────────────────────────
 export const RideCard = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice }) => {
   const available = (ride.totalSeats || 0) - (ride.bookedSeats || 0);
-  const isSegment  = !!(boardingCity && exitCity);
+  const isSegment = !!(boardingCity && exitCity);
   const displayFrom = isSegment ? boardingCity : ride.from;
-  const displayTo   = isSegment ? exitCity     : ride.to;
+  const displayTo = isSegment ? exitCity : ride.to;
   const displayPrice = segmentPrice ?? ride.pricePerSeat;
 
   return (
@@ -42,11 +41,17 @@ export const RideCard = ({ ride, driver, vehicle, onPress, boardingCity, exitCit
           <View style={styles.routeInfo}>
             <View style={styles.routeRow}>
               <Text style={styles.cityName}>{displayFrom}</Text>
-              <Text style={styles.timeText}>{ride.departureTime}</Text>
+              <View style={styles.timeWrapper}>
+                <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+                <Text style={styles.timeText}>{ride.departureTime}</Text>
+              </View>
             </View>
             <View style={styles.routeRow}>
               <Text style={styles.cityName}>{displayTo}</Text>
-              <Text style={styles.timeText}>{ride.arrivalTime || '—'}</Text>
+              <View style={styles.timeWrapper}>
+                <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+                <Text style={styles.timeText}>{ride.arrivalTime || '—'}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -68,16 +73,10 @@ export const RideCard = ({ ride, driver, vehicle, onPress, boardingCity, exitCit
           </View>
           <View>
             <Text style={styles.driverName}>{driver?.name || 'Driver'}</Text>
-            <StarRating rating={driver?.rating || 4.5} size={12} />
+            {driver?.rating > 0 && <StarRating rating={driver.rating} size={11} />}
           </View>
         </View>
-        <View style={styles.vehicleInfo}>
-          <Ionicons name="car-outline" size={13} color={COLORS.gray} />
-          <Text style={styles.vehicleText}>
-            {vehicle?.brand || 'Vehicle'}
-            {vehicle?.type ? ` · ${vehicle.type}` : ''}
-          </Text>
-        </View>
+
         <View style={[styles.seatsBadge, { backgroundColor: available > 0 ? '#e8f5e9' : '#ffebee' }]}>
           <Ionicons name="people-outline" size={12} color={available > 0 ? COLORS.secondary : COLORS.danger} />
           <Text style={[styles.seatsText, { color: available > 0 ? COLORS.secondary : COLORS.danger }]}>
@@ -86,11 +85,6 @@ export const RideCard = ({ ride, driver, vehicle, onPress, boardingCity, exitCit
         </View>
       </View>
 
-      {ride.amenities?.length > 0 && (
-        <View style={styles.amenitiesRow}>
-          {ride.amenities.slice(0, 5).map(a => <AmenityBadge key={a} name={a} />)}
-        </View>
-      )}
     </TouchableOpacity>
   );
 };
@@ -139,16 +133,17 @@ const styles = StyleSheet.create({
   routeLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 3 },
   routeInfo: { flex: 1, justifyContent: 'space-between', height: 52 },
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cityName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-  timeText: { fontSize: 13, color: COLORS.gray, fontWeight: '500' },
+  cityName: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  timeWrapper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timeText: { fontSize: 13, color: COLORS.gray, fontWeight: '600' },
   priceSection: { alignItems: 'flex-end', justifyContent: 'center', marginLeft: 12 },
   priceLabel: { fontSize: 11, color: COLORS.gray },
   priceAmount: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
-  segmentBadge:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
-  segmentText:     { fontSize: 11, fontWeight: '600', color: COLORS.primary },
-  multiStopBadge:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f7fa', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
-  multiStopText:   { fontSize: 11, fontWeight: '600', color: COLORS.teal },
-  fullPriceNote:   { fontSize: 10, color: COLORS.gray, textDecorationLine: 'line-through', marginTop: 2 },
+  segmentBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
+  segmentText: { fontSize: 11, fontWeight: '600', color: COLORS.primary },
+  multiStopBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f7fa', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
+  multiStopText: { fontSize: 11, fontWeight: '600', color: COLORS.teal },
+  fullPriceNote: { fontSize: 10, color: COLORS.gray, textDecorationLine: 'line-through', marginTop: 2 },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
   rideFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   driverInfo: { flexDirection: 'row', alignItems: 'center' },

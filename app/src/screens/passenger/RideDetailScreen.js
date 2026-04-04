@@ -14,7 +14,8 @@ import { parseApiError } from '../../utils/errorMessages';
 import { ridesApi } from '../../services/api';
 
 export default function RideDetailScreen({ navigation, route }) {
-  const { rideId, rideData, boardingCity, exitCity } = route.params;
+  const params = route.params || {};
+  const { rideId, rideData, boardingCity, exitCity } = params;
   const { bookRide } = useApp();
   const { showModal } = useGlobalModal();
   const { showToast } = useToast();
@@ -23,20 +24,24 @@ export default function RideDetailScreen({ navigation, route }) {
   const [ride, setRide] = useState(() => rideData || null);
   const [loadingRide, setLoadingRide] = useState(false);
 
-  // Fetch from API if not available locally
   useEffect(() => {
+    if (!rideId) {
+      showToast('Ride not found', 'error');
+      navigation.goBack();
+      return;
+    }
     if (!ride) {
       setLoadingRide(true);
       ridesApi.getById(rideId).then(({ data }) => {
         if (data?.data) setRide(data.data);
         setLoadingRide(false);
-      });
+      }).catch(() => setLoadingRide(false));
     }
   }, [rideId]);
 
-  const driver  = ride?.driver;
+  const driver = ride?.driver;
   const vehicle = ride?.vehicle;
-  const available = ride ? ride.totalSeats - ride.bookedSeats : 0;
+  const available = ride ? (ride.totalSeats || 0) - (ride.bookedSeats || 0) : 0;
   const isSegment = !!(boardingCity && exitCity);
 
   if (loadingRide) {
@@ -151,7 +156,7 @@ export default function RideDetailScreen({ navigation, route }) {
                 <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
                 {driver?.isVerified && <Ionicons name="shield-checkmark" size={15} color={COLORS.secondary} />}
               </View>
-              <StarRating rating={driver?.rating} size={14} />
+              {driver?.rating > 0 && <StarRating rating={driver.rating} size={14} />}
               <Text style={styles.driverMeta}>
                 {driver?.reviewCount > 0 ? `${driver.reviewCount} review${driver.reviewCount !== 1 ? 's' : ''}` : 'No reviews yet'}
                 {driver?.city ? ` · ${driver.city}` : ''}
@@ -210,14 +215,14 @@ export default function RideDetailScreen({ navigation, route }) {
               {/* Amenities */}
               <View style={styles.amenityGrid}>
                 {[
-                  { key: 'ac',          icon: 'snow-outline',          label: 'AC',        color: COLORS.teal   },
-                  { key: 'wifi',        icon: 'wifi-outline',          label: 'WiFi',       color: COLORS.primary},
-                  { key: 'music',       icon: 'musical-notes-outline', label: 'Music',      color: '#e91e63'     },
-                  { key: 'usbCharging', icon: 'flash-outline',         label: 'USB',        color: '#ff9800'     },
-                  { key: 'waterCooler', icon: 'water-outline',         label: 'Water',      color: '#03a9f4'     },
-                  { key: 'blanket',     icon: 'bed-outline',           label: 'Blanket',    color: '#795548'     },
-                  { key: 'firstAid',    icon: 'medkit-outline',        label: 'First Aid',  color: COLORS.danger },
-                  { key: 'luggageRack', icon: 'briefcase-outline',     label: 'Luggage',    color: COLORS.gray   },
+                  { key: 'ac', icon: 'snow-outline', label: 'AC', color: COLORS.teal },
+                  { key: 'wifi', icon: 'wifi-outline', label: 'WiFi', color: COLORS.primary },
+                  { key: 'music', icon: 'musical-notes-outline', label: 'Music', color: '#e91e63' },
+                  { key: 'usbCharging', icon: 'flash-outline', label: 'USB', color: '#ff9800' },
+                  { key: 'waterCooler', icon: 'water-outline', label: 'Water', color: '#03a9f4' },
+                  { key: 'blanket', icon: 'bed-outline', label: 'Blanket', color: '#795548' },
+                  { key: 'firstAid', icon: 'medkit-outline', label: 'First Aid', color: COLORS.danger },
+                  { key: 'luggageRack', icon: 'briefcase-outline', label: 'Luggage', color: COLORS.gray },
                 ].filter(f => vehicle?.[f.key]).map(f => (
                   <View key={f.key} style={[styles.amenityChip, { backgroundColor: f.color + '15' }]}>
                     <Ionicons name={f.icon} size={13} color={f.color} />

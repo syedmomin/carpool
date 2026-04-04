@@ -12,12 +12,21 @@ const DEFAULT_TIMEOUT = 12000;
 
 // ─── Token helpers (encrypted) ────────────────────────────────────────────────
 export const tokenStorage = {
-  get: async () => AsyncStorage.getItem(TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
-  set: async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
+  get: async () => {
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    if (!token) return null;
+    // JWT must have 3 parts. If it doesn't, it was corrupted by legacy encryption
+    if (token.split('.').length !== 3) {
+      await tokenStorage.remove();
+      return null;
+    }
+    return token;
+  },
+  set: async (token) => AsyncStorage.setItem(TOKEN_KEY, token),
   remove: async () => AsyncStorage.removeItem(TOKEN_KEY),
 
-  getRefresh: async () => AsyncStorage.getItem(REFRESH_TOKEN_KEY).then((raw) => raw && decryptValue(raw)),
-  setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, encryptValue(token)),
+  getRefresh: async () => AsyncStorage.getItem(REFRESH_TOKEN_KEY),
+  setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, token),
   removeRefresh: async () => AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
 
   clearAll: async () => {

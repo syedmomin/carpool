@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   rightArea: { flexDirection: 'row', alignItems: 'center' },
-  rightBtn: { 
+  rightBtn: {
     marginLeft: 12,
     backgroundColor: '#fff',
     width: 40,
