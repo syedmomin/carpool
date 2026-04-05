@@ -170,13 +170,27 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     });
     if (!vehicle) throw AppError.badRequest('Vehicle not found. Please register a vehicle first.');
 
+    if (data.fromCity.trim().toLowerCase() === data.toCity.trim().toLowerCase()) {
+      throw AppError.badRequest('Departure and destination cities cannot be the same.');
+    }
+
+    if (data.isMultiStop && data.stops) {
+      const cityList = [data.fromCity.toLowerCase(), ...data.stops.map(s => s.city.toLowerCase()), data.toCity.toLowerCase()];
+      const uniqueCities = new Set(cityList);
+      if (uniqueCities.size !== cityList.length) {
+        throw AppError.badRequest('Route cannot have duplicate cities or stops that match the departure/destination.');
+      }
+    }
+
     // Validate departure date+time is not in the past
     if (data.date && data.departureTime) {
       const [y, m, d] = data.date.split('-').map(Number);
       const [h, min]  = data.departureTime.split(':').map(Number);
       const departure = new Date(y, m - 1, d, h, min);
-      if (departure <= new Date()) {
-        throw AppError.badRequest('Departure time has already passed. Please select a future date and time.');
+      const buffer = new Date();
+      buffer.setMinutes(buffer.getMinutes() + 15); // 15 min buffer
+      if (departure <= buffer) {
+        throw AppError.badRequest('Departure time must be at least 15 minutes in the future.');
       }
     }
 
@@ -242,6 +256,15 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       throw AppError.badRequest(`Cannot change status from ${ride.status} to ${newStatus}`);
     }
 
+    if (newStatus === 'IN_PROGRESS') {
+      const otherInProgress = await prisma.ride.findFirst({
+        where: { driverId, status: 'IN_PROGRESS', id: { not: rideId } }
+      });
+      if (otherInProgress) {
+        throw AppError.badRequest('You already have another ride in progress. Please complete it first.');
+      }
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       const r = await tx.ride.update({
         where: { id: rideId },
@@ -299,6 +322,29 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     });
 
     return withRating(updated);
+  }
+
+  // ── Get active ride session (Driver or Passenger) ─────────────────────────
+  async getActiveSession(userId: string): Promise<any> {
+    // 1. Check if user is a driver with an IN_PROGRESS ride
+    const driverRide = await prisma.ride.findFirst({
+      where: { driverId: userId, status: 'IN_PROGRESS' },
+      include: INCLUDE,
+    });
+    if (driverRide) return { role: 'driver', ride: withRating(driverRide) };
+
+    // 2. Check if user is a passenger in an IN_PROGRESS ride
+    const passengerBooking = await prisma.booking.findFirst({
+      where: { 
+        passengerId: userId, 
+        status: 'CONFIRMED', 
+        ride: { status: 'IN_PROGRESS' } 
+      },
+      include: { ride: { include: INCLUDE } },
+    });
+    if (passengerBooking) return { role: 'passenger', ride: withRating(passengerBooking.ride) };
+
+    return null;
   }
 
   // ── Small helper (avoids importing parsePagination separately) ────────────

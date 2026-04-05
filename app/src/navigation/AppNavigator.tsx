@@ -29,6 +29,7 @@ import MyVehiclesScreen from '../screens/driver/MyVehiclesScreen';
 import VehicleSetupScreen from '../screens/driver/VehicleSetupScreen';
 import EarningsScreen from '../screens/driver/EarningsScreen';
 import RideBookingsScreen from '../screens/driver/RideBookingsScreen';
+import RideTrackingScreen from '../screens/driver/RideTrackingScreen';
 
 // Common
 import ProfileScreen from '../screens/common/ProfileScreen';
@@ -333,9 +334,33 @@ function DriverTabNav() {
 }
 
 // ─── Root Navigator ───────────────────────────────────────────────────────────
+import { ridesApi } from '../services/api';
+
 export default function AppNavigator({ navigationRef }: any) {
   const { currentUser, userRole, isLoading } = useApp();
   const [splashVisible, setSplashVisible] = useState(true);
+  const [activeSessionChecked, setActiveSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      if (currentUser && !activeSessionChecked) {
+        try {
+          const { data } = await ridesApi.activeSession();
+          if (data?.data?.ride?.id) {
+            // Give navigation container a moment to mount
+            setTimeout(() => {
+              navigationRef.current?.navigate('RideTracking', { rideId: data.data.ride.id });
+            }, 500);
+          }
+        } catch (err) {
+          console.log('Error checking active session:', err);
+        } finally {
+          setActiveSessionChecked(true);
+        }
+      }
+    };
+    checkActiveSession();
+  }, [currentUser, activeSessionChecked]);
 
   if (isLoading || splashVisible) {
     return (
@@ -354,9 +379,15 @@ export default function AppNavigator({ navigationRef }: any) {
         {/* Protected app stacks */}
         {currentUser ? (
           userRole === 'driver' ? (
-            <Stack.Screen name="DriverApp" component={DriverTabNav} options={{ animation: 'none' }} />
+            <>
+              <Stack.Screen name="DriverApp" component={DriverTabNav} options={{ animation: 'none' }} />
+              <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
+            </>
           ) : (
-            <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
+            <>
+              <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
+              <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
+            </>
           )
         ) : (
           <>

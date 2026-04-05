@@ -143,6 +143,7 @@ export const ridesApi = {
   cancel: (rideId) => request('DELETE', `/rides/${rideId}`),
   myRides: (page = 1, limit = 10) => request('GET', `/rides/mine?page=${page}&limit=${limit}`),
   updateStatus: (rideId, status) => request('PATCH', `/rides/${rideId}/status`, { status }),
+  activeSession: () => request('GET', '/rides/active-session'),
 };
 
 // ─── Bookings ────────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ const router = Router();
 router.get('/search', rideController.search);
 router.get('/',       rideController.getAll);
 router.get('/mine',   authenticate, authorize('DRIVER'), rideController.myRides);
+router.get('/active-session', authenticate, rideController.getActiveSession);
 router.get('/:id',    rideController.getById);
 
 router.post('/',

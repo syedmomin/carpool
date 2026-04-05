@@ -58,6 +58,13 @@ export class RideController extends BaseController<Ride, any, any> {
       ResponseUtil.success(res, ride, `Ride status updated to ${req.body.status}`);
     } catch (err) { next(err); }
   };
+
+  getActiveSession = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const session = await rideService.getActiveSession(req.user!.id);
+      ResponseUtil.success(res, session, session ? 'Active session found' : 'No active session');
+    } catch (err) { next(err); }
+  };
 }
 
 export const rideController = new RideController();

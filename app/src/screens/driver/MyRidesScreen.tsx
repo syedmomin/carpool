@@ -74,8 +74,18 @@ export default function MyRidesScreen({ navigation }) {
           showToast(error, 'error');
         } else {
           showToast(isStart ? 'Ride started!' : 'Ride completed!', 'success');
-          setAllRides(prev => prev.map(r => r.id === ride.id ? { ...normalize(data.data || data), ...r, status: newStatus } : r));
-          fetchRides(1, true);
+          // Update local state
+          setAllRides(prev => prev.map(r => r.id === ride.id ? { 
+            ...normalize(data?.data || data), 
+            status: newStatus 
+          } : r));
+          
+          if (isStart) {
+            // Auto navigate to map on start
+            navigation.navigate('RideTracking', { rideId: ride.id });
+          } else {
+            fetchRides(1, true);
+          }
         }
       },
     });
@@ -111,8 +121,8 @@ export default function MyRidesScreen({ navigation }) {
             <Text style={styles.rideDate}>{item.date} • {item.departureTime}</Text>
           </View>
           <StatusBadge
-            status={isInProgress ? 'in_progress' : available > 0 ? 'active' : 'pending'}
-            label={isInProgress ? 'Active' : available > 0 ? 'Open' : 'Full'}
+            status={isInProgress ? 'in_progress' : available > 0 ? (isToday ? 'active' : 'pending') : 'pending'}
+            label={isInProgress ? 'In Progress' : available > 0 ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'}
           />
         </View>
 
@@ -158,10 +168,21 @@ export default function MyRidesScreen({ navigation }) {
               {isActioning
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
-                  <Ionicons name="play-circle-outline" size={16} color="#fff" />
+                  <Ionicons name="navigate-circle-outline" size={16} color="#fff" />
                   <Text style={styles.startBtnText}>Start Ride</Text>
                 </>
               }
+            </TouchableOpacity>
+          )}
+
+          {/* Go to Map — only when IN_PROGRESS */}
+          {isInProgress && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: COLORS.secondary }]}
+              onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}
+            >
+              <Ionicons name="map-outline" size={16} color="#fff" />
+              <Text style={styles.startBtnText}>View Map</Text>
             </TouchableOpacity>
           )}
 

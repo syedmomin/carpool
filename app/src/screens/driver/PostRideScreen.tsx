@@ -164,10 +164,35 @@ export default function PostRideScreen({ navigation }) {
       showToast('Please fill From, To, Date, Departure Time, and Price.', 'error');
       return;
     }
-    if (isMultiStop && stops.some(s => !s.city)) {
-      showToast('Each intermediate stop must have a city selected.', 'error');
+    if (form.from.trim().toLowerCase() === form.to.trim().toLowerCase()) {
+      showToast('Leaving From and Going To cities cannot be the same.', 'error');
       return;
     }
+    if (isMultiStop) {
+      if (stops.some(s => !s.city)) {
+        showToast('Each intermediate stop must have a city selected.', 'error');
+        return;
+      }
+      const cityList = [form.from.toLowerCase(), ...stops.map(s => s.city.toLowerCase()), form.to.toLowerCase()];
+      const uniqueCities = new Set(cityList);
+      if (uniqueCities.size !== cityList.length) {
+        showToast('Route cannot have duplicate cities or stops matching departure/destination.', 'error');
+        return;
+      }
+    }
+
+    if (form.arrivalTime && form.departureTime) {
+      // Small helper to compare HH:mm strings
+      const toMinutes = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+      if (toMinutes(form.arrivalTime) <= toMinutes(form.departureTime)) {
+        showToast('Estimated arrival must be later than departure time.', 'error');
+        return;
+      }
+    }
+
     if (!selectedVehicle) {
       showModal({
         type: 'warning',
