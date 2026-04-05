@@ -7,6 +7,7 @@ import { COLORS, GRADIENTS, EmptyState, GradientHeader, TabPills, StatusBadge, P
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { ridesApi } from '../../services/api';
+import { socketService } from '../../services/socket.service';
 
 const PAGE_SIZE = 10;
 const TABS = [
@@ -48,7 +49,17 @@ export default function MyRidesScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => {
     fetchRides(1, true);
-  }, []));
+
+    // Listen for new booking requests to update UI in real-time
+    socketService.on('BOOKING_REQUESTED', (data) => {
+      console.log('Real-time booking request received:', data);
+      fetchRides(1, true); // Refresh list
+    });
+
+    return () => {
+      socketService.off('BOOKING_REQUESTED');
+    };
+  }, [fetchRides]));
 
   const loadMore = () => {
     if (hasMore && !loading && !refreshing) fetchRides(page + 1);

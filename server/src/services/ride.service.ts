@@ -272,6 +272,8 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
         include: INCLUDE,
       });
 
+      const { emitToRideRoom } = await import('../socket');
+
       if (newStatus === 'COMPLETED') {
         // Mark all confirmed bookings as completed
         await tx.booking.updateMany({
@@ -279,7 +281,10 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
           data:  { status: 'COMPLETED', updatedBy: driverId },
         });
 
-        // Notify passengers
+        // Emit Socket event to ride room
+        emitToRideRoom(rideId, 'RIDE_COMPLETED', { rideId, status: 'COMPLETED' });
+
+        // Notify passengers via FCM
         const bookings = await tx.booking.findMany({
           where:   { rideId },
           include: { passenger: { select: { fcmToken: true, name: true } } },
@@ -298,7 +303,10 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
           );
         }
       } else if (newStatus === 'IN_PROGRESS') {
-        // Notify passengers ride has started
+        // Emit Socket event to ride room
+        emitToRideRoom(rideId, 'RIDE_STARTED', { rideId, status: 'IN_PROGRESS' });
+
+        // Notify passengers ride has started via FCM
         const bookings = await tx.booking.findMany({
           where:   { rideId, status: 'CONFIRMED' },
           include: { passenger: { select: { fcmToken: true } } },
@@ -323,6 +331,7 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
 
     return withRating(updated);
   }
+
 
   // ── Get active ride session (Driver or Passenger) ─────────────────────────
   async getActiveSession(userId: string): Promise<any> {

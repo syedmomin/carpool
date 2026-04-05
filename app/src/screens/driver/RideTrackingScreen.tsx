@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform,
-  Dimensions, ActivityIndicator, Alert, SafeAreaView, FlatList
+  Dimensions, ActivityIndicator, Alert, SafeAreaView, FlatList, Linking
 } from 'react-native';
-import { MapView, Marker, Polyline, PROVIDER_GOOGLE } from '../../components/Map/MapComponent';
+import { MapView, Marker, Polyline, PROVIDER_GOOGLE } from '../../components/Map';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, Avatar, StatusBadge } from '../../components';
@@ -60,9 +60,23 @@ export default function RideTrackingScreen({ route, navigation }) {
       });
     }
 
+    // 5. Listen for Ride Completion (if someone else ends it)
+    socketService.on('RIDE_COMPLETED', (data: any) => {
+      if (data.rideId === rideId) {
+        showModal({
+          type: 'success',
+          title: 'Ride Completed! ⭐',
+          message: 'The driver has completed the trip. Hope you had a safe journey!',
+          confirmText: 'Go Back',
+          onConfirm: () => navigation.replace(currentUser?.role === 'DRIVER' ? 'MyRides' : 'BookingHistory'),
+        });
+      }
+    });
+
     return () => {
       stopTracking();
       socketService.offLocationUpdate();
+      socketService.off('RIDE_COMPLETED');
       socketService.leaveRide(rideId);
     };
   }, [rideId]);
@@ -125,6 +139,16 @@ export default function RideTrackingScreen({ route, navigation }) {
       locationSubscription.remove();
       setLocationSubscription(null);
     }
+  };
+
+  const handleCall = (phone: string) => {
+    if (!phone) {
+      showToast('Phone number not available', 'error');
+      return;
+    }
+    Linking.openURL(`tel:${phone}`).catch(() => {
+      showToast('Unable to open dialer', 'error');
+    });
   };
 
   const handleFinishRide = () => {
@@ -260,7 +284,7 @@ export default function RideTrackingScreen({ route, navigation }) {
               </View>
               <TouchableOpacity 
                 style={styles.callBtn}
-                onPress={() => Alert.alert('Call', `Calling ${item.passenger?.phone}...`)}
+                onPress={() => handleCall(item.passenger?.phone)}
               >
                 <Ionicons name="call" size={20} color={COLORS.primary} />
               </TouchableOpacity>
@@ -293,7 +317,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           <View style={styles.finishBtnContainer}>
             <TouchableOpacity 
               style={[styles.finishBtn, { backgroundColor: COLORS.primary }]} 
-              onPress={() => Alert.alert('Contact', `Calling driver: ${ride?.driver?.name}`)}
+              onPress={() => handleCall(ride?.driver?.phone)}
               activeOpacity={0.8}
             >
               <Ionicons name="call-outline" size={22} color="#fff" />

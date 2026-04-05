@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState, Avatar, StatusBadge } from '../../components';
 import { ridesApi, bookingsApi } from '../../services/api';
+import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
@@ -31,7 +32,19 @@ export default function RideBookingsScreen({ navigation, route }) {
 
   useFocusEffect(useCallback(() => {
     fetchRide();
-  }, [fetchRide]));
+
+    // Listen for new booking requests for this specific ride
+    socketService.on('BOOKING_REQUESTED', (data) => {
+      console.log('New booking request for this ride:', data);
+      if (data.rideId === rideId) {
+        fetchRide();
+      }
+    });
+
+    return () => {
+      socketService.off('BOOKING_REQUESTED');
+    };
+  }, [fetchRide, rideId]));
 
   const handleAccept = (bookingId: string, name: string) => {
     showModal({

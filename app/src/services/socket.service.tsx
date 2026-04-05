@@ -29,6 +29,15 @@ class SocketService {
     }
   }
 
+  /**
+   * Subscribe to a private room for personal notifications (Accepted, Requested, etc.)
+   */
+  joinUser(userId: string): void {
+    if (this.socket) {
+      this.socket.emit('join-user', userId);
+    }
+  }
+
   joinRide(rideId: string, role: 'driver' | 'rider'): void {
     if (this.socket) {
       this.socket.emit('join-ride', { rideId, role });
@@ -59,7 +68,21 @@ class SocketService {
     }
   }
 
+  // Generic listeners for lifecycle events
+  on(event: string, callback: (data: any) => void): void {
+    if (this.socket) {
+      this.socket.on(event, callback);
+    }
+  }
+
+  off(event: string): void {
+    if (this.socket) {
+      this.socket.off(event);
+    }
+  }
+
   disconnect(): void {
+
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;

@@ -17,6 +17,13 @@ export const initSocket = (server: HttpServer) => {
   io.on('connection', (socket: Socket) => {
     console.log(`[Socket] User connected: ${socket.id}`);
 
+    // Join a private room for personal notifications (BOOKING_ACCEPTED, etc.)
+    socket.on('join-user', (userId: string) => {
+      if (!userId) return;
+      console.log(`[Socket] User joined personal room: user_${userId}`);
+      socket.join(`user_${userId}`);
+    });
+
     socket.on('join-ride', async ({ rideId, role }) => {
       if (!rideId) return;
       console.log(`[Socket] ${role} joined ride room: ride_${rideId}`);
@@ -38,7 +45,7 @@ export const initSocket = (server: HttpServer) => {
 
     socket.on('location-update', async (data) => {
       const { rideId, latitude, longitude, speed, heading } = data;
-      // Broadcast to room
+      // Broadcast to all in the ride room EXCEPT the sender (driver)
       socket.to(`ride_${rideId}`).emit('location-update', {
         rideId, latitude, longitude, speed, heading, timestamp: new Date()
       });
@@ -55,9 +62,28 @@ export const initSocket = (server: HttpServer) => {
   return io;
 };
 
+/**
+ * Emit to a specific user's private notification room
+ */
+export const emitToUser = (userId: string, event: string, data: any) => {
+  if (!io) return;
+  console.log(`[Socket] Emitting ${event} to user_${userId}`);
+  io.to(`user_${userId}`).emit(event, data);
+};
+
+/**
+ * Emit to an entire ride room (e.g., RIDE_STARTED)
+ */
+export const emitToRideRoom = (rideId: string, event: string, data: any) => {
+  if (!io) return;
+  console.log(`[Socket] Emitting ${event} to ride_${rideId}`);
+  io.to(`ride_${rideId}`).emit(event, data);
+};
+
 export const getIO = () => {
   if (!io) {
     throw new Error('Socket.IO is not initialized');
   }
   return io;
 };
+

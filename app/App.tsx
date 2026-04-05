@@ -5,6 +5,7 @@ import { AppProvider } from './src/context/AppContext';
 import { ToastProvider } from './src/context/ToastContext';
 import { GlobalModalProvider } from './src/context/GlobalModalContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import SocketListener from './src/components/SocketListener';
 import { registerForPushNotifications, setupNotificationListeners } from './src/utils/notifications';
 import { profileApi } from './src/services/api';
 
@@ -32,6 +33,7 @@ export default function App() {
         <GlobalModalProvider>
           <ToastProvider>
             <StatusBar style="light" />
+            <SocketListener navigationRef={navigationRef} />
             <AppNavigator navigationRef={navigationRef} />
           </ToastProvider>
         </GlobalModalProvider>
@@ -39,3 +41,4 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+

@@ -24,29 +24,35 @@ export const AmenityBadge: React.FC<AmenityBadgeProps> = ({ name }) => (
   </View>
 );
 
-// ─── Status Badge (active, completed, cancelled, pending) ────────────────────
-const STATUS_CONFIG = {
-  active:    { bg: '#e8f5e9', color: COLORS.secondary, label: 'Active' },
-  completed: { bg: '#e3f2fd', color: COLORS.primary,   label: 'Completed' },
-  cancelled: { bg: '#ffebee', color: COLORS.danger,    label: 'Cancelled' },
-  pending:   { bg: '#fff8e1', color: '#f59e0b',        label: 'Pending' },
-  in_progress: { bg: '#e0f2fe', color: '#0284c7',        label: 'In Progress' },
+// ─── Status Badge (active, completed, cancelled, pending, in_progress, etc.) ────
+const STATUS_CONFIG: any = {
+  active:      { bg: '#e8f5e9', color: COLORS.secondary, label: 'Active' },
+  confirmed:   { bg: '#e8f5e9', color: COLORS.secondary, label: 'Confirmed' },
+  completed:   { bg: '#f0f9ff', color: '#0369a1',        label: 'Completed' },
+  cancelled:   { bg: '#fef2f2', color: COLORS.danger,    label: 'Cancelled' },
+  rejected:    { bg: '#fef2f2', color: COLORS.danger,    label: 'Rejected' },
+  pending:     { bg: '#fffbeb', color: '#b45309',        label: 'Pending' },
+  in_progress: { bg: '#ecfeff', color: '#0891b2',        label: 'In Progress' },
+  scheduled:   { bg: '#f5f3ff', color: '#7c3aed',        label: 'Scheduled' },
 };
 
 interface StatusBadgeProps {
-  status: 'active' | 'completed' | 'cancelled' | 'pending' | 'in_progress';
+  status: string;
   label?: string;
   style?: StyleProp<ViewStyle>;
 }
 
+
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, style }) => {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+  const s = (status || '').toLowerCase();
+  const cfg = STATUS_CONFIG[s] || STATUS_CONFIG.pending;
   return (
     <View style={[styles.status, { backgroundColor: cfg.bg }, style]}>
       <Text style={[styles.statusText, { color: cfg.color }]}>{label || cfg.label}</Text>
     </View>
   );
 };
+
 
 // ─── Notification Badge (count dot) ─────────────────────────────────────────
 

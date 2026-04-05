@@ -12,6 +12,7 @@ import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { bookingsApi, reviewsApi } from '../../services/api';
+import { socketService } from '../../services/socket.service';
 
 const PAGE_SIZE = 10;
 
@@ -278,6 +279,27 @@ export default function BookingHistoryScreen({ navigation }) {
 
     useFocusEffect(useCallback(() => {
         fetchBookings(1, true);
+
+        // Real-time synchronization
+        socketService.on('BOOKING_ACCEPTED', (data) => {
+            setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'CONFIRMED' } : b));
+        });
+        socketService.on('BOOKING_REJECTED', (data) => {
+            setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'REJECTED' } : b));
+        });
+        socketService.on('RIDE_STARTED', (data) => {
+            setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, ride: { ...b.ride, status: 'IN_PROGRESS' } } : b));
+        });
+        socketService.on('RIDE_COMPLETED', (data) => {
+            setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, status: 'COMPLETED', ride: { ...b.ride, status: 'COMPLETED' } } : b));
+        });
+
+        return () => {
+            socketService.off('BOOKING_ACCEPTED');
+            socketService.off('BOOKING_REJECTED');
+            socketService.off('RIDE_STARTED');
+            socketService.off('RIDE_COMPLETED');
+        };
     }, [fetchBookings]));
 
     const loadMore = () => {

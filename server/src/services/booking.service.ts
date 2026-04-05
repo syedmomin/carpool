@@ -39,18 +39,12 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         },
       });
 
-      // Notice: We do NOT increment bookedSeats yet.
-      // We only reserve them if we want to prevent over-requesting, 
-      // but the user said "not auto confirm".
-      // Usually, it's safer to increment it now (as pending) to avoid overbooking,
-      // and decrement if rejected. 
-      // I'll keep the increment on request to ensure availability.
       await tx.ride.update({
         where: { id: rideId },
         data:  { bookedSeats: { increment: seats } },
       });
 
-      // In-app notification
+      // In-app notification record
       await tx.notification.create({
         data: {
           userId:  passengerId,
@@ -59,6 +53,16 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
           type:    'BOOKING',
           rideId,
         },
+      });
+
+      // Real-time Socket sync (Notify Driver)
+      const { emitToUser } = await import('../socket');
+      emitToUser(ride.driverId, 'BOOKING_REQUESTED', {
+        bookingId: booking.id,
+        rideId,
+        passengerId,
+        seats,
+        message: 'New ride request received'
       });
 
       // Push notification — even if app is closed
@@ -120,7 +124,15 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         data: { status: 'CONFIRMED' },
       });
 
-      // Notify passenger
+      // Real-time Socket sync (Notify Passenger)
+      const { emitToUser } = await import('../socket');
+      emitToUser(booking.passengerId, 'BOOKING_ACCEPTED', {
+        bookingId,
+        rideId: booking.rideId,
+        status: 'CONFIRMED'
+      });
+
+      // Notify passenger record
       await tx.notification.create({
         data: {
           userId:  booking.passengerId,
@@ -163,13 +175,21 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         data: { status: 'REJECTED' },
       });
 
+      // Real-time Socket sync (Notify Passenger)
+      const { emitToUser } = await import('../socket');
+      emitToUser(booking.passengerId, 'BOOKING_REJECTED', {
+        bookingId,
+        rideId: booking.rideId,
+        status: 'REJECTED'
+      });
+
       // Release seats
       await tx.ride.update({
         where: { id: booking.rideId },
         data: { bookedSeats: { decrement: booking.seats } },
       });
 
-      // Notify passenger
+      // Notify passenger record
       await tx.notification.create({
         data: {
           userId:  booking.passengerId,
@@ -196,6 +216,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       return updated;
     });
   }
+
 
   async cancelBooking(bookingId: string, userId: string, reason?: string): Promise<Booking> {
     return prisma.$transaction(async (tx) => {
