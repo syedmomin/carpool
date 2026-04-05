@@ -206,6 +206,9 @@ function DriverDashboardStack() {
   return (
     <UserDashboardStack.Navigator id="UserDashboard" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <UserDashboardStack.Screen name="DriverHome" component={DriverHomeScreen} />
+      <UserDashboardStack.Screen name="PostRide" component={PostRideScreen} />
+      <UserDashboardStack.Screen name="MyRides" component={MyRidesScreen} />
+      <UserDashboardStack.Screen name="MyVehicles" component={MyVehiclesScreen} />
       <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
       <UserDashboardStack.Screen name="Earnings" component={EarningsScreen} />
     </UserDashboardStack.Navigator>
@@ -216,7 +219,8 @@ const UserRidesStack = createNativeStackNavigator<any>();
 function DriverRidesStack() {
   return (
     <UserRidesStack.Navigator id="DriverRides" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <UserRidesStack.Screen name="MyRidesMain" component={MyRidesScreen} />
+      <UserRidesStack.Screen name="MyRides" component={MyRidesScreen} />
+      <UserRidesStack.Screen name="PostRide" component={PostRideScreen} />
       <UserRidesStack.Screen name="RideBookings" component={RideBookingsScreen} />
       <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
     </UserRidesStack.Navigator>
@@ -227,7 +231,7 @@ const UserVehiclesStack = createNativeStackNavigator<any>();
 function DriverVehiclesStack() {
   return (
     <UserVehiclesStack.Navigator id="DriverVehicles" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <UserVehiclesStack.Screen name="MyVehiclesMain" component={MyVehiclesScreen} />
+      <UserVehiclesStack.Screen name="MyVehicles" component={MyVehiclesScreen} />
       <UserVehiclesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
     </UserVehiclesStack.Navigator>
   );
