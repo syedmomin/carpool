@@ -47,10 +47,6 @@ const Tab = createBottomTabNavigator<any>();
 
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
-// const CIRCLE = 44;   // floating icon bubble diameter
-// const HALO = 56;   // background halo (fakes bar cutout)
-// const BAR_H = 56;   // height of the bar
-// const LIFT = HALO / 2; // bar pushed down by this amount
 const { width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 65;
 
@@ -63,14 +59,14 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
   const getPath = () => {
     const s = tabWidth * activeIndex;
     const c = s + tabWidth / 2;
-    const r = 32;
-    const h = 36; // slightly less deep
+    const r = 22;
+    const h = 42; // slightly less deep
 
     return `
     M 0,0 
-    L ${c - r - 22},0 
-    C ${c - r},0 ${c - r + 18},${h} ${c},${h} 
-    C ${c + r - 18},${h} ${c + r},0 ${c + r + 22},0 
+    L ${c - r - 2},0 
+    C ${c - r},0 ${c - r + -8},${h} ${c},${h} 
+    C ${c + r - -8},${h} ${c + r},0 ${c + r + 2},0 
     L ${width},0 
     L ${width},${TAB_BAR_HEIGHT} 
     L 0,${TAB_BAR_HEIGHT} 
@@ -138,13 +134,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: width,
-    backgroundColor: 'transparent',
+    backgroundColor: '#000',
     elevation: 0,
   },
   svgWrapper: {
     position: 'absolute',
     bottom: 0,
-    shadowColor: '#000',
+    shadowColor: '#e4e4e42a',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -177,10 +173,10 @@ const styles = StyleSheet.create({
   },
   activeIconWrapper: {
     backgroundColor: '#fff',
-    width: 38,
-    height: 38,
-    borderRadius: 21,
-    marginBottom: 20, // Dropped lower (closer to label)
+    width: 34,
+    height: 34,
+    borderRadius: 20,
+    marginBottom: 0, // Dropped lower (closer to label)
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,

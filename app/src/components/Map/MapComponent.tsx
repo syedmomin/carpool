@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const MapView = ({ children, style }: any) => (
+const MapView = React.forwardRef(({ children, style }: any, ref: any) => (
   <View style={[styles.container, style]}>
     <View style={styles.gridContainer}>
       <View style={styles.grid} />
@@ -12,19 +12,20 @@ const MapView = ({ children, style }: any) => (
     </View>
     {children}
   </View>
-);
+));
 
-const Marker = ({ children, coordinate }: any) => (
+const Marker = ({ children, coordinate, title, pinColor }: any) => (
   <View style={[styles.marker, { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -10 }, { translateY: -10 }] }]}>
     {children}
   </View>
 );
 
-const Polyline = () => null;
+const Polyline = (props: any) => null;
 const PROVIDER_GOOGLE = 'google';
 
 export { MapView, Marker, Polyline, PROVIDER_GOOGLE };
 export default MapView;
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0f4ff', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { MapView, Marker, Polyline, PROVIDER_GOOGLE } from './Map';
+
 
 interface LocationCoordinate {
   latitude: number;
@@ -22,7 +23,8 @@ export const MapTracker: React.FC<MapTrackerProps> = ({
   dropOffLocation,
   role,
 }) => {
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
+
 
   // Convert [[lng, lat]] to { latitude, longitude } for MapView
   const formattedRoute = routePolyline.map((coord) => ({

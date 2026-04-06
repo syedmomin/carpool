@@ -11,7 +11,8 @@ export interface LocationPayload {
 class SocketService {
   public socket: Socket | null = null;
   // Use the deployed URL for the socket connection
-  private readonly URL = process.env.EXPO_PUBLIC_API_URL || 'https://app-server-liard-one.vercel.app';
+  // private readonly URL = process.env.EXPO_PUBLIC_API_URL || 'https://app-server-liard-one.vercel.app';
+  private readonly URL = 'http://localhost:5000';
 
 
   connect(): void {
