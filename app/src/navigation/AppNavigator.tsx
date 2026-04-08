@@ -64,9 +64,9 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
 
     return `
     M 0,0 
-    L ${c - r - 2},0 
-    C ${c - r},0 ${c - r + -8},${h} ${c},${h} 
-    C ${c + r - -8},${h} ${c + r},0 ${c + r + 2},0 
+    L ${c - r - 10},0 
+    C ${c - r},0 ${c - r + -6},${h} ${c},${h} 
+    C ${c + r - -6},${h} ${c + r},0 ${c + r + 12},0 
     L ${width},0 
     L ${width},${TAB_BAR_HEIGHT} 
     L 0,${TAB_BAR_HEIGHT} 
@@ -134,13 +134,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: width,
-    backgroundColor: '#000',
+    backgroundColor: '#e2e2e24c',
     elevation: 0,
   },
   svgWrapper: {
     position: 'absolute',
     bottom: 0,
-    shadowColor: '#e4e4e42a',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 20,
-    marginBottom: 0, // Dropped lower (closer to label)
+    marginBottom: -5, // Dropped lower (closer to label)
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,

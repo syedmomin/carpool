@@ -3,8 +3,9 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { encryptValue, decryptValue } from '../utils/secureStorage';
 
-export const BASE_URL = 'https://app-server-liard-one.vercel.app/api/v1';
+export const BASE_URL = 'https://carpool.bonto.run/api/v1';
 // export const BASE_URL = 'http://localhost:5000/api/v1';
+// export const BASE_URL = 'http://192.168.100.60:5000/api/v1';
 
 const TOKEN_KEY = '@chalparo_token';
 const REFRESH_TOKEN_KEY = '@chalparo_refresh_token';
