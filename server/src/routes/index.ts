@@ -5,6 +5,7 @@ import rideRoutes          from './ride.routes';
 import bookingRoutes       from './booking.routes';
 import vehicleRoutes       from './vehicle.routes';
 import reviewRoutes        from './review.routes';
+import chatRoutes          from './chat.routes';
 import notificationRoutes  from './notification.routes';
 import scheduleAlertRoutes from './schedule-alert.routes';
 import verificationRoutes  from './verification.routes';

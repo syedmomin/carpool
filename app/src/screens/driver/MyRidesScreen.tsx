@@ -169,22 +169,31 @@ export default function MyRidesScreen({ navigation }) {
             <Text style={styles.actionBtnText}>Passengers ({item.bookedSeats})</Text>
           </TouchableOpacity>
 
-          {/* Start Ride button — only when ACTIVE, has bookings, and today is the ride date */}
+          {/* Start Ride button — prominently shown for today's active rides with bookings */}
           {isActive && item.bookedSeats > 0 && isToday && (
             <TouchableOpacity
               style={[styles.actionBtn, styles.startBtn]}
               onPress={() => handleStatusChange(item, 'IN_PROGRESS')}
               disabled={isActioning}
+              activeOpacity={0.7}
             >
               {isActioning
                 ? <ActivityIndicator size="small" color="#fff" />
                 : <>
-                  <Ionicons name="navigate-circle-outline" size={16} color="#fff" />
-                  <Text style={styles.startBtnText}>Start Ride</Text>
-                </>
+                    <LinearGradient 
+                      colors={['#2e7d32', '#1b5e20']} 
+                      start={{ x: 0, y: 0 }} 
+                      end={{ x: 1, y: 0 }}
+                      style={styles.startBtnGradient}
+                    >
+                      <Ionicons name="play" size={16} color="#fff" />
+                      <Text style={styles.startBtnText}>START TRIP NOW</Text>
+                    </LinearGradient>
+                  </>
               }
             </TouchableOpacity>
           )}
+
 
           {/* Go to Map — only when IN_PROGRESS */}
           {isInProgress && (
@@ -315,8 +324,25 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
   actionBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  startBtn: { backgroundColor: COLORS.secondary, borderColor: 'transparent' },
-  completeBtn: { backgroundColor: COLORS.teal || '#009688', borderColor: 'transparent' },
-  startBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  startBtn: { 
+    paddingVertical: 0, 
+    paddingHorizontal: 0, 
+    borderWidth: 0,
+    minWidth: 150,
+  },
+  completeBtn: { backgroundColor: COLORS.secondary, borderColor: 'transparent' },
+  startBtnGradient: {
+
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 8,
+    width: '100%',
+  },
+  startBtnText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+
   fab: { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
 });

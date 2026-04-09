@@ -19,7 +19,9 @@ import SearchScreen from '../screens/passenger/SearchScreen';
 import RideDetailScreen from '../screens/passenger/RideDetailScreen';
 import BookingConfirmScreen from '../screens/passenger/BookingConfirmScreen';
 import BookingHistoryScreen from '../screens/passenger/BookingHistoryScreen';
+import PastBookingsScreen from '../screens/passenger/PastBookingsScreen';
 import ScheduleScreen from '../screens/passenger/ScheduleScreen';
+
 
 // Driver
 import DriverHomeScreen from '../screens/driver/DriverHomeScreen';
@@ -41,6 +43,11 @@ import SupportScreen from '../screens/common/SupportScreen';
 import TermsScreen from '../screens/common/TermsScreen';
 import PrivacyScreen from '../screens/common/PrivacyScreen';
 import AboutScreen from '../screens/common/AboutScreen';
+import ReviewsScreen from '../screens/common/ReviewsScreen';
+import RideHistoryScreen from '../screens/driver/RideHistoryScreen';
+import ChatScreen from '../screens/common/ChatScreen';
+
+
 
 const Stack = createNativeStackNavigator<any>();
 const Tab = createBottomTabNavigator<any>();
@@ -246,7 +253,15 @@ function CommonProfileStack() {
       <UserProfileStack.Screen name="Terms" component={TermsScreen} />
       <UserProfileStack.Screen name="Privacy" component={PrivacyScreen} />
       <UserProfileStack.Screen name="About" component={AboutScreen} />
+      <UserProfileStack.Screen name="Reviews" component={ReviewsScreen} />
+      <UserProfileStack.Screen name="RideHistory" component={RideHistoryScreen} />
+      <UserProfileStack.Screen name="PastBookings" component={PastBookingsScreen} />
+      <UserProfileStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
+      <UserProfileStack.Screen name="Chat" component={ChatScreen} />
     </UserProfileStack.Navigator>
+
+
+
   );
 }
 

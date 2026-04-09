@@ -16,11 +16,18 @@ const MENU_ITEMS = [
   },
   {
     section: 'Activity', items: [
-      { icon: 'receipt-outline', label: 'Booking History', screen: 'BookingHistory', color: COLORS.primary },
-      { icon: 'star-outline', label: 'My Reviews', screen: null, color: COLORS.accent },
+      { 
+        icon: 'receipt-outline', 
+        label: userRole === 'driver' ? 'Ride History' : 'Booking History', 
+        screen: userRole === 'driver' ? 'RideHistory' : 'PastBookings', 
+        color: COLORS.primary 
+      },
+
+      { icon: 'star-outline', label: 'My Reviews', screen: 'Reviews', color: COLORS.accent },
       { icon: 'notifications-outline', label: 'Notifications', screen: 'Notifications', color: COLORS.warning },
     ]
   },
+
   {
     section: 'Support', items: [
       { icon: 'help-circle-outline', label: 'Help & Support', screen: 'Support', color: COLORS.gray },

@@ -71,10 +71,12 @@ model User {
   bookings         Booking[]
   notifications    Notification[]
   reviews          Review[]       @relation("ReviewedBy")
-  reviewsReceived  Review[]       @relation("ReviewsForDriver")
+  reviewsReceived  Review[]       @relation("ReviewsReceived")
   vehicles         Vehicle[]
   scheduleAlerts   ScheduleAlert[]
   verification     UserVerification?
+  sentMessages     ChatMessage[]
+
 
   @@map("users")
 }
@@ -142,6 +144,7 @@ model Ride {
   bookings      Booking[]
   route         RideRoute?
   locations     RideLocation[]
+  reviews       Review[]
 
   @@index([fromCity, toCity, date, status])
   @@map("rides")
@@ -166,14 +169,18 @@ model Booking {
 
   ride         Ride          @relation(fields: [rideId], references: [id])
   passenger    User          @relation(fields: [passengerId], references: [id])
+  chatMessages ChatMessage[]
+
 
   @@map("bookings")
 }
 
 model Review {
   id         String   @id @default(cuid())
-  driverId   String
+  rideId     String?
   reviewerId String
+  revieweeId String
+  targetRole UserRole @default(DRIVER)
   rating     Int
   comment    String?
   createdAt  DateTime @default(now())
@@ -181,11 +188,13 @@ model Review {
   createdBy  String?
   updatedBy  String?
 
-  driver     User     @relation("ReviewsForDriver", fields: [driverId],   references: [id])
+  ride       Ride?    @relation(fields: [rideId],     references: [id])
   reviewer   User     @relation("ReviewedBy",       fields: [reviewerId], references: [id])
+  reviewee   User     @relation("ReviewsReceived",  fields: [revieweeId], references: [id])
 
   @@map("reviews")
 }
+
 
 model Notification {
   id        String           @id @default(cuid())
@@ -270,3 +279,17 @@ model RideLocation {
   @@index([rideId, timestamp])
   @@map("ride_locations")
 }
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  bookingId String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId],  references: [id])
+
+  @@map("chat_messages")
+}
+

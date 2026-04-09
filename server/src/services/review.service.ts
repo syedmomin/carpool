@@ -1,18 +1,25 @@
-import { Review } from '@prisma/client';
+import { Review, UserRole } from '@prisma/client';
 import prisma from '../data-source';
 import { BaseService } from './base.service';
 import { AppError } from '../utils/AppError';
 
-type CreateReviewDto = { driverId: string; reviewerId: string; rating: number; comment?: string };
+type CreateReviewDto = { 
+  revieweeId: string; 
+  reviewerId: string; 
+  rideId?: string;
+  targetRole: UserRole;
+  rating: number; 
+  comment?: string 
+};
 type UpdateReviewDto = { rating?: number; comment?: string };
 
 export class ReviewService extends BaseService<Review, CreateReviewDto, UpdateReviewDto> {
   protected get model()     { return prisma.review; }
   protected get modelName() { return 'Review'; }
 
-  async getDriverReviews(driverId: string) {
+  async getUserReviews(userId: string) {
     const reviews = await prisma.review.findMany({
-      where:   { driverId },
+      where:   { revieweeId: userId },
       include: { reviewer: { select: { id: true, name: true, avatar: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -39,20 +46,38 @@ export class ReviewService extends BaseService<Review, CreateReviewDto, UpdateRe
       throw AppError.badRequest('Rating must be between 1 and 5');
     }
 
-    // Reviewer must have completed a booking with this driver
-    const hasRidden = await prisma.booking.findFirst({
-      where: {
-        passengerId: dto.reviewerId,
-        status:      'COMPLETED',
-        ride:        { driverId: dto.driverId },
+    // Verify a legitimate ride relationship exists
+    if (dto.targetRole === 'DRIVER') {
+      // Reviewer (Passenger) must have completed a booking with this driver
+      const hasRidden = await prisma.booking.findFirst({
+        where: {
+          passengerId: dto.reviewerId,
+          status:      'COMPLETED',
+          ride:        { driverId: dto.revieweeId },
+        },
+      });
+      if (!hasRidden) throw AppError.forbidden('You can only review drivers you have ridden with');
+    } else {
+      // Reviewer (Driver) must have completed a ride with this passenger
+      const hasDriven = await prisma.booking.findFirst({
+        where: {
+          passengerId: dto.revieweeId,
+          status:      'COMPLETED',
+          ride:        { driverId: dto.reviewerId },
+        },
+      });
+      if (!hasDriven) throw AppError.forbidden('You can only review passengers who have ridden with you');
+    }
+
+    // One review per pair per ride (or generally per pair if rideId is null)
+    const existing = await prisma.review.findFirst({
+      where: { 
+        revieweeId: dto.revieweeId, 
+        reviewerId: dto.reviewerId,
+        ...(dto.rideId ? { rideId: dto.rideId } : {})
       },
     });
-    if (!hasRidden) throw AppError.forbidden('You can only review drivers you have ridden with');
 
-    // One review per passenger per driver
-    const existing = await prisma.review.findFirst({
-      where: { driverId: dto.driverId, reviewerId: dto.reviewerId },
-    });
     if (existing) {
       return this.update(existing.id, { rating: dto.rating, comment: dto.comment }, createdBy);
     }
@@ -62,3 +87,4 @@ export class ReviewService extends BaseService<Review, CreateReviewDto, UpdateRe
 }
 
 export const reviewService = new ReviewService();
+

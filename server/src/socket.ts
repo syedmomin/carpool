@@ -54,7 +54,24 @@ export const initSocket = (server: HttpServer) => {
       await locationService.addLocation(data);
     });
 
+    socket.on('join-chat', ({ bookingId }) => {
+      if (!bookingId) return;
+      console.log(`[Socket] Joined chat room: chat_${bookingId}`);
+      socket.join(`chat_${bookingId}`);
+    });
+
+    socket.on('send-message', async ({ bookingId, senderId, content }) => {
+      if (!bookingId || !senderId || !content) return;
+      
+      const { chatService } = require('./services/chat.service');
+      const message = await chatService.saveMessage(bookingId, senderId, content);
+
+      // Broadcast message to everyone in the chat room (including sender for sync)
+      io.to(`chat_${bookingId}`).emit('new-message', message);
+    });
+
     socket.on('disconnect', () => {
+
       console.log(`[Socket] User disconnected: ${socket.id}`);
     });
   });

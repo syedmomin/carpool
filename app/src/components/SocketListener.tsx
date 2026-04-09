@@ -3,6 +3,8 @@ import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { socketService } from '../services/socket.service';
 import { useGlobalModal } from '../context/GlobalModalContext';
+import ReviewModal from './ReviewModal';
+import { useState } from 'react';
 
 /**
  * SocketListener: Handles global real-time notifications and navigation triggers.
@@ -12,6 +14,8 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
   const { currentUser } = useApp();
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
+  const [completedRide, setCompletedRide] = useState<any>(null);
+
 
   useEffect(() => {
     if (!currentUser?.id) {
@@ -46,21 +50,35 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       showToast('Booking request rejected ❌', 'error');
     });
 
-    // 4. Listen for Ride Started (For Both)
+    // 4. Listen for Ride Started (For Both Passenger and Driver)
     socketService.on('RIDE_STARTED', (data: any) => {
+      // Automatic navigation for a professional 'Absolute Screen' experience
       showModal({
-        type: 'info',
-        title: 'Ride Started! 🚗',
-        message: 'The driver has started the ride. Live tracking is now active.',
-        confirmText: 'Join Ride Map',
+        type: 'success', // Use success green for starting
+        title: 'Ride Started! 🏁',
+        message: 'The driver has officially started the journey. Live tracking is now active for your safety.',
+        confirmText: 'JOIN LIVE TRACKING',
         onConfirm: () => navigationRef.current?.navigate('RideTracking', { rideId: data.rideId }),
       });
+      
+      // Auto-navigate after 2 seconds if user doesn't interact (optional UX improvement)
+      const timer = setTimeout(() => {
+        // Only auto-navigate if the modal is still up (can't track modal state easily here, so we just prompt)
+      }, 2000);
+      return () => clearTimeout(timer);
     });
+
 
     // 5. Listen for Ride Completion
     socketService.on('RIDE_COMPLETED', (data: any) => {
       showToast('Ride completed! ⭐', 'success');
+      
+      // If user was a passenger in this ride, show rating modal
+      if (currentUser?.role === 'PASSENGER') {
+        setCompletedRide(data);
+      }
     });
+
 
     return () => {
       socketService.off('BOOKING_REQUESTED');
@@ -71,5 +89,18 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
     };
   }, [currentUser?.id]);
 
-  return null;
+  return (
+    <>
+      <ReviewModal
+        visible={!!completedRide}
+        onClose={() => setCompletedRide(null)}
+        rideId={completedRide?.rideId}
+        revieweeId={completedRide?.driverId}
+        revieweeName={completedRide?.driverName || 'the Driver'}
+        targetRole="DRIVER"
+        routeLabel={completedRide?.routeLabel}
+      />
+    </>
+  );
 }
+

@@ -8,12 +8,13 @@ import { Review } from '@prisma/client';
 export class ReviewController extends BaseController<Review, any, any> {
   protected service = reviewService;
 
-  getDriverReviews = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getUserReviews = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await reviewService.getDriverReviews(req.params.driverId as string);
+      const data = await reviewService.getUserReviews(req.params.userId as string);
       ResponseUtil.success(res, data);
     } catch (err) { next(err); }
   };
+
 
   submit = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {

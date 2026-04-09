@@ -5,19 +5,21 @@ import { validate } from '../middlewares/validate.middleware';
 
 const router = Router();
 
-// Public: get driver reviews
-router.get('/driver/:driverId', reviewController.getDriverReviews);
+// Public: get user reviews
+router.get('/user/:userId', reviewController.getUserReviews);
 
-// Passenger: submit review
+// Submit review (Both Drivers & Passengers)
 router.post('/',
   authenticate,
-  authorize('PASSENGER'),
+  authorize('PASSENGER', 'DRIVER'),
   validate([
-    { field: 'driverId', required: true },
-    { field: 'rating',   required: true, type: 'number' },
+    { field: 'revieweeId', required: true },
+    { field: 'targetRole', required: true },
+    { field: 'rating',     required: true, type: 'number' },
   ]),
   reviewController.submit,
 );
+
 
 // Admin: delete review
 router.delete('/:id', authenticate, authorize('ADMIN'), reviewController.deleteReview);

@@ -281,8 +281,13 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
           data:  { status: 'COMPLETED', updatedBy: driverId },
         });
 
+        // Clear all chat messages for this ride session
+        const { chatService } = await import('./chat.service');
+        await chatService.clearChatByRide(rideId);
+
         // Emit Socket event to ride room
         emitToRideRoom(rideId, 'RIDE_COMPLETED', { rideId, status: 'COMPLETED' });
+
 
         // Notify passengers via FCM
         const bookings = await tx.booking.findMany({

@@ -138,9 +138,22 @@ export default function RideBookingsScreen({ navigation, route }) {
           <View style={styles.confirmedRow}>
             <TouchableOpacity style={styles.contactBtn} onPress={() => callPassenger(p.phone)}>
               <Ionicons name="call-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.contactText}>Call Passenger</Text>
+              <Text style={styles.contactText}>Call</Text>
+            </TouchableOpacity>
+            <View style={styles.btnDivider} />
+            <TouchableOpacity 
+              style={styles.contactBtn} 
+              onPress={() => navigation.navigate('Chat', { 
+                bookingId: item.id, 
+                otherUser: p,
+                rideInfo: { label: `${ride.from} → ${ride.to}` }
+              })}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.contactText}>Chat</Text>
             </TouchableOpacity>
           </View>
+
         )}
       </View>
     );
@@ -213,6 +226,8 @@ const styles = StyleSheet.create({
   acceptBtn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   acceptText: { color: '#fff', fontWeight: '800', fontSize: 13 },
   confirmedRow: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10, marginTop: 2 },
-  contactBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  contactBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' },
   contactText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  btnDivider: { width: 1, height: 20, backgroundColor: COLORS.border },
 });
+

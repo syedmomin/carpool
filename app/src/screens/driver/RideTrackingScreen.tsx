@@ -12,6 +12,7 @@ import { socketService } from '../../services/socket.service';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import ReviewModal from '../../components/ReviewModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +27,8 @@ export default function RideTrackingScreen({ route, navigation }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationSubscription, setLocationSubscription] = useState(null);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [ratingTargetIndex, setRatingTargetIndex] = useState(-1);
+
 
   const mapRef = useRef(null);
 
@@ -166,8 +169,15 @@ export default function RideTrackingScreen({ route, navigation }) {
             showToast(error, 'error');
           } else {
             showToast('Ride completed successfully!', 'success');
-            navigation.replace('MyRides');
+            
+            // Initiate rating flow for passengers
+            if (confirmedBookings.length > 0) {
+              setRatingTargetIndex(0);
+            } else {
+              navigation.replace('MyRides');
+            }
           }
+
         } catch (err) {
           showToast('Failed to complete ride', 'error');
         } finally {
@@ -232,7 +242,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         )}
       </MapView>
 
-      {/* Header Overlay */}
+      {/* Header Overlay — Conditional content based on role */}
       <View style={styles.headerOverlay}>
         <View style={styles.headerContent}>
           <TouchableOpacity 
@@ -242,93 +252,171 @@ export default function RideTrackingScreen({ route, navigation }) {
             <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerRoute} numberOfLines={1}>
-              {ride?.toCity}
-            </Text>
-            <Text style={styles.headerSub}>Destination • {ride?.departureTime}</Text>
+            {currentUser?.role === 'DRIVER' ? (
+              <>
+                <Text style={styles.headerRoute} numberOfLines={1}>
+                  Heading to {ride?.toCity}
+                </Text>
+                <Text style={styles.headerSub}>Destination • {ride?.departureTime}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.headerRoute} numberOfLines={1}>
+                  Trip to {ride?.toCity}
+                </Text>
+                <Text style={styles.headerSub}>Active Trip • Tracking Driver</Text>
+              </>
+            )}
           </View>
           <StatusBadge status="in_progress" label="Ongoing" />
         </View>
       </View>
 
-      {/* Bottom Panel */}
+
+      {/* Role-Based Bottom Panel */}
       <View style={styles.bottomPanel}>
         <View style={styles.handle} />
         
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Passengers</Text>
-            <Text style={styles.statValue}>{confirmedBookings.length}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Total Earned</Text>
-            <Text style={styles.statValue}>Rs {ride?.bookedSeats * ride?.pricePerSeat}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.passengerHeader}>Onboard Passengers ({confirmedBookings.length})</Text>
-        
-        <FlatList
-          data={confirmedBookings}
-          keyExtractor={item => item.id}
-          style={styles.passengerList}
-          renderItem={({ item }) => (
-            <View style={styles.passengerItem}>
-              <Avatar name={item.passenger?.name} size={40} />
-              <View style={styles.passengerInfo}>
-                <Text style={styles.passengerName}>{item.passenger?.name}</Text>
-                <Text style={styles.passengerDetail}>
-                  {item.seats} seat(s) • {item.boardingCity || ride.fromCity}
-                </Text>
+        {currentUser?.role === 'DRIVER' ? (
+          // ─── DRIVER VIEW ───
+          <>
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Passengers</Text>
+                <Text style={styles.statValue}>{confirmedBookings.length}</Text>
               </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Total Earned</Text>
+                <Text style={styles.statValue}>Rs {ride?.bookedSeats * ride?.pricePerSeat}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.passengerHeader}>Onboard Passengers ({confirmedBookings.length})</Text>
+            
+            <FlatList
+              data={confirmedBookings}
+              keyExtractor={item => item.id}
+              style={styles.passengerList}
+              renderItem={({ item }) => (
+                <View style={styles.passengerItem}>
+                  <Avatar name={item.passenger?.name} size={40} />
+                  <View style={styles.passengerInfo}>
+                    <Text style={styles.passengerName}>{item.passenger?.name}</Text>
+                    <Text style={styles.passengerDetail}>
+                      {item.seats} seat(s) • {item.boardingCity || ride.fromCity}
+                    </Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.callBtn}
+                    onPress={() => handleCall(item.passenger?.phone)}
+                  >
+                    <Ionicons name="call" size={20} color={COLORS.primary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.emptyPassengers}>No confirmed passengers yet.</Text>
+              }
+            />
+
+            <View style={styles.finishBtnContainer}>
               <TouchableOpacity 
-                style={styles.callBtn}
-                onPress={() => handleCall(item.passenger?.phone)}
+                style={styles.finishBtn} 
+                onPress={handleFinishRide}
+                disabled={isFinishing}
+                activeOpacity={0.8}
               >
-                <Ionicons name="call" size={20} color={COLORS.primary} />
+                {isFinishing ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="flag-outline" size={22} color="#fff" />
+                    <Text style={styles.finishBtnText}>Finish Ride Session</Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
-          )}
-          ListEmptyComponent={
-            <Text style={styles.emptyPassengers}>No confirmed passengers yet.</Text>
-          }
-        />
-
-        {currentUser?.role === 'DRIVER' ? (
-          <View style={styles.finishBtnContainer}>
-            <TouchableOpacity 
-              style={styles.finishBtn} 
-              onPress={handleFinishRide}
-              disabled={isFinishing}
-              activeOpacity={0.8}
-            >
-              {isFinishing ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="flag-outline" size={22} color="#fff" />
-                  <Text style={styles.finishBtnText}>Finish Ride Session</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+          </>
         ) : (
-          <View style={styles.finishBtnContainer}>
-            <TouchableOpacity 
-              style={[styles.finishBtn, { backgroundColor: COLORS.primary }]} 
-              onPress={() => handleCall(ride?.driver?.phone)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="call-outline" size={22} color="#fff" />
-              <Text style={styles.finishBtnText}>Contact Driver</Text>
-            </TouchableOpacity>
-          </View>
+          // ─── PASSENGER VIEW (No Earnings) ───
+          <>
+            <View style={styles.driverCard}>
+              <Avatar name={ride?.driver?.name} size={60} />
+              <View style={styles.driverInfo}>
+                <Text style={styles.driverName}>{ride?.driver?.name}</Text>
+                <View style={styles.driverSubRow}>
+                  <Text style={styles.carDetail}>
+                    {ride?.vehicle?.type || 'Vehicle'} • {ride?.vehicle?.plateNumber || 'TBD'}
+                  </Text>
+                  <View style={styles.ratingBadge}>
+                    <Ionicons name="star" size={12} color="#f59e0b" />
+                    <Text style={styles.ratingText}>4.9</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.safetyRow}>
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.sosBtn]}
+                onPress={() => handleCall('1122')}
+              >
+                <Ionicons name="warning" size={24} color="#fff" />
+                <Text style={styles.actionBtnText}>SOS</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.callDriverBtn]}
+                onPress={() => handleCall(ride?.driver?.phone)}
+              >
+                <Ionicons name="call" size={24} color="#fff" />
+                <Text style={styles.actionBtnText}>Call Driver</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle-outline" size={20} color={COLORS.gray} />
+              <Text style={styles.infoBoxText}>
+                The driver is currently navigating towards the destination. Your location is being shared for safety.
+              </Text>
+            </View>
+          </>
         )}
       </View>
+
+      {/* Rating Flow for Driver */}
+      {ratingTargetIndex >= 0 && ratingTargetIndex < confirmedBookings.length && (
+        <ReviewModal
+          visible={true}
+          onClose={() => {
+            if (ratingTargetIndex === confirmedBookings.length - 1) {
+              setRatingTargetIndex(-1);
+              navigation.replace('MyRides');
+            } else {
+              setRatingTargetIndex(ratingTargetIndex + 1);
+            }
+          }}
+          onSubmit={() => {
+            if (ratingTargetIndex === confirmedBookings.length - 1) {
+              setRatingTargetIndex(-1);
+              navigation.replace('MyRides');
+            } else {
+              setRatingTargetIndex(ratingTargetIndex + 1);
+            }
+          }}
+          rideId={rideId}
+          revieweeId={confirmedBookings[ratingTargetIndex].passengerId}
+          revieweeName={confirmedBookings[ratingTargetIndex].passenger?.name || 'Passenger'}
+          targetRole="PASSENGER"
+          routeLabel={`${ride?.fromCity} → ${ride?.toCity}`}
+          routeDate={ride?.date}
+        />
+      )}
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
@@ -480,5 +568,63 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2, shadowRadius: 10, elevation: 5
-  }
+  },
+  
+  // Passenger Specific Styles
+  driverCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 25,
+    marginBottom: 20
+  },
+  driverInfo: { flex: 1, marginLeft: 15 },
+  driverName: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  driverSubRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 10 },
+  carDetail: { fontSize: 13, color: COLORS.gray, fontWeight: '500' },
+  ratingBadge: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#fffbeb', 
+    paddingHorizontal: 8, 
+    paddingVertical: 2, 
+    borderRadius: 8,
+    gap: 4
+  },
+  ratingText: { fontSize: 12, fontWeight: '700', color: '#d97706' },
+  
+  safetyRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 25,
+    gap: 15,
+    marginBottom: 20
+  },
+  actionBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8
+  },
+  sosBtn: { backgroundColor: '#ff4b5c', shadowColor: '#ff4b5c' },
+  callDriverBtn: { backgroundColor: COLORS.primary, shadowColor: COLORS.primary },
+  actionBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#f8faff',
+    marginHorizontal: 25,
+    padding: 15,
+    borderRadius: 15,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#eef2f8'
+  },
+  infoBoxText: { flex: 1, fontSize: 12, color: COLORS.gray, lineHeight: 18, fontWeight: '500' }
 });
+

@@ -188,9 +188,10 @@ export const notificationsApi = {
 
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 export const reviewsApi = {
-  forDriver: (driverId) => request('GET', `/reviews?driverId=${driverId}`),
+  forUser: (userId) => request('GET', `/reviews/user/${userId}`),
   submit: (reviewData) => request('POST', '/reviews', reviewData),
 };
+
 
 // ─── Verification ────────────────────────────────────────────────────────────
 export const verificationApi = {
@@ -210,6 +211,12 @@ export const scheduleAlertsApi = {
 export const earningsApi = {
   summary: (period) => request('GET', `/earnings?period=${period || 'all'}`),
 };
+
+// ─── Chat ────────────────────────────────────────────────────────────────────
+export const chatApi = {
+  getHistory: (bookingId) => request('GET', `/chat/${bookingId}`),
+};
+
 
 // ─── Image Upload ─────────────────────────────────────────────────────────────
 export const uploadApi = {

@@ -264,8 +264,13 @@ export default function BookingHistoryScreen({ navigation }) {
                 ...b,
                 ride: b.ride ? { ...b.ride, from: b.ride.fromCity || b.ride.from, to: b.ride.toCity || b.ride.to } : null,
             });
-            const items = bookingsArray.map(normalize);
+            const items = bookingsArray.map(normalize).filter(b => 
+                b.status === 'PENDING' || 
+                b.status === 'CONFIRMED' || 
+                (b.ride?.status === 'IN_PROGRESS' && b.status !== 'CANCELLED')
+            );
             setBookings(prev => replace ? items : [...prev, ...items]);
+
             setHasMore(apiData?.meta?.hasNext ?? (responseBody?.meta?.hasNext ?? false));
             setPage(pageNum);
         } catch (err) {
@@ -291,8 +296,9 @@ export default function BookingHistoryScreen({ navigation }) {
             setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, ride: { ...b.ride, status: 'IN_PROGRESS' } } : b));
         });
         socketService.on('RIDE_COMPLETED', (data) => {
-            setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, status: 'COMPLETED', ride: { ...b.ride, status: 'COMPLETED' } } : b));
+            setBookings(prev => prev.filter(b => b.rideId !== data.rideId));
         });
+
 
         return () => {
             socketService.off('BOOKING_ACCEPTED');
@@ -430,6 +436,18 @@ export default function BookingHistoryScreen({ navigation }) {
                         <Text style={styles.amountValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
                     </View>
                     <View style={styles.footerActions}>
+                        {/* Join Live Map button for active in-progress bookings */}
+                        {isInProgress && isActive && (
+                            <TouchableOpacity
+                                style={styles.joinMapBtn}
+                                onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}
+                            >
+                                <LinearGradient colors={GRADIENTS.primary as any} style={styles.joinMapGrad}>
+                                    <Ionicons name="map" size={16} color="#fff" />
+                                    <Text style={styles.joinMapText}>JOIN LIVE MAP</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        )}
                         {/* SOS button for active bookings */}
                         {isInProgress && (
                             <TouchableOpacity style={styles.sosBtn} onPress={() => setSosVisible(true)}>
@@ -444,8 +462,23 @@ export default function BookingHistoryScreen({ navigation }) {
                                 <Text style={styles.cancelBtnText}>Cancel</Text>
                             </TouchableOpacity>
                         )}
+                        {/* Chat button for confirmed bookings */}
+                        {isActive && (
+                            <TouchableOpacity
+                                style={styles.chatBtn}
+                                onPress={() => navigation.navigate('Chat', { 
+                                    bookingId: item.id, 
+                                    otherUser: ride.driver,
+                                    rideInfo: { label: `${fromCity} → ${toCity}` }
+                                })}
+                            >
+                                <Ionicons name="chatbubble-ellipses-outline" size={15} color={COLORS.primary} />
+                                <Text style={styles.chatBtnText}>Chat</Text>
+                            </TouchableOpacity>
+                        )}
                         {/* Rate driver button */}
                         {canReview && (
+
                             <TouchableOpacity
                                 style={styles.rateBtn}
                                 onPress={() => setReviewBooking(item)}
@@ -454,6 +487,7 @@ export default function BookingHistoryScreen({ navigation }) {
                                 <Text style={styles.rateBtnText}>Rate Driver</Text>
                             </TouchableOpacity>
                         )}
+
                     </View>
                 </View>
             </View>
@@ -567,7 +601,14 @@ const styles = StyleSheet.create({
     cancelBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.danger },
     rateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fffbeb', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#f59e0b40' },
     rateBtnText: { fontSize: 13, fontWeight: '700', color: '#d97706' },
+    chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary + '30' },
+    chatBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+    joinMapBtn: { borderRadius: 10, overflow: 'hidden', marginLeft: 5 },
+
+    joinMapGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
+    joinMapText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 });
+
 
 // ─── Review modal styles ──────────────────────────────────────────────────────
 const rStyles = StyleSheet.create({
