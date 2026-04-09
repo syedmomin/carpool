@@ -10,15 +10,27 @@ class LocationService {
 
   constructor() {
     if (process.env.REDIS_URL) {
-      try {
-        this.redis = new Redis(process.env.REDIS_URL);
+      this.redis = new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        reconnectOnError: (err) => {
+          const targetError = 'READONLY';
+          if (err.message.includes(targetError)) return true;
+          return false;
+        },
+      });
+
+      this.redis.on('connect', () => {
         console.log('✅ Redis connected for Location Service');
-      } catch (err) {
-        console.warn('⚠️ Redis connection failed, falling back to in-memory map.');
-      }
+      });
+
+      this.redis.on('error', (err) => {
+        console.error('❌ Redis Error:', err.message);
+      });
     } else {
       console.log('⚠️ No REDIS_URL provided, using in-memory map for locations.');
     }
+
 
     // Every 15 seconds, save accumulated locations to DB to prevent flooding
     this.persistenceInterval = setInterval(() => this.persistLocations(), 15000);
