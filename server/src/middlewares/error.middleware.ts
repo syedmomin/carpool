@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/AppError';
 import { ResponseUtil } from '../utils/response';
+import { logger } from '../utils/logger';
 
 // ─── Global Error Handler ─────────────────────────────────────────────────────
 export const errorHandler = (
@@ -9,6 +10,9 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ): void => {
+  // Log every error to error.log
+  logger.logError(err, _req);
+
   // Known operational error
   if (err instanceof AppError) {
     ResponseUtil.error(res, err.message, err.statusCode, err.errors);
