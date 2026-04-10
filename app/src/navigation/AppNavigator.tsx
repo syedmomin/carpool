@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: width,
-    backgroundColor: '#e2e2e24c',
+    backgroundColor: COLORS.primaryLight,
     elevation: 0,
   },
   svgWrapper: {
@@ -215,7 +215,9 @@ function DriverDashboardStack() {
       <UserDashboardStack.Screen name="MyVehicles" component={MyVehiclesScreen} />
       <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
       <UserDashboardStack.Screen name="Earnings" component={EarningsScreen} />
+      <UserDashboardStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
     </UserDashboardStack.Navigator>
+
   );
 }
 
@@ -227,7 +229,9 @@ function DriverRidesStack() {
       <UserRidesStack.Screen name="PostRide" component={PostRideScreen} />
       <UserRidesStack.Screen name="RideBookings" component={RideBookingsScreen} />
       <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
+      <UserRidesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
     </UserRidesStack.Navigator>
+
   );
 }
 

@@ -6,7 +6,7 @@ import { COLORS, GRADIENTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
-const MENU_ITEMS = [
+const getMenuItems = (userRole: string) => [
   {
     section: 'Account', items: [
       { icon: 'person-outline', label: 'Edit Profile', screen: 'EditProfile', color: COLORS.primary },
@@ -37,6 +37,7 @@ const MENU_ITEMS = [
     ]
   },
 ];
+
 
 // ─── Verification Progress Section ────────────────────────────────────────────
 function VerificationProgress({ user, onNavigate }) {
@@ -177,7 +178,8 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       {/* Menu */}
-      {MENU_ITEMS.map((section, si) => (
+      {getMenuItems(userRole).map((section, si) => (
+
         <View key={si} style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>{section.section}</Text>
           <View style={styles.menuGroup}>

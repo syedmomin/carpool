@@ -12,7 +12,7 @@ class SocketService {
   public socket: Socket | null = null;
   // Use the deployed URL for the socket connection
   // private readonly URL = process.env.EXPO_PUBLIC_API_URL || 'https://app-server-liard-one.vercel.app';
-  private readonly URL = 'https://carpool.bonto.run/api';
+  private readonly URL = 'https://carpool.bonto.run';
 
 
   connect(): void {
