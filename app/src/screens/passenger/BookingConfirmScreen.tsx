@@ -22,10 +22,10 @@ export default function BookingConfirmScreen({ navigation, route }) {
     <View style={styles.container}>
       <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
         <View style={styles.successIcon}>
-          <Ionicons name="checkmark-circle" size={70} color="#fff" />
+          <Ionicons name="send" size={60} color="#fff" />
         </View>
-        <Text style={styles.successTitle}>Booking Confirmed!</Text>
-        <Text style={styles.successSub}>Your seat has been successfully booked</Text>
+        <Text style={styles.successTitle}>Booking Request Sent!</Text>
+        <Text style={styles.successSub}>Waiting for driver to accept your request</Text>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.body}>
@@ -33,7 +33,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
           {/* Ticket Header */}
           <View style={styles.ticketHeader}>
             <Ionicons name="ticket-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.ticketTitle}>Booking Ticket</Text>
+            <Text style={styles.ticketTitle}>Booking Request Ticket</Text>
             <Text style={styles.bookingId}>#BK{Date.now().toString().slice(-6)}</Text>
           </View>
 
@@ -85,7 +85,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
         {/* Info Box */}
         <View style={styles.infoBox}>
           <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.infoText}>The driver will call you 1 hour before departure. Please arrive at the pickup point on time.</Text>
+          <Text style={styles.infoText}>Your request has been sent to the driver. You will receive a notification once the driver accepts or rejects your booking.</Text>
         </View>
 
         <PrimaryButton

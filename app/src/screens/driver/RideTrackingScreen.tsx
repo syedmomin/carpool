@@ -71,7 +71,13 @@ export default function RideTrackingScreen({ route, navigation }) {
           title: 'Ride Completed! ⭐',
           message: 'The driver has completed the trip. Hope you had a safe journey!',
           confirmText: 'Go Back',
-          onConfirm: () => navigation.replace(currentUser?.role === 'DRIVER' ? 'MyRides' : 'BookingHistory'),
+          onConfirm: () => {
+             if (currentUser?.role === 'DRIVER') {
+               navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
+             } else {
+               navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' });
+             }
+          },
         });
       }
     });
@@ -174,7 +180,7 @@ export default function RideTrackingScreen({ route, navigation }) {
             if (confirmedBookings.length > 0) {
               setRatingTargetIndex(0);
             } else {
-              navigation.replace('MyRides');
+              navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
             }
           }
 
@@ -392,7 +398,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           onClose={() => {
             if (ratingTargetIndex === confirmedBookings.length - 1) {
               setRatingTargetIndex(-1);
-              navigation.replace('MyRides');
+              navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
             } else {
               setRatingTargetIndex(ratingTargetIndex + 1);
             }
@@ -400,7 +406,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           onSubmit={() => {
             if (ratingTargetIndex === confirmedBookings.length - 1) {
               setRatingTargetIndex(-1);
-              navigation.replace('MyRides');
+              navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
             } else {
               setRatingTargetIndex(ratingTargetIndex + 1);
             }

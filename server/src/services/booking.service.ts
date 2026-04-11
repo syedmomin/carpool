@@ -12,8 +12,8 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
   protected get modelName() { return 'Booking'; }
 
   async bookRide(rideId: string, passengerId: string, seats: number, data?: any): Promise<Booking> {
-    // Atomic transaction — prevents double booking
-    return prisma.$transaction(async (tx) => {
+    // Atomic transaction — only critical DB operations (prevents double booking)
+    const result = await prisma.$transaction(async (tx) => {
       const ride = await tx.ride.findUnique({ where: { id: rideId } });
       if (!ride)                        throw AppError.notFound('Ride not found');
       if (ride.status !== 'ACTIVE')     throw AppError.badRequest('Ride is no longer active');
@@ -55,44 +55,6 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         },
       });
 
-      // Real-time Socket sync (Notify Driver)
-      const { emitToUser } = await import('../socket');
-      emitToUser(ride.driverId, 'BOOKING_REQUESTED', {
-        bookingId: booking.id,
-        rideId,
-        passengerId,
-        seats,
-        message: 'New ride request received'
-      });
-
-      // Push notification — even if app is closed
-      const passenger = await tx.user.findUnique({
-        where:  { id: passengerId },
-        select: { fcmToken: true },
-      });
-      if (passenger?.fcmToken) {
-        await sendPushNotification(
-          passenger.fcmToken,
-          'Booking Request Sent! 📩',
-          `Your ${ride.fromCity} → ${ride.toCity} request is pending driver approval.`,
-          { rideId, screen: 'BookingHistory' },
-        );
-      }
-
-      // Notify driver about new passenger
-      const driver = await tx.user.findUnique({
-        where:  { id: ride.driverId },
-        select: { fcmToken: true },
-      });
-      if (driver?.fcmToken) {
-        await sendPushNotification(
-          driver.fcmToken,
-          'New Booking! 🚗',
-          `${seats} seat(s) booked on your ${ride.fromCity} → ${ride.toCity} ride`,
-          { rideId, screen: 'MyRides' },
-        );
-      }
-
       // Re-fetch booking with full nested data
       const full = await tx.booking.findUnique({
         where:   { id: booking.id },
@@ -105,12 +67,59 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
           },
         },
       });
-      return full || booking;
-    });
+
+      return { booking: full || booking, ride };
+    }, { maxWait: 10000, timeout: 15000 });
+
+    // ─── Side-effects AFTER transaction commit (non-blocking) ─────────────
+    const { booking, ride } = result;
+
+    // Real-time Socket sync (Notify Driver)
+    try {
+      const { emitToUser } = await import('../socket');
+      emitToUser(ride.driverId, 'BOOKING_REQUESTED', {
+        bookingId: booking.id,
+        rideId,
+        passengerId,
+        seats,
+        message: 'New ride request received'
+      });
+    } catch (e) { console.error('Socket emit failed:', e); }
+
+    // Push notifications — fire and forget
+    try {
+      const passenger = await prisma.user.findUnique({
+        where:  { id: passengerId },
+        select: { fcmToken: true },
+      });
+      if (passenger?.fcmToken) {
+        sendPushNotification(
+          passenger.fcmToken,
+          'Booking Request Sent! 📩',
+          `Your ${ride.fromCity} → ${ride.toCity} request is pending driver approval.`,
+          { rideId, screen: 'BookingHistory' },
+        ).catch(e => console.error('Push to passenger failed:', e));
+      }
+
+      const driver = await prisma.user.findUnique({
+        where:  { id: ride.driverId },
+        select: { fcmToken: true },
+      });
+      if (driver?.fcmToken) {
+        sendPushNotification(
+          driver.fcmToken,
+          'New Booking! 🚗',
+          `${seats} seat(s) booked on your ${ride.fromCity} → ${ride.toCity} ride`,
+          { rideId, screen: 'MyRides' },
+        ).catch(e => console.error('Push to driver failed:', e));
+      }
+    } catch (e) { console.error('Push notification failed:', e); }
+
+    return booking;
   }
 
   async acceptBooking(bookingId: string, driverId: string): Promise<Booking> {
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
         where: { id: bookingId },
         include: { ride: true }
@@ -124,14 +133,6 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         data: { status: 'CONFIRMED' },
       });
 
-      // Real-time Socket sync (Notify Passenger)
-      const { emitToUser } = await import('../socket');
-      emitToUser(booking.passengerId, 'BOOKING_ACCEPTED', {
-        bookingId,
-        rideId: booking.rideId,
-        status: 'CONFIRMED'
-      });
-
       // Notify passenger record
       await tx.notification.create({
         data: {
@@ -143,25 +144,41 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         },
       });
 
-      const passenger = await tx.user.findUnique({
+      return { updated, booking };
+    }, { maxWait: 10000, timeout: 15000 });
+
+    // ─── Side-effects AFTER transaction commit ─────────────────────────────
+    const { updated, booking } = result;
+
+    try {
+      const { emitToUser } = await import('../socket');
+      emitToUser(booking.passengerId, 'BOOKING_ACCEPTED', {
+        bookingId,
+        rideId: booking.rideId,
+        status: 'CONFIRMED'
+      });
+    } catch (e) { console.error('Socket emit failed:', e); }
+
+    try {
+      const passenger = await prisma.user.findUnique({
         where: { id: booking.passengerId },
         select: { fcmToken: true },
       });
       if (passenger?.fcmToken) {
-        await sendPushNotification(
+        sendPushNotification(
           passenger.fcmToken,
           'Booking Confirmed! 🎉',
           `Your ${booking.ride.fromCity} → ${booking.ride.toCity} seat is confirmed!`,
           { rideId: booking.rideId, screen: 'BookingHistory' },
-        );
+        ).catch(e => console.error('Push to passenger failed:', e));
       }
+    } catch (e) { console.error('Push notification failed:', e); }
 
-      return updated;
-    });
+    return updated;
   }
 
   async rejectBooking(bookingId: string, driverId: string): Promise<Booking> {
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({
         where: { id: bookingId },
         include: { ride: true }
@@ -173,14 +190,6 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       const updated = await tx.booking.update({
         where: { id: bookingId },
         data: { status: 'REJECTED' },
-      });
-
-      // Real-time Socket sync (Notify Passenger)
-      const { emitToUser } = await import('../socket');
-      emitToUser(booking.passengerId, 'BOOKING_REJECTED', {
-        bookingId,
-        rideId: booking.rideId,
-        status: 'REJECTED'
       });
 
       // Release seats
@@ -200,26 +209,42 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         },
       });
 
-      const passenger = await tx.user.findUnique({
+      return { updated, booking };
+    }, { maxWait: 10000, timeout: 15000 });
+
+    // ─── Side-effects AFTER transaction commit ─────────────────────────────
+    const { updated, booking } = result;
+
+    try {
+      const { emitToUser } = await import('../socket');
+      emitToUser(booking.passengerId, 'BOOKING_REJECTED', {
+        bookingId,
+        rideId: booking.rideId,
+        status: 'REJECTED'
+      });
+    } catch (e) { console.error('Socket emit failed:', e); }
+
+    try {
+      const passenger = await prisma.user.findUnique({
         where: { id: booking.passengerId },
         select: { fcmToken: true },
       });
       if (passenger?.fcmToken) {
-        await sendPushNotification(
+        sendPushNotification(
           passenger.fcmToken,
           'Booking Rejected ❌',
           `Sorry, your request for ${booking.ride.fromCity} → ${booking.ride.toCity} was rejected.`,
           { rideId: booking.rideId, screen: 'BookingHistory' },
-        );
+        ).catch(e => console.error('Push to passenger failed:', e));
       }
+    } catch (e) { console.error('Push notification failed:', e); }
 
-      return updated;
-    });
+    return updated;
   }
 
 
   async cancelBooking(bookingId: string, userId: string, reason?: string): Promise<Booking> {
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({ where: { id: bookingId } });
       if (!booking)                         throw AppError.notFound('Booking not found');
       if (booking.passengerId !== userId)   throw AppError.forbidden('Not your booking');
@@ -240,8 +265,14 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         data:  { bookedSeats: { decrement: booking.seats } },
       });
 
-      // Push to driver about cancellation
-      const driver = await tx.user.findUnique({
+      return { updated, booking, ride };
+    }, { maxWait: 10000, timeout: 15000 });
+
+    // ─── Side-effects AFTER transaction commit ─────────────────────────────
+    const { updated, booking, ride } = result;
+
+    try {
+      const driver = await prisma.user.findUnique({
         where:  { id: ride.driverId },
         select: { fcmToken: true },
       });
@@ -250,16 +281,16 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
           ? `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride. Reason: ${reason}`
           : `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride`;
           
-        await sendPushNotification(
+        sendPushNotification(
           driver.fcmToken,
           'Booking Cancelled ❌',
           msg,
           { rideId: ride.id, screen: 'MyRides' },
-        );
+        ).catch(e => console.error('Push to driver failed:', e));
       }
+    } catch (e) { console.error('Push notification failed:', e); }
 
-      return updated;
-    });
+    return updated;
   }
 
   async getMyBookings(passengerId: string, page = 1, limit = 10) {

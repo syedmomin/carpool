@@ -261,7 +261,6 @@ function CommonProfileStack() {
       <UserProfileStack.Screen name="RideHistory" component={RideHistoryScreen} />
       <UserProfileStack.Screen name="PastBookings" component={PastBookingsScreen} />
       <UserProfileStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-      <UserProfileStack.Screen name="Chat" component={ChatScreen} />
     </UserProfileStack.Navigator>
 
 
@@ -402,6 +401,7 @@ export default function AppNavigator({ navigationRef }: any) {
             <>
               <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
               <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
             </>
           )
         ) : (

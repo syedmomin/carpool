@@ -12,7 +12,7 @@ import { socketService } from '../../services/socket.service';
 import { chatApi } from '../../services/api';
 
 export default function ChatScreen({ route, navigation }) {
-  const { bookingId, otherUser, rideInfo } = route.params;
+  const { bookingId, otherUser, rideInfo } = route.params || {};
   const { currentUser } = useApp();
   const { showToast } = useToast();
 
@@ -109,8 +109,8 @@ export default function ChatScreen({ route, navigation }) {
         </TouchableOpacity>
         <Avatar name={otherUser?.name} size={36} />
         <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{otherUser?.name}</Text>
-          <Text style={styles.headerRide} numberOfLines={1}>{rideInfo?.label || 'Direct Chat'}</Text>
+          <Text style={styles.headerName}>{otherUser?.name || 'User'}</Text>
+          <Text style={styles.headerRide} numberOfLines={1}>{rideInfo?.label || 'Trip Details'}</Text>
         </View>
       </View>
 

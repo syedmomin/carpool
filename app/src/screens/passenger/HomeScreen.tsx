@@ -10,6 +10,9 @@ import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
 import { searchPakistanLocations } from '../../utils/locationSearch';
 
+import { socketService } from '../../services/socket.service';
+import { useToast } from '../../context/ToastContext';
+
 const { width } = Dimensions.get('window');
 
 function getUpcomingDates() {
@@ -102,6 +105,17 @@ function CitySearchModal({ visible, title, onSelect, onClose }) {
 
 export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    socketService.on('NEW_RIDE', (data) => {
+      showToast(`New Ride: ${data.from} → ${data.to} by ${data.driverName}`, 'info');
+    });
+
+    return () => {
+      socketService.off('NEW_RIDE');
+    };
+  }, []);
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);

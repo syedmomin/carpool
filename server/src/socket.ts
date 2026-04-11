@@ -97,6 +97,15 @@ export const emitToRideRoom = (rideId: string, event: string, data: any) => {
   io.to(`ride_${rideId}`).emit(event, data);
 };
 
+/**
+ * Broadcast an event to ALL connected clients
+ */
+export const broadcastEvent = (event: string, data: any) => {
+  if (!io) return;
+  console.log(`[Socket] Broadcasting ${event} to all users`);
+  io.emit(event, data);
+};
+
 export const getIO = () => {
   if (!io) {
     throw new Error('Socket.IO is not initialized');

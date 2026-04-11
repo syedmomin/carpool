@@ -1,9 +1,11 @@
 // ─── Centralized Network Configuration ───────────────────────────────────────
 // Automatically resolves the correct server URL:
-//   • DEV  → uses your laptop's LAN IP (detected from Expo dev server)
-//   • PROD → uses the deployed domain
+//   • DEV (mobile) → uses your laptop's LAN IP (detected from Expo dev server)
+//   • DEV (web)    → uses localhost (browser is on the same machine)
+//   • PROD         → uses the deployed domain
 // ──────────────────────────────────────────────────────────────────────────────
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 // ─── Production URL (deployed backend) ────────────────────────────────────────
 const PRODUCTION_URL = 'https://carpool.bonto.run';
@@ -16,10 +18,16 @@ const DEV_SERVER_PORT = 5000;
  * something like "192.168.100.60:8081".  We strip the Expo port and
  * replace it with the backend port → "http://192.168.100.60:5000".
  *
- * This means your phone auto-connects to the same machine running
- * `npx expo start`, with ZERO manual IP changes.
+ * On Web, hostUri is not available, but localhost works directly
+ * because the browser runs on the same machine as the server.
  */
 function getDevServerUrl(): string {
+  // Web browser → same machine as server → localhost works directly
+  if (Platform.OS === 'web') {
+    return `http://localhost:${DEV_SERVER_PORT}`;
+  }
+
+  // Mobile (Expo Go / dev-client) → extract LAN IP from Expo
   const hostUri = Constants.expoConfig?.hostUri; // e.g. "192.168.100.60:8081"
 
   if (hostUri) {
@@ -42,4 +50,4 @@ export const SERVER_URL: string = isDev ? getDevServerUrl() : PRODUCTION_URL;
 export const API_BASE_URL: string = `${SERVER_URL}/api/v1`;
 
 // Log once at startup so you always know which backend you're hitting
-console.log(`🌐 Network config → ${isDev ? 'DEV' : 'PROD'} → ${SERVER_URL}`);
+console.log(`🌐 Network config → ${isDev ? 'DEV' : 'PROD'} | ${Platform.OS} → ${SERVER_URL}`);

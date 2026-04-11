@@ -24,9 +24,9 @@ class LocationService {
 
     const subscription = await Location.watchPositionAsync(
       {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 5000,
-        distanceInterval: 10,
+        accuracy: Location.Accuracy.Highest,
+        timeInterval: 2000,
+        distanceInterval: 5,
       },
       (location) => {
         callback(location);

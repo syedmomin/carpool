@@ -240,6 +240,19 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       }
     }
 
+    // Broadcast via socket to all passengers
+    try {
+      const { broadcastEvent } = await import('../socket');
+      broadcastEvent('NEW_RIDE', {
+        id: ride.id,
+        from: ride.fromCity,
+        to: ride.toCity,
+        date: ride.date,
+        price: ride.pricePerSeat,
+        driverName: ride.driver.name
+      });
+    } catch (e) { console.error('Socket broadcast failed:', e); }
+
     return withRating(ride);
   }
 

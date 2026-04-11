@@ -146,7 +146,7 @@ export default function RideBookingsScreen({ navigation, route }) {
               onPress={() => navigation.navigate('Chat', { 
                 bookingId: item.id, 
                 otherUser: p,
-                rideInfo: { label: `${ride.from} → ${ride.to}` }
+                rideInfo: { label: `${ride?.fromCity || ride?.from} → ${ride?.toCity || ride?.to}` }
               })}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.primary} />

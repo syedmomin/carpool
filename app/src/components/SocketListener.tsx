@@ -41,7 +41,9 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         title: 'Booking Confirmed! 🎉',
         message: 'Your seat has been confirmed by the driver. You can view the details in My Bookings.',
         confirmText: 'View Details',
-        onConfirm: () => navigationRef.current?.navigate('BookingHistory'),
+        onConfirm: () => navigationRef.current?.navigate('PassengerApp', { 
+          screen: 'BookingHistoryTab' 
+        }),
       });
     });
 

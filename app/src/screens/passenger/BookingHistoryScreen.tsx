@@ -469,7 +469,7 @@ export default function BookingHistoryScreen({ navigation }) {
                                 onPress={() => navigation.navigate('Chat', { 
                                     bookingId: item.id, 
                                     otherUser: ride.driver,
-                                    rideInfo: { label: `${fromCity} → ${toCity}` }
+                                    rideInfo: { label: `${ride.fromCity} → ${ride.toCity}` }
                                 })}
                             >
                                 <Ionicons name="chatbubble-ellipses-outline" size={15} color={COLORS.primary} />

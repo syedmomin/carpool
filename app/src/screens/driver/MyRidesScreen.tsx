@@ -11,8 +11,8 @@ import { socketService } from '../../services/socket.service';
 
 const PAGE_SIZE = 10;
 const TABS = [
-  { value: 0, label: 'Active' },
-  { value: 1, label: 'All' },
+  { value: 0, label: 'Current' },
+  { value: 1, label: 'History' },
 ];
 
 export default function MyRidesScreen({ navigation }) {
@@ -104,7 +104,7 @@ export default function MyRidesScreen({ navigation }) {
 
   const rides = activeTab === 0
     ? allRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS')
-    : allRides;
+    : allRides.filter(r => r.status === 'COMPLETED' || r.status === 'CANCELLED');
 
   const renderRide = ({ item }) => {
     const vehicle = item.vehicle;
@@ -169,7 +169,7 @@ export default function MyRidesScreen({ navigation }) {
             <Text style={styles.actionBtnText}>Passengers ({item.bookedSeats})</Text>
           </TouchableOpacity>
 
-          {/* Start Ride button — prominently shown for today's active rides with bookings */}
+          {/* Start Ride button — prominently shown for today's active rides IF at least one booking is accepted */}
           {isActive && item.bookedSeats > 0 && isToday && (
             <TouchableOpacity
               style={[styles.actionBtn, styles.startBtn]}
