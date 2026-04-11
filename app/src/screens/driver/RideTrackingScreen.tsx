@@ -94,7 +94,7 @@ export default function RideTrackingScreen({ route, navigation }) {
     try {
       const { data, error } = await ridesApi.getById(rideId);
       if (data) {
-        setRide(data);
+        setRide(data.data || data);
       } else {
         showToast(error || 'Failed to load ride details', 'error');
         navigation.goBack();

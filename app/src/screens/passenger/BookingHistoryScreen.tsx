@@ -42,8 +42,14 @@ function ReviewModal({ booking, onClose, onSubmit }) {
     const submit = async () => {
         if (!rating) { showToast('Please select a star rating', 'error'); return; }
         setSubmitting(true);
-        const driverId = booking?.ride?.driver?.id;
-        const { error } = await reviewsApi.submit({ driverId, rating, comment });
+        const revieweeId = booking?.ride?.driver?.id;
+        const { error } = await reviewsApi.submit({ 
+          revieweeId, 
+          rideId: booking?.rideId,
+          targetRole: 'DRIVER', 
+          rating, 
+          comment 
+        });
         setSubmitting(false);
         if (error) showToast(parseApiError(error), 'error');
         else {
