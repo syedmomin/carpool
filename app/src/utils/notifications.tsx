@@ -67,7 +67,9 @@ function navigateTo(navigation, data) {
   switch (data.screen) {
     case 'BookingHistory': navigation.navigate('BookingHistory');                        break;
     case 'RideDetail':     navigation.navigate('RideDetail', { rideId: data.rideId });  break;
-    case 'MyRides':        navigation.navigate('MyRides');                               break;
+    case 'MyRides':
+        navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
+        break;
     case 'Notifications':  navigation.navigate('Notifications');                         break;
     default: break;
   }

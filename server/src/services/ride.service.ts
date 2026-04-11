@@ -247,9 +247,24 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
         id: ride.id,
         from: ride.fromCity,
         to: ride.toCity,
+        fromCity: ride.fromCity, // keeping for compatibility
+        toCity: ride.toCity,     // keeping for compatibility
         date: ride.date,
-        price: ride.pricePerSeat,
-        driverName: ride.driver.name
+        departureTime: ride.departureTime,
+        pricePerSeat: ride.pricePerSeat,
+        totalSeats: ride.totalSeats,
+        bookedSeats: ride.bookedSeats,
+        driver: {
+          id: ride.driver.id,
+          name: ride.driver.name,
+          avatar: (ride.driver as any).avatar
+        },
+        vehicle: ride.vehicle ? {
+          type: ride.vehicle.type,
+          brand: ride.vehicle.brand,
+          model: ride.vehicle.model,
+          plateNumber: ride.vehicle.plateNumber
+        } : null
       });
     } catch (e) { console.error('Socket broadcast failed:', e); }
 

@@ -234,7 +234,7 @@ export default function PostRideScreen({ navigation }) {
       setStops([]);
       setIsMultiStop(false);
       showToast('Ride posted successfully!', 'success');
-      navigation.navigate('MyRides');
+      navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
     } catch (err) {
       showToast('An unexpected error occurred. Please try again.', 'error');
     } finally {

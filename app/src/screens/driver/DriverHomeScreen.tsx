@@ -33,7 +33,7 @@ export default function DriverHomeScreen({ navigation }) {
 
   const QUICK_ACTIONS = [
     { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
-    { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRides', desc: 'Manage bookings' },
+    { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRidesTab', desc: 'Manage bookings' },
     { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehicles', desc: 'Vehicle details' },
     { icon: 'wallet', label: 'Earnings', gradient: GRADIENTS.secondary, screen: 'Earnings', desc: 'View income' },
   ];
@@ -138,7 +138,7 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Recent Rides */}
         {myRides.length > 0 && (
           <>
-            <SectionHeader title="Recent Rides" onSeeAll={() => navigation.navigate('MyRides')} />
+            <SectionHeader title="Recent Rides" onSeeAll={() => navigation.navigate('MyRidesTab')} />
             {myRides.slice(0, 2).map(ride => (
               <View key={ride.id} style={styles.rideCard}>
                 <View style={styles.rideLeft}>
