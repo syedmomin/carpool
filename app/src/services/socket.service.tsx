@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { SERVER_URL } from '../config/network';
 
 export interface LocationPayload {
   rideId: string;
@@ -10,9 +11,7 @@ export interface LocationPayload {
 
 class SocketService {
   public socket: Socket | null = null;
-  // Use the deployed URL for the socket connection
-  // private readonly URL = process.env.EXPO_PUBLIC_API_URL || 'https://app-server-liard-one.vercel.app';
-  private readonly URL = 'https://carpool.bonto.run';
+  private readonly URL = SERVER_URL;
 
 
   connect(): void {

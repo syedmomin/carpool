@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/network';
 import { MapTracker } from '../components/MapTracker';
 import { socketService } from '../services/socket.service';
 import { locationService } from '../services/location.service';
@@ -32,7 +33,7 @@ export const DriverTrackingScreen = () => {
 
   const fetchRoute = async () => {
     try {
-      const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/tracking/route/${rideId}`);
+      const response = await axios.get(`${API_BASE_URL}/tracking/route/${rideId}`);
       if (response.data.success) {
         setRoutePolyline(response.data.data.polyline);
       }

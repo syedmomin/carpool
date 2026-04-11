@@ -42,9 +42,10 @@ async function bootstrap(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('✅ Database connected');
-    httpServer.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 SafariShare API running on port ${PORT} [${ENV}]`);
       console.log(`📍 http://localhost:${PORT}/api/v1/health`);
+      console.log(`📱 LAN: http://0.0.0.0:${PORT} (accessible from mobile)`);
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err);

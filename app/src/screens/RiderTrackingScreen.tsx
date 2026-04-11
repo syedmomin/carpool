@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/network';
 import { MapTracker } from '../components/MapTracker';
 import { socketService } from '../services/socket.service';
 
@@ -38,7 +39,7 @@ export const RiderTrackingScreen = () => {
 
   const fetchRoute = async () => {
     try {
-      const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/tracking/route/${rideId}`);
+      const response = await axios.get(`${API_BASE_URL}/tracking/route/${rideId}`);
       if (response.data.success) {
         setRoutePolyline(response.data.data.polyline);
       }
@@ -51,7 +52,7 @@ export const RiderTrackingScreen = () => {
 
   const fetchLatestLocation = async () => {
     try {
-      const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/tracking/location/${rideId}`);
+      const response = await axios.get(`${API_BASE_URL}/tracking/location/${rideId}`);
       if (response.data.success && response.data.data) {
         setCurrentLocation({
           latitude: response.data.data.latitude,
