@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { chatService } from '../services/chat.service';
-import { ResponseUtil } from '../utils/ResponseUtil';
-import { AuthRequest } from '../middlewares/auth.middleware';
+import { ResponseUtil } from '../utils/response';
+import { AuthRequest } from '../types';
 
 export class ChatController {
   /**
@@ -10,7 +10,7 @@ export class ChatController {
   getHistory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { bookingId } = req.params;
-      const messages = await chatService.getMessages(bookingId);
+      const messages = await chatService.getMessages(bookingId as string);
       ResponseUtil.success(res, messages);
     } catch (err) {
       next(err);
