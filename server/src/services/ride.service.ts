@@ -328,7 +328,14 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       }
 
       const { emitToRideRoom } = await import('../socket');
-      emitToRideRoom(rideId, 'RIDE_COMPLETED', { rideId, status: 'COMPLETED' });
+      emitToRideRoom(rideId, 'RIDE_COMPLETED', { 
+        rideId, 
+        status: 'COMPLETED',
+        driverId: updated.driverId,
+        driverName: updated.driver?.name,
+        routeLabel: `${updated.fromCity} → ${updated.toCity}`,
+        date: updated.date
+      });
 
     } else if (newStatus === 'IN_PROGRESS') {
       const bookings = await prisma.booking.findMany({

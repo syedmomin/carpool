@@ -66,19 +66,14 @@ export default function RideTrackingScreen({ route, navigation }) {
     // 5. Listen for Ride Completion (if someone else ends it)
     socketService.on('RIDE_COMPLETED', (data: any) => {
       if (data.rideId === rideId) {
-        showModal({
-          type: 'success',
-          title: 'Ride Completed! ⭐',
-          message: 'The driver has completed the trip. Hope you had a safe journey!',
-          confirmText: 'Go Back',
-          onConfirm: () => {
-             if (currentUser?.role === 'DRIVER') {
-               navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
-             } else {
-               navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' });
-             }
-          },
-        });
+        if (currentUser?.role === 'DRIVER') {
+           // Driver usually ends the ride themselves, but this handles edge cases
+           navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
+        } else {
+           // Passenger: Show a tailored completion message and navigate back (SocketListener handles the modal)
+           showToast('Journey completed! Share your feedback.', 'success');
+           navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' });
+        }
       }
     });
 

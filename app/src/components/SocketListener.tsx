@@ -59,20 +59,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
 
     // 4. Listen for Ride Started (For Both Passenger and Driver)
     socketService.on('RIDE_STARTED', (data: any) => {
-      // Automatic navigation for a professional 'Absolute Screen' experience
-      showModal({
-        type: 'success', // Use success green for starting
-        title: 'Ride Started! 🏁',
-        message: 'The driver has officially started the journey. Live tracking is now active for your safety.',
-        confirmText: 'JOIN LIVE TRACKING',
-        onConfirm: () => navigationRef.current?.navigate('RideTracking', { rideId: data.rideId }),
-      });
+      showToast('Your ride has started! 🏁', 'success');
       
-      // Auto-navigate after 2 seconds if user doesn't interact (optional UX improvement)
-      const timer = setTimeout(() => {
-        // Only auto-navigate if the modal is still up (can't track modal state easily here, so we just prompt)
-      }, 2000);
-      return () => clearTimeout(timer);
+      // Automatic navigation for a professional 'Absolute Screen' experience
+      if (currentUser?.role === 'PASSENGER') {
+        navigationRef.current?.navigate('RideTracking', { rideId: data.rideId });
+      }
     });
 
 
@@ -82,7 +74,10 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       
       // If user was a passenger in this ride, show rating modal
       if (currentUser?.role === 'PASSENGER') {
-        setCompletedRide(data);
+        setCompletedRide({
+          ...data,
+          targetRole: 'DRIVER'
+        });
       }
     });
 
