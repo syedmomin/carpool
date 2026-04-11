@@ -9,6 +9,8 @@ import { COLORS, GRADIENTS, RideCard, EmptyState, Chip, SearchInput, GradientHea
 import { useApp } from '../../context/AppContext';
 import { searchPakistanLocations } from '../../utils/locationSearch';
 import { ridesApi } from '../../services/api';
+import { socketService } from '../../services/socket.service';
+import { useToast } from '../../context/ToastContext';
 
 const SORT_OPTIONS = ['Price: Low to High', 'Price: High to Low', 'Earliest Departure', 'Highest Rated'];
 
@@ -229,6 +231,7 @@ function timeInSlot(departureTime, slot) {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function SearchScreen({ navigation, route }) {
   const { searchRides } = useApp();
+  const { showToast } = useToast();
   const [allRides, setAllRides] = useState([]);
   const [from, setFrom] = useState(route.params?.from || '');
   const [to, setTo] = useState(route.params?.to || '');
@@ -299,7 +302,17 @@ export default function SearchScreen({ navigation, route }) {
 
   useEffect(() => {
     if (route.params?.from || route.params?.to) doSearch();
-  }, []);
+
+    // Listen for new rides and refresh if the user is currently searching
+    socketService.on('NEW_RIDE', (data) => {
+      console.log('New ride posted, refreshing search results:', data);
+      doSearch();
+    });
+
+    return () => {
+      socketService.off('NEW_RIDE');
+    };
+  }, [doSearch]);
 
   const swapCities = () => { setFrom(to); setTo(from); };
 

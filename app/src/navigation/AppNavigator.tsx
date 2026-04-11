@@ -392,18 +392,15 @@ export default function AppNavigator({ navigationRef }: any) {
       >
         {/* Protected app stacks */}
         {currentUser ? (
-          userRole === 'driver' ? (
-            <>
+          <>
+            {userRole === 'driver' ? (
               <Stack.Screen name="DriverApp" component={DriverTabNav} options={{ animation: 'none' }} />
-              <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
-            </>
-          ) : (
-            <>
+            ) : (
               <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
-              <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
-              <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
-            </>
-          )
+            )}
+            <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

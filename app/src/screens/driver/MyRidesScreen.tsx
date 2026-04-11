@@ -18,7 +18,7 @@ const TABS = [
 export default function MyRidesScreen({ navigation }) {
   const { showModal } = useGlobalModal();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState(1);
+  const [activeTab, setActiveTab] = useState(0);
   const [allRides, setAllRides] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -115,6 +115,48 @@ export default function MyRidesScreen({ navigation }) {
     const isActive = item.status === 'ACTIVE';
     const isInProgress = item.status === 'IN_PROGRESS';
     const isToday = item.date === todayStr;
+
+    // Simplified card for History tab
+    if (activeTab === 1) {
+      return (
+        <TouchableOpacity 
+          style={styles.historyCard}
+          onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}
+        >
+          <View style={styles.cardHeader}>
+            <View style={{ flex: 1 }}>
+              <View style={styles.routeRow}>
+                <View style={styles.cityDot} />
+                <Text style={styles.cityText}>{item.from}</Text>
+              </View>
+              <View style={styles.routeConnector} />
+              <View style={styles.routeRow}>
+                <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
+                <Text style={styles.cityText}>{item.to}</Text>
+              </View>
+            </View>
+            <StatusBadge status={item.status} />
+          </View>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.metaCol}>
+              <View style={styles.metaRow}>
+                <Ionicons name="calendar-outline" size={14} color={COLORS.gray} />
+                <Text style={styles.metaText}>{item.date}</Text>
+              </View>
+              <View style={styles.metaRow}>
+                <Ionicons name="people-outline" size={14} color={COLORS.gray} />
+                <Text style={styles.metaText}>{item.bookedSeats} Passengers</Text>
+              </View>
+            </View>
+            <View style={styles.earningsCol}>
+              <Text style={styles.earningsLabel}>Earnings</Text>
+              <Text style={styles.earningsValue}>Rs {earned.toLocaleString()}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
 
     return (
       <View style={styles.rideCard}>
@@ -345,4 +387,19 @@ const styles = StyleSheet.create({
   startBtnText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 
   fab: { position: 'absolute', bottom: 24, right: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
+
+  // History Card Styles
+  historyCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderWidth: 1, borderColor: '#f0f0f0' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cityDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary },
+  cityText: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  routeConnector: { width: 2, height: 12, backgroundColor: COLORS.border, marginLeft: 3, marginVertical: 4 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
+  metaCol: { gap: 6 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaText: { fontSize: 13, color: COLORS.gray, fontWeight: '600' },
+  earningsCol: { alignItems: 'flex-end' },
+  earningsLabel: { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', marginBottom: 2 },
+  earningsValue: { fontSize: 18, fontWeight: '900', color: COLORS.teal },
 });
