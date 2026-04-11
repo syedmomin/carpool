@@ -27,6 +27,7 @@ router.use('/verification',    verificationRoutes);
 router.use('/earnings',        earningsRoutes);
 router.use('/upload',          uploadRoutes);
 router.use('/tracking',        trackingRoutes);
+router.use('/chat',            chatRoutes);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', env: process.env.NODE_ENV, timestamp: new Date().toISOString() });

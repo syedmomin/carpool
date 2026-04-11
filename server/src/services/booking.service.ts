@@ -8,15 +8,15 @@ type CreateBookingDto = { rideId: string; passengerId: string; seats: number };
 type UpdateBookingDto = { status?: 'CANCELLED' | 'COMPLETED' };
 
 export class BookingService extends BaseService<Booking, CreateBookingDto, UpdateBookingDto> {
-  protected get model()     { return prisma.booking; }
+  protected get model() { return prisma.booking; }
   protected get modelName() { return 'Booking'; }
 
   async bookRide(rideId: string, passengerId: string, seats: number, data?: any): Promise<Booking> {
     // Atomic transaction — only critical DB operations (prevents double booking)
     const result = await prisma.$transaction(async (tx) => {
       const ride = await tx.ride.findUnique({ where: { id: rideId } });
-      if (!ride)                        throw AppError.notFound('Ride not found');
-      if (ride.status !== 'ACTIVE')     throw AppError.badRequest('Ride is no longer active');
+      if (!ride) throw AppError.notFound('Ride not found');
+      if (ride.status !== 'ACTIVE') throw AppError.badRequest('Ride is no longer active');
       if (ride.bookedSeats + seats > ride.totalSeats)
         throw AppError.badRequest(`Only ${ride.totalSeats - ride.bookedSeats} seat(s) available`);
 
@@ -31,9 +31,9 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
           status: 'PENDING',
           totalAmount: ride.pricePerSeat * seats,
           boardingCity: (data as any)?.boardingCity || ride.fromCity,
-          exitCity:     (data as any)?.exitCity     || ride.toCity,
-          boardingOrder:(data as any)?.boardingOrder ?? 0,
-          exitOrder:    (data as any)?.exitOrder     ?? 1,
+          exitCity: (data as any)?.exitCity || ride.toCity,
+          boardingOrder: (data as any)?.boardingOrder ?? 0,
+          exitOrder: (data as any)?.exitOrder ?? 1,
           createdBy: passengerId,
           updatedBy: passengerId,
         },
@@ -41,27 +41,27 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
 
       await tx.ride.update({
         where: { id: rideId },
-        data:  { bookedSeats: { increment: seats } },
+        data: { bookedSeats: { increment: seats } },
       });
 
       // In-app notification record
       await tx.notification.create({
         data: {
-          userId:  passengerId,
-          title:   'Booking Request Sent!',
+          userId: passengerId,
+          title: 'Booking Request Sent!',
           message: `Your request for ${ride.fromCity} → ${ride.toCity} is sent to the driver.`,
-          type:    'BOOKING',
+          type: 'BOOKING',
           rideId,
         },
       });
 
       // Re-fetch booking with full nested data
       const full = await tx.booking.findUnique({
-        where:   { id: booking.id },
+        where: { id: booking.id },
         include: {
           ride: {
             include: {
-              driver:  { select: { id: true, name: true, avatar: true, phone: true, reviewsReceived: { select: { rating: true } } } },
+              driver: { select: { id: true, name: true, avatar: true, phone: true, reviewsReceived: { select: { rating: true } } } },
               vehicle: { select: { id: true, brand: true, model: true, plateNumber: true, type: true, images: true, totalSeats: true, ac: true, wifi: true } },
             },
           },
@@ -89,7 +89,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
     // Push notifications — fire and forget
     try {
       const passenger = await prisma.user.findUnique({
-        where:  { id: passengerId },
+        where: { id: passengerId },
         select: { fcmToken: true },
       });
       if (passenger?.fcmToken) {
@@ -102,7 +102,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       }
 
       const driver = await prisma.user.findUnique({
-        where:  { id: ride.driverId },
+        where: { id: ride.driverId },
         select: { fcmToken: true },
       });
       if (driver?.fcmToken) {
@@ -136,11 +136,11 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       // Notify passenger record
       await tx.notification.create({
         data: {
-          userId:  booking.passengerId,
-          title:   'Booking Confirmed!',
+          userId: booking.passengerId,
+          title: 'Booking Confirmed!',
           message: `Your ${booking.ride.fromCity} → ${booking.ride.toCity} booking is accepted.`,
-          type:    'BOOKING',
-          rideId:  booking.rideId,
+          type: 'BOOKING',
+          rideId: booking.rideId,
         },
       });
 
@@ -201,11 +201,11 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       // Notify passenger record
       await tx.notification.create({
         data: {
-          userId:  booking.passengerId,
-          title:   'Booking Rejected',
+          userId: booking.passengerId,
+          title: 'Booking Rejected',
           message: `Your request for ${booking.ride.fromCity} → ${booking.ride.toCity} was not accepted.`,
-          type:    'BOOKING',
-          rideId:  booking.rideId,
+          type: 'BOOKING',
+          rideId: booking.rideId,
         },
       });
 
@@ -246,23 +246,23 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
   async cancelBooking(bookingId: string, userId: string, reason?: string): Promise<Booking> {
     const result = await prisma.$transaction(async (tx) => {
       const booking = await tx.booking.findUnique({ where: { id: bookingId } });
-      if (!booking)                         throw AppError.notFound('Booking not found');
-      if (booking.passengerId !== userId)   throw AppError.forbidden('Not your booking');
+      if (!booking) throw AppError.notFound('Booking not found');
+      if (booking.passengerId !== userId) throw AppError.forbidden('Not your booking');
       if (booking.status !== 'PENDING' && booking.status !== 'CONFIRMED')
         throw AppError.badRequest('Booking cannot be cancelled in current state');
 
       const updated = await tx.booking.update({
         where: { id: bookingId },
-        data:  { 
-          status: 'CANCELLED', 
+        data: {
+          status: 'CANCELLED',
           cancellationReason: reason,
-          updatedBy: userId 
+          updatedBy: userId
         },
       });
 
       const ride = await tx.ride.update({
         where: { id: booking.rideId },
-        data:  { bookedSeats: { decrement: booking.seats } },
+        data: { bookedSeats: { decrement: booking.seats } },
       });
 
       return { updated, booking, ride };
@@ -272,15 +272,27 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
     const { updated, booking, ride } = result;
 
     try {
+      const { emitToUser } = await import('../socket');
+      emitToUser(ride.driverId, 'BOOKING_CANCELLED', {
+        bookingId: booking.id,
+        rideId: ride.id,
+        passengerId: userId,
+        message: 'A passenger cancelled their booking'
+      });
+    } catch (e) {
+      console.error('Socket emit for cancellation failed:', e);
+    }
+
+    try {
       const driver = await prisma.user.findUnique({
-        where:  { id: ride.driverId },
+        where: { id: ride.driverId },
         select: { fcmToken: true },
       });
       if (driver?.fcmToken) {
-        const msg = reason 
+        const msg = reason
           ? `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride. Reason: ${reason}`
           : `A passenger cancelled ${booking.seats} seat(s) on your ${ride.fromCity} → ${ride.toCity} ride`;
-          
+
         sendPushNotification(
           driver.fcmToken,
           'Booking Cancelled ❌',
@@ -294,7 +306,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
   }
 
   async getMyBookings(passengerId: string, page = 1, limit = 10) {
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
     const where = { passengerId };
     const [data, total] = await Promise.all([
       prisma.booking.findMany({
@@ -302,7 +314,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
         include: {
           ride: {
             include: {
-              driver:  { select: { id: true, name: true, avatar: true, phone: true, city: true, isVerified: true, reviewsReceived: { select: { rating: true } } } },
+              driver: { select: { id: true, name: true, avatar: true, phone: true, city: true, isVerified: true, reviewsReceived: { select: { rating: true } } } },
               vehicle: { select: { id: true, brand: true, model: true, plateNumber: true, type: true, color: true, images: true, totalSeats: true, ac: true, wifi: true, music: true, usbCharging: true, waterCooler: true, blanket: true, firstAid: true, luggageRack: true } },
             },
           },

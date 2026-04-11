@@ -303,16 +303,37 @@ export default function SearchScreen({ navigation, route }) {
   useEffect(() => {
     if (route.params?.from || route.params?.to) doSearch();
 
-    // Listen for new rides and refresh if the user is currently searching
+    // Listen for new rides and update instantly for "Live" experience
     socketService.on('NEW_RIDE', (data) => {
-      console.log('New ride posted, refreshing search results:', data);
-      doSearch();
+      console.log('New ride broadcast received:', data);
+      
+      // If user is just browsing (no cities typed) or it matches current query
+      const matchesFrom = !from || data.fromCity?.toLowerCase().includes(from.toLowerCase());
+      const matchesTo = !to || data.toCity?.toLowerCase().includes(to.toLowerCase());
+
+      if (matchesFrom && matchesTo) {
+        setAllRides(prev => {
+          // Prevent duplicates
+          if (prev.find(r => r.id === data.id)) return prev;
+          
+          const newRide = {
+            ...data,
+            from: data.fromCity,
+            to: data.toCity,
+            driver: data.driver || { name: 'Driver' },
+            vehicle: data.vehicle || { type: 'Car' }
+          };
+          return [newRide, ...prev];
+        });
+        
+        showToast('A nwe ride matching your route was just posted! 🚀', 'info');
+      }
     });
 
     return () => {
       socketService.off('NEW_RIDE');
     };
-  }, [doSearch]);
+  }, [doSearch, from, to]);
 
   const swapCities = () => { setFrom(to); setTo(from); };
 

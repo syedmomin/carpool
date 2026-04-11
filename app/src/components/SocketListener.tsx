@@ -52,6 +52,11 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       showToast('Booking request rejected ❌', 'error');
     });
 
+    // 3b. Listen for Booking Cancelled (For Driver)
+    socketService.on('BOOKING_CANCELLED', (data: any) => {
+      showToast(`A booking for ${data.rideId.slice(-5)} was cancelled ❌`, 'error');
+    });
+
     // 4. Listen for Ride Started (For Both Passenger and Driver)
     socketService.on('RIDE_STARTED', (data: any) => {
       // Automatic navigation for a professional 'Absolute Screen' experience

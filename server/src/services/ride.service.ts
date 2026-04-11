@@ -296,73 +296,62 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
         });
 
         // Clear all chat messages for this ride session
-        // Note: chatService.clearChatByRide doesn't support tx yet, 
-        // using raw delete inside tx for atomicity
         await tx.chatMessage.deleteMany({
           where: { booking: { rideId } }
         });
 
-        // Prepare Socket event
-        socketEvent = { room: rideId, event: 'RIDE_COMPLETED', payload: { rideId, status: 'COMPLETED' } };
-
-        // Prepare FCM data
-        const bookings = await tx.booking.findMany({
-          where:   { rideId },
-          include: { passenger: { select: { fcmToken: true } } },
+        // Truncate GPS tracking data for this ride to save DB space
+        await tx.rideLocation.deleteMany({
+          where: { rideId }
         });
-        const tokens = bookings
-          .map(b => b.passenger.fcmToken)
-          .filter((t): t is string => !!t);
-
-        if (tokens.length) {
-          notificationData = {
-            tokens,
-            title: 'Ride Completed! ⭐ Rate Your Driver',
-            body: `Your ${r.fromCity} → ${r.toCity} ride is complete. Share your feedback!`,
-            screen: 'BookingHistory'
-          };
-        }
-      } else if (newStatus === 'IN_PROGRESS') {
-        // Prepare Socket event
-        socketEvent = { room: rideId, event: 'RIDE_STARTED', payload: { rideId, status: 'IN_PROGRESS' } };
-
-        // Prepare FCM data
-        const bookings = await tx.booking.findMany({
-          where:   { rideId, status: 'CONFIRMED' },
-          include: { passenger: { select: { fcmToken: true } } },
-        });
-        const tokens = bookings
-          .map(b => b.passenger.fcmToken)
-          .filter((t): t is string => !!t);
-
-        if (tokens.length) {
-          notificationData = {
-            tokens,
-            title: 'Your Ride Has Started! 🚗',
-            body: `${r.fromCity} → ${r.toCity} — Your driver is on the way!`,
-            screen: 'BookingHistory'
-          };
-        }
       }
 
       return r;
     });
 
-    // ─── Execute Side Effects (Outside Transaction) ───
-    if (socketEvent) {
+    // ─── Post-Transaction Data Fetching & Side Effects ───
+    if (newStatus === 'COMPLETED') {
+      const bookings = await prisma.booking.findMany({
+        where:   { rideId },
+        include: { passenger: { select: { fcmToken: true } } },
+      });
+      const tokens = bookings.map(b => b.passenger.fcmToken).filter((t): t is string => !!t);
+
+      if (tokens.length) {
+        const { sendToMultiple } = await import('../utils/firebase');
+        sendToMultiple(
+          tokens,
+          'Ride Completed! ⭐ Rate Your Driver',
+          `Your ${updated.fromCity} → ${updated.toCity} ride is complete. Share your feedback!`,
+          { screen: 'BookingHistory' }
+        ).catch(err => console.error('FCM Error (Completed):', err));
+      }
+
       const { emitToRideRoom } = await import('../socket');
-      emitToRideRoom(socketEvent.room, socketEvent.event, socketEvent.payload);
+      emitToRideRoom(rideId, 'RIDE_COMPLETED', { rideId, status: 'COMPLETED' });
+
+    } else if (newStatus === 'IN_PROGRESS') {
+      const bookings = await prisma.booking.findMany({
+        where:   { rideId, status: 'CONFIRMED' },
+        include: { passenger: { select: { fcmToken: true } } },
+      });
+      const tokens = bookings.map(b => b.passenger.fcmToken).filter((t): t is string => !!t);
+
+      if (tokens.length) {
+        const { sendToMultiple } = await import('../utils/firebase');
+        sendToMultiple(
+          tokens,
+          'Your Ride Has Started! 🚗',
+          `${updated.fromCity} → ${updated.toCity} — Your driver is on the way!`,
+          { screen: 'BookingHistory' }
+        ).catch(err => console.error('FCM Error (Started):', err));
+      }
+
+      const { emitToRideRoom } = await import('../socket');
+      emitToRideRoom(rideId, 'RIDE_STARTED', { rideId, status: 'IN_PROGRESS' });
     }
 
-    if (notificationData) {
-      const { sendToMultiple } = await import('../utils/firebase');
-      sendToMultiple(
-        notificationData.tokens,
-        notificationData.title,
-        notificationData.body,
-        { screen: notificationData.screen }
-      ).catch(err => console.error('FCM Error (Post-TX):', err));
-    }
+    return withRating(updated);
 
     return withRating(updated);
 

@@ -53,12 +53,12 @@ export default function RideTrackingScreen({ route, navigation }) {
           });
           
           // Smoothly move map to driver location
-          mapRef.current?.animateToRegion({
-            latitude: payload.latitude,
-            longitude: payload.longitude,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
-          }, 1000);
+          mapRef.current?.animateCamera({
+            center: { latitude: payload.latitude, longitude: payload.longitude },
+            heading: payload.heading || 0,
+            pitch: 45,
+            zoom: 17
+          }, { duration: 1000 });
         }
       });
     }
@@ -132,12 +132,13 @@ export default function RideTrackingScreen({ route, navigation }) {
           speed
         });
 
-        // Center map if needed (can be optional for better UX)
-        // mapRef.current?.animateToRegion({
-        //   ...coords,
-        //   latitudeDelta: 0.01,
-        //   longitudeDelta: 0.01,
-        // });
+        // Center map for driver
+        mapRef.current?.animateCamera({
+          center: coords,
+          heading: heading || 0,
+          pitch: 45,
+          zoom: 17
+        }, { duration: 1000 });
       }
     );
     setLocationSubscription(sub);
@@ -170,6 +171,28 @@ export default function RideTrackingScreen({ route, navigation }) {
       onConfirm: async () => {
         try {
           setIsFinishing(true);
+
+          // 1. Take a snapshot of the completed route
+          let snapshotUrl = null;
+          try {
+            const snapshot = await mapRef.current?.takeSnapshot({
+              width: 1200,
+              height: 800,
+              format: 'jpg',
+              quality: 0.8,
+              result: 'base64'
+            });
+            
+            if (snapshot) {
+              // Upload the snapshot (re-using uploadApi)
+              const uploadRes = await ridesApi.update(rideId, { routeSnapshot: snapshot } as any);
+              console.log('Route snapshot uploaded:', uploadRes.data?.success);
+            }
+          } catch (snapErr) {
+            console.warn('Failed to capture route snapshot', snapErr);
+          }
+
+          // 2. Finalize ride status
           const { error } = await ridesApi.updateStatus(rideId, 'COMPLETED');
           if (error) {
             showToast(error, 'error');

@@ -56,8 +56,14 @@ export default function MyRidesScreen({ navigation }) {
       fetchRides(1, true); // Refresh list
     });
 
+    socketService.on('BOOKING_CANCELLED', (data) => {
+      console.log('Real-time booking cancellation received:', data);
+      fetchRides(1, true); // Refresh list
+    });
+
     return () => {
       socketService.off('BOOKING_REQUESTED');
+      socketService.off('BOOKING_CANCELLED');
     };
   }, [fetchRides]));
 
