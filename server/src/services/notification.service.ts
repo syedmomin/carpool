@@ -1,6 +1,7 @@
 import { Notification } from '@prisma/client';
 import prisma from '../data-source';
 import { BaseService } from './base.service';
+import { AppError } from '../utils/AppError';
 import { PaginationQuery } from '../types';
 
 type CreateNotificationDto = {
@@ -22,7 +23,6 @@ export class NotificationService extends BaseService<
   async markRead(id: string, userId: string): Promise<Notification> {
     const notif = await this.getById(id);
     if ((notif as any).userId !== userId) {
-      const { AppError } = await import('../utils/AppError');
       throw AppError.forbidden('Not your notification');
     }
     return prisma.notification.update({
@@ -46,7 +46,6 @@ export class NotificationService extends BaseService<
   async deleteNotification(id: string, userId: string): Promise<void> {
     const notif = await this.getById(id);
     if ((notif as any).userId !== userId) {
-      const { AppError } = await import('../utils/AppError');
       throw AppError.forbidden('Not your notification');
     }
     await this.delete(id);

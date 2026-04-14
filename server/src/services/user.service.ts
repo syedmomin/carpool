@@ -16,6 +16,24 @@ export class UserService extends BaseService<User, CreateUserDto, UpdateUserDto>
   protected get model()     { return prisma.user; }
   protected get modelName() { return 'User'; }
 
+  async getPublicProfile(id: string) {
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, avatar: true, city: true, isVerified: true, createdAt: true,
+        cnicVerification: { select: { status: true } },
+        _count: { select: { ridesAsDriver: true, reviews: true } },
+        vehicles: {
+          where: { isActive: true },
+          take: 1,
+          select: { id: true, brand: true, model: true, type: true, images: true, ac: true, wifi: true },
+        },
+      },
+    });
+    if (!user) throw AppError.notFound('User not found');
+    return user;
+  }
+
   async getProfile(id: string): Promise<Omit<User, 'password'>> {
     const user = await prisma.user.findUnique({
       where: { id },

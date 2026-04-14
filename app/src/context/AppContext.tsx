@@ -30,6 +30,7 @@ export interface AppContextState {
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
+  incrementUnreadCount: () => void;
   
   addScheduleAlert: (alertData: any) => Promise<{ data?: any, error?: any }>;
   removeScheduleAlert: (id: string) => Promise<void>;
@@ -80,12 +81,13 @@ export const AppProvider = ({ children }) => {
             secureStorage.setItem(ROLE_STORAGE_KEY, role),
           ]);
         }
-      } catch (_) {
-        // Network error — keep session alive
+      } catch (err) {
+        if (__DEV__) console.warn('[AppContext] Session restore error:', err);
       } finally {
         setIsLoading(false);
       }
     })();
+    return () => setLogoutHandler(null);
   }, []);
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
@@ -106,6 +108,7 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    try { await authApi.logout(); } catch (_) { /* best-effort server-side invalidation */ }
     await tokenStorage.clearAll();
     setCurrentUser(null);
     setUserRole(null);
@@ -129,12 +132,16 @@ export const AppProvider = ({ children }) => {
   };
 
   const updateProfile = async (updates) => {
-    setCurrentUser(prev => {
-      const updated = { ...prev, ...updates };
-      secureStorage.setObject(USER_STORAGE_KEY, updated).catch(() => { });
-      return updated;
-    });
+    // Save previous state so we can roll back on failure
+    const previousUser = currentUser;
+    setCurrentUser(prev => ({ ...prev, ...updates }));
+
     const { data, error } = await profileApi.update(updates);
+    if (error) {
+      // API failed — rollback to previous state
+      setCurrentUser(previousUser);
+      return { error };
+    }
     if (data?.data) {
       setCurrentUser(data.data);
       secureStorage.setObject(USER_STORAGE_KEY, data.data).catch(() => { });
@@ -202,8 +209,8 @@ export const AppProvider = ({ children }) => {
 
   // ─── Notifications ────────────────────────────────────────────────────────
   const markNotificationRead = async (id) => {
-    await notificationsApi.markRead(id);
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    const { error } = await notificationsApi.markRead(id);
+    if (!error) setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
   const markAllNotificationsRead = async () => {
@@ -218,6 +225,8 @@ export const AppProvider = ({ children }) => {
       setUnreadCount(count);
     }
   };
+
+  const incrementUnreadCount = () => setUnreadCount(prev => prev + 1);
 
   // ─── Schedule Alerts ─────────────────────────────────────────────────────
   const addScheduleAlert = async ({ date, from, to }) => {
@@ -255,7 +264,7 @@ export const AppProvider = ({ children }) => {
       registerVehicle, updateVehicle, deleteVehicle, setActiveVehicle,
 
       // Notifications
-      markNotificationRead, markAllNotificationsRead, refreshUnreadCount,
+      markNotificationRead, markAllNotificationsRead, refreshUnreadCount, incrementUnreadCount,
 
       // Schedule Alerts
       addScheduleAlert, removeScheduleAlert, loadScheduleAlerts, scheduleAlerts: scheduleAlertsList,

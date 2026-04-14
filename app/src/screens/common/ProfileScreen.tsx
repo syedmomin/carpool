@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from '../../components';
+import { COLORS, GRADIENTS, TrustBadgesRow } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
@@ -139,13 +139,8 @@ export default function ProfileScreen({ navigation }) {
                 <Ionicons name={(userRole === 'driver' ? 'car-outline' : 'person-outline') as any} size={11} color="#fff" />
                 <Text style={styles.badgeText}>{userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
               </View>
-              {(currentUser?.isVerified || currentUser?.verification?.cnicStatus === 'APPROVED') && (
-                <View style={[styles.badge, { backgroundColor: 'rgba(76,175,80,0.35)' }]}>
-                  <Ionicons name="shield-checkmark" size={11} color="#fff" />
-                  <Text style={styles.badgeText}>Verified</Text>
-                </View>
-              )}
             </View>
+            <TrustBadgesRow user={currentUser} style={{ marginTop: 8 }} />
           </View>
         </View>
 

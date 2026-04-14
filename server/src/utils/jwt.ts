@@ -15,7 +15,7 @@ export const signRefreshToken = (payload: JwtPayload): string =>
 
 export const verifyToken = (token: string): JwtPayload => {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload;
+    return jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as JwtPayload;
   } catch {
     throw AppError.unauthorized('Invalid or expired token');
   }
@@ -23,7 +23,7 @@ export const verifyToken = (token: string): JwtPayload => {
 
 export const verifyRefreshToken = (token: string): JwtPayload => {
   try {
-    return jwt.verify(token, REFRESH_SECRET) as JwtPayload;
+    return jwt.verify(token, REFRESH_SECRET, { algorithms: ['HS256'] }) as JwtPayload;
   } catch {
     throw AppError.unauthorized('Invalid or expired refresh token');
   }

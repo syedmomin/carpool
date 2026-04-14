@@ -291,26 +291,22 @@ export default function BookingHistoryScreen({ navigation }) {
     useFocusEffect(useCallback(() => {
         fetchBookings(1, true);
 
-        // Real-time synchronization
-        socketService.on('BOOKING_ACCEPTED', (data) => {
-            setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'CONFIRMED' } : b));
-        });
-        socketService.on('BOOKING_REJECTED', (data) => {
-            setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'REJECTED' } : b));
-        });
-        socketService.on('RIDE_STARTED', (data) => {
-            setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, ride: { ...b.ride, status: 'IN_PROGRESS' } } : b));
-        });
-        socketService.on('RIDE_COMPLETED', (data) => {
-            setBookings(prev => prev.filter(b => b.rideId !== data.rideId));
-        });
+        // Real-time synchronization — named callbacks so off() only removes THIS handler
+        const onAccepted  = (data: any) => setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'CONFIRMED' } : b));
+        const onRejected  = (data: any) => setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'REJECTED' } : b));
+        const onStarted   = (data: any) => setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, ride: { ...b.ride, status: 'IN_PROGRESS' } } : b));
+        const onCompleted = (data: any) => setBookings(prev => prev.filter(b => b.rideId !== data.rideId));
 
+        socketService.on('BOOKING_ACCEPTED',  onAccepted);
+        socketService.on('BOOKING_REJECTED',  onRejected);
+        socketService.on('RIDE_STARTED',      onStarted);
+        socketService.on('RIDE_COMPLETED',    onCompleted);
 
         return () => {
-            socketService.off('BOOKING_ACCEPTED');
-            socketService.off('BOOKING_REJECTED');
-            socketService.off('RIDE_STARTED');
-            socketService.off('RIDE_COMPLETED');
+            socketService.off('BOOKING_ACCEPTED',  onAccepted);
+            socketService.off('BOOKING_REJECTED',  onRejected);
+            socketService.off('RIDE_STARTED',      onStarted);
+            socketService.off('RIDE_COMPLETED',    onCompleted);
         };
     }, [fetchBookings]));
 

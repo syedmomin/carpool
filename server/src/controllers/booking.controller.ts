@@ -38,6 +38,13 @@ export class BookingController extends BaseController<Booking, any, any> {
     } catch (err) { next(err); }
   };
 
+  getById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const booking = await bookingService.getBookingForUser(req.params.id as string, req.user!.id);
+      ResponseUtil.success(res, booking);
+    } catch (err) { next(err); }
+  };
+
   myBookings = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page  = Number(req.query.page)  || 1;

@@ -34,6 +34,7 @@ export interface JwtPayload {
   id: string;
   email: string;
   role: UserRole;
+  tv?: number; // tokenVersion — used to invalidate refresh tokens
   iat?: number;
   exp?: number;
 }

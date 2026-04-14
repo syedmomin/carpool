@@ -5,7 +5,7 @@ export { COLORS, GRADIENTS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS } from './theme
 export { PrimaryButton, GhostButton, IconButton, FAB } from './Button';
 
 // ─── Badges ──────────────────────────────────────────────────────────────────
-export { AmenityBadge, StatusBadge, NotifBadge, RoleBadge, VerifiedBadge } from './Badge';
+export { AmenityBadge, StatusBadge, NotifBadge, RoleBadge, VerifiedBadge, TrustBadgesRow, computeBadges } from './Badge';
 
 // ─── Inputs ──────────────────────────────────────────────────────────────────
 export { FormInput, SearchInput, OTPInput } from './Input';

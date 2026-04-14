@@ -42,9 +42,8 @@ class LocationService {
 
     // 1. Save to Redis / Memory
     if (this.redis) {
-      await this.redis.set(`ride_loc_${data.rideId}`, JSON.stringify(payload));
-      // Optionally expire after some time, e.g. 24h
-      await this.redis.expire(`ride_loc_${data.rideId}`, 86400); 
+      // setex = set + expire in a single Redis command (one round trip)
+      await this.redis.setex(`ride_loc_${data.rideId}`, 86400, JSON.stringify(payload));
     } else {
       this.localMap.set(`ride_loc_${data.rideId}`, payload);
     }

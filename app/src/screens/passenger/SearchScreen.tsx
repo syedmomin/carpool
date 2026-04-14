@@ -279,7 +279,7 @@ export default function SearchScreen({ navigation, route }) {
     if (sort === 3) list.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0));
 
     return list;
-  }, [searchResults, allRides, filterAC, filterVehicle, filterBrand, filterTime, sort]);
+  }, [searchResults, allRides, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
 
   const doSearch = useCallback(async () => {
     if (!from && !to) { setSearchResults(null); return; }
@@ -300,40 +300,23 @@ export default function SearchScreen({ navigation, route }) {
     }
   }, []));
 
+  const onNewRide = useCallback((data) => {
+    const matchesFrom = !from || data.fromCity?.toLowerCase().includes(from.toLowerCase());
+    const matchesTo = !to || data.toCity?.toLowerCase().includes(to.toLowerCase());
+    if (matchesFrom && matchesTo) {
+      setAllRides(prev => {
+        if (prev.find(r => r.id === data.id)) return prev;
+        return [{ ...data, from: data.fromCity, to: data.toCity, driver: data.driver || { name: 'Driver' }, vehicle: data.vehicle || { type: 'Car' } }, ...prev];
+      });
+      showToast('A new ride matching your route was just posted!', 'info');
+    }
+  }, [from, to, showToast]);
+
   useEffect(() => {
     if (route.params?.from || route.params?.to) doSearch();
-
-    // Listen for new rides and update instantly for "Live" experience
-    socketService.on('NEW_RIDE', (data) => {
-      console.log('New ride broadcast received:', data);
-      
-      // If user is just browsing (no cities typed) or it matches current query
-      const matchesFrom = !from || data.fromCity?.toLowerCase().includes(from.toLowerCase());
-      const matchesTo = !to || data.toCity?.toLowerCase().includes(to.toLowerCase());
-
-      if (matchesFrom && matchesTo) {
-        setAllRides(prev => {
-          // Prevent duplicates
-          if (prev.find(r => r.id === data.id)) return prev;
-          
-          const newRide = {
-            ...data,
-            from: data.fromCity,
-            to: data.toCity,
-            driver: data.driver || { name: 'Driver' },
-            vehicle: data.vehicle || { type: 'Car' }
-          };
-          return [newRide, ...prev];
-        });
-        
-        showToast('A nwe ride matching your route was just posted! 🚀', 'info');
-      }
-    });
-
-    return () => {
-      socketService.off('NEW_RIDE');
-    };
-  }, [doSearch, from, to]);
+    socketService.on('NEW_RIDE', onNewRide);
+    return () => { socketService.off('NEW_RIDE', onNewRide); };
+  }, [doSearch, onNewRide]);
 
   const swapCities = () => { setFrom(to); setTo(from); };
 

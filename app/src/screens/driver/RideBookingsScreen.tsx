@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState, Avatar, StatusBadge } from '../../components';
+import { COLORS, GRADIENTS, GradientHeader, EmptyState, Avatar, StatusBadge, TrustBadgesRow } from '../../components';
 import { ridesApi, bookingsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
@@ -33,16 +33,21 @@ export default function RideBookingsScreen({ navigation, route }) {
   useFocusEffect(useCallback(() => {
     fetchRide();
 
-    // Listen for new booking requests for this specific ride
-    socketService.on('BOOKING_REQUESTED', (data) => {
-      console.log('New booking request for this ride:', data);
-      if (data.rideId === rideId) {
-        fetchRide();
-      }
-    });
+    // Named callbacks — off() only removes THIS screen's handlers, not global ones
+    const onBookingChanged = (data: any) => {
+      if (data.rideId === rideId) fetchRide();
+    };
+
+    socketService.on('BOOKING_REQUESTED',  onBookingChanged);
+    socketService.on('BOOKING_CANCELLED',  onBookingChanged);
+    socketService.on('BOOKING_ACCEPTED',   onBookingChanged);
+    socketService.on('BOOKING_REJECTED',   onBookingChanged);
 
     return () => {
-      socketService.off('BOOKING_REQUESTED');
+      socketService.off('BOOKING_REQUESTED',  onBookingChanged);
+      socketService.off('BOOKING_CANCELLED',  onBookingChanged);
+      socketService.off('BOOKING_ACCEPTED',   onBookingChanged);
+      socketService.off('BOOKING_REJECTED',   onBookingChanged);
     };
   }, [fetchRide, rideId]));
 
@@ -105,6 +110,7 @@ export default function RideBookingsScreen({ navigation, route }) {
           <View style={styles.pInfo}>
             <Text style={styles.pName}>{p.name}</Text>
             <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} • Rs {item.totalAmount.toLocaleString()}</Text>
+            <TrustBadgesRow user={p} max={2} style={{ marginTop: 4 }} />
           </View>
           <StatusBadge status={item.status.toLowerCase()} label={item.status} />
         </View>
@@ -172,11 +178,12 @@ export default function RideBookingsScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader 
-        colors={GRADIENTS.teal as any} 
-        title="Manage Bookings" 
+      <GradientHeader
+        colors={GRADIENTS.teal as any}
+        title="Manage Bookings"
         subtitle={ride ? `${ride.from} → ${ride.to}` : ''}
-        onBack={() => navigation.goBack()} 
+        onBack={() => navigation.goBack()}
+        compact
       />
 
       <FlatList
@@ -185,19 +192,22 @@ export default function RideBookingsScreen({ navigation, route }) {
         contentContainerStyle={styles.list}
         renderItem={renderBooking}
         ListHeaderComponent={
-          ride && (
-            <View style={styles.summary}>
-              <View style={styles.stat}>
-                <Text style={styles.statVal}>{ride.bookedSeats}/{ride.totalSeats}</Text>
-                <Text style={styles.statLab}>Seats Filled</Text>
+          ride && (() => {
+            const confSeats = confirmed.reduce((s: number, b: any) => s + (b.seats || 1), 0);
+            return (
+              <View style={styles.summary}>
+                <View style={styles.stat}>
+                  <Text style={styles.statVal}>{confSeats}/{ride.totalSeats}</Text>
+                  <Text style={styles.statLab}>Confirmed Seats</Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.stat}>
+                  <Text style={styles.statVal}>{pending.length}</Text>
+                  <Text style={styles.statLab}>Pending</Text>
+                </View>
               </View>
-              <View style={styles.divider} />
-              <View style={styles.stat}>
-                <Text style={styles.statVal}>{pending.length}</Text>
-                <Text style={styles.statLab}>Pending</Text>
-              </View>
-            </View>
-          )
+            );
+          })()
         }
         ListEmptyComponent={<EmptyState icon="people-outline" title="No Bookings Yet" subtitle="Passenger requests will appear here." />}
       />

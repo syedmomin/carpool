@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { ridesApi, vehiclesApi } from '../../services/api';
+import { socketService } from '../../services/socket.service';
 
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
@@ -14,18 +15,33 @@ export default function DriverHomeScreen({ navigation }) {
 
   const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
-  useFocusEffect(useCallback(() => {
-    // Load only the summary data needed for dashboard (first page, small limit)
+  const loadData = useCallback(() => {
     ridesApi.myRides(1, 5).then(({ data }) => {
       if (data?.data) setMyRides(data.data.map(normalize));
     });
     vehiclesApi.myVehicles().then(({ data }) => {
       if (data?.data) {
-        const active = data.data.find(v => v.isActive) || data.data[0] || null;
+        const active = data.data.find((v: any) => v.isActive) || data.data[0] || null;
         setMyVehicle(active);
       }
     });
-  }, []));
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadData();
+
+    // Refresh dashboard stats when bookings change
+    const onBookingChange = () => loadData();
+    socketService.on('BOOKING_REQUESTED',  onBookingChange);
+    socketService.on('BOOKING_CANCELLED',  onBookingChange);
+    socketService.on('BOOKING_ACCEPTED',   onBookingChange);
+
+    return () => {
+      socketService.off('BOOKING_REQUESTED',  onBookingChange);
+      socketService.off('BOOKING_CANCELLED',  onBookingChange);
+      socketService.off('BOOKING_ACCEPTED',   onBookingChange);
+    };
+  }, [loadData]));
 
   const activeRides = myRides.filter(r => r.status === 'ACTIVE');
   const totalEarned = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);

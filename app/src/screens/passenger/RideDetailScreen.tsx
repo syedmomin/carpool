@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS, GRADIENTS,
   AmenityBadge, StarRating, PrimaryButton,
-  Avatar, VerifiedBadge,
+  Avatar, VerifiedBadge, TrustBadgesRow,
 } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -72,7 +72,7 @@ export default function RideDetailScreen({ navigation, route }) {
           showToast(parseApiError(error), 'error');
           return;
         }
-        navigation.navigate('BookingConfirm', { rideId, seats: selectedSeats, rideData: ride });
+        navigation.replace('BookingConfirm', { rideId, seats: selectedSeats, rideData: ride });
       },
     });
   };
@@ -157,6 +157,7 @@ export default function RideDetailScreen({ navigation, route }) {
                 {driver?.isVerified && <Ionicons name="shield-checkmark" size={15} color={COLORS.secondary} />}
               </View>
               {driver?.rating > 0 && <StarRating rating={driver.rating} size={14} />}
+              <TrustBadgesRow user={driver} max={3} style={{ marginTop: 6 }} />
               <Text style={styles.driverMeta}>
                 {driver?.reviewCount > 0 ? `${driver.reviewCount} review${driver.reviewCount !== 1 ? 's' : ''}` : 'No reviews yet'}
                 {driver?.city ? ` · ${driver.city}` : ''}

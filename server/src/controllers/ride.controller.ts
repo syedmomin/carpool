@@ -52,6 +52,20 @@ export class RideController extends BaseController<Ride, any, any> {
     } catch (err) { next(err); }
   };
 
+  update = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const ride = await rideService.updateRide(req.params.id as string, req.user!.id, req.body);
+      ResponseUtil.success(res, ride, 'Updated successfully');
+    } catch (err) { next(err); }
+  };
+
+  delete = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await rideService.deleteRide(req.params.id as string, req.user!.id, req.user!.role);
+      ResponseUtil.noContent(res);
+    } catch (err) { next(err); }
+  };
+
   updateStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const ride = await rideService.updateStatus(req.params.id as string, req.user!.id, String(req.body.status));

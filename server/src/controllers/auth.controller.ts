@@ -52,6 +52,13 @@ export class AuthController {
       ResponseUtil.success(res, result, 'Token refreshed successfully');
     } catch (err) { next(err); }
   };
+
+  logout = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await authService.logout(req.user!.id);
+      ResponseUtil.success(res, null, 'Logged out successfully');
+    } catch (err) { next(err); }
+  };
 }
 
 export const authController = new AuthController();

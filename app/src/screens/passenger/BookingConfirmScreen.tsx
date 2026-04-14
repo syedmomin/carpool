@@ -90,13 +90,13 @@ export default function BookingConfirmScreen({ navigation, route }) {
 
         <PrimaryButton
           title="View My Bookings"
-          onPress={() => navigation.navigate('BookingHistory')}
+          onPress={() => navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' })}
           icon="receipt-outline"
           style={{ marginBottom: 12 }}
         />
         <GhostButton
           title="Go to Home"
-          onPress={() => navigation.navigate('PassengerHome')}
+          onPress={() => navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab' })}
         />
         <View style={{ height: 24 }} />
       </ScrollView>

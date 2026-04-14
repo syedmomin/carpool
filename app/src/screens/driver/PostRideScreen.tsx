@@ -182,12 +182,12 @@ export default function PostRideScreen({ navigation }) {
     }
 
     if (form.arrivalTime && form.departureTime) {
-      // Small helper to compare HH:mm strings
-      const toMinutes = (t) => {
-        const [h, m] = t.split(':').map(Number);
-        return h * 60 + m;
-      };
-      if (toMinutes(form.arrivalTime) <= toMinutes(form.departureTime)) {
+      const toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      let depMins = toMinutes(form.departureTime);
+      let arrMins = toMinutes(form.arrivalTime);
+      // Handle midnight wraparound: if arrival looks earlier, assume it's next day
+      if (arrMins <= depMins) arrMins += 24 * 60;
+      if (arrMins - depMins > 12 * 60) {
         showToast('Estimated arrival must be later than departure time.', 'error');
         return;
       }

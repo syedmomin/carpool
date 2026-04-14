@@ -2,6 +2,7 @@ import { Review, UserRole } from '@prisma/client';
 import prisma from '../data-source';
 import { BaseService } from './base.service';
 import { AppError } from '../utils/AppError';
+import { notify } from '../utils/notificationDispatcher';
 
 type CreateReviewDto = { 
   revieweeId: string; 
@@ -79,10 +80,27 @@ export class ReviewService extends BaseService<Review, CreateReviewDto, UpdateRe
     });
 
     if (existing) {
-      return this.update(existing.id, { rating: dto.rating, comment: dto.comment }, createdBy);
+      throw AppError.conflict('You have already reviewed this person for this ride');
     }
 
-    return this.create(dto, createdBy);
+    const review = await this.create(dto, createdBy);
+
+    // Notify the person who received the review
+    const stars = '⭐'.repeat(dto.rating);
+    const role  = dto.targetRole === 'DRIVER' ? 'driver' : 'passenger';
+    notify({
+      userId:      dto.revieweeId,
+      title:       `New Review Received! ${stars}`,
+      message:     dto.comment
+        ? `You received a ${dto.rating}-star review as a ${role}: "${dto.comment}"`
+        : `You received a ${dto.rating}-star review as a ${role}.`,
+      type:        'SYSTEM',
+      rideId:      dto.rideId,
+      socketEvent: 'REVIEW_RECEIVED',
+      socketData:  { rating: dto.rating, targetRole: dto.targetRole },
+    });
+
+    return review;
   }
 }
 

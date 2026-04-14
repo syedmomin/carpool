@@ -5,7 +5,16 @@ export class ChatService {
   /**
    * Get messages for a specific booking
    */
-  async getMessages(bookingId: string) {
+  async getMessages(bookingId: string, requesterId: string) {
+    // Verify requester is party to this booking
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { ride: { select: { driverId: true } } },
+    });
+    if (!booking) throw new Error('Booking not found');
+    const isParty = booking.passengerId === requesterId || booking.ride.driverId === requesterId;
+    if (!isParty) throw Object.assign(new Error('Not authorized'), { statusCode: 403 });
+
     return await prisma.chatMessage.findMany({
       where: { bookingId },
       orderBy: { createdAt: 'asc' },

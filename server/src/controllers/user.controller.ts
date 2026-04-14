@@ -24,7 +24,7 @@ export class UserController extends BaseController<User, any, any> {
 
   getPublicProfile = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await userService.getProfile(req.params.id as string);
+      const user = await userService.getPublicProfile(req.params.id as string);
       ResponseUtil.success(res, user);
     } catch (err) { next(err); }
   };

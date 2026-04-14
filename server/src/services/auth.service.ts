@@ -63,7 +63,19 @@ export class AuthService {
     if (!valid) throw AppError.badRequest('Current password is incorrect');
 
     const hashed = await hashPassword(newPassword);
-    await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+    // Increment tokenVersion to invalidate all existing refresh tokens
+    await prisma.user.update({
+      where: { id: userId },
+      data:  { password: hashed, tokenVersion: { increment: 1 } },
+    });
+  }
+
+  async logout(userId: string): Promise<void> {
+    // Increment tokenVersion to invalidate the current refresh token
+    await prisma.user.update({
+      where: { id: userId },
+      data:  { tokenVersion: { increment: 1 } },
+    });
   }
 
   async refresh(token: string): Promise<AuthTokens> {
@@ -71,12 +83,17 @@ export class AuthService {
     const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user || !user.isActive) throw AppError.unauthorized('User not found or inactive');
 
+    // Verify the tokenVersion in the token matches the DB — rejects invalidated tokens
+    if (payload.tv !== user.tokenVersion) {
+      throw AppError.unauthorized('Refresh token has been revoked');
+    }
+
     return this.buildTokens(user);
   }
 
   private buildTokens(user: User): AuthTokens {
-    const payload = { id: user.id, email: user.email, role: user.role as any };
-    const { password: _, ...safeUser } = user;
+    const payload = { id: user.id, email: user.email, role: user.role as any, tv: user.tokenVersion };
+    const { password: _, ...safeUser } = user as any;
     return {
       accessToken:  signToken(payload),
       refreshToken: signRefreshToken(payload),

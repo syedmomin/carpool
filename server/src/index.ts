@@ -7,11 +7,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import routes from './routes';
+import adminRoutes from './routes/admin.routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import prisma from './data-source';
 
 import { createServer } from 'http';
 import { initSocket } from './socket';
+import { startSchedulers } from './schedulers';
 
 const app = express();
 const httpServer = createServer(app);
@@ -22,7 +24,11 @@ const isProd = ENV === 'production';
 
 // ─── Security & Parsing ───────────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+const corsOrigin = process.env.CORS_ORIGIN;
+app.use(cors({
+  origin: corsOrigin || (isProd ? false : '*'),
+  credentials: !!corsOrigin,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(isProd ? 'combined' : 'dev'));
@@ -32,6 +38,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/v1', routes);
+app.use('/admin',  adminRoutes);
 
 // ─── 404 & Error Handlers ─────────────────────────────────────────────────────
 app.use(notFoundHandler);
@@ -42,6 +49,7 @@ async function bootstrap(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('✅ Database connected');
+    startSchedulers();
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 SafariShare API running on port ${PORT} [${ENV}]`);
       console.log(`📍 http://localhost:${PORT}/api/v1/health`);

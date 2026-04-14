@@ -58,6 +58,15 @@ export default function CnicVerificationScreen({ navigation }) {
 
   const validateCnic = (value) => /^\d{5}-\d{7}-\d$/.test(value) || /^\d{13}$/.test(value.replace(/-/g, ''));
 
+  // Auto-format CNIC as user types: 42101-1234567-1
+  const handleCnicChange = (text: string) => {
+    const digits = text.replace(/\D/g, '').slice(0, 13);
+    let formatted = digits;
+    if (digits.length > 5)  formatted = digits.slice(0, 5) + '-' + digits.slice(5);
+    if (digits.length > 12) formatted = digits.slice(0, 5) + '-' + digits.slice(5, 12) + '-' + digits.slice(12);
+    setCnic(formatted);
+  };
+
   const handleSubmit = async () => {
     // For drivers: CNIC is required + licence required
     // For passengers: CNIC is optional — but if they start filling, front image is required
@@ -184,8 +193,9 @@ export default function CnicVerificationScreen({ navigation }) {
           icon="card-outline"
           placeholder="42101-1234567-1"
           value={cnic}
-          onChangeText={setCnic}
+          onChangeText={handleCnicChange}
           keyboardType="numeric"
+          maxLength={15}
         />
 
         <UploadBox

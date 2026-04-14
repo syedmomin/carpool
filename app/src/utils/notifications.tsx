@@ -27,7 +27,6 @@ export async function registerForPushNotifications() {
     }
 
     const token = await messaging().getToken();
-    console.log('[Notifications] FCM token:', token);
     return token;
   } catch (err) {
     console.warn('[Notifications] Failed to get FCM token:', err);

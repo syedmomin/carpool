@@ -1,7 +1,17 @@
 import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { locationService } from './services/location.service';
+import { chatService } from './services/chat.service';
 import prisma from './data-source';
+import { verifyToken } from './utils/jwt';
+
+// Extend Socket type to carry authenticated user info
+declare module 'socket.io' {
+  interface Socket {
+    userId: string;
+    userRole: string;
+  }
+}
 
 let io: Server;
 
@@ -14,64 +24,121 @@ export const initSocket = (server: HttpServer) => {
     },
   });
 
-  io.on('connection', (socket: Socket) => {
-    console.log(`[Socket] User connected: ${socket.id}`);
+  // ─── Auth Middleware ─────────────────────────────────────────────────────────
+  io.use((socket, next) => {
+    const token = socket.handshake.auth?.token as string | undefined;
+    if (!token) return next(new Error('Authentication required'));
+    try {
+      const payload = verifyToken(token);
+      socket.userId   = payload.id;
+      socket.userRole = payload.role;
+      next();
+    } catch {
+      next(new Error('Invalid or expired token'));
+    }
+  });
 
-    // Join a private room for personal notifications (BOOKING_ACCEPTED, etc.)
+  io.on('connection', (socket: Socket) => {
+    console.log(`[Socket] User connected: ${socket.id} (userId: ${socket.userId})`);
+
+    // ── Personal notifications room — only join YOUR OWN room ────────────────
     socket.on('join-user', (userId: string) => {
-      if (!userId) return;
-      console.log(`[Socket] User joined personal room: user_${userId}`);
+      if (userId !== socket.userId) return; // silently ignore impersonation attempts
       socket.join(`user_${userId}`);
     });
 
+    // ── Ride room — verify user is driver or confirmed passenger ─────────────
     socket.on('join-ride', async ({ rideId, role }) => {
       if (!rideId) return;
-      console.log(`[Socket] ${role} joined ride room: ride_${rideId}`);
-      socket.join(`ride_${rideId}`);
-      
-      // If a rider joins, send the latest known location of the driver
-      if (role === 'rider') {
-        const latestLocation = await locationService.getLatestLocation(rideId);
-        if (latestLocation) {
-          socket.emit('location-update', latestLocation);
+      try {
+        const isDriver = await prisma.ride.findFirst({
+          where: { id: rideId, driverId: socket.userId },
+          select: { id: true },
+        });
+        const isPassenger = isDriver ? null : await prisma.booking.findFirst({
+          where: { rideId, passengerId: socket.userId, status: { in: ['CONFIRMED', 'PENDING'] } },
+          select: { id: true },
+        });
+
+        if (!isDriver && !isPassenger) {
+          socket.emit('error', { message: 'Not authorized for this ride' });
+          return;
         }
+
+        socket.join(`ride_${rideId}`);
+
+        // If a rider joins, send the latest known driver location
+        if (role === 'rider') {
+          const latestLocation = await locationService.getLatestLocation(rideId);
+          if (latestLocation) socket.emit('location-update', latestLocation);
+        }
+      } catch (err) {
+        console.error('[Socket] join-ride error:', err);
       }
     });
 
     socket.on('leave-ride', ({ rideId }) => {
-      console.log(`[Socket] User left ride room: ride_${rideId}`);
       socket.leave(`ride_${rideId}`);
     });
 
+    // ── Location update — verify sender is the actual driver of the ride ─────
     socket.on('location-update', async (data) => {
       const { rideId, latitude, longitude, speed, heading } = data;
-      // Broadcast to all in the ride room EXCEPT the sender (driver)
-      socket.to(`ride_${rideId}`).emit('location-update', {
-        rideId, latitude, longitude, speed, heading, timestamp: new Date()
-      });
+      if (!rideId) return;
+      try {
+        const ride = await prisma.ride.findFirst({
+          where: { id: rideId, driverId: socket.userId, status: 'IN_PROGRESS' },
+          select: { id: true },
+        });
+        if (!ride) return; // not this driver's active ride — silently ignore
 
-      // Save to memory/redis & schedule DB persist
-      await locationService.addLocation(data);
+        socket.to(`ride_${rideId}`).emit('location-update', {
+          rideId, latitude, longitude, speed, heading, timestamp: new Date(),
+        });
+        await locationService.addLocation(data);
+      } catch (err) {
+        console.error('[Socket] location-update error:', err);
+      }
     });
 
-    socket.on('join-chat', ({ bookingId }) => {
+    socket.on('join-chat', async ({ bookingId }) => {
       if (!bookingId) return;
-      console.log(`[Socket] Joined chat room: chat_${bookingId}`);
-      socket.join(`chat_${bookingId}`);
+      try {
+        // Verify user is party to this booking
+        const booking = await prisma.booking.findFirst({
+          where: { id: bookingId },
+          include: { ride: { select: { driverId: true } } },
+        });
+        if (!booking) return;
+        const isParty = booking.passengerId === socket.userId || booking.ride.driverId === socket.userId;
+        if (!isParty) return;
+        socket.join(`chat_${bookingId}`);
+      } catch (err) {
+        console.error('[Socket] join-chat error:', err);
+      }
     });
 
-    socket.on('send-message', async ({ bookingId, senderId, content }) => {
-      if (!bookingId || !senderId || !content) return;
-      
-      const { chatService } = require('./services/chat.service');
-      const message = await chatService.saveMessage(bookingId, senderId, content);
+    // ── Chat message — use verified socket.userId, not client-supplied senderId
+    socket.on('send-message', async ({ bookingId, content }) => {
+      if (!bookingId || !content) return;
+      try {
+        // Verify user is party to this booking before saving
+        const booking = await prisma.booking.findFirst({
+          where: { id: bookingId },
+          include: { ride: { select: { driverId: true } } },
+        });
+        if (!booking) return;
+        const isParty = booking.passengerId === socket.userId || booking.ride.driverId === socket.userId;
+        if (!isParty) return;
 
-      // Broadcast message to everyone in the chat room (including sender for sync)
-      io.to(`chat_${bookingId}`).emit('new-message', message);
+        const message = await chatService.saveMessage(bookingId, socket.userId, content);
+        io.to(`chat_${bookingId}`).emit('new-message', message);
+      } catch (err) {
+        console.error('[Socket] send-message error:', err);
+      }
     });
 
     socket.on('disconnect', () => {
-
       console.log(`[Socket] User disconnected: ${socket.id}`);
     });
   });
@@ -79,37 +146,22 @@ export const initSocket = (server: HttpServer) => {
   return io;
 };
 
-/**
- * Emit to a specific user's private notification room
- */
 export const emitToUser = (userId: string, event: string, data: any) => {
   if (!io) return;
-  console.log(`[Socket] Emitting ${event} to user_${userId}`);
   io.to(`user_${userId}`).emit(event, data);
 };
 
-/**
- * Emit to an entire ride room (e.g., RIDE_STARTED)
- */
 export const emitToRideRoom = (rideId: string, event: string, data: any) => {
   if (!io) return;
-  console.log(`[Socket] Emitting ${event} to ride_${rideId}`);
   io.to(`ride_${rideId}`).emit(event, data);
 };
 
-/**
- * Broadcast an event to ALL connected clients
- */
 export const broadcastEvent = (event: string, data: any) => {
   if (!io) return;
-  console.log(`[Socket] Broadcasting ${event} to all users`);
   io.emit(event, data);
 };
 
 export const getIO = () => {
-  if (!io) {
-    throw new Error('Socket.IO is not initialized');
-  }
+  if (!io) throw new Error('Socket.IO is not initialized');
   return io;
 };
-

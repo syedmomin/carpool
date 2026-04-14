@@ -3,7 +3,7 @@ import prisma from '../data-source';
 import { BaseService } from './base.service';
 import { PaginationQuery } from '../types';
 import { AppError } from '../utils/AppError';
-import { sendToMultiple } from '../utils/firebase';
+import { notify, notifyMany } from '../utils/notificationDispatcher';
 
 type RideStop = { city: string; order: number; arrivalTime?: string };
 
@@ -101,21 +101,48 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
 
   // ── Search with stop-based matching ───────────────────────────────────────
   async search(from: string, to: string, date?: string): Promise<any[]> {
+    const fromNorm = from?.trim().toLowerCase();
+    const toNorm   = to?.trim().toLowerCase();
+
+    // ── DB-level pre-filter: only load rides that could possibly match ──────
+    // Multi-stop rides always pass through (stop cities are in JSON).
+    // For direct rides, require fromCity or toCity to match the query.
     const where: any = {
-      status: 'ACTIVE',
+      status:     'ACTIVE',
+      bookedSeats: { lt: prisma.ride.fields?.totalSeats as any }, // guarded below
       ...(date ? { date } : {}),
     };
 
-    const allRides = await prisma.ride.findMany({ where, include: INCLUDE });
+    // Build targeted OR filter so we don't pull the entire rides table
+    if (fromNorm || toNorm) {
+      where.OR = [
+        { isMultiStop: true }, // multi-stop: can't filter stops at DB level without raw SQL
+        ...(fromNorm ? [
+          { fromCity: { equals: fromNorm, mode: 'insensitive' } },
+          { toCity:   { equals: fromNorm, mode: 'insensitive' } },
+        ] : []),
+        ...(toNorm ? [
+          { toCity:   { equals: toNorm, mode: 'insensitive' } },
+          { fromCity: { equals: toNorm, mode: 'insensitive' } },
+        ] : []),
+      ];
+    }
+
+    // Remove the Prisma fields reference — use JS post-filter for availability
+    delete where.bookedSeats;
+
+    const rides = await prisma.ride.findMany({
+      where,
+      include:  INCLUDE,
+      orderBy:  { pricePerSeat: 'asc' }, // sort at DB level
+    });
+
     const matched: any[] = [];
 
-    for (const ride of allRides) {
-      const available = ride.totalSeats - ride.bookedSeats;
-      if (available <= 0) continue;
+    for (const ride of rides) {
+      if (ride.totalSeats - ride.bookedSeats <= 0) continue;
 
       const cities = getOrderedCities(ride);
-      const fromNorm = from?.trim().toLowerCase();
-      const toNorm   = to?.trim().toLowerCase();
 
       if (!fromNorm && !toNorm) { matched.push(withRating(ride)); continue; }
 
@@ -127,7 +154,7 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
 
       const totalSegments = cities.length - 1;
       const segmentCount  = toIdx - fromIdx;
-      const segmentPrice  = Math.round((ride.pricePerSeat / totalSegments) * segmentCount);
+      const segmentPrice  = Math.max(1, Math.round((ride.pricePerSeat / totalSegments) * segmentCount));
 
       matched.push(withRating({
         ...ride,
@@ -140,7 +167,7 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       }));
     }
 
-    return matched.sort((a, b) => a.pricePerSeat - b.pricePerSeat);
+    return matched; // already sorted by pricePerSeat at DB level
   }
 
   // ── Driver's rides ────────────────────────────────────────────────────────
@@ -215,29 +242,13 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     });
 
     if (alerts.length > 0) {
-      await prisma.notification.createMany({
-        data: alerts.map(alert => ({
-          userId:  alert.passengerId,
-          title:   'Ride Available on Your Route!',
-          message: `${data.fromCity} → ${data.toCity} on ${data.date} at ${data.departureTime}`,
-          type:    'NEW_RIDE' as any,
-          rideId:  ride.id,
-        })),
+      await notifyMany({
+        userIds: alerts.map(a => a.passengerId),
+        title:   'Ride Available on Your Route! 🚗',
+        message: `${data.fromCity} → ${data.toCity} on ${data.date} at ${data.departureTime} — Book now!`,
+        type:    'NEW_RIDE',
+        rideId:  ride.id,
       });
-
-      const passengers = await prisma.user.findMany({
-        where:  { id: { in: alerts.map(a => a.passengerId) }, fcmToken: { not: null } },
-        select: { fcmToken: true },
-      });
-      const tokens = passengers.map(p => p.fcmToken!).filter(Boolean);
-      if (tokens.length) {
-        await sendToMultiple(
-          tokens,
-          'Your Ride Alert! 🚗',
-          `${data.fromCity} → ${data.toCity} on ${data.date} — Book now!`,
-          { rideId: ride.id, screen: 'RideDetail' },
-        );
-      }
     }
 
     // Broadcast via socket to all passengers
@@ -293,9 +304,6 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       }
     }
 
-    let notificationData: { tokens: string[], title: string, body: string, screen: string } | null = null;
-    let socketEvent: { room: string, event: string, payload: any } | null = null;
-
     const updated = await prisma.$transaction(async (tx) => {
       const r = await tx.ride.update({
         where: { id: rideId },
@@ -309,77 +317,122 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
           where: { rideId, status: 'CONFIRMED' },
           data:  { status: 'COMPLETED', updatedBy: driverId },
         });
-
-        // Clear all chat messages for this ride session
-        await tx.chatMessage.deleteMany({
-          where: { booking: { rideId } }
-        });
-
-        // Truncate GPS tracking data for this ride to save DB space
-        await tx.rideLocation.deleteMany({
-          where: { rideId }
-        });
       }
 
       return r;
     });
 
-    // ─── Post-Transaction Data Fetching & Side Effects ───
+    // Cleanup outside transaction — these are non-critical and can be slow
     if (newStatus === 'COMPLETED') {
-      const bookings = await prisma.booking.findMany({
-        where:   { rideId },
-        include: { passenger: { select: { fcmToken: true } } },
-      });
-      const tokens = bookings.map(b => b.passenger.fcmToken).filter((t): t is string => !!t);
+      await prisma.chatMessage.deleteMany({ where: { booking: { rideId } } }).catch(() => {});
+      await prisma.rideLocation.deleteMany({ where: { rideId } }).catch(() => {});
+    }
 
-      if (tokens.length) {
-        const { sendToMultiple } = await import('../utils/firebase');
-        sendToMultiple(
-          tokens,
-          'Ride Completed! ⭐ Rate Your Driver',
-          `Your ${updated.fromCity} → ${updated.toCity} ride is complete. Share your feedback!`,
-          { screen: 'BookingHistory' }
-        ).catch(err => console.error('FCM Error (Completed):', err));
+    // ─── Post-Transaction Notifications & Side Effects ───────────────────────
+    if (newStatus === 'COMPLETED') {
+      // Fetch confirmed passenger IDs
+      const bookings = await prisma.booking.findMany({
+        where:  { rideId, status: 'COMPLETED' },
+        select: { passengerId: true },
+      });
+      const passengerIds = bookings.map(b => b.passengerId);
+
+      // Notify all passengers: ride complete, rate your driver
+      if (passengerIds.length) {
+        notifyMany({
+          userIds:     passengerIds,
+          title:       'Ride Completed! ⭐ Rate Your Driver',
+          message:     `Your ${updated.fromCity} → ${updated.toCity} ride is complete. Share your feedback!`,
+          type:        'RIDE',
+          rideId,
+          socketEvent: 'RIDE_COMPLETED',
+          socketData:  {
+            status: 'COMPLETED',
+            driverId: updated.driverId,
+            routeLabel: `${updated.fromCity} → ${updated.toCity}`,
+          },
+        });
       }
 
-      const { emitToRideRoom } = await import('../socket');
-      emitToRideRoom(rideId, 'RIDE_COMPLETED', { 
-        rideId, 
-        status: 'COMPLETED',
-        driverId: updated.driverId,
-        driverName: updated.driver?.name,
-        routeLabel: `${updated.fromCity} → ${updated.toCity}`,
-        date: updated.date
+      // Notify driver: ride complete
+      notify({
+        userId:  driverId,
+        title:   'Ride Completed! 🏁',
+        message: `Your ${updated.fromCity} → ${updated.toCity} ride has been completed.`,
+        type:    'RIDE',
+        rideId,
       });
+
+      // Socket broadcast to ride room
+      try {
+        const { emitToRideRoom } = await import('../socket');
+        emitToRideRoom(rideId, 'RIDE_COMPLETED', {
+          rideId, status: 'COMPLETED',
+          driverId: updated.driverId,
+          routeLabel: `${updated.fromCity} → ${updated.toCity}`,
+          date: updated.date,
+        });
+      } catch (e) { console.error('[Socket] RIDE_COMPLETED emit failed:', e); }
 
     } else if (newStatus === 'IN_PROGRESS') {
       const bookings = await prisma.booking.findMany({
-        where:   { rideId, status: 'CONFIRMED' },
-        include: { passenger: { select: { fcmToken: true } } },
+        where:  { rideId, status: 'CONFIRMED' },
+        select: { passengerId: true },
       });
-      const tokens = bookings.map(b => b.passenger.fcmToken).filter((t): t is string => !!t);
+      const passengerIds = bookings.map(b => b.passengerId);
 
-      if (tokens.length) {
-        const { sendToMultiple } = await import('../utils/firebase');
-        sendToMultiple(
-          tokens,
-          'Your Ride Has Started! 🚗',
-          `${updated.fromCity} → ${updated.toCity} — Your driver is on the way!`,
-          { screen: 'BookingHistory' }
-        ).catch(err => console.error('FCM Error (Started):', err));
+      // Notify all confirmed passengers: ride has started
+      if (passengerIds.length) {
+        notifyMany({
+          userIds:     passengerIds,
+          title:       'Your Ride Has Started! 🚗',
+          message:     `${updated.fromCity} → ${updated.toCity} — Your driver is on the way!`,
+          type:        'RIDE',
+          rideId,
+          socketEvent: 'RIDE_STARTED',
+          socketData:  { rideId, status: 'IN_PROGRESS' },
+        });
       }
 
-      const { emitToRideRoom } = await import('../socket');
-      emitToRideRoom(rideId, 'RIDE_STARTED', { rideId, status: 'IN_PROGRESS' });
+      // Socket broadcast to ride room
+      try {
+        const { emitToRideRoom } = await import('../socket');
+        emitToRideRoom(rideId, 'RIDE_STARTED', {
+          rideId,
+          status:        'IN_PROGRESS',
+          driverName:    updated.driver?.name,
+          fromCity:      updated.fromCity,
+          toCity:        updated.toCity,
+          date:          updated.date,
+          departureTime: updated.departureTime,
+        });
+      } catch (e) { console.error('[Socket] RIDE_STARTED emit failed:', e); }
     }
-
-    return withRating(updated);
-
-    return withRating(updated);
 
     return withRating(updated);
   }
 
+  // ── Update ride — only the owning driver can update ───────────────────────
+  async updateRide(rideId: string, driverId: string, data: UpdateRideDto): Promise<any> {
+    const ride = await prisma.ride.findFirst({ where: { id: rideId, driverId } });
+    if (!ride) throw AppError.notFound('Ride not found or you are not the owner');
+    if (ride.status !== 'ACTIVE') throw AppError.badRequest('Only ACTIVE rides can be updated');
+    const updated = await prisma.ride.update({
+      where: { id: rideId },
+      data: { ...data, updatedBy: driverId } as any,
+      include: INCLUDE,
+    });
+    return withRating(updated);
+  }
+
+  // ── Delete ride — only the owning driver (or admin) can delete ────────────
+  async deleteRide(rideId: string, userId: string, role: string): Promise<void> {
+    const ride = await prisma.ride.findUnique({ where: { id: rideId } });
+    if (!ride) throw AppError.notFound('Ride not found');
+    if (role !== 'ADMIN' && ride.driverId !== userId) throw AppError.forbidden('Not your ride');
+    if (ride.status === 'IN_PROGRESS') throw AppError.badRequest('Cannot delete a ride that is in progress');
+    await prisma.ride.delete({ where: { id: rideId } });
+  }
 
   // ── Get active ride session (Driver or Passenger) ─────────────────────────
   async getActiveSession(userId: string): Promise<any> {

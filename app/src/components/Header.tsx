@@ -30,6 +30,7 @@ interface GradientHeaderProps {
   children?: React.ReactNode;
   rightAction?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  compact?: boolean;
 }
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
   title,
@@ -43,10 +44,11 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   children,
   rightAction,
   style,
+  compact,
 }) => (
   <LinearGradient
     colors={(colors || GRADIENTS.primary) as any}
-    style={[styles.header, style]}
+    style={[styles.header, compact && styles.headerCompact, style]}
   >
     {/* Decorative circles */}
     <View style={styles.circle1} />
@@ -63,7 +65,7 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
       )}
 
       <View style={styles.titleArea}>
-        {title && <Text style={styles.title}>{title}</Text>}
+        {title && <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>}
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
 
@@ -140,6 +142,8 @@ const styles = StyleSheet.create({
   backPlaceholder: { width: 38 },
   titleArea: { flex: 1, paddingHorizontal: 16 },
   title: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  titleCompact: { fontSize: 17 },
+  headerCompact: { paddingBottom: 14 },
   subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   rightArea: { flexDirection: 'row', alignItems: 'center' },
   rightBtn: {

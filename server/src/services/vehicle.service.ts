@@ -72,7 +72,7 @@ export class VehicleService extends BaseService<Vehicle, CreateVehicleDto, Updat
 
   async setActive(vehicleId: string, driverId: string): Promise<Vehicle> {
     const vehicle = await this.getById(vehicleId);
-    if ((vehicle as any).driverId !== driverId) throw AppError.forbidden('Not your vehicle');
+    if (!this.ownsVehicle(vehicle, driverId)) throw AppError.forbidden('Not your vehicle');
 
     // Deactivate all driver's vehicles then activate selected
     await prisma.vehicle.updateMany({

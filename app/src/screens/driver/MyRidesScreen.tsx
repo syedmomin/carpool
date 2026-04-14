@@ -50,20 +50,15 @@ export default function MyRidesScreen({ navigation }) {
   useFocusEffect(useCallback(() => {
     fetchRides(1, true);
 
-    // Listen for new booking requests to update UI in real-time
-    socketService.on('BOOKING_REQUESTED', (data) => {
-      console.log('Real-time booking request received:', data);
-      fetchRides(1, true); // Refresh list
-    });
+    const onBookingRequested = () => fetchRides(1, true);
+    const onBookingCancelled = () => fetchRides(1, true);
 
-    socketService.on('BOOKING_CANCELLED', (data) => {
-      console.log('Real-time booking cancellation received:', data);
-      fetchRides(1, true); // Refresh list
-    });
+    socketService.on('BOOKING_REQUESTED', onBookingRequested);
+    socketService.on('BOOKING_CANCELLED', onBookingCancelled);
 
     return () => {
-      socketService.off('BOOKING_REQUESTED');
-      socketService.off('BOOKING_CANCELLED');
+      socketService.off('BOOKING_REQUESTED', onBookingRequested);
+      socketService.off('BOOKING_CANCELLED', onBookingCancelled);
     };
   }, [fetchRides]));
 
@@ -71,38 +66,57 @@ export default function MyRidesScreen({ navigation }) {
     if (hasMore && !loading && !refreshing) fetchRides(page + 1);
   };
 
-  const handleStatusChange = (ride, newStatus) => {
-    const isStart = newStatus === 'IN_PROGRESS';
-    const isComplete = newStatus === 'COMPLETED';
+  const handleStartRide = (ride) => {
+    // Pre-flight: vehicle must be set up
+    if (!ride.vehicle) {
+      showModal({
+        type: 'danger',
+        title: 'Vehicle Required',
+        message: 'You need to register and activate a vehicle before starting a ride.',
+        confirmText: 'Set Up Vehicle',
+        cancelText: 'Cancel',
+        icon: 'car-outline',
+        onConfirm: () => navigation.navigate('MyVehicles'),
+      });
+      return;
+    }
     showModal({
-      type: isComplete ? 'info' : 'primary',
-      title: isStart ? 'Start Ride?' : 'Complete Ride?',
-      message: isStart
-        ? 'This will notify all passengers that the ride has started.'
-        : 'This will mark the ride as completed and notify passengers to rate their experience.',
-      confirmText: isStart ? 'Start Ride' : 'Complete Ride',
+      type: 'primary',
+      title: 'Start Ride?',
+      message: 'This will notify all confirmed passengers that the ride has started and open the tracking screen.',
+      confirmText: 'Start Ride',
       cancelText: 'Cancel',
-      icon: isStart ? 'play-circle-outline' : 'checkmark-circle-outline',
+      icon: 'play-circle-outline',
       onConfirm: async () => {
         setActionLoading(ride.id);
-        const { data, error } = await ridesApi.updateStatus(ride.id, newStatus);
+        const { data, error } = await ridesApi.updateStatus(ride.id, 'IN_PROGRESS');
         setActionLoading(null);
         if (error) {
           showToast(error, 'error');
         } else {
-          showToast(isStart ? 'Ride started!' : 'Ride completed!', 'success');
-          // Update local state
-          setAllRides(prev => prev.map(r => r.id === ride.id ? { 
-            ...normalize(data?.data || data), 
-            status: newStatus 
-          } : r));
-          
-          if (isStart) {
-            // Auto navigate to map on start
-            navigation.navigate('RideTracking', { rideId: ride.id });
-          } else {
-            fetchRides(1, true);
-          }
+          showToast('Ride started! Opening tracking...', 'success');
+          navigation.navigate('RideTracking', { rideId: ride.id });
+        }
+      },
+    });
+  };
+
+  const handleCancelRide = (ride) => {
+    showModal({
+      type: 'danger',
+      title: 'Cancel Ride?',
+      message: 'Are you sure you want to cancel this ride? All passengers will be notified.',
+      confirmText: 'Yes, Cancel',
+      cancelText: 'No',
+      icon: 'close-circle-outline',
+      onConfirm: async () => {
+        setActionLoading(ride.id);
+        const { error } = await ridesApi.cancel(ride.id);
+        setActionLoading(null);
+        if (error) showToast(error, 'error');
+        else {
+          showToast('Ride cancelled', 'info');
+          fetchRides(1, true);
         }
       },
     });
@@ -114,9 +128,10 @@ export default function MyRidesScreen({ navigation }) {
 
   const renderRide = ({ item }) => {
     const vehicle = item.vehicle;
+    const confirmedSeats = (item.bookings || []).filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED').reduce((s: number, b: any) => s + (b.seats || 1), 0);
     const available = item.totalSeats - item.bookedSeats;
-    const fillPercent = item.bookedSeats / item.totalSeats;
-    const earned = item.bookedSeats * item.pricePerSeat;
+    const fillPercent = confirmedSeats / item.totalSeats;
+    const earned = confirmedSeats * item.pricePerSeat;
     const isActioning = actionLoading === item.id;
     const isActive = item.status === 'ACTIVE';
     const isInProgress = item.status === 'IN_PROGRESS';
@@ -152,7 +167,7 @@ export default function MyRidesScreen({ navigation }) {
               </View>
               <View style={styles.metaRow}>
                 <Ionicons name="people-outline" size={14} color={COLORS.gray} />
-                <Text style={styles.metaText}>{item.bookedSeats} Passengers</Text>
+                <Text style={styles.metaText}>{confirmedSeats} Passengers</Text>
               </View>
             </View>
             <View style={styles.earningsCol}>
@@ -187,7 +202,7 @@ export default function MyRidesScreen({ navigation }) {
 
         <ProgressBar
           value={fillPercent}
-          label={`Seats Booked: ${item.bookedSeats}/${item.totalSeats}`}
+          label={`Confirmed Seats: ${confirmedSeats}/${item.totalSeats}`}
           caption={`${Math.round(fillPercent * 100)}%`}
           style={styles.progress}
         />
@@ -195,7 +210,7 @@ export default function MyRidesScreen({ navigation }) {
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Ionicons name="people-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.statText}>{item.bookedSeats} passengers</Text>
+            <Text style={styles.statText}>{confirmedSeats} confirmed</Text>
           </View>
           <View style={styles.stat}>
             <Ionicons name="cash-outline" size={16} color={COLORS.secondary} />
@@ -214,60 +229,41 @@ export default function MyRidesScreen({ navigation }) {
             onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}
           >
             <Ionicons name="people-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.actionBtnText}>Passengers ({item.bookedSeats})</Text>
+            <Text style={styles.actionBtnText}>Passengers ({confirmedSeats}/{item.totalSeats})</Text>
           </TouchableOpacity>
 
-          {/* Start Ride button — prominently shown for today's active rides IF at least one booking is accepted */}
-          {isActive && item.bookedSeats > 0 && isToday && (
+          {/* Start Ride — today's active rides with at least one CONFIRMED booking */}
+          {isActive && item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday && (
             <TouchableOpacity
               style={[styles.actionBtn, styles.startBtn]}
-              onPress={() => handleStatusChange(item, 'IN_PROGRESS')}
+              onPress={() => handleStartRide(item)}
               disabled={isActioning}
               activeOpacity={0.7}
             >
               {isActioning
                 ? <ActivityIndicator size="small" color="#fff" />
-                : <>
-                    <LinearGradient 
-                      colors={['#2e7d32', '#1b5e20']} 
-                      start={{ x: 0, y: 0 }} 
-                      end={{ x: 1, y: 0 }}
-                      style={styles.startBtnGradient}
-                    >
-                      <Ionicons name="play" size={16} color="#fff" />
-                      <Text style={styles.startBtnText}>START TRIP NOW</Text>
-                    </LinearGradient>
-                  </>
+                : (
+                  <LinearGradient
+                    colors={['#2e7d32', '#1b5e20']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={styles.startBtnGradient}
+                  >
+                    <Ionicons name="play" size={16} color="#fff" />
+                    <Text style={styles.startBtnText}>START TRIP NOW</Text>
+                  </LinearGradient>
+                )
               }
             </TouchableOpacity>
           )}
 
-
-          {/* Go to Map — only when IN_PROGRESS */}
+          {/* Go to Tracking — when IN_PROGRESS (complete from tracking screen) */}
           {isInProgress && (
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: COLORS.secondary }]}
+              style={[styles.actionBtn, { backgroundColor: COLORS.primary, borderColor: 'transparent' }]}
               onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}
             >
-              <Ionicons name="map-outline" size={16} color="#fff" />
-              <Text style={styles.startBtnText}>View Map</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Complete Ride button — only when IN_PROGRESS */}
-          {isInProgress && (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.completeBtn]}
-              onPress={() => handleStatusChange(item, 'COMPLETED')}
-              disabled={isActioning}
-            >
-              {isActioning
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <>
-                  <Ionicons name="checkmark-circle-outline" size={16} color="#fff" />
-                  <Text style={styles.startBtnText}>Complete</Text>
-                </>
-              }
+              <Ionicons name="navigate-outline" size={16} color="#fff" />
+              <Text style={styles.startBtnText}>Open Tracking</Text>
             </TouchableOpacity>
           )}
 
@@ -275,13 +271,7 @@ export default function MyRidesScreen({ navigation }) {
           {isActive && (
             <TouchableOpacity
               style={[styles.actionBtn, { borderColor: COLORS.danger + '50' }]}
-              onPress={() => showModal({
-                type: 'danger',
-                title: 'Cancel Ride?',
-                message: 'Are you sure you want to cancel this ride? Passengers will be notified.',
-                confirmText: 'Yes, Cancel',
-                cancelText: 'No',
-              })}
+              onPress={() => handleCancelRide(item)}
             >
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text>

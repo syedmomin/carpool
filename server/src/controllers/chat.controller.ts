@@ -10,7 +10,7 @@ export class ChatController {
   getHistory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { bookingId } = req.params;
-      const messages = await chatService.getMessages(bookingId as string);
+      const messages = await chatService.getMessages(bookingId as string, req.user!.id);
       ResponseUtil.success(res, messages);
     } catch (err) {
       next(err);

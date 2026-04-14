@@ -108,13 +108,11 @@ export default function PassengerHomeScreen({ navigation }) {
   const { showToast } = useToast();
 
   useEffect(() => {
-    socketService.on('NEW_RIDE', (data) => {
-      showToast(`New Ride: ${data.from} → ${data.to} by ${data.driverName}`, 'info');
-    });
-
-    return () => {
-      socketService.off('NEW_RIDE');
+    const onNewRide = (data: any) => {
+      showToast(`New ride: ${data.fromCity || data.from} → ${data.toCity || data.to}`, 'info');
     };
+    socketService.on('NEW_RIDE', onNewRide);
+    return () => socketService.off('NEW_RIDE', onNewRide);
   }, []);
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');

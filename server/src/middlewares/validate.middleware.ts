@@ -34,8 +34,17 @@ export const validate = (rules: ValidationRule[]) =>
           add('must be 11–13 digits');
       }
 
-      if (rule.type === 'number' && isNaN(Number(value))) {
-        add('must be a number');
+      if (rule.type === 'number') {
+        if (isNaN(Number(value))) {
+          add('must be a number');
+        } else {
+          const num = Number(value);
+          if (rule.min !== undefined && num < rule.min)
+            add(`must be at least ${rule.min}`);
+          if (rule.max !== undefined && num > rule.max)
+            add(`must be at most ${rule.max}`);
+        }
+        continue;
       }
 
       if (rule.min !== undefined && String(value).length < rule.min) {

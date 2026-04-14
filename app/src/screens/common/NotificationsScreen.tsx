@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { notificationsApi } from '../../services/api';
+import { socketService } from '../../services/socket.service';
 
 const PAGE_SIZE = 20;
 const TYPE_CONFIG = {
@@ -39,7 +40,25 @@ export default function NotificationsScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => {
     fetchNotifs(1, true);
-  }, []));
+
+    // Refresh list whenever any notification-creating event fires
+    const onAnyNotif = () => fetchNotifs(1, true);
+    socketService.on('BOOKING_REQUESTED',  onAnyNotif);
+    socketService.on('BOOKING_ACCEPTED',   onAnyNotif);
+    socketService.on('BOOKING_REJECTED',   onAnyNotif);
+    socketService.on('BOOKING_CANCELLED',  onAnyNotif);
+    socketService.on('RIDE_STARTED',       onAnyNotif);
+    socketService.on('RIDE_COMPLETED',     onAnyNotif);
+
+    return () => {
+      socketService.off('BOOKING_REQUESTED',  onAnyNotif);
+      socketService.off('BOOKING_ACCEPTED',   onAnyNotif);
+      socketService.off('BOOKING_REJECTED',   onAnyNotif);
+      socketService.off('BOOKING_CANCELLED',  onAnyNotif);
+      socketService.off('RIDE_STARTED',       onAnyNotif);
+      socketService.off('RIDE_COMPLETED',     onAnyNotif);
+    };
+  }, [fetchNotifs]));
 
   const handleNotifPress = async (item) => {
     if (!item.read) {

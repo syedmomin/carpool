@@ -10,23 +10,29 @@ const TOKEN_KEY = '@chalparo_token';
 const REFRESH_TOKEN_KEY = '@chalparo_refresh_token';
 const DEFAULT_TIMEOUT = 12000;
 
-// ─── Token helpers (encrypted) ────────────────────────────────────────────────
+// ─── Token helpers (XOR-encrypted in AsyncStorage) ───────────────────────────
 export const tokenStorage = {
   get: async () => {
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    const raw = await AsyncStorage.getItem(TOKEN_KEY);
+    if (!raw) return null;
+    const token = decryptValue(raw);
     if (!token) return null;
-    // JWT must have 3 parts. If it doesn't, it was corrupted by legacy encryption
+    // JWT must have 3 parts — if decryption gives garbage, clear and re-login
     if (token.split('.').length !== 3) {
       await tokenStorage.remove();
       return null;
     }
     return token;
   },
-  set: async (token) => AsyncStorage.setItem(TOKEN_KEY, token),
+  set: async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
   remove: async () => AsyncStorage.removeItem(TOKEN_KEY),
 
-  getRefresh: async () => AsyncStorage.getItem(REFRESH_TOKEN_KEY),
-  setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, token),
+  getRefresh: async () => {
+    const raw = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!raw) return null;
+    return decryptValue(raw);
+  },
+  setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, encryptValue(token)),
   removeRefresh: async () => AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
 
   clearAll: async () => {
@@ -41,6 +47,45 @@ export const tokenStorage = {
 // ─── Event listener for forced logout (e.g. session expiry) ──────────────────
 let onLogout = null;
 export const setLogoutHandler = (handler) => { onLogout = handler; };
+
+// ─── Token refresh mutex ──────────────────────────────────────────────────────
+// Prevents concurrent 401 responses from all trying to refresh the token at once.
+// First caller refreshes; all others wait and reuse the result.
+let _refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    try {
+      const refreshToken = await tokenStorage.getRefresh();
+      if (!refreshToken) return false;
+
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (res.ok && json.data) {
+        await tokenStorage.set(json.data.accessToken);
+        await tokenStorage.setRefresh(json.data.refreshToken);
+        // Notify socket service to reconnect with the new token
+        try {
+          const { socketService } = require('./socket.service');
+          socketService.reconnectWithNewToken();
+        } catch (_) {}
+        return true;
+      }
+      return false;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+
+  return _refreshPromise;
+}
 
 // ─── Parse error from response body ──────────────────────────────────────────
 // Returns a human-readable string.
@@ -85,28 +130,10 @@ async function request(method, path, body = null, isRetry = false) {
 
     // ─── Handle token expiry (401) ───
     if (res.status === 401 && !isRetry && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
-      const refreshToken = await tokenStorage.getRefresh();
-      if (refreshToken) {
-        // Attempt to refresh
-        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refreshToken }),
-        });
+      const refreshed = await refreshAccessToken();
+      if (refreshed) return request(method, path, body, true);
 
-        const refreshJson = await refreshRes.json().catch(() => ({}));
-
-        if (refreshRes.ok && refreshJson.data) {
-          const { accessToken, refreshToken: newRefresh } = refreshJson.data;
-          await tokenStorage.set(accessToken);
-          await tokenStorage.setRefresh(newRefresh);
-
-          // Retry the original request
-          return request(method, path, body, true);
-        }
-      }
-
-      // If no refresh token or refresh failed: logout
+      // Refresh failed — force logout
       await tokenStorage.clearAll();
       if (onLogout) onLogout();
       return { data: null, error: 'SESSION_EXPIRED', errors: null };
@@ -131,6 +158,8 @@ export const authApi = {
   register: (userData) => request('POST', '/auth/register', userData),
   changePassword: (currentPassword, newPassword) => request('POST', '/auth/change-password', { currentPassword, newPassword }),
   me: () => request('GET', '/auth/me'),
+  logout: () => request('POST', '/auth/logout'),
+  refresh: (refreshToken) => request('POST', '/auth/refresh', { refreshToken }),
 };
 
 // ─── Rides ───────────────────────────────────────────────────────────────────
@@ -217,6 +246,12 @@ export const chatApi = {
 };
 
 
+// ─── Tracking ────────────────────────────────────────────────────────────────
+export const trackingApi = {
+  getRoute: (rideId: string) => request('GET', `/tracking/route/${rideId}`),
+  getLatestLocation: (rideId: string) => request('GET', `/tracking/location/${rideId}`),
+};
+
 // ─── Image Upload ─────────────────────────────────────────────────────────────
 export const uploadApi = {
   image: async (uri, type = 'profile') => {
@@ -237,7 +272,7 @@ export const uploadApi = {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      console.log(`📤 Uploading image: ${uri} (${mimeType}) to ${BASE_URL}/upload/image?type=${type}`);
+      if (__DEV__) console.log(`📤 Uploading image: type=${type}`);
 
       const res = await fetch(`${BASE_URL}/upload/image?type=${type}`, {
         method: 'POST',
@@ -253,14 +288,14 @@ export const uploadApi = {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        console.error('❌ Upload Response Error:', json);
+        if (__DEV__) console.error('❌ Upload Response Error:', json);
         return { data: null, error: parseError(json, res.status), errors: null };
       }
 
-      console.log('✅ Upload Success:', json);
+      if (__DEV__) console.log('✅ Upload Success');
       return { data: json, error: null, errors: null };
     } catch (err) {
-      console.error('❌ Upload Catch Error:', err);
+      if (__DEV__) console.error('❌ Upload Catch Error:', err);
       return { data: null, error: err.message || 'Upload failed', errors: null };
     }
   },

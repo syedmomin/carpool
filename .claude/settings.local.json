@@ -7,7 +7,12 @@
       "Bash(npx tsc:*)",
       "Bash(npm create:*)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --version)",
+      "Bash(node_modules/.bin/tsc --noEmit --diagnostics)",
+      "Bash(node_modules/.bin/prisma generate:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\('dependencies',{}\\).keys\\(\\)\\)\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\jamal\\.claude\\projects\\d--projects-carpool"

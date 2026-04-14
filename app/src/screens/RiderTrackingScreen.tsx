@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import axios from 'axios';
-import { API_BASE_URL } from '../config/network';
 import { MapTracker } from '../components/MapTracker';
 import { socketService } from '../services/socket.service';
+import { trackingApi } from '../services/api';
 
 export const RiderTrackingScreen = () => {
   const route = useRoute();
@@ -13,57 +12,52 @@ export const RiderTrackingScreen = () => {
   const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [routePolyline, setRoutePolyline] = useState<number[][]>([]);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    // 1. Fetch Route
-    fetchRoute();
+    mountedRef.current = true;
 
-    // 2. Initial Location Fetch (in case Socket hasn't updated yet)
-    fetchLatestLocation();
+    const onLocationUpdate = (data: { rideId: string; latitude: number; longitude: number }) => {
+      if (!mountedRef.current || data.rideId !== rideId) return;
+      setCurrentLocation({ latitude: data.latitude, longitude: data.longitude });
+    };
 
-    // 3. Connect to Socket.IO & Listen for updates
+    const init = async () => {
+      // Fetch route polyline
+      try {
+        const { data } = await trackingApi.getRoute(rideId);
+        if (mountedRef.current && data?.data?.polyline) {
+          setRoutePolyline(data.data.polyline);
+        }
+      } catch (err) {
+        if (__DEV__) console.warn('[RiderTracking] Failed to fetch route', err);
+      }
+
+      // Fetch latest driver location (fallback before socket fires)
+      try {
+        const { data } = await trackingApi.getLatestLocation(rideId);
+        if (mountedRef.current && data?.data) {
+          setCurrentLocation({ latitude: data.data.latitude, longitude: data.data.longitude });
+        }
+      } catch (_) {
+        // Normal if driver hasn't started yet
+      }
+
+      if (mountedRef.current) setLoading(false);
+    };
+
     socketService.connect();
     socketService.joinRide(rideId, 'rider');
-
-    socketService.onLocationUpdate((data) => {
-      console.log('📍 Rider received update:', data.latitude, data.longitude);
-      setCurrentLocation({ latitude: data.latitude, longitude: data.longitude });
-    });
+    socketService.onLocationUpdate(onLocationUpdate);
+    init();
 
     return () => {
+      mountedRef.current = false;
+      socketService.offLocationUpdate(onLocationUpdate);
       socketService.leaveRide(rideId);
-      socketService.offLocationUpdate();
-      socketService.disconnect();
+      // Do NOT call socketService.disconnect() — socket is a shared singleton
     };
-  }, []);
-
-  const fetchRoute = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/tracking/route/${rideId}`);
-      if (response.data.success) {
-        setRoutePolyline(response.data.data.polyline);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch route', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchLatestLocation = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/tracking/location/${rideId}`);
-      if (response.data.success && response.data.data) {
-        setCurrentLocation({
-          latitude: response.data.data.latitude,
-          longitude: response.data.data.longitude,
-        });
-      }
-    } catch (err) {
-      // It's normal if no location exists yet
-      console.log('No initial location found or error fetching.');
-    }
-  };
+  }, [rideId]);
 
   if (loading) {
     return (
@@ -81,7 +75,6 @@ export const RiderTrackingScreen = () => {
         routePolyline={routePolyline}
         role="rider"
       />
-      
       {!currentLocation && (
         <View style={styles.overlay}>
           <Text style={styles.overlayText}>Waiting for driver to start tracking...</Text>
@@ -104,5 +97,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
   },
-  overlayText: { color: 'white', fontWeight: '500' }
+  overlayText: { color: 'white', fontWeight: '500' },
 });

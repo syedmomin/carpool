@@ -10,7 +10,7 @@ router.use(authenticate);
 router.post('/',
   validate([
     { field: 'rideId', required: true },
-    { field: 'seats',  required: true, type: 'number' },
+    { field: 'seats',  required: true, type: 'number', min: 1, max: 10 },
   ]),
   bookingController.book,
 );

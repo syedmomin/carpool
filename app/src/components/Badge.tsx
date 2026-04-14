@@ -1,7 +1,59 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from './theme';
+
+// ─── Trust Badge System ──────────────────────────────────────────────────────
+export interface TrustBadgeDef {
+  id: string;
+  label: string;
+  icon: string;
+  color: string;
+  bg: string;
+}
+
+export function computeBadges(user: any): TrustBadgeDef[] {
+  if (!user) return [];
+  const badges: TrustBadgeDef[] = [];
+  if (user.phoneVerified)
+    badges.push({ id: 'phone',   label: 'Phone Verified', icon: 'call',             color: '#00897b', bg: '#e0f7fa' });
+  if (user.cnicStatus === 'APPROVED' || user.verification?.cnicStatus === 'APPROVED')
+    badges.push({ id: 'cnic',    label: 'CNIC Verified',  icon: 'card',             color: '#43a047', bg: '#e8f5e9' });
+  if (user.licenceStatus === 'APPROVED' || user.verification?.licenceStatus === 'APPROVED')
+    badges.push({ id: 'licence', label: 'Licensed',       icon: 'car-sport',        color: COLORS.primary, bg: '#eff6ff' });
+  if (user.rating >= 4.5 && (user.reviewCount || 0) >= 10)
+    badges.push({ id: 'top',     label: 'Top Rated',      icon: 'star',             color: '#f9a825', bg: '#fff8e1' });
+  if (user.isVerified)
+    badges.push({ id: 'trusted', label: 'Trusted',        icon: 'shield-checkmark', color: COLORS.primary, bg: '#eff6ff' });
+  return badges;
+}
+
+interface TrustBadgesRowProps {
+  user: any;
+  max?: number;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const TrustBadgesRow: React.FC<TrustBadgesRowProps> = ({ user, max, style }) => {
+  let badges = computeBadges(user);
+  if (max) badges = badges.slice(0, max);
+  if (badges.length === 0) return null;
+  return (
+    <View style={[{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }, style]}>
+      {badges.map(b => (
+        <View key={b.id} style={[trustStyles.chip, { backgroundColor: b.bg }]}>
+          <Ionicons name={b.icon as any} size={11} color={b.color} />
+          <Text style={[trustStyles.chipText, { color: b.color }]}>{b.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const trustStyles = StyleSheet.create({
+  chip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, gap: 4 },
+  chipText: { fontSize: 11, fontWeight: '700' },
+});
 
 // ─── Amenity Badge (AC, WiFi, etc.) ─────────────────────────────────────────
 const AMENITY_ICONS = {
