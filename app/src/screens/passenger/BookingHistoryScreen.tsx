@@ -503,7 +503,7 @@ export default function BookingHistoryScreen({ navigation }) {
                     colors={GRADIENTS.primary as any}
                     title="My Bookings"
                     subtitle="Loading..."
-                    onBack={() => navigation.goBack()}
+                    onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
                 />
                 <View style={styles.loadingCenter}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
@@ -519,7 +519,7 @@ export default function BookingHistoryScreen({ navigation }) {
                 colors={GRADIENTS.primary as any}
                 title="My Bookings"
                 subtitle={`${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
-                onBack={() => navigation.goBack()}
+                onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
             />
             <FlatList
                 data={bookings}

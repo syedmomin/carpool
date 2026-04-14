@@ -149,7 +149,7 @@ export default function MyVehiclesScreen({ navigation }) {
         colors={GRADIENTS.teal as any}
         title="My Garage"
         subtitle="Select the vehicle you're driving today"
-        onBack={() => navigation.goBack()}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
         rightIcon="add"
         onRightPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })}
       />

@@ -20,18 +20,20 @@ import RideDetailScreen from '../screens/passenger/RideDetailScreen';
 import BookingConfirmScreen from '../screens/passenger/BookingConfirmScreen';
 import BookingHistoryScreen from '../screens/passenger/BookingHistoryScreen';
 import PastBookingsScreen from '../screens/passenger/PastBookingsScreen';
-import ScheduleScreen from '../screens/passenger/ScheduleScreen';
-
+import PostRequestScreen from '../screens/passenger/PostRequestScreen';
+import MyRequestsScreen from '../screens/passenger/MyRequestsScreen';
 
 // Driver
 import DriverHomeScreen from '../screens/driver/DriverHomeScreen';
 import PostRideScreen from '../screens/driver/PostRideScreen';
-import MyRidesScreen from '../screens/driver/MyRidesScreen';
+import ActiveRidesScreen from '../screens/driver/ActiveRidesScreen';
+import RideHistoryScreen from '../screens/driver/RideHistoryScreen';
 import MyVehiclesScreen from '../screens/driver/MyVehiclesScreen';
 import VehicleSetupScreen from '../screens/driver/VehicleSetupScreen';
 import EarningsScreen from '../screens/driver/EarningsScreen';
 import RideBookingsScreen from '../screens/driver/RideBookingsScreen';
 import RideTrackingScreen from '../screens/driver/RideTrackingScreen';
+import OpenRequestsScreen from '../screens/driver/OpenRequestsScreen';
 
 // Common
 import ProfileScreen from '../screens/common/ProfileScreen';
@@ -44,8 +46,6 @@ import TermsScreen from '../screens/common/TermsScreen';
 import PrivacyScreen from '../screens/common/PrivacyScreen';
 import AboutScreen from '../screens/common/AboutScreen';
 import ReviewsScreen from '../screens/common/ReviewsScreen';
-import RideHistoryScreen from '../screens/driver/RideHistoryScreen';
-import OpenRequestsScreen from '../screens/driver/OpenRequestsScreen';
 import ChatScreen from '../screens/common/ChatScreen';
 
 
@@ -107,7 +107,13 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               target: route.key,
               canPreventDefault: true,
             });
-            if (!isFocused && !event.defaultPrevented) {
+            if (isFocused) {
+              // Already on this tab — pop the nested stack back to its root screen
+              const childNav = descriptors[route.key].navigation as any;
+              if (childNav?.canGoBack?.()) {
+                childNav.popToTop();
+              }
+            } else if (!event.defaultPrevented) {
               navigation.navigate(route.name);
             }
           };
@@ -237,31 +243,32 @@ const UserDashboardStack = createNativeStackNavigator<any>();
 function DriverDashboardStack() {
   return (
     <UserDashboardStack.Navigator id="UserDashboard" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <UserDashboardStack.Screen name="DriverHome" component={DriverHomeScreen} />
-      <UserDashboardStack.Screen name="PostRide" component={PostRideScreen} />
-      <UserDashboardStack.Screen name="MyRides" component={MyRidesScreen} />
-      <UserDashboardStack.Screen name="MyVehicles" component={MyVehiclesScreen} />
+      <UserDashboardStack.Screen name="DriverHome"   component={DriverHomeScreen} />
+      <UserDashboardStack.Screen name="PostRide"     component={PostRideScreen} />
+      <UserDashboardStack.Screen name="MyRides"      component={ActiveRidesScreen} />
+      <UserDashboardStack.Screen name="RideBookings" component={RideBookingsScreen} />
+      <UserDashboardStack.Screen name="RideHistory"  component={RideHistoryScreen} />
+      <UserDashboardStack.Screen name="MyVehicles"   component={MyVehiclesScreen} />
       <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
-      <UserDashboardStack.Screen name="Earnings" component={EarningsScreen} />
+      <UserDashboardStack.Screen name="Earnings"     component={EarningsScreen} />
       <UserDashboardStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
       <UserDashboardStack.Screen name="OpenRequests" component={OpenRequestsScreen} />
     </UserDashboardStack.Navigator>
-
   );
 }
 
+// My Rides tab: root = ActiveRidesScreen, can push RideBookings and RideHistory
 const UserRidesStack = createNativeStackNavigator<any>();
 function DriverRidesStack() {
   return (
     <UserRidesStack.Navigator id="DriverRides" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <UserRidesStack.Screen name="MyRides" component={MyRidesScreen} />
-      <UserRidesStack.Screen name="PostRide" component={PostRideScreen} />
+      <UserRidesStack.Screen name="ActiveRides"  component={ActiveRidesScreen} />
+      <UserRidesStack.Screen name="MyRides"      component={ActiveRidesScreen} />
+      <UserRidesStack.Screen name="PostRide"     component={PostRideScreen} />
       <UserRidesStack.Screen name="RideBookings" component={RideBookingsScreen} />
-      <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
+      <UserRidesStack.Screen name="RideHistory"  component={RideHistoryScreen} />
       <UserRidesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
-      <UserRidesStack.Screen name="OpenRequests" component={OpenRequestsScreen} />
     </UserRidesStack.Navigator>
-
   );
 }
 
@@ -303,20 +310,21 @@ function PassengerRidesStack() {
   return (
     <PassengerActivityStack.Navigator id="PassengerActivity" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <PassengerActivityStack.Screen name="PassengerHomeMain" component={PassengerHomeScreen} />
-      <PassengerActivityStack.Screen name="Notifications" component={NotificationsScreen} />
-      <PassengerActivityStack.Screen name="Search" component={SearchScreen} />
-      <PassengerActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
-      <PassengerActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
-      <PassengerActivityStack.Screen name="Schedule" component={ScheduleScreen} />
+      <PassengerActivityStack.Screen name="Notifications"     component={NotificationsScreen} />
+      <PassengerActivityStack.Screen name="Search"            component={SearchScreen} />
+      <PassengerActivityStack.Screen name="RideDetail"        component={RideDetailScreen} />
+      <PassengerActivityStack.Screen name="BookingConfirm"    component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
     </PassengerActivityStack.Navigator>
   );
 }
 
+// Requests tab: root = MyRequestsScreen, can push PostRequest
 const PassengerScheduleStack = createNativeStackNavigator<any>();
 function PassengerRequestsStack() {
   return (
     <PassengerScheduleStack.Navigator id="PassengerRequests" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <PassengerScheduleStack.Screen name="ScheduleMain" component={ScheduleScreen} />
+      <PassengerScheduleStack.Screen name="MyRequests"   component={MyRequestsScreen} />
+      <PassengerScheduleStack.Screen name="PostRequest"  component={PostRequestScreen} />
     </PassengerScheduleStack.Navigator>
   );
 }
@@ -333,12 +341,23 @@ function PassengerSearchStack() {
   );
 }
 
+const PassengerBookingsStackNav = createNativeStackNavigator<any>();
+function PassengerBookingsStack() {
+  return (
+    <PassengerBookingsStackNav.Navigator id="PassengerBookings" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <PassengerBookingsStackNav.Screen name="BookingHistoryMain" component={BookingHistoryScreen} />
+      <PassengerBookingsStackNav.Screen name="PastBookings"       component={PastBookingsScreen} />
+      <PassengerBookingsStackNav.Screen name="RideDetail"         component={RideDetailScreen} />
+    </PassengerBookingsStackNav.Navigator>
+  );
+}
+
 const PASSENGER_TABS = [
-  { name: 'PassengerHomeTab', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerRidesStack },
-  { name: 'SearchTab', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: PassengerSearchStack },
-  { name: 'RequestsTab', icon: 'calendar-outline', iconFocused: 'calendar', label: 'Requests', component: PassengerRequestsStack },
-  { name: 'BookingHistoryTab', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
-  { name: 'PassengerProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
+  { name: 'PassengerHomeTab',    icon: 'home-outline',     iconFocused: 'home',     label: 'Home',     component: PassengerRidesStack },
+  { name: 'SearchTab',           icon: 'search-outline',   iconFocused: 'search',   label: 'Search',   component: PassengerSearchStack },
+  { name: 'RequestsTab',         icon: 'calendar-outline', iconFocused: 'calendar', label: 'Requests', component: PassengerRequestsStack },
+  { name: 'BookingHistoryTab',   icon: 'receipt-outline',  iconFocused: 'receipt',  label: 'Bookings', component: PassengerBookingsStack },
+  { name: 'PassengerProfileTab', icon: 'person-outline',   iconFocused: 'person',   label: 'Profile',  component: CommonProfileStack },
 ];
 
 const DriverRequestsStackNav = createNativeStackNavigator<any>();
@@ -358,6 +377,19 @@ const DRIVER_TABS = [
   { name: 'DriverProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];
 
+// Listener factory: pops the tab's child stack to root whenever the tab is pressed
+// (whether it was already focused or not). This fixes the "came back to tab and
+// still see the detail screen" issue.
+function makePopToTopListener(navigation: any) {
+  return {
+    tabPress: () => {
+      if (navigation.canGoBack()) {
+        navigation.popToTop();
+      }
+    },
+  };
+}
+
 function PassengerTabNav() {
   return (
     <Tab.Navigator
@@ -371,6 +403,7 @@ function PassengerTabNav() {
           name={t.name}
           component={t.component}
           options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused } as any}
+          listeners={({ navigation }) => makePopToTopListener(navigation)}
         />
       ))}
     </Tab.Navigator>
@@ -390,6 +423,7 @@ function DriverTabNav() {
           name={t.name}
           component={t.component}
           options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused } as any}
+          listeners={({ navigation }) => makePopToTopListener(navigation)}
         />
       ))}
     </Tab.Navigator>

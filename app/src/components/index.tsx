@@ -46,6 +46,9 @@ export { DatePickerInput, TimePickerInput } from './DateTimePicker';
 // ─── Toast ────────────────────────────────────────────────────────────────────
 export { default as Toast } from './Toast';
 
+// ─── City Search Modal (shared) ───────────────────────────────────────────────
+export { default as CitySearchModal } from './CitySearchModal';
+
 // ─── Illustrations ────────────────────────────────────────────────────────────
 export {
   SplashIllustration,

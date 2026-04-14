@@ -395,7 +395,7 @@ export default function OpenRequestsScreen({ navigation }) {
         colors={GRADIENTS.teal as any}
         title="Passenger Requests"
         subtitle="Browse and bid on schedule requests"
-        onBack={() => navigation.goBack()}
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
 
       {loading ? (
