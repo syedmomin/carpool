@@ -8,8 +8,8 @@ export class ScheduleRequestController {
   // POST /schedule-requests  (passenger)
   create = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { fromCity, toCity, date, seats, note } = req.body;
-      const result = await scheduleRequestService.createRequest(req.user!.id, { fromCity, toCity, date, seats: Number(seats) || 1, note });
+      const { fromCity, toCity, date, departureTime, seats, note } = req.body;
+      const result = await scheduleRequestService.createRequest(req.user!.id, { fromCity, toCity, date, departureTime, seats: Number(seats) || 1, note });
       ResponseUtil.created(res, result, 'Schedule request posted');
     } catch (err) { next(err); }
   };
@@ -37,9 +37,9 @@ export class ScheduleRequestController {
   // POST /schedule-requests/:id/bids  (driver)
   placeBid = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { pricePerSeat, vehicleId, departureTime, note } = req.body;
-      const bid = await scheduleRequestService.placeBid(req.params.id, req.user!.id, {
-        pricePerSeat: Number(pricePerSeat), vehicleId, departureTime, note,
+      const { pricePerSeat, vehicleId, note } = req.body;
+      const bid = await scheduleRequestService.placeBid(req.params.id as string, req.user!.id, {
+        pricePerSeat: Number(pricePerSeat), vehicleId, note,
       });
       ResponseUtil.created(res, bid, 'Bid placed');
     } catch (err) { next(err); }
@@ -48,7 +48,7 @@ export class ScheduleRequestController {
   // PATCH /schedule-requests/:id/bids/:bidId/accept  (passenger)
   acceptBid = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const ride = await scheduleRequestService.acceptBid(req.params.id, req.params.bidId, req.user!.id);
+      const ride = await scheduleRequestService.acceptBid(req.params.id as string, req.params.bidId as string, req.user!.id);
       ResponseUtil.success(res, ride, 'Bid accepted — ride created and booking confirmed');
     } catch (err) { next(err); }
   };
@@ -56,7 +56,7 @@ export class ScheduleRequestController {
   // PATCH /schedule-requests/:id/bids/:bidId/reject  (passenger)
   rejectBid = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      await scheduleRequestService.rejectBid(req.params.id, req.params.bidId, req.user!.id);
+      await scheduleRequestService.rejectBid(req.params.id as string, req.params.bidId as string, req.user!.id);
       ResponseUtil.success(res, null, 'Bid rejected');
     } catch (err) { next(err); }
   };
@@ -64,7 +64,7 @@ export class ScheduleRequestController {
   // DELETE /schedule-requests/:id  (passenger cancel)
   cancelRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      await scheduleRequestService.cancelRequest(req.params.id, req.user!.id);
+      await scheduleRequestService.cancelRequest(req.params.id as string, req.user!.id);
       ResponseUtil.success(res, null, 'Request cancelled');
     } catch (err) { next(err); }
   };
@@ -72,7 +72,7 @@ export class ScheduleRequestController {
   // DELETE /schedule-requests/:id/bids/:bidId  (driver withdraw)
   withdrawBid = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      await scheduleRequestService.withdrawBid(req.params.id, req.params.bidId, req.user!.id);
+      await scheduleRequestService.withdrawBid(req.params.id as string, req.params.bidId as string, req.user!.id);
       ResponseUtil.success(res, null, 'Bid withdrawn');
     } catch (err) { next(err); }
   };

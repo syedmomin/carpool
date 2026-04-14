@@ -11,8 +11,10 @@ const DRIVER_INCLUDE = {
 
 const VEHICLE_INCLUDE = {
   select: {
-    id: true, brand: true, model: true, type: true,
-    plateNumber: true, ac: true, totalSeats: true, images: true,
+    id: true, brand: true, model: true, type: true, color: true,
+    plateNumber: true, totalSeats: true, images: true,
+    ac: true, wifi: true, music: true, usbCharging: true,
+    waterCooler: true, blanket: true, firstAid: true, luggageRack: true,
   },
 };
 
@@ -36,7 +38,7 @@ export class ScheduleRequestService {
 
   // ── Passenger: create a new schedule request ─────────────────────────────
   async createRequest(passengerId: string, data: {
-    fromCity: string; toCity: string; date: string; seats: number; note?: string;
+    fromCity: string; toCity: string; date: string; departureTime?: string; seats: number; note?: string;
   }) {
     if (data.fromCity.toLowerCase() === data.toCity.toLowerCase())
       throw AppError.badRequest('From and To cities cannot be the same');
@@ -45,14 +47,21 @@ export class ScheduleRequestService {
     if (data.date < today)
       throw AppError.badRequest('Date cannot be in the past');
 
+    if (data.departureTime) {
+      const timeReg = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      if (!timeReg.test(data.departureTime))
+        throw AppError.badRequest('Departure time must be in HH:MM format');
+    }
+
     const request = await prisma.scheduleRequest.create({
       data: {
         passengerId,
-        fromCity: data.fromCity,
-        toCity:   data.toCity,
-        date:     data.date,
-        seats:    data.seats || 1,
-        note:     data.note,
+        fromCity:      data.fromCity,
+        toCity:        data.toCity,
+        date:          data.date,
+        departureTime: data.departureTime || '00:00',
+        seats:         data.seats || 1,
+        note:          data.note,
         createdBy: passengerId,
         updatedBy: passengerId,
       },
@@ -63,12 +72,13 @@ export class ScheduleRequestService {
     try {
       const { broadcastEvent } = await import('../socket');
       broadcastEvent('SCHEDULE_REQUEST', {
-        id:          request.id,
-        fromCity:    request.fromCity,
-        toCity:      request.toCity,
-        date:        request.date,
-        seats:       request.seats,
-        note:        request.note,
+        id:            request.id,
+        fromCity:      request.fromCity,
+        toCity:        request.toCity,
+        date:          request.date,
+        departureTime: request.departureTime,
+        seats:         request.seats,
+        note:          request.note,
         passenger: {
           id:     (request.passenger as any).id,
           name:   (request.passenger as any).name,
@@ -92,7 +102,7 @@ export class ScheduleRequestService {
           passenger: PASSENGER_INCLUDE,
           bids: {
             where:  { driverId },
-            select: { id: true, status: true, pricePerSeat: true },
+            select: { id: true, status: true, pricePerSeat: true, departureTime: true, vehicleId: true, note: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -142,7 +152,7 @@ export class ScheduleRequestService {
 
   // ── Driver: place a bid on a request ─────────────────────────────────────
   async placeBid(scheduleRequestId: string, driverId: string, data: {
-    pricePerSeat: number; vehicleId: string; departureTime: string; note?: string;
+    pricePerSeat: number; vehicleId: string; note?: string;
   }) {
     const request = await prisma.scheduleRequest.findUnique({
       where:   { id: scheduleRequestId },
@@ -155,7 +165,9 @@ export class ScheduleRequestService {
     if (request.date < today) throw AppError.badRequest('Request date has passed');
 
     if (!data.vehicleId) throw AppError.badRequest('Please select a vehicle for your bid');
-    if (!data.departureTime) throw AppError.badRequest('Please provide a departure time');
+
+    // Departure time comes from the passenger's request
+    const departureTime = (request as any).departureTime || '00:00';
 
     // Upsert — driver can update their existing bid
     const bid = await prisma.rideBid.upsert({
@@ -164,7 +176,7 @@ export class ScheduleRequestService {
         scheduleRequestId, driverId,
         vehicleId:     data.vehicleId,
         pricePerSeat:  data.pricePerSeat,
-        departureTime: data.departureTime,
+        departureTime,
         note:          data.note,
         createdBy:     driverId,
         updatedBy:     driverId,
@@ -172,7 +184,7 @@ export class ScheduleRequestService {
       update: {
         pricePerSeat:  data.pricePerSeat,
         vehicleId:     data.vehicleId,
-        departureTime: data.departureTime,
+        departureTime,
         note:          data.note,
         status:        'PENDING',
         updatedBy:     driverId,
@@ -192,6 +204,15 @@ export class ScheduleRequestService {
         bid: withDriverRating(bid),
       },
     });
+
+    // Confirm bid back to the driver in real-time so their card updates without refresh
+    try {
+      const { emitToUser } = await import('../socket');
+      emitToUser(driverId, 'BID_PLACED', {
+        scheduleRequestId,
+        bid: { id: bid.id, status: bid.status, pricePerSeat: bid.pricePerSeat, departureTime: bid.departureTime, vehicleId: bid.vehicleId, note: bid.note },
+      });
+    } catch (e) { console.error('[Socket] BID_PLACED emit failed:', e); }
 
     return withDriverRating(bid);
   }
@@ -240,7 +261,7 @@ export class ScheduleRequestService {
           fromCity:      request.fromCity,
           toCity:        request.toCity,
           date:          request.date,
-          departureTime: (bid as any).departureTime || '00:00',
+          departureTime: (request as any).departureTime || (bid as any).departureTime || '00:00',
           pricePerSeat:  bid.pricePerSeat,
           totalSeats:    request.seats,
           description:   `Ride created from schedule request. ${request.note || ''}`.trim(),

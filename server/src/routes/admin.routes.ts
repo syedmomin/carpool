@@ -232,7 +232,7 @@ router.post('/review/:id', async (req: Request, res: Response) => {
       ? { cnicStatus: action, rejectedReason: action === 'REJECTED' ? (reason || 'Did not meet requirements') : null }
       : { licenceStatus: action, rejectedReason: action === 'REJECTED' ? (reason || 'Did not meet requirements') : null };
 
-    await prisma.userVerification.update({ where: { id }, data: dataUpdate });
+    await prisma.userVerification.update({ where: { id: id as string }, data: dataUpdate });
 
     // If CNIC approved, mark user isVerified
     if (isCnic && action === 'APPROVED') {

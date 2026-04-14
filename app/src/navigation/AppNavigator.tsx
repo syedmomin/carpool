@@ -377,18 +377,6 @@ const DRIVER_TABS = [
   { name: 'DriverProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];
 
-// Listener factory: pops the tab's child stack to root whenever the tab is pressed
-// (whether it was already focused or not). This fixes the "came back to tab and
-// still see the detail screen" issue.
-function makePopToTopListener(navigation: any) {
-  return {
-    tabPress: () => {
-      if (navigation.canGoBack()) {
-        navigation.popToTop();
-      }
-    },
-  };
-}
 
 function PassengerTabNav() {
   return (
@@ -403,7 +391,6 @@ function PassengerTabNav() {
           name={t.name}
           component={t.component}
           options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused } as any}
-          listeners={({ navigation }) => makePopToTopListener(navigation)}
         />
       ))}
     </Tab.Navigator>
@@ -423,7 +410,6 @@ function DriverTabNav() {
           name={t.name}
           component={t.component}
           options={{ tabBarLabel: t.label, _iconName: t.icon, _iconFocused: t.iconFocused } as any}
-          listeners={({ navigation }) => makePopToTopListener(navigation)}
         />
       ))}
     </Tab.Navigator>

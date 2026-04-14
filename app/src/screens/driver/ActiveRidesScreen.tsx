@@ -9,17 +9,16 @@ import { useToast } from '../../context/ToastContext';
 import { ridesApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 export default function ActiveRidesScreen({ navigation }) {
   const { showModal } = useGlobalModal();
   const { showToast } = useToast();
 
-  const [rides, setRides]             = useState([]);
-  const [page, setPage]               = useState(1);
-  const [hasMore, setHasMore]         = useState(true);
-  const [loading, setLoading]         = useState(false);
-  const [refreshing, setRefreshing]   = useState(false);
+  const [tab, setTab]                   = useState<'current' | 'history'>('current');
+  const [allRides, setAllRides]         = useState<any[]>([]);
+  const [loading, setLoading]           = useState(false);
+  const [refreshing, setRefreshing]     = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [actionLoading, setActionLoading]   = useState<string | null>(null);
 
@@ -30,24 +29,19 @@ export default function ActiveRidesScreen({ navigation }) {
 
   const normalize = (r: any) => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
-  const fetchRides = useCallback(async (pageNum: number, replace = false) => {
-    if (loading && !replace) return;
-    pageNum === 1 ? setRefreshing(true) : setLoading(true);
-    const { data } = await ridesApi.myRides(pageNum, PAGE_SIZE);
-    pageNum === 1 ? setRefreshing(false) : setLoading(false);
+  const fetchRides = useCallback(async (replace = false) => {
+    replace ? setRefreshing(true) : setLoading(true);
+    const { data } = await ridesApi.myRides(1, PAGE_SIZE);
+    replace ? setRefreshing(false) : setLoading(false);
     setInitialLoading(false);
     if (!data?.data) return;
-    const all   = (data.data || []).map(normalize);
-    const items = all.filter((r: any) => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
-    setRides(prev => replace ? items : [...prev, ...items]);
-    setHasMore(data.meta?.hasNext ?? false);
-    setPage(pageNum);
+    setAllRides((data.data || []).map(normalize));
   }, []);
 
   useFocusEffect(useCallback(() => {
-    fetchRides(1, true);
+    fetchRides(false);
 
-    const refresh = () => fetchRides(1, true);
+    const refresh = () => fetchRides(true);
     socketService.on('BOOKING_REQUESTED', refresh);
     socketService.on('BOOKING_CANCELLED', refresh);
     return () => {
@@ -56,58 +50,49 @@ export default function ActiveRidesScreen({ navigation }) {
     };
   }, [fetchRides]));
 
+  const currentRides = allRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
+  const historyRides = allRides.filter(r => r.status === 'COMPLETED' || r.status === 'CANCELLED' || r.status === 'EXPIRED');
+
   const handleStartRide = (ride: any) => {
     if (!ride.vehicle) {
       showModal({
-        type: 'danger',
-        title: 'Vehicle Required',
+        type: 'danger', title: 'Vehicle Required',
         message: 'Register and activate a vehicle before starting a ride.',
-        confirmText: 'Set Up Vehicle',
-        cancelText: 'Cancel',
-        icon: 'car-outline',
+        confirmText: 'Set Up Vehicle', cancelText: 'Cancel', icon: 'car-outline',
         onConfirm: () => navigation.navigate('MyVehicles'),
       });
       return;
     }
     showModal({
-      type: 'primary',
-      title: 'Start Ride?',
+      type: 'primary', title: 'Start Ride?',
       message: 'This will notify all confirmed passengers that the ride has started.',
-      confirmText: 'Start Ride',
-      cancelText: 'Cancel',
-      icon: 'play-circle-outline',
+      confirmText: 'Start Ride', cancelText: 'Cancel', icon: 'play-circle-outline',
       onConfirm: async () => {
         setActionLoading(ride.id);
         const { error } = await ridesApi.updateStatus(ride.id, 'IN_PROGRESS');
         setActionLoading(null);
         if (error) showToast(error, 'error');
-        else {
-          showToast('Ride started! Opening tracking...', 'success');
-          navigation.navigate('RideTracking', { rideId: ride.id });
-        }
+        else { showToast('Ride started! Opening tracking...', 'success'); navigation.navigate('RideTracking', { rideId: ride.id }); }
       },
     });
   };
 
   const handleCancelRide = (ride: any) => {
     showModal({
-      type: 'danger',
-      title: 'Cancel Ride?',
+      type: 'danger', title: 'Cancel Ride?',
       message: 'Are you sure? All passengers will be notified.',
-      confirmText: 'Yes, Cancel',
-      cancelText: 'No',
-      icon: 'close-circle-outline',
+      confirmText: 'Yes, Cancel', cancelText: 'No', icon: 'close-circle-outline',
       onConfirm: async () => {
         setActionLoading(ride.id);
         const { error } = await ridesApi.cancel(ride.id);
         setActionLoading(null);
         if (error) showToast(error, 'error');
-        else { showToast('Ride cancelled', 'info'); fetchRides(1, true); }
+        else { showToast('Ride cancelled', 'info'); fetchRides(true); }
       },
     });
   };
 
-  const renderRide = ({ item }: any) => {
+  const renderCurrentRide = ({ item }: any) => {
     const vehicle        = item.vehicle;
     const confirmedSeats = (item.bookings || [])
       .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
@@ -138,26 +123,22 @@ export default function ActiveRidesScreen({ navigation }) {
           </View>
           <StatusBadge
             status={
-              isInProgress      ? 'in_progress' :
-              isExpiredNoBook   ? 'expired_no_bookings' :
-              !hasAnyBooking    ? 'no_requests' :
-              available > 0     ? (isToday ? 'active' : 'pending') : 'pending'
+              isInProgress    ? 'in_progress' :
+              isExpiredNoBook ? 'expired_no_bookings' :
+              !hasAnyBooking  ? 'no_requests' :
+              available > 0   ? (isToday ? 'active' : 'pending') : 'pending'
             }
             label={
-              isInProgress      ? 'In Progress' :
-              isExpiredNoBook   ? 'Expired – No Bookings' :
-              !hasAnyBooking    ? 'No Requests Yet' :
-              available > 0     ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'
+              isInProgress    ? 'In Progress' :
+              isExpiredNoBook ? 'Expired – No Bookings' :
+              !hasAnyBooking  ? 'No Requests Yet' :
+              available > 0   ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'
             }
           />
         </View>
 
-        <ProgressBar
-          value={fillPercent}
-          label={`Confirmed Seats: ${confirmedSeats}/${item.totalSeats}`}
-          caption={`${Math.round(fillPercent * 100)}%`}
-          style={styles.progress}
-        />
+        <ProgressBar value={fillPercent} label={`Confirmed Seats: ${confirmedSeats}/${item.totalSeats}`}
+          caption={`${Math.round(fillPercent * 100)}%`} style={styles.progress} />
 
         <View style={styles.statsRow}>
           <View style={styles.stat}>
@@ -181,11 +162,7 @@ export default function ActiveRidesScreen({ navigation }) {
           </TouchableOpacity>
 
           {isActive && item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday && (
-            <TouchableOpacity
-              style={[styles.btn, styles.startBtn]}
-              onPress={() => handleStartRide(item)}
-              disabled={isActioning}
-            >
+            <TouchableOpacity style={[styles.btn, styles.startBtn]} onPress={() => handleStartRide(item)} disabled={isActioning}>
               {isActioning ? <ActivityIndicator size="small" color="#fff" /> : (
                 <LinearGradient colors={['#2e7d32','#1b5e20']} start={{x:0,y:0}} end={{x:1,y:0}} style={styles.startGrad}>
                   <Ionicons name="play" size={16} color="#fff" />
@@ -196,20 +173,15 @@ export default function ActiveRidesScreen({ navigation }) {
           )}
 
           {isInProgress && (
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: COLORS.primary, borderColor: 'transparent' }]}
-              onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}
-            >
+            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.primary, borderColor: 'transparent' }]}
+              onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}>
               <Ionicons name="navigate-outline" size={16} color="#fff" />
               <Text style={[styles.btnText, { color: '#fff' }]}>Open Tracking</Text>
             </TouchableOpacity>
           )}
 
           {isActive && (
-            <TouchableOpacity
-              style={[styles.btn, { borderColor: COLORS.danger + '50' }]}
-              onPress={() => handleCancelRide(item)}
-            >
+            <TouchableOpacity style={[styles.btn, { borderColor: COLORS.danger + '50' }]} onPress={() => handleCancelRide(item)}>
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={[styles.btnText, { color: COLORS.danger }]}>Cancel</Text>
             </TouchableOpacity>
@@ -219,13 +191,58 @@ export default function ActiveRidesScreen({ navigation }) {
     );
   };
 
+  const renderHistoryRide = ({ item }: any) => {
+    const confirmedSeats = (item.bookings || [])
+      .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
+      .reduce((s: number, b: any) => s + (b.seats || 1), 0);
+    const earned = confirmedSeats * item.pricePerSeat;
+
+    const statusConfig = {
+      COMPLETED: { color: COLORS.secondary,  bg: '#e8f5e9', label: 'Completed' },
+      CANCELLED: { color: COLORS.danger,     bg: '#fef2f2', label: 'Cancelled' },
+      EXPIRED:   { color: '#92400e',         bg: '#fffbeb', label: 'Expired - Booking' },
+    }[item.status] || { color: COLORS.gray, bg: COLORS.lightGray, label: item.status };
+
+    return (
+      <View style={[styles.card, styles.historyCard]}>
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.route}>{item.from} → {item.to}</Text>
+            <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
+          </View>
+          <View style={[styles.historyBadge, { backgroundColor: statusConfig.bg }]}>
+            <Text style={[styles.historyBadgeText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+          </View>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Ionicons name="people-outline" size={16} color={COLORS.primary} />
+            <Text style={styles.statText}>{confirmedSeats} passengers</Text>
+          </View>
+          <View style={styles.stat}>
+            <Ionicons name="cash-outline" size={16} color={COLORS.secondary} />
+            <Text style={styles.statText}>Rs {earned.toLocaleString()}</Text>
+          </View>
+          <View style={styles.stat}>
+            <Ionicons name="car-outline" size={16} color={COLORS.gray} />
+            <Text style={styles.statText}>{item.vehicle?.type || 'Vehicle'}</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
+          <Ionicons name="people-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.btnText}>View Passengers</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   if (initialLoading) {
     return (
       <View style={styles.container}>
         <GradientHeader colors={GRADIENTS.teal as any} title="My Rides"
-          onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
-          rightIcon="time-outline" onRightPress={() => navigation.navigate('RideHistory')}
-        />
+          rightIcon="add-outline" onRightPress={() => navigation.navigate('PostRide')} />
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={COLORS.teal} />
           <Text style={styles.loadingText}>Loading your rides...</Text>
@@ -234,30 +251,51 @@ export default function ActiveRidesScreen({ navigation }) {
     );
   }
 
+  const data       = tab === 'current' ? currentRides : historyRides;
+  const renderItem = tab === 'current' ? renderCurrentRide : renderHistoryRide;
+
   return (
     <View style={styles.container}>
       <GradientHeader
         colors={GRADIENTS.teal as any}
         title="My Rides"
-        subtitle="Active and in-progress rides"
-        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
-        rightIcon="time-outline"
-        onRightPress={() => navigation.navigate('RideHistory')}
+        subtitle={tab === 'current' ? 'Active and in-progress rides' : 'Past ride history'}
+        rightIcon="add-outline"
+        onRightPress={() => navigation.navigate('PostRide')}
       />
+
+      {/* Tabs */}
+      <View style={styles.tabs}>
+        <TouchableOpacity style={[styles.tab, tab === 'current' && styles.tabActive]} onPress={() => setTab('current')}>
+          <Ionicons name="car-sport-outline" size={16} color={tab === 'current' ? COLORS.primary : COLORS.gray} />
+          <Text style={[styles.tabText, tab === 'current' && styles.tabTextActive]}>
+            Current {currentRides.length > 0 ? `(${currentRides.length})` : ''}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, tab === 'history' && styles.tabActive]} onPress={() => setTab('history')}>
+          <Ionicons name="time-outline" size={16} color={tab === 'history' ? COLORS.primary : COLORS.gray} />
+          <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>
+            History {historyRides.length > 0 ? `(${historyRides.length})` : ''}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
-        data={rides}
+        data={data}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
-        renderItem={renderRide}
-        onEndReached={() => { if (hasMore && !loading) fetchRides(page + 1); }}
-        onEndReachedThreshold={0.3}
+        renderItem={renderItem}
         refreshing={refreshing}
-        onRefresh={() => fetchRides(1, true)}
+        onRefresh={() => fetchRides(true)}
         ListFooterComponent={loading ? <ActivityIndicator color={COLORS.teal} style={{ marginVertical: 16 }} /> : null}
         ListEmptyComponent={
           !refreshing ? (
-            <EmptyState icon="car-sport-outline" title="No Active Rides"
-              subtitle="You have no active rides right now. Post a new ride!" />
+            tab === 'current'
+              ? <EmptyState icon="car-sport-outline" title="No Active Rides"
+                  subtitle="You have no active rides. Post a new ride!"
+                  action={{ label: 'Post a Ride', onPress: () => navigation.navigate('PostRide') }} />
+              : <EmptyState icon="time-outline" title="No Ride History"
+                  subtitle="Your completed and cancelled rides will appear here." />
           ) : null
         }
       />
@@ -266,24 +304,34 @@ export default function ActiveRidesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:       { flex: 1, backgroundColor: COLORS.bg },
-  loadingCenter:   { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText:     { fontSize: 14, color: COLORS.gray },
-  list:            { padding: 16, paddingBottom: 100 },
-  card:            { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
-  inProgressBanner:{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
-  inProgressText:  { fontSize: 12, fontWeight: '700', color: '#fff' },
-  cardHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
-  route:           { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  date:            { fontSize: 12, color: COLORS.gray, marginTop: 3 },
-  progress:        { marginHorizontal: 16, marginBottom: 12 },
-  statsRow:        { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12 },
-  stat:            { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statText:        { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
-  actions:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
-  btn:             { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
-  btnText:         { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  startBtn:        { paddingVertical: 0, paddingHorizontal: 0, borderWidth: 0, minWidth: 150 },
-  startGrad:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, gap: 8, width: '100%' },
-  startText:       { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  container:     { flex: 1, backgroundColor: COLORS.bg },
+  loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText:   { fontSize: 14, color: COLORS.gray },
+
+  tabs:         { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  tab:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
+  tabActive:    { borderBottomWidth: 2.5, borderBottomColor: COLORS.primary },
+  tabText:      { fontSize: 13, fontWeight: '600', color: COLORS.gray },
+  tabTextActive:{ color: COLORS.primary, fontWeight: '800' },
+
+  list:          { padding: 16, paddingBottom: 100 },
+  card:          { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  historyCard:   { opacity: 0.9 },
+  inProgressBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
+  inProgressText:   { fontSize: 12, fontWeight: '700', color: '#fff' },
+  cardHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
+  route:         { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
+  date:          { fontSize: 12, color: COLORS.gray, marginTop: 3 },
+  progress:      { marginHorizontal: 16, marginBottom: 12 },
+  statsRow:      { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12 },
+  stat:          { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statText:      { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
+  actions:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
+  btn:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
+  btnText:       { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  startBtn:      { paddingVertical: 0, paddingHorizontal: 0, borderWidth: 0, minWidth: 150 },
+  startGrad:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, gap: 8, width: '100%' },
+  startText:     { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+  historyBadge:  { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  historyBadgeText: { fontSize: 11, fontWeight: '700' },
 });

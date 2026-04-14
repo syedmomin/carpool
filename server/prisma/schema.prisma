@@ -7,33 +7,33 @@ datasource db {
 }
 
 model User {
-  id              String            @id @default(cuid())
-  name            String
-  email           String            @unique
-  phone           String            @unique
-  password        String
-  role            UserRole          @default(PASSENGER)
-  avatar          String?
-  city            String?
-  isVerified      Boolean           @default(false)
-  isActive        Boolean           @default(true)
-  fcmToken        String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  createdBy       String?
-  updatedBy       String?
-  tokenVersion    Int               @default(0)
-  bookings          Booking[]
-  sentMessages      ChatMessage[]
-  notifications     Notification[]
-  reviewsReceived   Review[]          @relation("ReviewsReceived")
-  reviews           Review[]          @relation("ReviewedBy")
-  ridesAsDriver     Ride[]            @relation("DriverRides")
-  scheduleAlerts    ScheduleAlert[]
-  scheduleRequests  ScheduleRequest[]
-  rideBids          RideBid[]         @relation("DriverBids")
-  verification      UserVerification?
-  vehicles          Vehicle[]
+  id               String            @id @default(cuid())
+  name             String
+  email            String            @unique
+  phone            String            @unique
+  password         String
+  role             UserRole          @default(PASSENGER)
+  avatar           String?
+  city             String?
+  isVerified       Boolean           @default(false)
+  isActive         Boolean           @default(true)
+  fcmToken         String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  tokenVersion     Int               @default(0)
+  bookings         Booking[]
+  sentMessages     ChatMessage[]
+  notifications    Notification[]
+  reviewsReceived  Review[]          @relation("ReviewsReceived")
+  reviews          Review[]          @relation("ReviewedBy")
+  rideBids         RideBid[]         @relation("DriverBids")
+  ridesAsDriver    Ride[]            @relation("DriverRides")
+  scheduleAlerts   ScheduleAlert[]
+  scheduleRequests ScheduleRequest[]
+  verification     UserVerification?
+  vehicles         Vehicle[]
 
   @@map("users")
 }
@@ -61,8 +61,8 @@ model Vehicle {
   updatedAt   DateTime    @updatedAt
   createdBy   String?
   updatedBy   String?
-  rides       Ride[]
   rideBids    RideBid[]
+  rides       Ride[]
   driver      User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@map("vehicles")
@@ -228,20 +228,21 @@ model RideLocation {
 }
 
 model ScheduleRequest {
-  id          String                @id @default(cuid())
-  passengerId String
-  fromCity    String
-  toCity      String
-  date        String
-  seats       Int                   @default(1)
-  note        String?
+  id            String                @id @default(cuid())
+  passengerId   String
+  fromCity      String
+  toCity        String
+  date          String
+  departureTime String                @default("00:00")
+  seats         Int                   @default(1)
+  note          String?
   status      ScheduleRequestStatus @default(OPEN)
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
   createdBy   String?
   updatedBy   String?
-  passenger   User                  @relation(fields: [passengerId], references: [id], onDelete: Cascade)
   bids        RideBid[]
+  passenger   User                  @relation(fields: [passengerId], references: [id], onDelete: Cascade)
 
   @@index([status, date])
   @@map("schedule_requests")
@@ -253,7 +254,6 @@ model RideBid {
   driverId          String
   vehicleId         String?
   pricePerSeat      Int
-  departureTime     String          @default("00:00")
   note              String?
   status            BidStatus       @default(PENDING)
   rideId            String?
@@ -261,8 +261,9 @@ model RideBid {
   updatedAt         DateTime        @updatedAt
   createdBy         String?
   updatedBy         String?
-  scheduleRequest   ScheduleRequest @relation(fields: [scheduleRequestId], references: [id], onDelete: Cascade)
+  departureTime     String          @default("00:00")
   driver            User            @relation("DriverBids", fields: [driverId], references: [id])
+  scheduleRequest   ScheduleRequest @relation(fields: [scheduleRequestId], references: [id], onDelete: Cascade)
   vehicle           Vehicle?        @relation(fields: [vehicleId], references: [id])
 
   @@unique([scheduleRequestId, driverId])
@@ -332,13 +333,13 @@ enum NotificationType {
   RIDE
   REMINDER
   NEW_RIDE
+  SYSTEM
   RIDE_CANCELLED
   RIDE_EXPIRED
   SCHEDULE_REQUEST
   RIDE_BID
   BID_ACCEPTED
   BID_REJECTED
-  SYSTEM
 }
 
 enum VerificationStatus {

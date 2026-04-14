@@ -8,7 +8,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // ─── Production URL (deployed backend) ────────────────────────────────────────
-const PRODUCTION_URL = 'https://carpool.bonto.run';
+const PRODUCTION_URL = 'https://carpool-v1.bonto.run';
 
 // ─── Dev server port (must match the PORT in server/.env) ─────────────────────
 const DEV_SERVER_PORT = 5000;

@@ -13,23 +13,20 @@ import { scheduleRequestsApi, vehiclesApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 
 // ─── Bid Modal ────────────────────────────────────────────────────────────────
-// IMPORTANT: all hooks MUST be before any early return — Rules of Hooks
 function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
-  const { showToast } = useToast();                         // hook — always first
+  const { showToast } = useToast();
   const [price, setPrice]             = useState('');
   const [selectedVehicle, setVehicle] = useState<any>(null);
-  const [departureTime, setDepTime]   = useState('');
   const [note, setNote]               = useState('');
   const [submitting, setSubmitting]   = useState(false);
 
   useEffect(() => {
     if (visible) {
-      setPrice(''); setNote(''); setDepTime('');
+      setPrice(''); setNote('');
       setVehicle(vehicles.find((v: any) => v.isActive) || vehicles[0] || null);
     }
   }, [visible, vehicles]);
 
-  // early return AFTER all hooks
   if (!visible || !request) return null;
 
   const handleSubmit = async () => {
@@ -39,20 +36,11 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
     if (!selectedVehicle) {
       showToast('Please select a vehicle', 'warning'); return;
     }
-    if (!departureTime.trim()) {
-      showToast('Please enter departure time (e.g. 08:30)', 'warning'); return;
-    }
-    // basic HH:MM validation
-    const timeReg = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    if (!timeReg.test(departureTime.trim())) {
-      showToast('Enter time in HH:MM format (e.g. 08:30)', 'warning'); return;
-    }
     setSubmitting(true);
     await onSubmit({
-      pricePerSeat:  Number(price),
-      vehicleId:     selectedVehicle.id,
-      departureTime: departureTime.trim(),
-      note:          note.trim() || undefined,
+      pricePerSeat: Number(price),
+      vehicleId:    selectedVehicle.id,
+      note:         note.trim() || undefined,
     });
     setSubmitting(false);
   };
@@ -66,12 +54,18 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
               <View style={bm.handle} />
               <Text style={bm.title}>Place Your Bid</Text>
 
-              {/* Route info */}
+              {/* Route + departure time from passenger */}
               <View style={bm.routeBox}>
                 <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
                 <View style={{ flex: 1 }}>
                   <Text style={bm.routeText}>{request.fromCity} → {request.toCity}</Text>
                   <Text style={bm.dateText}>{request.date} · {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
+                  {request.departureTime && request.departureTime !== '00:00' && (
+                    <View style={bm.timeTag}>
+                      <Ionicons name="time-outline" size={12} color={COLORS.primary} />
+                      <Text style={bm.timeTagText}>Passenger departs at {request.departureTime}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -91,27 +85,6 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
                   Total for passenger: Rs {(Number(price) * request.seats).toLocaleString()}
                 </Text>
               )}
-
-              {/* Departure Time */}
-              <Text style={[bm.label, { marginTop: 14 }]}>Departure Time</Text>
-              <View style={bm.timeRow}>
-                <Ionicons name="time-outline" size={18} color={COLORS.primary} />
-                <TextInput
-                  style={bm.timeInput}
-                  placeholder="08:30"
-                  placeholderTextColor={COLORS.gray}
-                  value={departureTime}
-                  onChangeText={v => {
-                    // auto-insert colon
-                    let val = v.replace(/[^0-9]/g, '');
-                    if (val.length >= 3) val = val.slice(0, 2) + ':' + val.slice(2, 4);
-                    setDepTime(val);
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={5}
-                />
-                <Text style={bm.timeHint}>HH:MM (24hr)</Text>
-              </View>
 
               {/* Vehicle picker */}
               {vehicles.length > 0 && (
@@ -179,7 +152,6 @@ export default function OpenRequestsScreen({ navigation }) {
   const [bidTarget, setBidTarget]     = useState<any>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
 
-  // ── Load data ─────────────────────────────────────────────────────────────
   const loadRequests = useCallback(async (isRefresh = false) => {
     isRefresh ? setRefreshing(true) : setLoading(true);
     const { data } = await scheduleRequestsApi.getOpen();
@@ -196,7 +168,6 @@ export default function OpenRequestsScreen({ navigation }) {
     loadRequests();
     loadVehicles();
 
-    // ── Live: new passenger request posted ───────────────────────────────
     const onNewRequest = (data: any) => {
       setRequests(prev => {
         if (prev.find(r => r.id === data.id)) return prev;
@@ -205,19 +176,16 @@ export default function OpenRequestsScreen({ navigation }) {
       showToast(`New ride request: ${data.fromCity} → ${data.toCity}`, 'info');
     };
 
-    // ── Live: request cancelled by passenger — remove ─────────────────────
     const onRequestCancelled = (data: any) => {
       setRequests(prev => prev.filter(r => r.id !== data.scheduleRequestId));
     };
 
-    // ── Live: someone else's bid was accepted — mark request closed ───────
     const onBidAccepted = (data: any) => {
       setRequests(prev => prev.map(r =>
         r.id === data.scheduleRequestId ? { ...r, status: 'ACCEPTED' } : r
       ));
     };
 
-    // ── Live: driver's own bid was rejected (update bid status in list) ───
     const onBidRejected = (data: any) => {
       setRequests(prev => prev.map(r => ({
         ...r,
@@ -227,20 +195,30 @@ export default function OpenRequestsScreen({ navigation }) {
       })));
     };
 
+    // Real-time: server confirms our bid was placed/updated
+    const onBidPlaced = (data: any) => {
+      setRequests(prev => prev.map(r => {
+        if (r.id !== data.scheduleRequestId) return r;
+        const otherBids = (r.bids || []).filter((b: any) => b.id !== data.bid?.id && b.status !== 'PENDING');
+        return { ...r, bids: [...otherBids, data.bid] };
+      }));
+    };
+
     socketService.on('SCHEDULE_REQUEST',  onNewRequest);
     socketService.on('REQUEST_CANCELLED', onRequestCancelled);
     socketService.on('BID_ACCEPTED',      onBidAccepted);
     socketService.on('BID_REJECTED',      onBidRejected);
+    socketService.on('BID_PLACED',        onBidPlaced);
 
     return () => {
       socketService.off('SCHEDULE_REQUEST',  onNewRequest);
       socketService.off('REQUEST_CANCELLED', onRequestCancelled);
       socketService.off('BID_ACCEPTED',      onBidAccepted);
       socketService.off('BID_REJECTED',      onBidRejected);
+      socketService.off('BID_PLACED',        onBidPlaced);
     };
   }, [loadRequests, loadVehicles]));
 
-  // ── Place / Update Bid ────────────────────────────────────────────────────
   const handlePlaceBid = async (bidData: any) => {
     const { data, error } = await scheduleRequestsApi.placeBid(bidTarget.id, bidData);
     if (error) { showToast(error, 'error'); return; }
@@ -248,24 +226,24 @@ export default function OpenRequestsScreen({ navigation }) {
     showToast('Bid placed! Waiting for passenger to accept.', 'success');
     setBidTarget(null);
 
-    // Live update the local list immediately — no refresh needed
+    // Optimistic update — socket BID_PLACED will reconcile with real id
     setRequests(prev => prev.map(r => {
       if (r.id !== bidTarget.id) return r;
-      const existingBids = (r.bids || []).filter((b: any) => b.status !== 'PENDING');
+      const otherBids = (r.bids || []).filter((b: any) => b.status !== 'PENDING');
       return {
         ...r,
-        bids: [...existingBids, {
+        bids: [...otherBids, {
           id:            data?.data?.id || 'temp_' + Date.now(),
           status:        'PENDING',
           pricePerSeat:  bidData.pricePerSeat,
-          departureTime: bidData.departureTime,
+          departureTime: bidTarget.departureTime,
+          vehicleId:     bidData.vehicleId,
           note:          bidData.note,
         }],
       };
     }));
   };
 
-  // ── Withdraw Bid ──────────────────────────────────────────────────────────
   const handleWithdraw = (request: any) => {
     const myBid = (request.bids || [])[0];
     if (!myBid) return;
@@ -281,7 +259,6 @@ export default function OpenRequestsScreen({ navigation }) {
         setWithdrawing(null);
         if (error) { showToast(error, 'error'); return; }
         showToast('Bid withdrawn', 'info');
-        // Live update — remove bid from list
         setRequests(prev => prev.map(r =>
           r.id === request.id ? { ...r, bids: [] } : r
         ));
@@ -289,12 +266,12 @@ export default function OpenRequestsScreen({ navigation }) {
     });
   };
 
-  // ── Render item ───────────────────────────────────────────────────────────
   const renderItem = ({ item }: { item: any }) => {
     const myBid         = (item.bids || [])[0];
     const hasBid        = !!myBid;
     const isAccepted    = item.status === 'ACCEPTED';
     const isWithdrawing = withdrawing === item.id;
+    const hasTime       = item.departureTime && item.departureTime !== '00:00';
 
     return (
       <View style={styles.card}>
@@ -304,6 +281,12 @@ export default function OpenRequestsScreen({ navigation }) {
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{item.date}</Text>
+              {hasTime && (
+                <>
+                  <Ionicons name="time-outline" size={13} color={COLORS.primary} />
+                  <Text style={[styles.metaText, { color: COLORS.primary, fontWeight: '700' }]}>{item.departureTime}</Text>
+                </>
+              )}
               <Ionicons name="people-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{item.seats} seat{item.seats > 1 ? 's' : ''}</Text>
             </View>
@@ -335,10 +318,7 @@ export default function OpenRequestsScreen({ navigation }) {
         {hasBid && (
           <View style={styles.myBidRow}>
             <Ionicons name="pricetag-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.myBidText}>
-              Your bid: Rs {myBid.pricePerSeat}/seat
-              {myBid.departureTime ? ` · ${myBid.departureTime}` : ''}
-            </Text>
+            <Text style={styles.myBidText}>Your bid: Rs {myBid.pricePerSeat}/seat</Text>
             <View style={[
               styles.bidStatusDot,
               myBid.status === 'ACCEPTED' ? styles.bidDotAccepted
@@ -487,13 +467,12 @@ const bm = StyleSheet.create({
   routeBox:   { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, marginBottom: 16 },
   routeText:  { fontSize: 15, fontWeight: '700', color: COLORS.primary },
   dateText:   { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  timeTag:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  timeTagText:{ fontSize: 12, fontWeight: '700', color: COLORS.primary },
   label:      { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8 },
   optional:   { fontSize: 11, fontWeight: '400', color: COLORS.gray },
   priceInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, padding: 14, fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 4 },
   totalPreview:{ fontSize: 13, color: COLORS.gray, textAlign: 'center', marginBottom: 4 },
-  timeRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 4 },
-  timeInput:  { flex: 1, fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  timeHint:   { fontSize: 11, color: COLORS.gray },
   vehicleChip:      { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.primary + '40', marginRight: 8, backgroundColor: '#eff6ff' },
   vehicleChipActive:{ backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   vehicleChipText:  { fontSize: 13, fontWeight: '600', color: COLORS.primary },

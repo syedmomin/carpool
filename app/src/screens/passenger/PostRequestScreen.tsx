@@ -40,6 +40,7 @@ export default function PostRequestScreen({ navigation }) {
   const [from, setFrom]   = useState('');
   const [to, setTo]       = useState('');
   const [seats, setSeats] = useState(1);
+  const [departureTime, setDepartureTime] = useState('');
   const [note, setNote]   = useState('');
   const [posting, setPosting]   = useState(false);
   const [cityModal, setCityModal] = useState<'from' | 'to' | null>(null);
@@ -72,10 +73,13 @@ export default function PostRequestScreen({ navigation }) {
     if (!from)         { showToast('Please select departure city', 'warning'); return; }
     if (!to)           { showToast('Please select destination city', 'warning'); return; }
     if (from === to)   { showToast('Cities cannot be the same', 'error'); return; }
+    if (!departureTime.trim()) { showToast('Please enter your preferred departure time', 'warning'); return; }
+    const timeReg = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (!timeReg.test(departureTime.trim())) { showToast('Enter time in HH:MM format (e.g. 08:30)', 'warning'); return; }
 
     setPosting(true);
     const { error } = await scheduleRequestsApi.create({
-      fromCity: from, toCity: to, date: selectedDate, seats,
+      fromCity: from, toCity: to, date: selectedDate, departureTime: departureTime.trim(), seats,
       note: note.trim() || undefined,
     });
     setPosting(false);
@@ -83,7 +87,7 @@ export default function PostRequestScreen({ navigation }) {
     if (error) { showToast(error, 'error'); return; }
 
     showToast('Request posted! Drivers will bid soon.', 'success', 4000);
-    setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setNote('');
+    setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
     // Navigate to My Requests tab
     navigation.navigate('MyRequests');
   };
@@ -186,6 +190,28 @@ export default function PostRequestScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Departure Time */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferred Departure Time</Text>
+          <View style={styles.timeRow}>
+            <Ionicons name="time-outline" size={20} color={COLORS.primary} />
+            <TextInput
+              style={styles.timeInput}
+              placeholder="08:30"
+              placeholderTextColor={COLORS.gray}
+              value={departureTime}
+              onChangeText={v => {
+                let val = v.replace(/[^0-9]/g, '');
+                if (val.length >= 3) val = val.slice(0, 2) + ':' + val.slice(2, 4);
+                setDepartureTime(val);
+              }}
+              keyboardType="number-pad"
+              maxLength={5}
+            />
+            <Text style={styles.timeHint}>HH:MM (24-hr)</Text>
+          </View>
+        </View>
+
         {/* Note */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Note for Driver <Text style={styles.optional}>(optional)</Text></Text>
@@ -263,6 +289,9 @@ const styles = StyleSheet.create({
   seatChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   seatChipText:   { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   seatChipTextActive: { color: '#fff' },
+  timeRow:        { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 13 },
+  timeInput:      { flex: 1, fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  timeHint:       { fontSize: 11, color: COLORS.gray },
   noteInput:      { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border, padding: 14, fontSize: 14, color: COLORS.textPrimary, textAlignVertical: 'top', minHeight: 80 },
   infoBanner:     { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#eff6ff', borderRadius: 14, marginHorizontal: 16, padding: 14, gap: 10, marginBottom: 20 },
   infoText:       { flex: 1, fontSize: 13, color: COLORS.primary, lineHeight: 20 },
