@@ -13,7 +13,7 @@
 import prisma from '../data-source';
 import { sendPushNotification, sendToMultiple } from './firebase';
 
-export type NotificationType = 'BOOKING' | 'RIDE' | 'REMINDER' | 'NEW_RIDE' | 'SYSTEM';
+export type NotificationType = 'BOOKING' | 'RIDE' | 'REMINDER' | 'NEW_RIDE' | 'RIDE_CANCELLED' | 'RIDE_EXPIRED' | 'SCHEDULE_REQUEST' | 'RIDE_BID' | 'BID_ACCEPTED' | 'BID_REJECTED' | 'SYSTEM';
 
 export interface NotifyPayload {
   userId:   string;

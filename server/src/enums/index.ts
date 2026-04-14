@@ -5,9 +5,11 @@ export enum UserRole {
 }
 
 export enum RideStatus {
-  ACTIVE    = 'ACTIVE',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
+  ACTIVE      = 'ACTIVE',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED   = 'COMPLETED',
+  CANCELLED   = 'CANCELLED',
+  EXPIRED     = 'EXPIRED',
 }
 
 export enum BookingStatus {
@@ -25,11 +27,31 @@ export enum VehicleType {
 }
 
 export enum NotificationType {
-  BOOKING   = 'BOOKING',
-  RIDE      = 'RIDE',
-  REMINDER  = 'REMINDER',
-  NEW_RIDE  = 'NEW_RIDE',
-  SYSTEM    = 'SYSTEM',
+  BOOKING          = 'BOOKING',
+  RIDE             = 'RIDE',
+  REMINDER         = 'REMINDER',
+  NEW_RIDE         = 'NEW_RIDE',
+  RIDE_CANCELLED   = 'RIDE_CANCELLED',
+  RIDE_EXPIRED     = 'RIDE_EXPIRED',
+  SCHEDULE_REQUEST = 'SCHEDULE_REQUEST',
+  RIDE_BID         = 'RIDE_BID',
+  BID_ACCEPTED     = 'BID_ACCEPTED',
+  BID_REJECTED     = 'BID_REJECTED',
+  SYSTEM           = 'SYSTEM',
+}
+
+export enum ScheduleRequestStatus {
+  OPEN      = 'OPEN',
+  ACCEPTED  = 'ACCEPTED',
+  EXPIRED   = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum BidStatus {
+  PENDING   = 'PENDING',
+  ACCEPTED  = 'ACCEPTED',
+  REJECTED  = 'REJECTED',
+  WITHDRAWN = 'WITHDRAWN',
 }
 
 export enum VerificationStatus {

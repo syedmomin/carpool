@@ -412,6 +412,63 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     return withRating(updated);
   }
 
+  // ── Cancel ride — driver cancels their own ride ──────────────────────────
+  async cancelRide(rideId: string, driverId: string): Promise<any> {
+    const ride = await prisma.ride.findFirst({
+      where: { id: rideId, driverId },
+      include: INCLUDE,
+    });
+    if (!ride) throw AppError.notFound('Ride not found');
+    if (ride.status === 'IN_PROGRESS') throw AppError.badRequest('Cannot cancel a ride that is already in progress');
+    if (ride.status === 'COMPLETED')   throw AppError.badRequest('Cannot cancel a completed ride');
+    if (ride.status === 'CANCELLED')   throw AppError.badRequest('Ride is already cancelled');
+
+    // Find all passengers with PENDING or CONFIRMED bookings
+    const affectedBookings = await prisma.booking.findMany({
+      where:  { rideId, status: { in: ['PENDING', 'CONFIRMED'] } },
+      select: { passengerId: true, id: true },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      // Cancel the ride
+      await tx.ride.update({
+        where: { id: rideId },
+        data:  { status: 'CANCELLED', updatedBy: driverId },
+      });
+      // Cancel all active bookings
+      await tx.booking.updateMany({
+        where: { rideId, status: { in: ['PENDING', 'CONFIRMED'] } },
+        data:  { status: 'CANCELLED', updatedBy: driverId },
+      });
+    });
+
+    const passengerIds = affectedBookings.map(b => b.passengerId);
+
+    // Notify all affected passengers
+    if (passengerIds.length) {
+      notifyMany({
+        userIds:     passengerIds,
+        title:       'Ride Cancelled by Driver ❌',
+        message:     `The ${ride.fromCity} → ${ride.toCity} ride on ${ride.date} at ${ride.departureTime} has been cancelled by the driver.`,
+        type:        'RIDE_CANCELLED',
+        rideId,
+        socketEvent: 'RIDE_CANCELLED',
+        socketData:  { rideId, fromCity: ride.fromCity, toCity: ride.toCity, date: ride.date },
+      });
+    }
+
+    // Notify driver: confirmation of cancellation
+    notify({
+      userId:  driverId,
+      title:   'Ride Cancelled',
+      message: `Your ${ride.fromCity} → ${ride.toCity} ride on ${ride.date} has been cancelled.`,
+      type:    'RIDE_CANCELLED',
+      rideId,
+    });
+
+    return { success: true };
+  }
+
   // ── Update ride — only the owning driver can update ───────────────────────
   async updateRide(rideId: string, driverId: string, data: UpdateRideDto): Promise<any> {
     const ride = await prisma.ride.findFirst({ where: { id: rideId, driverId } });

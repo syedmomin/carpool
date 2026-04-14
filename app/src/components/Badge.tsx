@@ -78,14 +78,17 @@ export const AmenityBadge: React.FC<AmenityBadgeProps> = ({ name }) => (
 
 // ─── Status Badge (active, completed, cancelled, pending, in_progress, etc.) ────
 const STATUS_CONFIG: any = {
-  active:      { bg: '#e8f5e9', color: COLORS.secondary, label: 'Active' },
-  confirmed:   { bg: '#e8f5e9', color: COLORS.secondary, label: 'Confirmed' },
-  completed:   { bg: '#f0f9ff', color: '#0369a1',        label: 'Completed' },
-  cancelled:   { bg: '#fef2f2', color: COLORS.danger,    label: 'Cancelled' },
-  rejected:    { bg: '#fef2f2', color: COLORS.danger,    label: 'Rejected' },
-  pending:     { bg: '#fffbeb', color: '#b45309',        label: 'Pending' },
-  in_progress: { bg: '#ecfeff', color: '#0891b2',        label: 'In Progress' },
-  scheduled:   { bg: '#f5f3ff', color: '#7c3aed',        label: 'Scheduled' },
+  active:              { bg: '#e8f5e9', color: COLORS.secondary, label: 'Active' },
+  confirmed:           { bg: '#e8f5e9', color: COLORS.secondary, label: 'Confirmed' },
+  completed:           { bg: '#f0f9ff', color: '#0369a1',        label: 'Completed' },
+  cancelled:           { bg: '#fef2f2', color: COLORS.danger,    label: 'Cancelled' },
+  rejected:            { bg: '#fef2f2', color: COLORS.danger,    label: 'Rejected' },
+  pending:             { bg: '#fffbeb', color: '#b45309',        label: 'Pending' },
+  in_progress:         { bg: '#ecfeff', color: '#0891b2',        label: 'In Progress' },
+  scheduled:           { bg: '#f5f3ff', color: '#7c3aed',        label: 'Scheduled' },
+  no_requests:         { bg: '#f1f5f9', color: '#64748b',        label: 'No Requests Yet' },
+  expired_no_bookings: { bg: '#fef2f2', color: '#9a3412',        label: 'Expired – No Bookings' },
+  expired:             { bg: '#fef2f2', color: '#9a3412',        label: 'Expired' },
 };
 
 interface StatusBadgeProps {

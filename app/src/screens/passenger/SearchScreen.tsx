@@ -304,9 +304,16 @@ export default function SearchScreen({ navigation, route }) {
     const matchesFrom = !from || data.fromCity?.toLowerCase().includes(from.toLowerCase());
     const matchesTo = !to || data.toCity?.toLowerCase().includes(to.toLowerCase());
     if (matchesFrom && matchesTo) {
+      const normalized = { ...data, from: data.fromCity, to: data.toCity, driver: data.driver || { name: 'Driver' }, vehicle: data.vehicle || { type: 'Car' } };
       setAllRides(prev => {
         if (prev.find(r => r.id === data.id)) return prev;
-        return [{ ...data, from: data.fromCity, to: data.toCity, driver: data.driver || { name: 'Driver' }, vehicle: data.vehicle || { type: 'Car' } }, ...prev];
+        return [normalized, ...prev];
+      });
+      // Agar search active hai toh searchResults mein bhi inject karo
+      setSearchResults(prev => {
+        if (prev === null) return prev;
+        if (prev.find((r: any) => r.id === data.id)) return prev;
+        return [normalized, ...prev];
       });
       showToast('A new ride matching your route was just posted!', 'info');
     }

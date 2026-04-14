@@ -57,6 +57,58 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       showToast('A passenger cancelled their booking', 'info');
     };
 
+    // ── Schedule Request: new bid received (passenger gets notification) ─────
+    const onRideBid = (data: any) => {
+      if (isPassenger) {
+        incrementUnreadCount();
+        showToast(`New bid received: Rs ${data.bid?.pricePerSeat}/seat — check your requests!`, 'info');
+      }
+    };
+
+    // ── Bid Accepted: driver's bid was accepted (driver gets notification) ───
+    const onBidAccepted = (data: any) => {
+      if (isDriver) {
+        incrementUnreadCount();
+        showModal({
+          type: 'success',
+          title: 'Bid Accepted! 🎉',
+          message: `Your bid was accepted! A ride has been created for ${data.fromCity} → ${data.toCity} on ${data.date}. Check My Rides.`,
+          confirmText: 'View My Rides',
+          onConfirm: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
+        });
+      }
+    };
+
+    // ── Bid Rejected: driver's bid was not selected ───────────────────────────
+    const onBidRejected = (data: any) => {
+      if (isDriver) {
+        incrementUnreadCount();
+        showToast('Your bid was not selected for this request', 'info');
+      }
+    };
+
+    // ── Ride Cancelled by driver (passengers get notification) ───────────────
+    const onRideCancelled = (data: any) => {
+      if (isPassenger) {
+        incrementUnreadCount();
+        showModal({
+          type: 'danger',
+          title: 'Ride Cancelled ❌',
+          message: `The ${data.fromCity} → ${data.toCity} ride on ${data.date} has been cancelled by the driver.`,
+          confirmText: 'Find Another Ride',
+          onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
+        });
+      }
+    };
+
+    // ── Ride Expired with no bookings (driver gets notification) ─────────────
+    const onRideExpired = (data: any) => {
+      if (isDriver) {
+        incrementUnreadCount();
+        showToast(`Ride ${data.fromCity} → ${data.toCity} expired with no bookings`, 'info');
+      }
+    };
+
     // ── Ride Started (passenger gets notification) ────────────────────────
     const onRideStarted = (data: any) => {
       if (isPassenger) {
@@ -82,16 +134,26 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
     socketService.on('BOOKING_ACCEPTED',  onBookingAccepted);
     socketService.on('BOOKING_REJECTED',  onBookingRejected);
     socketService.on('BOOKING_CANCELLED', onBookingCancelled);
+    socketService.on('RIDE_CANCELLED',    onRideCancelled);
+    socketService.on('RIDE_EXPIRED',      onRideExpired);
     socketService.on('RIDE_STARTED',      onRideStarted);
     socketService.on('RIDE_COMPLETED',    onRideCompleted);
+    socketService.on('RIDE_BID',          onRideBid);
+    socketService.on('BID_ACCEPTED',      onBidAccepted);
+    socketService.on('BID_REJECTED',      onBidRejected);
 
     return () => {
       socketService.off('BOOKING_REQUESTED', onBookingRequested);
       socketService.off('BOOKING_ACCEPTED',  onBookingAccepted);
       socketService.off('BOOKING_REJECTED',  onBookingRejected);
       socketService.off('BOOKING_CANCELLED', onBookingCancelled);
+      socketService.off('RIDE_CANCELLED',    onRideCancelled);
+      socketService.off('RIDE_EXPIRED',      onRideExpired);
       socketService.off('RIDE_STARTED',      onRideStarted);
       socketService.off('RIDE_COMPLETED',    onRideCompleted);
+      socketService.off('RIDE_BID',          onRideBid);
+      socketService.off('BID_ACCEPTED',      onBidAccepted);
+      socketService.off('BID_REJECTED',      onBidRejected);
     };
   }, [currentUser?.id]);
 

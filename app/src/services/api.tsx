@@ -169,7 +169,7 @@ export const ridesApi = {
   getAll: (page = 1, limit = 10) => request('GET', `/rides?page=${page}&limit=${limit}`),
   post: (rideData) => request('POST', '/rides', rideData),
   update: (rideId, updates) => request('PUT', `/rides/${rideId}`, updates),
-  cancel: (rideId) => request('DELETE', `/rides/${rideId}`),
+  cancel: (rideId) => request('PATCH', `/rides/${rideId}/cancel`),
   myRides: (page = 1, limit = 10) => request('GET', `/rides/mine?page=${page}&limit=${limit}`),
   updateStatus: (rideId, status) => request('PATCH', `/rides/${rideId}/status`, { status }),
   activeSession: () => request('GET', '/rides/active-session'),
@@ -226,6 +226,22 @@ export const verificationApi = {
   submitCnic: (cnicNumber, frontImage, backImage) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage }),
   submitLicence: (licenceImage) => request('POST', '/verification/licence', { licenceImage }),
   status: () => request('GET', '/verification/status'),
+};
+
+// ─── Schedule Requests (Passenger ↔ Driver Bidding) ──────────────────────────
+export const scheduleRequestsApi = {
+  // Passenger
+  create:        (data: { fromCity: string; toCity: string; date: string; seats: number; note?: string }) =>
+                   request('POST', '/schedule-requests', data),
+  getMine:       (page = 1, limit = 20) => request('GET', `/schedule-requests/mine?page=${page}&limit=${limit}`),
+  cancel:        (requestId: string)    => request('DELETE', `/schedule-requests/${requestId}`),
+  acceptBid:     (requestId: string, bidId: string) => request('PATCH', `/schedule-requests/${requestId}/bids/${bidId}/accept`),
+  rejectBid:     (requestId: string, bidId: string) => request('PATCH', `/schedule-requests/${requestId}/bids/${bidId}/reject`),
+  // Driver
+  getOpen:       (page = 1, limit = 20) => request('GET', `/schedule-requests?page=${page}&limit=${limit}`),
+  placeBid:      (requestId: string, data: { pricePerSeat: number; vehicleId: string; departureTime: string; note?: string }) =>
+                   request('POST', `/schedule-requests/${requestId}/bids`, data),
+  withdrawBid:   (requestId: string, bidId: string) => request('DELETE', `/schedule-requests/${requestId}/bids/${bidId}`),
 };
 
 // ─── Schedule Alerts ─────────────────────────────────────────────────────────

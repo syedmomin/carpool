@@ -45,6 +45,7 @@ import PrivacyScreen from '../screens/common/PrivacyScreen';
 import AboutScreen from '../screens/common/AboutScreen';
 import ReviewsScreen from '../screens/common/ReviewsScreen';
 import RideHistoryScreen from '../screens/driver/RideHistoryScreen';
+import OpenRequestsScreen from '../screens/driver/OpenRequestsScreen';
 import ChatScreen from '../screens/common/ChatScreen';
 
 
@@ -59,6 +60,7 @@ const TAB_BAR_HEIGHT = 65;
 
 
 export function CustomTabBar({ state, descriptors, navigation }: any) {
+  const { unreadCount } = useApp();
   const activeIndex = state.index;
   const tabWidth = width / state.routes.length;
 
@@ -110,6 +112,8 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
             }
           };
 
+          const isNotifTab = route.name === 'PassengerHomeTab' || route.name === 'DriverHomeTab';
+
           return (
             <TouchableOpacity
               key={route.key}
@@ -123,6 +127,11 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
                     size={24}
                     color={isFocused ? COLORS.primary : COLORS.gray}
                   />
+                  {isNotifTab && unreadCount > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
               <Text style={[styles.label, isFocused && styles.activeLabel]}>
@@ -201,6 +210,25 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '800',
   },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#fff',
+  },
 });
 
 // ─── Tab Stacks ───────────────────────────────────────────────────────────────
@@ -216,6 +244,7 @@ function DriverDashboardStack() {
       <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
       <UserDashboardStack.Screen name="Earnings" component={EarningsScreen} />
       <UserDashboardStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
+      <UserDashboardStack.Screen name="OpenRequests" component={OpenRequestsScreen} />
     </UserDashboardStack.Navigator>
 
   );
@@ -230,6 +259,7 @@ function DriverRidesStack() {
       <UserRidesStack.Screen name="RideBookings" component={RideBookingsScreen} />
       <UserRidesStack.Screen name="RideDetail" component={RideDetailScreen} />
       <UserRidesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
+      <UserRidesStack.Screen name="OpenRequests" component={OpenRequestsScreen} />
     </UserRidesStack.Navigator>
 
   );
@@ -282,6 +312,15 @@ function PassengerRidesStack() {
   );
 }
 
+const PassengerScheduleStack = createNativeStackNavigator<any>();
+function PassengerRequestsStack() {
+  return (
+    <PassengerScheduleStack.Navigator id="PassengerRequests" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <PassengerScheduleStack.Screen name="ScheduleMain" component={ScheduleScreen} />
+    </PassengerScheduleStack.Navigator>
+  );
+}
+
 const PassengerSearchActivityStack = createNativeStackNavigator<any>();
 function PassengerSearchStack() {
   return (
@@ -297,13 +336,23 @@ function PassengerSearchStack() {
 const PASSENGER_TABS = [
   { name: 'PassengerHomeTab', icon: 'home-outline', iconFocused: 'home', label: 'Home', component: PassengerRidesStack },
   { name: 'SearchTab', icon: 'search-outline', iconFocused: 'search', label: 'Search', component: PassengerSearchStack },
+  { name: 'RequestsTab', icon: 'calendar-outline', iconFocused: 'calendar', label: 'Requests', component: PassengerRequestsStack },
   { name: 'BookingHistoryTab', icon: 'receipt-outline', iconFocused: 'receipt', label: 'Bookings', component: BookingHistoryScreen },
   { name: 'PassengerProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },
 ];
 
+const DriverRequestsStackNav = createNativeStackNavigator<any>();
+function DriverOpenRequestsStack() {
+  return (
+    <DriverRequestsStackNav.Navigator id="DriverRequests" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <DriverRequestsStackNav.Screen name="OpenRequestsMain" component={OpenRequestsScreen} />
+    </DriverRequestsStackNav.Navigator>
+  );
+}
+
 const DRIVER_TABS = [
   { name: 'DriverHomeTab', icon: 'grid-outline', iconFocused: 'grid', label: 'Dashboard', component: DriverDashboardStack },
-  { name: 'PostRideTab', icon: 'add-circle-outline', iconFocused: 'add-circle', label: 'Post Ride', component: PostRideScreen },
+  { name: 'DriverRequestsTab', icon: 'calendar-outline', iconFocused: 'calendar', label: 'Requests', component: DriverOpenRequestsStack },
   { name: 'MyRidesTab', icon: 'car-sport-outline', iconFocused: 'car-sport', label: 'My Rides', component: DriverRidesStack },
   { name: 'MyVehiclesTab', icon: 'car-outline', iconFocused: 'car', label: 'Vehicles', component: DriverVehiclesStack },
   { name: 'DriverProfileTab', icon: 'person-outline', iconFocused: 'person', label: 'Profile', component: CommonProfileStack },

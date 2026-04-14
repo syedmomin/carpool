@@ -27,6 +27,7 @@ router.post('/',
 );
 
 router.patch('/:id/status', authenticate, authorize('DRIVER'), rideController.updateStatus);
+router.patch('/:id/cancel', authenticate, authorize('DRIVER'), rideController.cancelRide);
 router.put('/:id',    authenticate, authorize('DRIVER'), rideController.update);
 router.delete('/:id', authenticate, authorize('DRIVER', 'ADMIN'), rideController.delete);
 

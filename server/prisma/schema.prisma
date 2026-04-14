@@ -6,78 +6,34 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  PASSENGER
-  DRIVER
-  ADMIN
-}
-
-enum RideStatus {
-  ACTIVE
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  REJECTED
-  COMPLETED
-}
-
-enum VehicleType {
-  CAR
-  VAN
-  HIACE
-  COASTER
-  BUS
-  PICKUP
-}
-
-enum NotificationType {
-  BOOKING
-  RIDE
-  REMINDER
-  NEW_RIDE
-  SYSTEM
-}
-
-enum VerificationStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  phone        String    @unique
-  password     String
-  role         UserRole  @default(PASSENGER)
-  avatar       String?
-  city         String?
-  isVerified   Boolean   @default(false)
-  isActive     Boolean   @default(true)
-  fcmToken      String?
-  tokenVersion  Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  createdBy    String?
-  updatedBy    String?
-
-  ridesAsDriver    Ride[]         @relation("DriverRides")
-  bookings         Booking[]
-  notifications    Notification[]
-  reviews          Review[]       @relation("ReviewedBy")
-  reviewsReceived  Review[]       @relation("ReviewsReceived")
-  vehicles         Vehicle[]
-  scheduleAlerts   ScheduleAlert[]
-  verification     UserVerification?
-  sentMessages     ChatMessage[]
-
+  id              String            @id @default(cuid())
+  name            String
+  email           String            @unique
+  phone           String            @unique
+  password        String
+  role            UserRole          @default(PASSENGER)
+  avatar          String?
+  city            String?
+  isVerified      Boolean           @default(false)
+  isActive        Boolean           @default(true)
+  fcmToken        String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdBy       String?
+  updatedBy       String?
+  tokenVersion    Int               @default(0)
+  bookings          Booking[]
+  sentMessages      ChatMessage[]
+  notifications     Notification[]
+  reviewsReceived   Review[]          @relation("ReviewsReceived")
+  reviews           Review[]          @relation("ReviewedBy")
+  ridesAsDriver     Ride[]            @relation("DriverRides")
+  scheduleAlerts    ScheduleAlert[]
+  scheduleRequests  ScheduleRequest[]
+  rideBids          RideBid[]         @relation("DriverBids")
+  verification      UserVerification?
+  vehicles          Vehicle[]
 
   @@map("users")
 }
@@ -105,15 +61,15 @@ model Vehicle {
   updatedAt   DateTime    @updatedAt
   createdBy   String?
   updatedBy   String?
-
-  driver      User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
   rides       Ride[]
+  rideBids    RideBid[]
+  driver      User        @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
   @@map("vehicles")
 }
 
 model Ride {
-  id            String     @id @default(cuid())
+  id            String         @id @default(cuid())
   driverId      String
   vehicleId     String
   fromCity      String
@@ -122,56 +78,53 @@ model Ride {
   fromLng       Float?
   toLat         Float?
   toLng         Float?
-  isMultiStop   Boolean    @default(false)
+  isMultiStop   Boolean        @default(false)
   stops         Json?
   date          String
   departureTime String
   arrivalTime   String?
   pricePerSeat  Int
   totalSeats    Int
-  bookedSeats   Int        @default(0)
+  bookedSeats   Int            @default(0)
   pickupPoint   String?
   dropPoint     String?
   description   String?
   amenities     String[]
-  status        RideStatus @default(ACTIVE)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  status        RideStatus     @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   createdBy     String?
   updatedBy     String?
-
-  driver        User       @relation("DriverRides", fields: [driverId], references: [id])
-  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
   bookings      Booking[]
-  route         RideRoute?
-  locations     RideLocation[]
   reviews       Review[]
+  locations     RideLocation[]
+  route         RideRoute?
+  driver        User           @relation("DriverRides", fields: [driverId], references: [id])
+  vehicle       Vehicle        @relation(fields: [vehicleId], references: [id])
 
   @@index([fromCity, toCity, date, status])
   @@map("rides")
 }
 
 model Booking {
-  id           String        @id @default(cuid())
-  rideId       String
-  passengerId  String
-  seats        Int
-  totalAmount  Int
-  boardingCity String?
-  exitCity     String?
-  boardingOrder Int?
-  exitOrder    Int?
+  id                 String        @id @default(cuid())
+  rideId             String
+  passengerId        String
+  seats              Int
+  totalAmount        Int
+  boardingCity       String?
+  exitCity           String?
+  boardingOrder      Int?
+  exitOrder          Int?
   cancellationReason String?
-  status       BookingStatus @default(PENDING)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  createdBy    String?
-  updatedBy    String?
-
-  ride         Ride          @relation(fields: [rideId], references: [id])
-  passenger    User          @relation(fields: [passengerId], references: [id])
-  chatMessages ChatMessage[]
-
+  status             BookingStatus @default(PENDING)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  createdBy          String?
+  updatedBy          String?
+  passenger          User          @relation(fields: [passengerId], references: [id])
+  ride               Ride          @relation(fields: [rideId], references: [id])
+  chatMessages       ChatMessage[]
 
   @@map("bookings")
 }
@@ -188,14 +141,12 @@ model Review {
   updatedAt  DateTime @updatedAt
   createdBy  String?
   updatedBy  String?
-
-  ride       Ride?    @relation(fields: [rideId],     references: [id])
-  reviewer   User     @relation("ReviewedBy",       fields: [reviewerId], references: [id])
-  reviewee   User     @relation("ReviewsReceived",  fields: [revieweeId], references: [id])
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  reviewer   User     @relation("ReviewedBy", fields: [reviewerId], references: [id])
+  ride       Ride?    @relation(fields: [rideId], references: [id])
 
   @@map("reviews")
 }
-
 
 model Notification {
   id        String           @id @default(cuid())
@@ -209,7 +160,6 @@ model Notification {
   updatedAt DateTime         @updatedAt
   createdBy String?
   updatedBy String?
-
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
@@ -226,7 +176,6 @@ model ScheduleAlert {
   updatedAt   DateTime @updatedAt
   createdBy   String?
   updatedBy   String?
-
   passenger   User     @relation(fields: [passengerId], references: [id], onDelete: Cascade)
 
   @@map("schedule_alerts")
@@ -246,7 +195,6 @@ model UserVerification {
   updatedAt      DateTime           @updatedAt
   createdBy      String?
   updatedBy      String?
-
   user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_verifications")
@@ -260,7 +208,6 @@ model RideRoute {
   duration  Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
   ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
 
   @@map("ride_routes")
@@ -274,11 +221,53 @@ model RideLocation {
   speed     Float?
   heading   Float?
   timestamp DateTime @default(now())
-
   ride      Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
 
   @@index([rideId, timestamp])
   @@map("ride_locations")
+}
+
+model ScheduleRequest {
+  id          String                @id @default(cuid())
+  passengerId String
+  fromCity    String
+  toCity      String
+  date        String
+  seats       Int                   @default(1)
+  note        String?
+  status      ScheduleRequestStatus @default(OPEN)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  passenger   User                  @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  bids        RideBid[]
+
+  @@index([status, date])
+  @@map("schedule_requests")
+}
+
+model RideBid {
+  id                String          @id @default(cuid())
+  scheduleRequestId String
+  driverId          String
+  vehicleId         String?
+  pricePerSeat      Int
+  departureTime     String          @default("00:00")
+  note              String?
+  status            BidStatus       @default(PENDING)
+  rideId            String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdBy         String?
+  updatedBy         String?
+  scheduleRequest   ScheduleRequest @relation(fields: [scheduleRequestId], references: [id], onDelete: Cascade)
+  driver            User            @relation("DriverBids", fields: [driverId], references: [id])
+  vehicle           Vehicle?        @relation(fields: [vehicleId], references: [id])
+
+  @@unique([scheduleRequestId, driverId])
+  @@index([scheduleRequestId, status])
+  @@map("ride_bids")
 }
 
 model ChatMessage {
@@ -287,10 +276,73 @@ model ChatMessage {
   senderId  String
   content   String
   createdAt DateTime @default(now())
-
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId],  references: [id])
+  sender    User     @relation(fields: [senderId], references: [id])
 
   @@map("chat_messages")
 }
 
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+enum RideStatus {
+  ACTIVE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum ScheduleRequestStatus {
+  OPEN
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REJECTED
+  COMPLETED
+}
+
+enum VehicleType {
+  CAR
+  VAN
+  HIACE
+  COASTER
+  BUS
+  PICKUP
+}
+
+enum NotificationType {
+  BOOKING
+  RIDE
+  REMINDER
+  NEW_RIDE
+  RIDE_CANCELLED
+  RIDE_EXPIRED
+  SCHEDULE_REQUEST
+  RIDE_BID
+  BID_ACCEPTED
+  BID_REJECTED
+  SYSTEM
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

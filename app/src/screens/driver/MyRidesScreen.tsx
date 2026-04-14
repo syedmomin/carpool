@@ -136,6 +136,8 @@ export default function MyRidesScreen({ navigation }) {
     const isActive = item.status === 'ACTIVE';
     const isInProgress = item.status === 'IN_PROGRESS';
     const isToday = item.date === todayStr;
+    const hasAnyBooking = (item.bookings || []).length > 0;
+    const isExpiredNoBookings = isActive && !hasAnyBooking && item.date < todayStr;
 
     // Simplified card for History tab
     if (activeTab === 1) {
@@ -195,8 +197,18 @@ export default function MyRidesScreen({ navigation }) {
             <Text style={styles.rideDate}>{item.date} • {item.departureTime}</Text>
           </View>
           <StatusBadge
-            status={isInProgress ? 'in_progress' : available > 0 ? (isToday ? 'active' : 'pending') : 'pending'}
-            label={isInProgress ? 'In Progress' : available > 0 ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'}
+            status={
+              isInProgress ? 'in_progress' :
+              isExpiredNoBookings ? 'expired_no_bookings' :
+              !hasAnyBooking ? 'no_requests' :
+              available > 0 ? (isToday ? 'active' : 'pending') : 'pending'
+            }
+            label={
+              isInProgress ? 'In Progress' :
+              isExpiredNoBookings ? 'Expired – No Bookings' :
+              !hasAnyBooking ? 'No Requests Yet' :
+              available > 0 ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'
+            }
           />
         </View>
 

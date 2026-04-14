@@ -73,6 +73,13 @@ export class RideController extends BaseController<Ride, any, any> {
     } catch (err) { next(err); }
   };
 
+  cancelRide = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await rideService.cancelRide(req.params.id as string, req.user!.id);
+      ResponseUtil.success(res, null, 'Ride cancelled successfully');
+    } catch (err) { next(err); }
+  };
+
   getActiveSession = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const session = await rideService.getActiveSession(req.user!.id);
