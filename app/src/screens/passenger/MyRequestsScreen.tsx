@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-  Modal, ScrollView, Image, Dimensions, Animated,
+  Modal, ScrollView, Image, Dimensions, Animated, RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,8 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi } from '../../services/api';
-import { socketService } from '../../services/socket.service';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -207,70 +207,22 @@ const liveDotStyles = StyleSheet.create({
 export default function MyRequestsScreen({ navigation }) {
   const { showToast }  = useToast();
   const { showModal }  = useGlobalModal();
+  const { myRequests, myRequestsState, loadMyRequests, removeRequest, patchRequest } = useSocketData();
 
-  const [requests, setRequests]             = useState<any[]>([]);
-  const [loading, setLoading]               = useState(false);
   const [refreshing, setRefreshing]         = useState(false);
   const [actionBidId, setActionBidId]       = useState<string | null>(null);
   const [vehicleDetails, setVehicleDetails] = useState<{ vehicle: any; driver: any } | null>(null);
 
-  const load = useCallback(async (isRefresh = false) => {
-    isRefresh ? setRefreshing(true) : setLoading(true);
-    const { data } = await scheduleRequestsApi.getMine();
-    isRefresh ? setRefreshing(false) : setLoading(false);
-    if (data?.data) setRequests(data.data);
-  }, []);
-
-  // ── Socket listeners always active (background too) ──────────────────────
-  useEffect(() => {
-    const onRideBid = (data: any) => {
-      const bid = data.bid;
-      if (!bid) return;
-      setRequests(prev => prev.map(req => {
-        if (req.id !== bid.scheduleRequestId) return req;
-        // upsert: replace existing bid from same driver if present
-        const filtered = (req.bids || []).filter((b: any) => b.id !== bid.id);
-        return { ...req, bids: [...filtered, bid] };
-      }));
-    };
-
-    const onBidWithdrawn = (data: any) => {
-      if (!data.bidId) return;
-      setRequests(prev => prev.map(req => ({
-        ...req,
-        bids: (req.bids || []).filter((b: any) => b.id !== data.bidId),
-      })));
-    };
-
-    const onRequestAccepted = (data: any) => {
-      if (!data.scheduleRequestId) return;
-      setRequests(prev => prev.map(req => {
-        if (req.id !== data.scheduleRequestId) return req;
-        return {
-          ...req,
-          status: 'ACCEPTED',
-          bids: (req.bids || []).map((b: any) => ({
-            ...b,
-            status: b.id === data.acceptedBidId ? 'ACCEPTED' : (b.status === 'PENDING' ? 'REJECTED' : b.status),
-          })),
-        };
-      }));
-    };
-
-    socketService.on('RIDE_BID',         onRideBid);
-    socketService.on('BID_WITHDRAWN',    onBidWithdrawn);
-    socketService.on('REQUEST_ACCEPTED', onRequestAccepted);
-    return () => {
-      socketService.off('RIDE_BID',         onRideBid);
-      socketService.off('BID_WITHDRAWN',    onBidWithdrawn);
-      socketService.off('REQUEST_ACCEPTED', onRequestAccepted);
-    };
-  }, []);
-
-  // ── Fetch on focus ────────────────────────────────────────────────────────
+  // Load once on first focus; socket keeps it live
   useFocusEffect(useCallback(() => {
-    load();
-  }, [load]));
+    if (!myRequestsState.loaded) loadMyRequests();
+  }, [myRequestsState.loaded]));
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMyRequests(true);
+    setRefreshing(false);
+  };
 
   const handleCancel = (req: any) => {
     showModal({
@@ -281,7 +233,7 @@ export default function MyRequestsScreen({ navigation }) {
         const { error } = await scheduleRequestsApi.cancel(req.id);
         if (error) { showToast(error, 'error'); return; }
         showToast('Request cancelled', 'info');
-        setRequests(prev => prev.filter(r => r.id !== req.id));
+        removeRequest(req.id);
       },
     });
   };
@@ -305,11 +257,13 @@ export default function MyRequestsScreen({ navigation }) {
     setActionBidId(null);
     if (error) { showToast(error, 'error'); return; }
     showToast('Bid rejected', 'info');
-    setRequests(prev => prev.map(r => {
-      if (r.id !== req.id) return r;
-      return { ...r, bids: (r.bids || []).filter((b: any) => b.id !== bid.id) };
-    }));
+    // SocketListener will update context via BID_REJECTED; remove optimistically too
+    patchRequest(req.id, {
+      bids: (req.bids || []).filter((b: any) => b.id !== bid.id),
+    });
   };
+
+  const isInitialLoad = !myRequestsState.loaded && myRequestsState.loading;
 
   const renderRequest = ({ item: req }: any) => {
     const sc          = STATUS_CONFIG[req.status] || STATUS_CONFIG.OPEN;
@@ -476,17 +430,17 @@ export default function MyRequestsScreen({ navigation }) {
         onRightPress={() => navigation.navigate('PostRequest')}
       />
 
-      {loading ? (
+      {isInitialLoad ? (
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : (
         <FlatList
-          data={requests}
+          data={myRequests}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           refreshing={refreshing}
-          onRefresh={() => load(true)}
+          onRefresh={onRefresh}
           renderItem={renderRequest}
           ListEmptyComponent={
             !refreshing ? (

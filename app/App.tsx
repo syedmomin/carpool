@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppProvider } from './src/context/AppContext';
+import { SocketDataProvider } from './src/context/SocketDataContext';
 import { ToastProvider } from './src/context/ToastContext';
 import { GlobalModalProvider } from './src/context/GlobalModalContext';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -30,13 +31,15 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppProvider>
-        <GlobalModalProvider>
-          <ToastProvider>
-            <StatusBar style="light" />
-            <SocketListener navigationRef={navigationRef} />
-            <AppNavigator navigationRef={navigationRef} />
-          </ToastProvider>
-        </GlobalModalProvider>
+        <SocketDataProvider>
+          <GlobalModalProvider>
+            <ToastProvider>
+              <StatusBar style="light" />
+              <SocketListener navigationRef={navigationRef} />
+              <AppNavigator navigationRef={navigationRef} />
+            </ToastProvider>
+          </GlobalModalProvider>
+        </SocketDataProvider>
       </AppProvider>
     </GestureHandlerRootView>
   );

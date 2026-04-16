@@ -78,7 +78,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       type:         'BOOKING',
       rideId,
       socketEvent:  'BOOKING_REQUESTED',
-      socketData:   { bookingId: booking.id, passengerId, seats },
+      socketData:   { bookingId: booking.id, rideId, passengerId, seats, bookedSeats: ride.bookedSeats + seats, booking },
     });
 
     return booking;
@@ -112,7 +112,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       type:        'BOOKING',
       rideId:      booking.rideId,
       socketEvent: 'BOOKING_ACCEPTED',
-      socketData:  { bookingId, status: 'CONFIRMED' },
+      socketData:  { bookingId, rideId: booking.rideId, status: 'CONFIRMED' },
     });
 
     return updated;
@@ -151,7 +151,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       type:        'BOOKING',
       rideId:      booking.rideId,
       socketEvent: 'BOOKING_REJECTED',
-      socketData:  { bookingId, status: 'REJECTED' },
+      socketData:  { bookingId, rideId: booking.rideId, status: 'REJECTED' },
     });
 
     return updated;
@@ -192,7 +192,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       type:        'BOOKING',
       rideId:      ride.id,
       socketEvent: 'BOOKING_CANCELLED',
-      socketData:  { bookingId: booking.id, passengerId: userId },
+      socketData:  { bookingId: booking.id, rideId: ride.id, passengerId: userId, seats: booking.seats, bookedSeats: ride.bookedSeats },
     });
 
     // ── Notify Passenger: cancellation confirmed ──────────────────────────────

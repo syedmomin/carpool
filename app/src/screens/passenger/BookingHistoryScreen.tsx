@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     ActivityIndicator, Modal, TextInput, Linking, Alert,
@@ -8,24 +8,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
-import { bookingsApi, reviewsApi } from '../../services/api';
-import { socketService } from '../../services/socket.service';
+import { reviewsApi } from '../../services/api';
 
-const PAGE_SIZE = 10;
-
-// ─── Star picker component ────────────────────────────────────────────────────
+// ─── Star picker ─────────────────────────────────────────────────────────────
 function StarPicker({ rating, onChange }) {
     return (
         <View style={rStyles.stars}>
             {[1, 2, 3, 4, 5].map(n => (
                 <TouchableOpacity key={n} onPress={() => onChange(n)}>
-                    <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any}
-                        size={36}
-                        color={n <= rating ? '#f59e0b' : COLORS.border}
-                    />
+                    <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any} size={36}
+                        color={n <= rating ? '#f59e0b' : COLORS.border} />
                 </TouchableOpacity>
             ))}
         </View>
@@ -42,76 +38,51 @@ function ReviewModal({ booking, onClose, onSubmit }) {
     const submit = async () => {
         if (!rating) { showToast('Please select a star rating', 'error'); return; }
         setSubmitting(true);
-        const revieweeId = booking?.ride?.driver?.id;
-        const { error } = await reviewsApi.submit({ 
-          revieweeId, 
-          rideId: booking?.rideId,
-          targetRole: 'DRIVER', 
-          rating, 
-          comment 
+        const { error } = await reviewsApi.submit({
+            revieweeId: booking?.ride?.driver?.id,
+            rideId: booking?.rideId,
+            targetRole: 'DRIVER',
+            rating,
+            comment,
         });
         setSubmitting(false);
         if (error) showToast(parseApiError(error), 'error');
-        else {
-            showToast('Thank you for your review!', 'success');
-            onSubmit(booking.id);
-        }
+        else { showToast('Thank you for your review!', 'success'); onSubmit(booking.id); }
     };
-
-    const driverName = booking?.ride?.driver?.name || 'the driver';
 
     return (
         <Modal visible transparent animationType="fade" onRequestClose={onClose}>
             <View style={rStyles.overlay}>
                 <View style={rStyles.sheet}>
-                    {/* Header */}
                     <LinearGradient colors={GRADIENTS.primary as any} style={rStyles.sheetHeader}>
-                        <View style={rStyles.starIcon}>
-                            <Ionicons name="star" size={32} color="#f59e0b" />
-                        </View>
+                        <View style={rStyles.starIcon}><Ionicons name="star" size={32} color="#f59e0b" /></View>
                         <Text style={rStyles.sheetTitle}>Rate Your Driver</Text>
-                        <Text style={rStyles.sheetSub}>How was your ride with {driverName}?</Text>
+                        <Text style={rStyles.sheetSub}>How was your ride with {booking?.ride?.driver?.name || 'the driver'}?</Text>
                     </LinearGradient>
-
                     <View style={rStyles.sheetBody}>
-                        {/* Route recap */}
                         <View style={rStyles.routeRecap}>
                             <Text style={rStyles.routeText}>
-                                {booking?.ride?.fromCity || booking?.ride?.from}
-                                {' → '}
+                                {booking?.ride?.fromCity || booking?.ride?.from}{' → '}
                                 {booking?.ride?.toCity || booking?.ride?.to}
                             </Text>
                             <Text style={rStyles.routeDate}>{booking?.ride?.date}</Text>
                         </View>
-
                         <StarPicker rating={rating} onChange={setRating} />
-
                         <View style={rStyles.ratingLabel}>
                             <Text style={rStyles.ratingLabelText}>
                                 {rating === 5 ? '⭐ Excellent!' : rating === 4 ? '😊 Good' : rating === 3 ? '😐 Average' : rating === 2 ? '😕 Below Average' : '😞 Poor'}
                             </Text>
                         </View>
-
-                        <TextInput
-                            style={rStyles.commentInput}
-                            placeholder="Write a comment (optional)..."
-                            placeholderTextColor={COLORS.gray}
-                            value={comment}
-                            onChangeText={setComment}
-                            multiline
-                            numberOfLines={3}
-                            maxLength={300}
-                        />
-
+                        <TextInput style={rStyles.commentInput} placeholder="Write a comment (optional)..."
+                            placeholderTextColor={COLORS.gray} value={comment} onChangeText={setComment}
+                            multiline numberOfLines={3} maxLength={300} />
                         <View style={rStyles.btnRow}>
                             <TouchableOpacity style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
                                 <Text style={rStyles.skipBtnText}>Skip</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={rStyles.submitBtn} onPress={submit} disabled={submitting}>
-                                {submitting
-                                    ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Text style={rStyles.submitBtnText}>Submit Review</Text>
-                                }
+                                {submitting ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Text style={rStyles.submitBtnText}>Submit Review</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -121,50 +92,40 @@ function ReviewModal({ booking, onClose, onSubmit }) {
     );
 }
 
-// ─── Cancel Reason Modal ─────────────────────────────────────────────────────────────
+// ─── Cancel Reason Modal ──────────────────────────────────────────────────────
 function CancelReasonModal({ visible, onClose, onSubmit }) {
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
-
     const submit = async () => {
         if (!reason.trim()) return;
         setSubmitting(true);
         await onSubmit(reason.trim());
         setSubmitting(false);
     };
-
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
             <View style={rStyles.overlay}>
                 <View style={rStyles.sheet}>
                     <LinearGradient colors={['#fee2e2', '#fecaca']} style={rStyles.sheetHeader}>
-                        <View style={[rStyles.starIcon, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                        <View style={[rStyles.starIcon, { backgroundColor: 'rgba(239,68,68,0.2)' }]}>
                             <Ionicons name="alert-circle" size={32} color="#ef4444" />
                         </View>
                         <Text style={[rStyles.sheetTitle, { color: '#b91c1c' }]}>Cancel Booking</Text>
                         <Text style={[rStyles.sheetSub, { color: '#991b1b' }]}>Please tell the driver why you are cancelling.</Text>
                     </LinearGradient>
                     <View style={rStyles.sheetBody}>
-                        <TextInput
-                            style={rStyles.commentInput}
-                            placeholder="Reason for cancellation..."
-                            placeholderTextColor={COLORS.gray}
-                            value={reason}
-                            onChangeText={setReason}
-                            multiline
-                            numberOfLines={3}
-                            maxLength={200}
-                        />
+                        <TextInput style={rStyles.commentInput} placeholder="Reason for cancellation..."
+                            placeholderTextColor={COLORS.gray} value={reason} onChangeText={setReason}
+                            multiline numberOfLines={3} maxLength={200} />
                         <View style={rStyles.btnRow}>
                             <TouchableOpacity style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
                                 <Text style={rStyles.skipBtnText}>Go Back</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[rStyles.submitBtn, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
-                                onPress={submit}
-                                disabled={!reason.trim().length || submitting}
-                            >
-                                {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={rStyles.submitBtnText}>Cancel Booking</Text>}
+                                onPress={submit} disabled={!reason.trim().length || submitting}>
+                                {submitting ? <ActivityIndicator size="small" color="#fff" />
+                                    : <Text style={rStyles.submitBtnText}>Cancel Booking</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -177,39 +138,29 @@ function CancelReasonModal({ visible, onClose, onSubmit }) {
 // ─── SOS Modal ────────────────────────────────────────────────────────────────
 function SOSModal({ visible, onClose }) {
     const emergencyNumbers = [
-        { label: 'Rescue 1122', number: '1122', icon: 'medkit-outline', color: '#ef4444' },
-        { label: 'Police 15', number: '15', icon: 'shield-outline', color: '#3b82f6' },
-        { label: 'Edhi 115', number: '115', icon: 'heart-outline', color: '#f59e0b' },
-        { label: 'Motorway 130', number: '130', icon: 'car-outline', color: '#8b5cf6' },
+        { label: 'Rescue 1122', number: '1122', icon: 'medkit-outline',  color: '#ef4444' },
+        { label: 'Police 15',   number: '15',   icon: 'shield-outline',  color: '#3b82f6' },
+        { label: 'Edhi 115',    number: '115',  icon: 'heart-outline',   color: '#f59e0b' },
+        { label: 'Motorway 130',number: '130',  icon: 'car-outline',     color: '#8b5cf6' },
     ];
-
     const call = (number) => {
-        Linking.openURL(`tel:${number}`).catch(() =>
-            Alert.alert('Error', 'Could not open phone dialer.')
-        );
+        Linking.openURL(`tel:${number}`).catch(() => Alert.alert('Error', 'Could not open phone dialer.'));
         onClose();
     };
-
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={sosStyles.overlay}>
                 <View style={sosStyles.sheet}>
                     <View style={sosStyles.header}>
-                        <View style={sosStyles.sosIconWrap}>
-                            <Ionicons name="warning" size={28} color="#fff" />
-                        </View>
+                        <View style={sosStyles.sosIconWrap}><Ionicons name="warning" size={28} color="#fff" /></View>
                         <Text style={sosStyles.title}>Emergency SOS</Text>
                         <Text style={sosStyles.sub}>Tap to call emergency services</Text>
                     </View>
-
                     {emergencyNumbers.map(item => (
-                        <TouchableOpacity
-                            key={item.number}
-                            style={[sosStyles.numberRow, { borderLeftColor: item.color }]}
-                            onPress={() => call(item.number)}
-                        >
+                        <TouchableOpacity key={item.number} style={[sosStyles.numberRow, { borderLeftColor: item.color }]}
+                            onPress={() => call(item.number)}>
                             <View style={[sosStyles.numIcon, { backgroundColor: item.color + '20' }]}>
-                                <Ionicons name={(item.icon) as any} size={20} color={item.color} />
+                                <Ionicons name={item.icon as any} size={20} color={item.color} />
                             </View>
                             <View style={{ flex: 1 }}>
                                 <Text style={sosStyles.numLabel}>{item.label}</Text>
@@ -221,7 +172,6 @@ function SOSModal({ visible, onClose }) {
                             </View>
                         </TouchableOpacity>
                     ))}
-
                     <TouchableOpacity style={sosStyles.closeBtn} onPress={onClose}>
                         <Text style={sosStyles.closeBtnText}>Close</Text>
                     </TouchableOpacity>
@@ -234,89 +184,26 @@ function SOSModal({ visible, onClose }) {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function BookingHistoryScreen({ navigation }) {
     const { cancelBooking } = useApp();
+    const { myBookings, myBookingsState, loadMyBookings, removeBooking } = useSocketData();
     const { showModal } = useGlobalModal();
     const { showToast } = useToast();
 
-    const [bookings, setBookings] = useState([]);
-    const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
-    const [initialLoading, setInitialLoading] = useState(true);
-    const [reviewBooking, setReviewBooking] = useState(null);
-    const [reviewedIds, setReviewedIds] = useState(new Set());
-    const [sosVisible, setSosVisible] = useState(false);
-    const [cancelTarget, setCancelTarget] = useState(null);
-    const [cancellingId, setCancellingId] = useState<string | null>(null);
-    const isFetching = useRef(false); // prevents stale-closure double-fetch
+    const [reviewBooking, setReviewBooking]     = useState(null);
+    const [reviewedIds, setReviewedIds]         = useState(new Set());
+    const [sosVisible, setSosVisible]           = useState(false);
+    const [cancelTarget, setCancelTarget]       = useState(null);
+    const [cancellingId, setCancellingId]       = useState<string | null>(null);
+    const [refreshing, setRefreshing]           = useState(false);
 
-    const fetchBookings = useCallback(async (pageNum, replace = false) => {
-        if (isFetching.current) return;
-        isFetching.current = true;
-        try {
-            pageNum === 1 ? setRefreshing(true) : setLoading(true);
-            const { data: responseBody } = await bookingsApi.myBookings(pageNum, PAGE_SIZE);
-
-            // Handle both data being the array and data.data being the array
-            const apiData = responseBody?.data;
-            const bookingsArray = Array.isArray(apiData) ? apiData : (Array.isArray(apiData?.data) ? apiData.data : []);
-
-            if (bookingsArray.length === 0 && pageNum === 1) {
-                if (replace) setBookings([]);
-                setHasMore(false);
-                return;
-            }
-
-            const normalize = b => ({
-                ...b,
-                ride: b.ride ? { ...b.ride, from: b.ride.fromCity || b.ride.from, to: b.ride.toCity || b.ride.to } : null,
-            });
-            const items = bookingsArray.map(normalize).filter(b => 
-                b.status === 'PENDING' || 
-                b.status === 'CONFIRMED' || 
-                (b.ride?.status === 'IN_PROGRESS' && b.status !== 'CANCELLED')
-            );
-            setBookings(prev => replace ? items : [...prev, ...items]);
-
-            setHasMore(apiData?.meta?.hasNext ?? (responseBody?.meta?.hasNext ?? false));
-            setPage(pageNum);
-        } catch (err) {
-            console.error('Fetch bookings error:', err);
-        } finally {
-            pageNum === 1 ? setRefreshing(false) : setLoading(false);
-            setInitialLoading(false);
-            isFetching.current = false;
-        }
-    }, []);
-
+    // Load once on first focus; subsequent updates come via socket
     useFocusEffect(useCallback(() => {
-        isFetching.current = false; // reset so this focus always triggers a fresh fetch
-        fetchBookings(1, true);
+        if (!myBookingsState.loaded) loadMyBookings();
+    }, [myBookingsState.loaded]));
 
-        // Real-time synchronization — named callbacks so off() only removes THIS handler
-        const onAccepted  = (data: any) => setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'CONFIRMED' } : b));
-        const onRejected  = (data: any) => setBookings(prev => prev.map(b => b.id === data.bookingId ? { ...b, status: 'REJECTED' } : b));
-        const onStarted   = (data: any) => setBookings(prev => prev.map(b => b.rideId === data.rideId ? { ...b, ride: { ...b.ride, status: 'IN_PROGRESS' } } : b));
-        const onCompleted = (data: any) => setBookings(prev => prev.filter(b => b.rideId !== data.rideId));
-
-        socketService.on('BOOKING_ACCEPTED',  onAccepted);
-        socketService.on('BOOKING_REJECTED',  onRejected);
-        socketService.on('RIDE_STARTED',      onStarted);
-        socketService.on('RIDE_COMPLETED',    onCompleted);
-
-        return () => {
-            isFetching.current = false; // allow fresh fetch on next focus
-            socketService.off('BOOKING_ACCEPTED',  onAccepted);
-            socketService.off('BOOKING_REJECTED',  onRejected);
-            socketService.off('RIDE_STARTED',      onStarted);
-            socketService.off('RIDE_COMPLETED',    onCompleted);
-        };
-    }, [fetchBookings]));
-
-    const loadMore = () => {
-        if (hasMore && !isFetching.current && !refreshing && !initialLoading) {
-            fetchBookings(page + 1);
-        }
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadMyBookings(true);
+        setRefreshing(false);
     };
 
     const executeCancel = async (reason: string | null, bookingId?: string) => {
@@ -328,26 +215,20 @@ export default function BookingHistoryScreen({ navigation }) {
         if (error) showToast(parseApiError(error), 'error');
         else {
             showToast('Booking cancelled.', 'info');
-            setBookings(prev => prev.filter(b => b.id !== targetId));
+            removeBooking(targetId);
         }
         setCancelTarget(null);
     };
 
     const confirmCancel = (booking) => {
         if (booking.status === 'CONFIRMED') {
-            // CONFIRMED bookings need a reason — open the reason modal
             setCancelTarget(booking.id);
         } else {
             showModal({
-                type: 'danger',
-                title: 'Cancel Booking?',
+                type: 'danger', title: 'Cancel Booking?',
                 message: 'Are you sure you want to cancel this booking? This action cannot be undone.',
-                confirmText: 'Yes, Cancel',
-                cancelText: 'Keep Booking',
-                icon: 'close-circle-outline',
-                onConfirm: async () => {
-                    await executeCancel(null, booking.id);
-                },
+                confirmText: 'Yes, Cancel', cancelText: 'Keep Booking', icon: 'close-circle-outline',
+                onConfirm: async () => { await executeCancel(null, booking.id); },
             });
         }
     };
@@ -358,23 +239,22 @@ export default function BookingHistoryScreen({ navigation }) {
     };
 
     const renderBooking = ({ item }) => {
-        const ride = item.ride;
+        const ride       = item.ride;
         if (!ride) return null;
-        const fromCity = ride.boardingCity || item.boardingCity || ride.from || '';
-        const toCity = ride.exitCity || item.exitCity || ride.to || '';
-        const driverName = ride.driver?.name || 'N/A';
-        const driverPhone = ride.driver?.phone || '';
-        const vehicle = ride.vehicle;
-        const vehicleLabel = vehicle ? `${vehicle.brand} · ${vehicle.plateNumber}` : 'N/A';
-        const isActive = item.status === 'CONFIRMED';
-        const isInProgress = ride.status === 'IN_PROGRESS';
-        const isCompleted = item.status === 'COMPLETED';
-        const canReview = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id);
-        const isCancelling = cancellingId === item.id;
+        const fromCity      = ride.boardingCity || item.boardingCity || ride.from || '';
+        const toCity        = ride.exitCity || item.exitCity || ride.to || '';
+        const driverName    = ride.driver?.name || 'N/A';
+        const driverPhone   = ride.driver?.phone || '';
+        const vehicle       = ride.vehicle;
+        const vehicleLabel  = vehicle ? `${vehicle.brand} · ${vehicle.plateNumber}` : 'N/A';
+        const isActive      = item.status === 'CONFIRMED';
+        const isInProgress  = ride.status === 'IN_PROGRESS';
+        const isCompleted   = item.status === 'COMPLETED';
+        const canReview     = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id);
+        const isCancelling  = cancellingId === item.id;
 
         return (
             <View style={styles.card}>
-                {/* In-progress banner */}
                 {isInProgress && isActive && (
                     <LinearGradient colors={GRADIENTS.teal as any} style={styles.activeBanner}>
                         <Ionicons name="navigate-outline" size={13} color="#fff" />
@@ -385,7 +265,6 @@ export default function BookingHistoryScreen({ navigation }) {
                         </TouchableOpacity>
                     </LinearGradient>
                 )}
-
                 <View style={styles.cardHeader}>
                     <View style={styles.routeCol}>
                         <View style={styles.routeRow}>
@@ -403,10 +282,8 @@ export default function BookingHistoryScreen({ navigation }) {
                         <Text style={styles.dateText}>{ride.date}</Text>
                     </View>
                 </View>
-
                 <View style={styles.detailRow}>
                     <View style={styles.detailItem}>
-
                         <View>
                             <Text style={styles.detailLabel}>Driver</Text>
                             <Text style={styles.detailValue}>{driverName}</Text>
@@ -429,7 +306,6 @@ export default function BookingHistoryScreen({ navigation }) {
                         </View>
                     </View>
                 </View>
-
                 {item.boardingCity && item.boardingCity !== ride.from && (
                     <View style={styles.chipsRow}>
                         <View style={[styles.chip, { backgroundColor: '#eff6ff' }]}>
@@ -438,86 +314,66 @@ export default function BookingHistoryScreen({ navigation }) {
                         </View>
                     </View>
                 )}
-
                 <View style={styles.cardFooter}>
                     <View>
                         <Text style={styles.amountLabel}>Total Paid</Text>
                         <Text style={styles.amountValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
                     </View>
                     <View style={styles.footerActions}>
-                        {/* Join Live Map button for active in-progress bookings */}
                         {isInProgress && isActive && (
-                            <TouchableOpacity
-                                style={styles.joinMapBtn}
-                                onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}
-                            >
+                            <TouchableOpacity style={styles.joinMapBtn}
+                                onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}>
                                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.joinMapGrad}>
                                     <Ionicons name="map" size={16} color="#fff" />
                                     <Text style={styles.joinMapText}>JOIN LIVE MAP</Text>
                                 </LinearGradient>
                             </TouchableOpacity>
                         )}
-                        {/* SOS button for active bookings */}
                         {isInProgress && (
                             <TouchableOpacity style={styles.sosBtn} onPress={() => setSosVisible(true)}>
                                 <Ionicons name="warning-outline" size={15} color="#ef4444" />
                                 <Text style={styles.sosBtnText}>SOS</Text>
                             </TouchableOpacity>
                         )}
-                        {/* Cancel button */}
                         {isActive && !isInProgress && (
-                            <TouchableOpacity
-                                style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]}
-                                onPress={() => confirmCancel(item)}
-                                disabled={isCancelling}
-                            >
+                            <TouchableOpacity style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]}
+                                onPress={() => confirmCancel(item)} disabled={isCancelling}>
                                 {isCancelling
                                     ? <ActivityIndicator size="small" color={COLORS.danger} />
                                     : <><Ionicons name="close-circle-outline" size={16} color={COLORS.danger} /><Text style={styles.cancelBtnText}>Cancel</Text></>
                                 }
                             </TouchableOpacity>
                         )}
-                        {/* Chat button for confirmed bookings */}
                         {isActive && (
-                            <TouchableOpacity
-                                style={styles.chatBtn}
-                                onPress={() => navigation.navigate('Chat', { 
-                                    bookingId: item.id, 
+                            <TouchableOpacity style={styles.chatBtn}
+                                onPress={() => navigation.navigate('Chat', {
+                                    bookingId: item.id,
                                     otherUser: ride.driver,
-                                    rideInfo: { label: `${ride.fromCity} → ${ride.toCity}` }
-                                })}
-                            >
+                                    rideInfo: { label: `${ride.fromCity} → ${ride.toCity}` },
+                                })}>
                                 <Ionicons name="chatbubble-ellipses-outline" size={15} color={COLORS.primary} />
                                 <Text style={styles.chatBtnText}>Chat</Text>
                             </TouchableOpacity>
                         )}
-                        {/* Rate driver button */}
                         {canReview && (
-
-                            <TouchableOpacity
-                                style={styles.rateBtn}
-                                onPress={() => setReviewBooking(item)}
-                            >
+                            <TouchableOpacity style={styles.rateBtn} onPress={() => setReviewBooking(item)}>
                                 <Ionicons name="star-outline" size={15} color="#f59e0b" />
                                 <Text style={styles.rateBtnText}>Rate Driver</Text>
                             </TouchableOpacity>
                         )}
-
                     </View>
                 </View>
             </View>
         );
     };
 
-    if (initialLoading) {
+    const isInitialLoad = !myBookingsState.loaded && myBookingsState.loading;
+
+    if (isInitialLoad) {
         return (
             <View style={styles.container}>
-                <GradientHeader
-                    colors={GRADIENTS.primary as any}
-                    title="My Bookings"
-                    subtitle="Loading..."
-                    onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
-                />
+                <GradientHeader colors={GRADIENTS.primary as any} title="My Bookings" subtitle="Loading..."
+                    onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
                 <View style={styles.loadingCenter}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={styles.loadingText}>Fetching your bookings...</Text>
@@ -528,50 +384,27 @@ export default function BookingHistoryScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
-            <GradientHeader
-                colors={GRADIENTS.primary as any}
-                title="My Bookings"
-                subtitle={`${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
-                onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
-            />
+            <GradientHeader colors={GRADIENTS.primary as any} title="My Bookings"
+                subtitle={`${myBookings.length} active booking${myBookings.length !== 1 ? 's' : ''}`}
+                onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
             <FlatList
-                data={bookings}
+                data={myBookings}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={renderBooking}
-                onEndReached={loadMore}
-                onEndReachedThreshold={0.3}
                 refreshing={refreshing}
-                onRefresh={() => fetchBookings(1, true)}
-                ListFooterComponent={loading ? <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 16 }} /> : null}
+                onRefresh={onRefresh}
                 ListEmptyComponent={
                     !refreshing ? (
-                        <EmptyState
-                            icon="receipt-outline"
-                            title="No Bookings"
-                            subtitle="You haven't booked any rides yet."
-                        />
+                        <EmptyState icon="receipt-outline" title="No Active Bookings"
+                            subtitle="You have no pending or confirmed bookings." />
                     ) : null
                 }
             />
-
-            {/* Review Modal */}
             {reviewBooking && (
-                <ReviewModal
-                    booking={reviewBooking}
-                    onClose={() => setReviewBooking(null)}
-                    onSubmit={handleReviewSubmitted}
-                />
+                <ReviewModal booking={reviewBooking} onClose={() => setReviewBooking(null)} onSubmit={handleReviewSubmitted} />
             )}
-
-            {/* Cancel Reason Modal */}
-            <CancelReasonModal
-                visible={!!cancelTarget}
-                onClose={() => setCancelTarget(null)}
-                onSubmit={executeCancel}
-            />
-
-            {/* SOS Modal */}
+            <CancelReasonModal visible={!!cancelTarget} onClose={() => setCancelTarget(null)} onSubmit={executeCancel} />
             <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />
         </View>
     );
@@ -599,7 +432,6 @@ const styles = StyleSheet.create({
     detailRow: { flexDirection: 'row', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 14, padding: 12, marginBottom: 12 },
     detailItem: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
     detailDivider: { width: 1, backgroundColor: COLORS.border, marginHorizontal: 8 },
-    detailIcon: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     detailLabel: { fontSize: 10, color: COLORS.gray, marginBottom: 2 },
     detailValue: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
     detailSub: { fontSize: 11, color: COLORS.gray, marginTop: 1 },
@@ -619,13 +451,10 @@ const styles = StyleSheet.create({
     chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary + '30' },
     chatBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
     joinMapBtn: { borderRadius: 10, overflow: 'hidden', marginLeft: 5 },
-
     joinMapGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
     joinMapText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
 });
 
-
-// ─── Review modal styles ──────────────────────────────────────────────────────
 const rStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
     sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
@@ -648,7 +477,6 @@ const rStyles = StyleSheet.create({
     submitBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });
 
-// ─── SOS modal styles ─────────────────────────────────────────────────────────
 const sosStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
     sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 32 },

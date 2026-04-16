@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Linking, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,24 +32,24 @@ export default function RideBookingsScreen({ navigation, route }) {
 
   useFocusEffect(useCallback(() => {
     fetchRide();
+  }, [fetchRide]));
 
-    // Named callbacks — off() only removes THIS screen's handlers, not global ones
+  // Socket always active — update booking list in real-time even if screen loses focus
+  useEffect(() => {
     const onBookingChanged = (data: any) => {
       if (data.rideId === rideId) fetchRide();
     };
-
     socketService.on('BOOKING_REQUESTED',  onBookingChanged);
     socketService.on('BOOKING_CANCELLED',  onBookingChanged);
     socketService.on('BOOKING_ACCEPTED',   onBookingChanged);
     socketService.on('BOOKING_REJECTED',   onBookingChanged);
-
     return () => {
       socketService.off('BOOKING_REQUESTED',  onBookingChanged);
       socketService.off('BOOKING_CANCELLED',  onBookingChanged);
       socketService.off('BOOKING_ACCEPTED',   onBookingChanged);
       socketService.off('BOOKING_REJECTED',   onBookingChanged);
     };
-  }, [fetchRide, rideId]));
+  }, [rideId, fetchRide]);
 
   const handleAccept = (bookingId: string, name: string) => {
     showModal({

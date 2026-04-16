@@ -31,6 +31,7 @@ export interface AppContextState {
   markAllNotificationsRead: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
   incrementUnreadCount: () => void;
+  resetAll?: () => void;
   
   addScheduleAlert: (alertData: any) => Promise<{ data?: any, error?: any }>;
   removeScheduleAlert: (id: string) => Promise<void>;
