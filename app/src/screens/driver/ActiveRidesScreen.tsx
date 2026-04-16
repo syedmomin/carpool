@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ export default function ActiveRidesScreen({ navigation }) {
   const [refreshing, setRefreshing]     = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [actionLoading, setActionLoading]   = useState<string | null>(null);
+  const isFetching = useRef(false);
 
   const todayStr = (() => {
     const d = new Date();
@@ -30,23 +31,62 @@ export default function ActiveRidesScreen({ navigation }) {
   const normalize = (r: any) => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
   const fetchRides = useCallback(async (replace = false) => {
-    replace ? setRefreshing(true) : setLoading(true);
-    const { data } = await ridesApi.myRides(1, PAGE_SIZE);
-    replace ? setRefreshing(false) : setLoading(false);
-    setInitialLoading(false);
-    if (!data?.data) return;
-    setAllRides((data.data || []).map(normalize));
+    if (isFetching.current) return;
+    isFetching.current = true;
+    try {
+      replace ? setRefreshing(true) : setLoading(true);
+      const { data } = await ridesApi.myRides(1, PAGE_SIZE);
+      replace ? setRefreshing(false) : setLoading(false);
+      setInitialLoading(false);
+      if (!data?.data) return;
+      setAllRides((data.data || []).map(normalize));
+    } finally {
+      isFetching.current = false;
+    }
   }, []);
 
   useFocusEffect(useCallback(() => {
+    isFetching.current = false; // reset so this focus always triggers a fresh fetch
     fetchRides(false);
 
-    const refresh = () => fetchRides(true);
-    socketService.on('BOOKING_REQUESTED', refresh);
-    socketService.on('BOOKING_CANCELLED', refresh);
+    // Booking changes — update seat counts live
+    const onBookingChange = () => fetchRides(true);
+
+    // Ride started by another device (e.g. tracking screen)
+    const onRideStarted = (data: any) => {
+      setAllRides(prev => prev.map(r =>
+        r.id === data.rideId ? { ...r, status: 'IN_PROGRESS' } : r
+      ));
+    };
+
+    // Ride cancelled (e.g. admin or auto-cancel)
+    const onRideCancelled = (data: any) => {
+      setAllRides(prev => prev.map(r =>
+        r.id === data.rideId ? { ...r, status: 'CANCELLED' } : r
+      ));
+    };
+
+    // Ride completed
+    const onRideCompleted = (data: any) => {
+      setAllRides(prev => prev.map(r =>
+        r.id === data.rideId ? { ...r, status: 'COMPLETED' } : r
+      ));
+    };
+
+    socketService.on('BOOKING_REQUESTED', onBookingChange);
+    socketService.on('BOOKING_CANCELLED', onBookingChange);
+    socketService.on('BOOKING_ACCEPTED',  onBookingChange);
+    socketService.on('RIDE_STARTED',      onRideStarted);
+    socketService.on('RIDE_CANCELLED',    onRideCancelled);
+    socketService.on('RIDE_COMPLETED',    onRideCompleted);
     return () => {
-      socketService.off('BOOKING_REQUESTED', refresh);
-      socketService.off('BOOKING_CANCELLED', refresh);
+      isFetching.current = false; // allow fresh fetch on next focus
+      socketService.off('BOOKING_REQUESTED', onBookingChange);
+      socketService.off('BOOKING_CANCELLED', onBookingChange);
+      socketService.off('BOOKING_ACCEPTED',  onBookingChange);
+      socketService.off('RIDE_STARTED',      onRideStarted);
+      socketService.off('RIDE_CANCELLED',    onRideCancelled);
+      socketService.off('RIDE_COMPLETED',    onRideCompleted);
     };
   }, [fetchRides]));
 
@@ -181,7 +221,11 @@ export default function ActiveRidesScreen({ navigation }) {
           )}
 
           {isActive && (
-            <TouchableOpacity style={[styles.btn, { borderColor: COLORS.danger + '50' }]} onPress={() => handleCancelRide(item)}>
+            <TouchableOpacity
+              style={[styles.btn, { borderColor: COLORS.danger + '50' }, isActioning && { opacity: 0.45 }]}
+              onPress={() => handleCancelRide(item)}
+              disabled={isActioning}
+            >
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={[styles.btnText, { color: COLORS.danger }]}>Cancel</Text>
             </TouchableOpacity>

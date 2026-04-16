@@ -247,6 +247,7 @@ export default function BookingHistoryScreen({ navigation }) {
     const [reviewedIds, setReviewedIds] = useState(new Set());
     const [sosVisible, setSosVisible] = useState(false);
     const [cancelTarget, setCancelTarget] = useState(null);
+    const [cancellingId, setCancellingId] = useState<string | null>(null);
     const isFetching = useRef(false); // prevents stale-closure double-fetch
 
     const fetchBookings = useCallback(async (pageNum, replace = false) => {
@@ -289,6 +290,7 @@ export default function BookingHistoryScreen({ navigation }) {
     }, []);
 
     useFocusEffect(useCallback(() => {
+        isFetching.current = false; // reset so this focus always triggers a fresh fetch
         fetchBookings(1, true);
 
         // Real-time synchronization — named callbacks so off() only removes THIS handler
@@ -303,6 +305,7 @@ export default function BookingHistoryScreen({ navigation }) {
         socketService.on('RIDE_COMPLETED',    onCompleted);
 
         return () => {
+            isFetching.current = false; // allow fresh fetch on next focus
             socketService.off('BOOKING_ACCEPTED',  onAccepted);
             socketService.off('BOOKING_REJECTED',  onRejected);
             socketService.off('RIDE_STARTED',      onStarted);
@@ -316,19 +319,23 @@ export default function BookingHistoryScreen({ navigation }) {
         }
     };
 
-    const executeCancel = async (reason) => {
-        if (!cancelTarget) return;
-        const { error } = await cancelBooking(cancelTarget, reason);
+    const executeCancel = async (reason: string | null, bookingId?: string) => {
+        const targetId = bookingId ?? cancelTarget;
+        if (!targetId) return;
+        setCancellingId(targetId);
+        const { error } = await cancelBooking(targetId, reason);
+        setCancellingId(null);
         if (error) showToast(parseApiError(error), 'error');
         else {
             showToast('Booking cancelled.', 'info');
-            setBookings(prev => prev.map(b => b.id === cancelTarget ? { ...b, status: 'CANCELLED' } : b));
+            setBookings(prev => prev.filter(b => b.id !== targetId));
         }
         setCancelTarget(null);
     };
 
     const confirmCancel = (booking) => {
         if (booking.status === 'CONFIRMED') {
+            // CONFIRMED bookings need a reason — open the reason modal
             setCancelTarget(booking.id);
         } else {
             showModal({
@@ -338,9 +345,8 @@ export default function BookingHistoryScreen({ navigation }) {
                 confirmText: 'Yes, Cancel',
                 cancelText: 'Keep Booking',
                 icon: 'close-circle-outline',
-                onConfirm: () => {
-                    setCancelTarget(booking.id);
-                    executeCancel(null);
+                onConfirm: async () => {
+                    await executeCancel(null, booking.id);
                 },
             });
         }
@@ -364,6 +370,7 @@ export default function BookingHistoryScreen({ navigation }) {
         const isInProgress = ride.status === 'IN_PROGRESS';
         const isCompleted = item.status === 'COMPLETED';
         const canReview = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id);
+        const isCancelling = cancellingId === item.id;
 
         return (
             <View style={styles.card}>
@@ -459,9 +466,15 @@ export default function BookingHistoryScreen({ navigation }) {
                         )}
                         {/* Cancel button */}
                         {isActive && !isInProgress && (
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => confirmCancel(item)}>
-                                <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
-                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            <TouchableOpacity
+                                style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]}
+                                onPress={() => confirmCancel(item)}
+                                disabled={isCancelling}
+                            >
+                                {isCancelling
+                                    ? <ActivityIndicator size="small" color={COLORS.danger} />
+                                    : <><Ionicons name="close-circle-outline" size={16} color={COLORS.danger} /><Text style={styles.cancelBtnText}>Cancel</Text></>
+                                }
                             </TouchableOpacity>
                         )}
                         {/* Chat button for confirmed bookings */}

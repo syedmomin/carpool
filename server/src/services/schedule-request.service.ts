@@ -331,13 +331,20 @@ export class ScheduleRequestService {
       }
     }
 
-    // Notify passenger: booking confirmed
+    // Notify passenger: booking confirmed + live socket update
     notify({
-      userId:  passengerId,
-      title:   'Ride Booked! 🚗',
-      message: `Your ${request.fromCity} → ${request.toCity} ride on ${request.date} is confirmed at Rs ${bid.pricePerSeat}/seat.`,
-      type:    'BOOKING',
-      rideId:  result.newRide.id,
+      userId:      passengerId,
+      title:       'Ride Booked! 🚗',
+      message:     `Your ${request.fromCity} → ${request.toCity} ride on ${request.date} is confirmed at Rs ${bid.pricePerSeat}/seat.`,
+      type:        'BOOKING',
+      rideId:      result.newRide.id,
+      socketEvent: 'REQUEST_ACCEPTED',
+      socketData:  {
+        scheduleRequestId,
+        bidId,
+        rideId:        result.newRide.id,
+        acceptedBidId: bidId,
+      },
     });
 
     return result.newRide;

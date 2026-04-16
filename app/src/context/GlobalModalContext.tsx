@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  Animated, Pressable, Platform,
+  Animated, Pressable, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,8 +52,9 @@ const GlobalModalContext = createContext(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function GlobalModalProvider({ children }) {
-  const [config, setConfig] = useState(null);
+  const [config, setConfig]   = useState(null);
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const translateYAnim = useRef(new Animated.Value(600)).current;
   const opacityAnim    = useRef(new Animated.Value(0)).current;
@@ -83,15 +84,22 @@ export function GlobalModalProvider({ children }) {
 
   const hideModal = () => {
     setVisible(false);
+    setLoading(false);
     setTimeout(() => setConfig(null), 300);
   };
 
-  const handleConfirm = () => {
-    hideModal();
-    config?.onConfirm?.();
+  const handleConfirm = async () => {
+    if (!config?.onConfirm) { hideModal(); return; }
+    setLoading(true);
+    try {
+      await config.onConfirm();
+    } finally {
+      hideModal();
+    }
   };
 
   const handleCancel = () => {
+    if (loading) return;
     hideModal();
     config?.onCancel?.();
   };
@@ -132,13 +140,16 @@ export function GlobalModalProvider({ children }) {
 
             <View style={styles.btnRow}>
               {isConfirm && (
-                <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel} activeOpacity={0.7}>
+                <TouchableOpacity style={[styles.cancelBtn, loading && { opacity: 0.4 }]} onPress={handleCancel} activeOpacity={0.7} disabled={loading}>
                   <Text style={styles.cancelText}>{config?.cancelText || 'Cancel'}</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity style={styles.confirmBtnWrap} onPress={handleConfirm} activeOpacity={0.85}>
+              <TouchableOpacity style={styles.confirmBtnWrap} onPress={handleConfirm} activeOpacity={0.85} disabled={loading}>
                 <LinearGradient colors={cfg.gradient} style={styles.confirmBtn}>
-                  <Text style={styles.confirmText}>{config?.confirmText || 'OK'}</Text>
+                  {loading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.confirmText}>{config?.confirmText || 'OK'}</Text>
+                  }
                 </LinearGradient>
               </TouchableOpacity>
             </View>

@@ -316,17 +316,26 @@ export default function OpenRequestsScreen({ navigation }) {
 
         {/* My Bid status */}
         {hasBid && (
-          <View style={styles.myBidRow}>
-            <Ionicons name="pricetag-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.myBidText}>Your bid: Rs {myBid.pricePerSeat}/seat</Text>
+          <View style={[
+            styles.myBidRow,
+            myBid.status === 'REJECTED' && styles.myBidRowRejected,
+          ]}>
+            <Ionicons
+              name="pricetag-outline"
+              size={14}
+              color={myBid.status === 'REJECTED' ? COLORS.danger : COLORS.primary}
+            />
+            <Text style={[styles.myBidText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
+              Your bid: Rs {myBid.pricePerSeat}/seat
+            </Text>
             <View style={[
               styles.bidStatusDot,
               myBid.status === 'ACCEPTED' ? styles.bidDotAccepted
               : myBid.status === 'REJECTED' ? styles.bidDotRejected
               : styles.bidDotPending
             ]} />
-            <Text style={styles.bidStatusText}>
-              {myBid.status === 'ACCEPTED' ? 'Accepted!' : myBid.status === 'REJECTED' ? 'Not selected' : 'Pending'}
+            <Text style={[styles.bidStatusText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
+              {myBid.status === 'ACCEPTED' ? 'Accepted!' : myBid.status === 'REJECTED' ? 'Declined — bid again?' : 'Pending'}
             </Text>
           </View>
         )}
@@ -334,11 +343,11 @@ export default function OpenRequestsScreen({ navigation }) {
         {/* Actions */}
         {!isAccepted && (
           <View style={styles.actionRow}>
-            {!hasBid ? (
+            {!hasBid || myBid.status === 'REJECTED' ? (
               <TouchableOpacity style={styles.bidBtn} onPress={() => setBidTarget(item)}>
                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.bidBtnGrad}>
                   <Ionicons name="send-outline" size={15} color="#fff" />
-                  <Text style={styles.bidBtnText}>Place Bid</Text>
+                  <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Bid Again' : 'Place Bid'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : myBid.status === 'PENDING' ? (
@@ -438,7 +447,8 @@ const styles = StyleSheet.create({
   noteRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: COLORS.lightGray, borderRadius: 8, padding: 8, marginBottom: 8 },
   noteText: { flex: 1, fontSize: 12, color: COLORS.gray, fontStyle: 'italic' },
 
-  myBidRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderRadius: 8, padding: 8, marginBottom: 8 },
+  myBidRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderRadius: 8, padding: 8, marginBottom: 8 },
+  myBidRowRejected: { backgroundColor: '#fff5f5' },
   myBidText:     { fontSize: 13, fontWeight: '600', color: COLORS.primary, flex: 1 },
   bidStatusDot:  { width: 8, height: 8, borderRadius: 4 },
   bidDotPending: { backgroundColor: '#f59e0b' },
