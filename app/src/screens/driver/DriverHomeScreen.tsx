@@ -5,47 +5,27 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { ridesApi, vehiclesApi } from '../../services/api';
-import { socketService } from '../../services/socket.service';
+import { useSocketData } from '../../context/SocketDataContext';
+import { vehiclesApi } from '../../services/api';
 
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
-  const [myRides, setMyRides] = useState([]);
+  const { myRides, myRidesState, loadMyRides } = useSocketData();
   const [myVehicle, setMyVehicle] = useState(null);
 
-  const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
-
-  const loadData = useCallback(() => {
-    ridesApi.myRides(1, 5).then(({ data }) => {
-      if (data?.data) setMyRides(data.data.map(normalize));
-    });
+  useFocusEffect(useCallback(() => {
+    if (!myRidesState.loaded) loadMyRides();
     vehiclesApi.myVehicles().then(({ data }) => {
       if (data?.data) {
         const active = data.data.find((v: any) => v.isActive) || data.data[0] || null;
         setMyVehicle(active);
       }
     });
-  }, []);
+  }, [myRidesState.loaded]));
 
-  useFocusEffect(useCallback(() => {
-    loadData();
-
-    // Refresh dashboard stats when bookings change
-    const onBookingChange = () => loadData();
-    socketService.on('BOOKING_REQUESTED',  onBookingChange);
-    socketService.on('BOOKING_CANCELLED',  onBookingChange);
-    socketService.on('BOOKING_ACCEPTED',   onBookingChange);
-
-    return () => {
-      socketService.off('BOOKING_REQUESTED',  onBookingChange);
-      socketService.off('BOOKING_CANCELLED',  onBookingChange);
-      socketService.off('BOOKING_ACCEPTED',   onBookingChange);
-    };
-  }, [loadData]));
-
-  const activeRides = myRides.filter(r => r.status === 'ACTIVE');
-  const totalEarned = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
-  const totalPassengers = myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
+  const activeRides    = myRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
+  const totalEarned    = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
+  const totalPassengers= myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
 
   const QUICK_ACTIONS = [
     { icon: 'add-circle',    label: 'Post Ride',    gradient: GRADIENTS.primary,   screen: 'PostRide',     desc: 'Share your route' },

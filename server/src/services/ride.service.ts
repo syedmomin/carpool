@@ -347,9 +347,14 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
           rideId,
           socketEvent: 'RIDE_COMPLETED',
           socketData:  {
+            rideId,
             status: 'COMPLETED',
             driverId: updated.driverId,
+            driverName: (updated as any).driver?.name,
             routeLabel: `${updated.fromCity} → ${updated.toCity}`,
+            fromCity: updated.fromCity,
+            toCity: updated.toCity,
+            date: updated.date,
           },
         });
       }

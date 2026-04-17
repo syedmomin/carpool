@@ -9,8 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi, vehiclesApi } from '../../services/api';
-import { socketService } from '../../services/socket.service';
 
 // ─── Bid Modal ────────────────────────────────────────────────────────────────
 function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
@@ -144,20 +144,12 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
 export default function OpenRequestsScreen({ navigation }) {
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
+  const { openRequests, openRequestsState, loadOpenRequests, upsertOwnBid, patchOpenRequest } = useSocketData();
 
-  const [requests, setRequests]       = useState<any[]>([]);
-  const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [vehicles, setVehicles]       = useState<any[]>([]);
   const [bidTarget, setBidTarget]     = useState<any>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
-
-  const loadRequests = useCallback(async (isRefresh = false) => {
-    isRefresh ? setRefreshing(true) : setLoading(true);
-    const { data } = await scheduleRequestsApi.getOpen();
-    isRefresh ? setRefreshing(false) : setLoading(false);
-    if (data?.data) setRequests(data.data);
-  }, []);
 
   const loadVehicles = useCallback(async () => {
     const { data } = await vehiclesApi.myVehicles();
@@ -165,105 +157,48 @@ export default function OpenRequestsScreen({ navigation }) {
   }, []);
 
   useFocusEffect(useCallback(() => {
-    loadRequests();
+    if (!openRequestsState.loaded) loadOpenRequests();
     loadVehicles();
-
-    const onNewRequest = (data: any) => {
-      setRequests(prev => {
-        if (prev.find(r => r.id === data.id)) return prev;
-        return [{ ...data, bids: [] }, ...prev];
-      });
-      showToast(`New ride request: ${data.fromCity} → ${data.toCity}`, 'info');
-    };
-
-    const onRequestCancelled = (data: any) => {
-      setRequests(prev => prev.filter(r => r.id !== data.scheduleRequestId));
-    };
-
-    const onBidAccepted = (data: any) => {
-      setRequests(prev => prev.map(r =>
-        r.id === data.scheduleRequestId ? { ...r, status: 'ACCEPTED' } : r
-      ));
-    };
-
-    const onBidRejected = (data: any) => {
-      setRequests(prev => prev.map(r => ({
-        ...r,
-        bids: (r.bids || []).map((b: any) =>
-          b.id === data.bidId ? { ...b, status: 'REJECTED' } : b
-        ),
-      })));
-    };
-
-    // Real-time: server confirms our bid was placed/updated
-    const onBidPlaced = (data: any) => {
-      setRequests(prev => prev.map(r => {
-        if (r.id !== data.scheduleRequestId) return r;
-        const otherBids = (r.bids || []).filter((b: any) => b.id !== data.bid?.id && b.status !== 'PENDING');
-        return { ...r, bids: [...otherBids, data.bid] };
-      }));
-    };
-
-    socketService.on('SCHEDULE_REQUEST',  onNewRequest);
-    socketService.on('REQUEST_CANCELLED', onRequestCancelled);
-    socketService.on('BID_ACCEPTED',      onBidAccepted);
-    socketService.on('BID_REJECTED',      onBidRejected);
-    socketService.on('BID_PLACED',        onBidPlaced);
-
-    return () => {
-      socketService.off('SCHEDULE_REQUEST',  onNewRequest);
-      socketService.off('REQUEST_CANCELLED', onRequestCancelled);
-      socketService.off('BID_ACCEPTED',      onBidAccepted);
-      socketService.off('BID_REJECTED',      onBidRejected);
-      socketService.off('BID_PLACED',        onBidPlaced);
-    };
-  }, [loadRequests, loadVehicles]));
+  }, [openRequestsState.loaded]));
 
   const handlePlaceBid = async (bidData: any) => {
     const { data, error } = await scheduleRequestsApi.placeBid(bidTarget.id, bidData);
     if (error) { showToast(error, 'error'); return; }
-
     showToast('Bid placed! Waiting for passenger to accept.', 'success');
     setBidTarget(null);
-
-    // Optimistic update — socket BID_PLACED will reconcile with real id
-    setRequests(prev => prev.map(r => {
-      if (r.id !== bidTarget.id) return r;
-      const otherBids = (r.bids || []).filter((b: any) => b.status !== 'PENDING');
-      return {
-        ...r,
-        bids: [...otherBids, {
-          id:            data?.data?.id || 'temp_' + Date.now(),
-          status:        'PENDING',
-          pricePerSeat:  bidData.pricePerSeat,
-          departureTime: bidTarget.departureTime,
-          vehicleId:     bidData.vehicleId,
-          note:          bidData.note,
-        }],
-      };
-    }));
+    // Optimistic update; BID_PLACED socket will reconcile with real id
+    upsertOwnBid(bidTarget.id, {
+      id:           data?.data?.id || 'temp_' + Date.now(),
+      status:       'PENDING',
+      pricePerSeat: bidData.pricePerSeat,
+      departureTime:bidTarget.departureTime,
+      vehicleId:    bidData.vehicleId,
+      note:         bidData.note,
+    });
   };
 
   const handleWithdraw = (request: any) => {
     const myBid = (request.bids || [])[0];
     if (!myBid) return;
     showModal({
-      type: 'danger',
-      title: 'Withdraw Bid?',
+      type: 'danger', title: 'Withdraw Bid?',
       message: `Withdraw your bid of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} → ${request.toCity}?`,
-      confirmText: 'Withdraw',
-      cancelText: 'Keep Bid',
+      confirmText: 'Withdraw', cancelText: 'Keep Bid',
       onConfirm: async () => {
         setWithdrawing(request.id);
         const { error } = await scheduleRequestsApi.withdrawBid(request.id, myBid.id);
         setWithdrawing(null);
         if (error) { showToast(error, 'error'); return; }
         showToast('Bid withdrawn', 'info');
-        setRequests(prev => prev.map(r =>
-          r.id === request.id ? { ...r, bids: [] } : r
-        ));
+        patchOpenRequest(request.id, { bids: [] });
       },
     });
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadOpenRequests(true);
+    setRefreshing(false);
   };
 
   const renderItem = ({ item }: { item: any }) => {
@@ -316,17 +251,26 @@ export default function OpenRequestsScreen({ navigation }) {
 
         {/* My Bid status */}
         {hasBid && (
-          <View style={styles.myBidRow}>
-            <Ionicons name="pricetag-outline" size={14} color={COLORS.primary} />
-            <Text style={styles.myBidText}>Your bid: Rs {myBid.pricePerSeat}/seat</Text>
+          <View style={[
+            styles.myBidRow,
+            myBid.status === 'REJECTED' && styles.myBidRowRejected,
+          ]}>
+            <Ionicons
+              name="pricetag-outline"
+              size={14}
+              color={myBid.status === 'REJECTED' ? COLORS.danger : COLORS.primary}
+            />
+            <Text style={[styles.myBidText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
+              Your bid: Rs {myBid.pricePerSeat}/seat
+            </Text>
             <View style={[
               styles.bidStatusDot,
               myBid.status === 'ACCEPTED' ? styles.bidDotAccepted
               : myBid.status === 'REJECTED' ? styles.bidDotRejected
               : styles.bidDotPending
             ]} />
-            <Text style={styles.bidStatusText}>
-              {myBid.status === 'ACCEPTED' ? 'Accepted!' : myBid.status === 'REJECTED' ? 'Not selected' : 'Pending'}
+            <Text style={[styles.bidStatusText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
+              {myBid.status === 'ACCEPTED' ? 'Accepted!' : myBid.status === 'REJECTED' ? 'Declined — bid again?' : 'Pending'}
             </Text>
           </View>
         )}
@@ -334,11 +278,11 @@ export default function OpenRequestsScreen({ navigation }) {
         {/* Actions */}
         {!isAccepted && (
           <View style={styles.actionRow}>
-            {!hasBid ? (
+            {!hasBid || myBid.status === 'REJECTED' ? (
               <TouchableOpacity style={styles.bidBtn} onPress={() => setBidTarget(item)}>
                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.bidBtnGrad}>
                   <Ionicons name="send-outline" size={15} color="#fff" />
-                  <Text style={styles.bidBtnText}>Place Bid</Text>
+                  <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Bid Again' : 'Place Bid'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : myBid.status === 'PENDING' ? (
@@ -378,18 +322,18 @@ export default function OpenRequestsScreen({ navigation }) {
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
 
-      {loading ? (
+      {!openRequestsState.loaded && openRequestsState.loading ? (
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={COLORS.teal} />
           <Text style={styles.loadingText}>Loading requests...</Text>
         </View>
       ) : (
         <FlatList
-          data={requests}
+          data={openRequests}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           refreshing={refreshing}
-          onRefresh={() => loadRequests(true)}
+          onRefresh={onRefresh}
           renderItem={renderItem}
           ListEmptyComponent={
             <EmptyState
@@ -438,7 +382,8 @@ const styles = StyleSheet.create({
   noteRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: COLORS.lightGray, borderRadius: 8, padding: 8, marginBottom: 8 },
   noteText: { flex: 1, fontSize: 12, color: COLORS.gray, fontStyle: 'italic' },
 
-  myBidRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderRadius: 8, padding: 8, marginBottom: 8 },
+  myBidRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderRadius: 8, padding: 8, marginBottom: 8 },
+  myBidRowRejected: { backgroundColor: '#fff5f5' },
   myBidText:     { fontSize: 13, fontWeight: '600', color: COLORS.primary, flex: 1 },
   bidStatusDot:  { width: 8, height: 8, borderRadius: 4 },
   bidDotPending: { backgroundColor: '#f59e0b' },
