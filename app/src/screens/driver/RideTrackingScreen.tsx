@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Platform,
   Dimensions, ActivityIndicator, Animated, FlatList, Linking,
 } from 'react-native';
-import { MapView, Marker, PROVIDER_GOOGLE } from '../../components/Map';
+import { MapView, Marker } from '../../components/Map';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -259,45 +259,50 @@ export default function RideTrackingScreen({ route, navigation }) {
   return (
     <View style={s.container}>
       {/* ── Map ──────────────────────────────────────────────────────── */}
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFill}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        showsUserLocation={driver}
-        followsUserLocation={driver}
-        initialRegion={{
-          latitude:  currentLocation?.latitude  || 30.3753,
-          longitude: currentLocation?.longitude || 69.3451,
-          latitudeDelta:  0.06,
-          longitudeDelta: 0.06,
-        }}
-      >
-        {/* Driver car marker (for passenger view) */}
-        {!driver && currentLocation && (
-          <Marker
-            coordinate={{ latitude: currentLocation.latitude, longitude: currentLocation.longitude }}
-            rotation={currentLocation.heading || 0}
-            anchor={{ x: 0.5, y: 0.5 }}
-            flat
-          >
-            <View style={s.carMarker}>
-              <Ionicons name="navigate" size={22} color={COLORS.primary} />
-            </View>
-          </Marker>
-        )}
+      {MapView ? (
+        <MapView
+          ref={mapRef}
+          style={StyleSheet.absoluteFill}
+          initialRegion={{
+            latitude:  currentLocation?.latitude  || 30.3753,
+            longitude: currentLocation?.longitude || 69.3451,
+            latitudeDelta:  0.06,
+            longitudeDelta: 0.06,
+          }}
+        >
+          {/* Driver car marker (for passenger view) */}
+          {!driver && currentLocation && (
+            <Marker
+              coordinate={{ latitude: currentLocation.latitude, longitude: currentLocation.longitude }}
+              rotation={currentLocation.heading || 0}
+              anchor={{ x: 0.5, y: 0.5 }}
+              flat
+            >
+              <View style={s.carMarker}>
+                <Ionicons name="navigate" size={22} color={COLORS.primary} />
+              </View>
+            </Marker>
+          )}
 
-        {/* Destination marker */}
-        {ride?.toLat && ride?.toLng && (
-          <Marker
-            coordinate={{ latitude: ride.toLat, longitude: ride.toLng }}
-            anchor={{ x: 0.5, y: 1 }}
-          >
-            <View style={s.destMarker}>
-              <Ionicons name="location" size={28} color={COLORS.danger} />
-            </View>
-          </Marker>
-        )}
-      </MapView>
+          {/* Destination marker */}
+          {ride?.toLat && ride?.toLng && (
+            <Marker
+              coordinate={{ latitude: ride.toLat, longitude: ride.toLng }}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View style={s.destMarker}>
+                <Ionicons name="location" size={28} color={COLORS.danger} />
+              </View>
+            </Marker>
+          )}
+        </MapView>
+      ) : (
+        <View style={[StyleSheet.absoluteFill, s.mapFallback]}>
+          <Ionicons name="map-outline" size={48} color="#ccc" />
+          <Text style={s.mapFallbackText}>Map not available in Expo Go</Text>
+          <Text style={s.mapFallbackSub}>Use a development build to see the live map</Text>
+        </View>
+      )}
 
       {/* ── Top Header ───────────────────────────────────────────────── */}
       <View style={s.header}>
@@ -487,6 +492,9 @@ export default function RideTrackingScreen({ route, navigation }) {
 
 const s = StyleSheet.create({
   container:   { flex: 1, backgroundColor: '#000' },
+  mapFallback: { backgroundColor: '#e8f0e8', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  mapFallbackText: { fontSize: 15, fontWeight: '700', color: '#666' },
+  mapFallbackSub:  { fontSize: 12, color: '#999', textAlign: 'center', paddingHorizontal: 40 },
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1b4b', gap: 14 },
   loadingText: { fontSize: 14, color: '#fff', fontWeight: '600' },
 

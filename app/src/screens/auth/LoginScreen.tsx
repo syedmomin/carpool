@@ -39,7 +39,7 @@ export default function LoginScreen({ navigation }) {
         const { error, role } = await login(cleanPhone, password);
         setLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
-        navigation.replace(role === 'driver' ? 'DriverApp' : 'PassengerApp');
+        // Navigation happens automatically via AppNavigator when currentUser is set
     };
 
     return (

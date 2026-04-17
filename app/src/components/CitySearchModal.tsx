@@ -4,8 +4,8 @@ import {
   FlatList, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from './index';
-import { SearchInput } from './index';
+import { COLORS } from './theme';
+import { SearchInput } from './Input';
 import { searchPakistanLocations } from '../utils/locationSearch';
 
 interface Props {
