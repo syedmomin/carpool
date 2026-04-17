@@ -204,7 +204,7 @@ export default function PassengerHomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#e8f0e8' },
+  container:    { flex: 1, backgroundColor: '#f2efe9' },
   mapSection:   { flex: 1 },
   topBar: {
     position: 'absolute', top: Platform.OS === 'ios' ? 52 : 44,

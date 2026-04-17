@@ -108,11 +108,8 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               canPreventDefault: true,
             });
             if (isFocused) {
-              // Already on this tab — pop the nested stack back to its root screen
-              const childNav = descriptors[route.key].navigation as any;
-              if (childNav?.canGoBack?.()) {
-                childNav.popToTop();
-              }
+              // Already on this tab — dispatch popToTop to the nested stack
+              navigation.dispatch({ type: 'POP_TO_TOP' });
             } else if (!event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -325,6 +322,7 @@ function PassengerRequestsStack() {
     <PassengerScheduleStack.Navigator id="PassengerRequests" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <PassengerScheduleStack.Screen name="MyRequests"   component={MyRequestsScreen} />
       <PassengerScheduleStack.Screen name="PostRequest"  component={PostRequestScreen} />
+      <PassengerScheduleStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
     </PassengerScheduleStack.Navigator>
   );
 }

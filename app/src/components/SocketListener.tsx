@@ -221,11 +221,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
     // Passenger receives: their request was accepted (bid accepted → ride created)
     const onRequestAccepted = (data: any) => {
       if (isPassenger) {
-        socketData.patchRequest(data.scheduleRequestId, {
-          status: 'ACCEPTED',
-          bids: undefined, // will be updated by onRideBid or reload
-        });
-        // Also trigger bookings reload since a new confirmed booking was created
+        socketData.removeRequest(data.scheduleRequestId);
         socketData.loadMyBookings(true);
       }
     };

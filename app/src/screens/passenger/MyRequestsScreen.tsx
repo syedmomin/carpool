@@ -244,9 +244,22 @@ export default function MyRequestsScreen({ navigation }) {
       message: `Accept ${bid.driver?.name}'s offer of Rs ${bid.pricePerSeat}/seat for ${req.fromCity} → ${req.toCity}?\n\nA ride will be auto-created and your seat confirmed.`,
       confirmText: 'Accept & Book', cancelText: 'Not Now', icon: 'checkmark-circle-outline',
       onConfirm: async () => {
-        const { error } = await scheduleRequestsApi.acceptBid(req.id, bid.id);
+        const { data, error } = await scheduleRequestsApi.acceptBid(req.id, bid.id);
         if (error) { showToast(error, 'error'); return; }
-        showToast('Bid accepted! Your ride is confirmed.', 'success', 4000);
+        removeRequest(req.id);
+        const rideData = {
+          ...(data?.data ?? {}),
+          from:     req.fromCity,
+          to:       req.toCity,
+          driver:   bid.driver,
+          vehicle:  bid.vehicle,
+          pricePerSeat: bid.pricePerSeat,
+        };
+        navigation.navigate('BookingConfirm', {
+          rideId:   rideData.id,
+          seats:    req.seats,
+          rideData,
+        });
       },
     });
   };

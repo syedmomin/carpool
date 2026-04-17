@@ -28,10 +28,10 @@ export default function DriverHomeScreen({ navigation }) {
   const totalPassengers= myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
 
   const QUICK_ACTIONS = [
-    { icon: 'add-circle',    label: 'Post Ride',    gradient: GRADIENTS.primary,   screen: 'PostRide',     desc: 'Share your route' },
-    { icon: 'car-sport',     label: 'My Rides',     gradient: GRADIENTS.teal,      screen: 'MyRidesTab',   desc: 'Manage bookings' },
-    { icon: 'calendar',      label: 'Requests',     gradient: GRADIENTS.secondary, screen: 'OpenRequests', desc: 'Passenger bids' },
-    { icon: 'wallet',        label: 'Earnings',     gradient: GRADIENTS.secondary, screen: 'Earnings',     desc: 'View income' },
+    { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
+    { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRidesTab', desc: 'Manage bookings' },
+    { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehicles', desc: 'Vehicle details' },
+    { icon: 'wallet', label: 'Earnings', gradient: GRADIENTS.secondary, screen: 'Earnings', desc: 'View income' },
   ];
 
   return (

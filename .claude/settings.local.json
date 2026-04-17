@@ -15,7 +15,11 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\('dependencies',{}\\).keys\\(\\)\\)\\)\")",
       "Bash(npx expo *)",
       "Bash(grep -n \"scheduleRequest.findUnique\" d:/projects/carpool/server/src/services/*.ts)",
-      "Bash(grep -l \"isLoading\\\\|submitting\" /d/projects/carpool/app/src/screens/driver/*.tsx)"
+      "Bash(grep -l \"isLoading\\\\|submitting\" /d/projects/carpool/app/src/screens/driver/*.tsx)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :8081)",
+      "Bash(tasklist)",
+      "Bash(findstr 19424)"
     ],
     "additionalDirectories": [
       "C:\\Users\\jamal\\.claude\\projects\\d--projects-carpool"
