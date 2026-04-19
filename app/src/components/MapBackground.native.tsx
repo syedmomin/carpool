@@ -25,8 +25,8 @@ const MAP_HTML = `<!DOCTYPE html>
 <div id="map"></div>
 <script>
   var map = L.map('map', { zoomControl:false, attributionControl:false, dragging:false, touchZoom:false, scrollWheelZoom:false })
-    .setView([30.3753, 69.3451], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+    .setView([30.3753, 69.3451], 16);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom:20 }).addTo(map);
 
   var userMarker = null;
 
@@ -35,13 +35,13 @@ const MAP_HTML = `<!DOCTYPE html>
       var msg = JSON.parse(raw);
       if (msg.type === 'SET_LOCATION') {
         var ll = [msg.lat, msg.lng];
-        map.setView(ll, 14, { animate: false });
+        map.setView(ll, 16, { animate: true, duration: 1.2 });
         if (userMarker) {
           userMarker.setLatLng(ll);
         } else {
           var icon = L.divIcon({
-            html: '<div style="width:16px;height:16px;background:#1d4ed8;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(29,78,216,0.25)"></div>',
-            className: '', iconSize:[16,16], iconAnchor:[8,8]
+            html: '<div style="position:relative;width:32px;height:32px;display:flex;align-items:center;justify-content:center;"><div style="position:absolute;width:32px;height:32px;border-radius:50%;background:rgba(29,78,216,0.2);animation:pulse 2s infinite;"></div><div style="width:16px;height:16px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(29,78,216,0.5);position:relative;z-index:1;"></div></div><style>@keyframes pulse{0%{transform:scale(1);opacity:0.6}70%{transform:scale(2);opacity:0}100%{transform:scale(2);opacity:0}}</style>',
+            className: '', iconSize:[32,32], iconAnchor:[16,16]
           });
           userMarker = L.marker(ll, { icon }).addTo(map);
         }

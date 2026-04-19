@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PrimaryButton, GhostButton } from '../../components';
+import { COLORS, GRADIENTS, GradientHeader, PrimaryButton, GhostButton } from '../../components';
 
 export default function BookingConfirmScreen({ navigation, route }) {
   const { rideId, seats, rideData } = route.params;
@@ -20,13 +19,12 @@ export default function BookingConfirmScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
-        <View style={styles.successIcon}>
-          <Ionicons name="send" size={60} color="#fff" />
-        </View>
-        <Text style={styles.successTitle}>Booking Request Sent!</Text>
-        <Text style={styles.successSub}>Waiting for driver to accept your request</Text>
-      </LinearGradient>
+      <GradientHeader
+        colors={GRADIENTS.primary as any}
+        title="Booking Request Sent!"
+        subtitle="Waiting for driver to accept your request"
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+      />
 
       <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.ticketCard}>
@@ -106,10 +104,6 @@ export default function BookingConfirmScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: 80, paddingBottom: 40, alignItems: 'center' },
-  successIcon: { marginBottom: 12 },
-  successTitle: { fontSize: 26, fontWeight: '900', color: '#fff' },
-  successSub: { fontSize: 15, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
   body: { padding: 20, marginTop: -20 },
   ticketCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5, marginBottom: 16 },
   ticketHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },

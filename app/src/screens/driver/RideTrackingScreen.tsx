@@ -74,7 +74,7 @@ function Stars({ rating }: { rating: number | null }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map(n => (
-        <Ionicons key={n} name={n <= Math.round(r) ? 'star' : 'star-outline'} size={11} color="#f59e0b" />
+        <Ionicons key={n} name={n <= Math.round(r) ? 'star' : 'star-outline'} size={11} color={COLORS.warning} />
       ))}
       {rating !== null && (
         <Text style={{ fontSize: 11, fontWeight: '700', color: '#d97706', marginLeft: 3 }}>

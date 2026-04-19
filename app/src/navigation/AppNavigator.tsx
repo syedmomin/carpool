@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, StackActions } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +61,7 @@ const TAB_BAR_HEIGHT = 65;
 
 
 export function CustomTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { unreadCount } = useApp();
   const activeIndex = state.index;
   const tabWidth = width / state.routes.length;
@@ -83,9 +85,9 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
   `;
   };
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: COLORS.white }]}>
       {/* SVG Background with shadow for the cutout look */}
-      <View style={styles.svgWrapper}>
+      <View style={[styles.svgWrapper, { bottom: insets.bottom }]}>
         <Svg width={width} height={TAB_BAR_HEIGHT}>
           <Path
             fill="white"
@@ -108,8 +110,11 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               canPreventDefault: true,
             });
             if (isFocused) {
-              // Already on this tab — dispatch popToTop to the nested stack
-              navigation.dispatch({ type: 'POP_TO_TOP' });
+              // Already on this tab — dispatch popToTop to the nested stack if it has more than one screen
+              const routeState = route.state as any;
+              if (routeState && routeState.index > 0) {
+                navigation.dispatch(StackActions.popToTop());
+              }
             } else if (!event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -153,8 +158,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: width,
-    backgroundColor: COLORS.primaryLight,
     elevation: 0,
+    borderTopWidth: Platform.OS === 'android' ? 0.5 : 0,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   svgWrapper: {
     position: 'absolute',

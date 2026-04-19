@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   myBidRowRejected: { backgroundColor: '#fff5f5' },
   myBidText:     { fontSize: 13, fontWeight: '600', color: COLORS.primary, flex: 1 },
   bidStatusDot:  { width: 8, height: 8, borderRadius: 4 },
-  bidDotPending: { backgroundColor: '#f59e0b' },
+  bidDotPending: { backgroundColor: COLORS.warning },
   bidDotAccepted:{ backgroundColor: COLORS.secondary },
   bidDotRejected:{ backgroundColor: COLORS.danger },
   bidStatusText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },

@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -21,7 +21,7 @@ function StarPicker({ rating, onChange }) {
             {[1, 2, 3, 4, 5].map(n => (
                 <TouchableOpacity key={n} onPress={() => onChange(n)}>
                     <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any} size={36}
-                        color={n <= rating ? '#f59e0b' : COLORS.border} />
+                        color={n <= rating ? COLORS.warning : COLORS.border} />
                 </TouchableOpacity>
             ))}
         </View>
@@ -55,7 +55,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
             <View style={rStyles.overlay}>
                 <View style={rStyles.sheet}>
                     <LinearGradient colors={GRADIENTS.primary as any} style={rStyles.sheetHeader}>
-                        <View style={rStyles.starIcon}><Ionicons name="star" size={32} color="#f59e0b" /></View>
+                        <View style={rStyles.starIcon}><Ionicons name="star" size={32} color={COLORS.warning} /></View>
                         <Text style={rStyles.sheetTitle}>Rate Your Driver</Text>
                         <Text style={rStyles.sheetSub}>How was your ride with {booking?.ride?.driver?.name || 'the driver'}?</Text>
                     </LinearGradient>
@@ -140,7 +140,7 @@ function SOSModal({ visible, onClose }) {
     const emergencyNumbers = [
         { label: 'Rescue 1122', number: '1122', icon: 'medkit-outline',  color: '#ef4444' },
         { label: 'Police 15',   number: '15',   icon: 'shield-outline',  color: '#3b82f6' },
-        { label: 'Edhi 115',    number: '115',  icon: 'heart-outline',   color: '#f59e0b' },
+        { label: 'Edhi 115',    number: '115',  icon: 'heart-outline',   color: COLORS.warning },
         { label: 'Motorway 130',number: '130',  icon: 'car-outline',     color: '#8b5cf6' },
     ];
     const call = (number) => {
@@ -357,7 +357,7 @@ export default function BookingHistoryScreen({ navigation }) {
                         )}
                         {canReview && (
                             <TouchableOpacity style={styles.rateBtn} onPress={() => setReviewBooking(item)}>
-                                <Ionicons name="star-outline" size={15} color="#f59e0b" />
+                                <Ionicons name="star-outline" size={15} color={COLORS.warning} />
                                 <Text style={styles.rateBtnText}>Rate Driver</Text>
                             </TouchableOpacity>
                         )}
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     sosBtnText: { fontSize: 12, fontWeight: '800', color: '#ef4444' },
     cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff0f0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger + '30' },
     cancelBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.danger },
-    rateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fffbeb', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: '#f59e0b40' },
+    rateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.warningLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.warning + '40' },
     rateBtnText: { fontSize: 13, fontWeight: '700', color: '#d97706' },
     chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary + '30' },
     chatBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },

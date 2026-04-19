@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState } from '../../components';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -14,23 +14,6 @@ import { scheduleRequestsApi } from '../../services/api';
 
 const { width: SW } = Dimensions.get('window');
 
-const STATUS_CONFIG: any = {
-  OPEN:      { color: COLORS.secondary, bg: '#e8f5e9', label: 'Open' },
-  ACCEPTED:  { color: '#0369a1',        bg: '#e0f2fe', label: 'Accepted' },
-  CANCELLED: { color: COLORS.danger,    bg: '#fef2f2', label: 'Cancelled' },
-  EXPIRED:   { color: '#9a3412',        bg: '#fef2f2', label: 'Expired' },
-};
-
-const AMENITY_MAP = [
-  { key: 'ac',          icon: 'snow-outline',           color: '#0ea5e9', label: 'A/C' },
-  { key: 'wifi',        icon: 'wifi-outline',           color: '#6366f1', label: 'WiFi' },
-  { key: 'music',       icon: 'musical-notes-outline',  color: '#ec4899', label: 'Music' },
-  { key: 'usbCharging', icon: 'flash-outline',          color: '#f59e0b', label: 'USB' },
-  { key: 'waterCooler', icon: 'water-outline',          color: '#06b6d4', label: 'Water' },
-  { key: 'blanket',     icon: 'bed-outline',            color: '#8b5cf6', label: 'Blanket' },
-  { key: 'firstAid',   icon: 'medkit-outline',         color: '#ef4444', label: 'First Aid' },
-  { key: 'luggageRack', icon: 'briefcase-outline',      color: '#64748b', label: 'Luggage' },
-];
 
 // ─── Vehicle Details Modal ────────────────────────────────────────────────────
 function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
@@ -38,7 +21,9 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
   if (!visible || !vehicle) return null;
 
   const images    = vehicle.images || [];
-  const amenities = AMENITY_MAP.filter(a => vehicle[a.key]);
+  const amenities = Object.entries(AMENITY_CONFIG)
+    .filter(([key]) => vehicle[key])
+    .map(([key, cfg]) => ({ key, ...cfg }));
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -61,7 +46,7 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
                 <Text style={vm.driverName}>{driver?.name || 'Driver'}</Text>
                 {driver?.rating > 0 ? (
                   <View style={vm.ratingRow}>
-                    <Ionicons name="star" size={13} color="#fbbf24" />
+                    <Ionicons name="star" size={13} color={COLORS.warning} />
                     <Text style={vm.ratingText}>{driver.rating} · {driver.reviewCount} reviews</Text>
                   </View>
                 ) : (
@@ -279,7 +264,7 @@ export default function MyRequestsScreen({ navigation }) {
   const isInitialLoad = !myRequestsState.loaded && myRequestsState.loading;
 
   const renderRequest = ({ item: req }: any) => {
-    const sc          = STATUS_CONFIG[req.status] || STATUS_CONFIG.OPEN;
+    const sc = STATUS_COLORS[(req.status || 'open').toLowerCase()] ?? STATUS_COLORS.open;
     const pendingBids = (req.bids || []).filter((b: any) => b.status === 'PENDING');
     const acceptedBid = (req.bids || []).find((b: any) => b.status === 'ACCEPTED');
     const hasTime     = req.departureTime && req.departureTime !== '00:00';
@@ -305,7 +290,7 @@ export default function MyRequestsScreen({ navigation }) {
             {req.note ? <Text style={styles.noteText}>"{req.note}"</Text> : null}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
-            <Text style={[styles.statusBadgeText, { color: sc.color }]}>{sc.label}</Text>
+            <Text style={[styles.statusBadgeText, { color: sc.text }]}>{sc.label}</Text>
           </View>
         </View>
 
@@ -344,7 +329,7 @@ export default function MyRequestsScreen({ navigation }) {
                       <Text style={styles.bidDriver}>{bid.driver?.name || 'Driver'}</Text>
                       {bid.driver?.rating > 0 && (
                         <View style={styles.ratingRow}>
-                          <Ionicons name="star" size={11} color="#f59e0b" />
+                          <Ionicons name="star" size={11} color={COLORS.warning} />
                           <Text style={styles.ratingText}>{bid.driver.rating} · {bid.driver.reviewCount} reviews</Text>
                         </View>
                       )}
@@ -509,7 +494,7 @@ const styles = StyleSheet.create({
   bidDriverInfo:    { flex: 1 },
   bidDriver:        { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
   ratingRow:        { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
-  ratingText:       { fontSize: 11, color: '#f59e0b', fontWeight: '600' },
+  ratingText:       { fontSize: 11, color: COLORS.warning, fontWeight: '600' },
   bidVehicle:       { fontSize: 11, color: COLORS.gray, marginTop: 3 },
 
   bidPriceBox:      { alignItems: 'flex-end', flexShrink: 0 },
@@ -541,7 +526,7 @@ const styles = StyleSheet.create({
 
 // ─── Vehicle Details Modal Styles ─────────────────────────────────────────────
 const vm = StyleSheet.create({
-  overlay:       { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  overlay:       { flex: 1, backgroundColor: OVERLAYS.darker, justifyContent: 'flex-end' },
   sheet:         { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '94%', overflow: 'hidden' },
   handleWrap:    { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, alignItems: 'center', paddingTop: 10 },
   handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.5)' },

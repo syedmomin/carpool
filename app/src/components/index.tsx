@@ -1,5 +1,9 @@
 // ─── Theme ───────────────────────────────────────────────────────────────────
-export { COLORS, GRADIENTS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS } from './theme';
+export {
+  COLORS, GRADIENTS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS,
+  OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, AMENITY_DISPLAY_CONFIG, TRUST_BADGE_CONFIG,
+} from './theme';
+export type { StatusToken, AmenityToken, TrustToken } from './theme';
 
 // ─── Buttons ─────────────────────────────────────────────────────────────────
 export { PrimaryButton, GhostButton, IconButton, FAB } from './Button';

@@ -3,23 +3,14 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Platform } f
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, AMENITY_CONFIG, GradientHeader, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { vehiclesApi } from '../../services/api';
 
-const AMENITY_MAP = [
-  { key: 'ac',          icon: 'snow-outline',          color: '#0ea5e9', label: 'A/C' },
-  { key: 'wifi',        icon: 'wifi-outline',          color: '#6366f1', label: 'WiFi' },
-  { key: 'music',       icon: 'musical-notes-outline', color: '#ec4899', label: 'Music' },
-  { key: 'usbCharging', icon: 'flash-outline',         color: '#f59e0b', label: 'USB' },
-  { key: 'waterCooler', icon: 'water-outline',         color: '#06b6d4', label: 'Water' },
-  { key: 'blanket',     icon: 'bed-outline',           color: '#8b5cf6', label: 'Blanket' },
-  { key: 'firstAid',   icon: 'medkit-outline',        color: '#ef4444', label: 'First Aid' },
-  { key: 'luggageRack', icon: 'briefcase-outline',     color: '#64748b', label: 'Luggage' },
-];
+const AMENITY_MAP = Object.entries(AMENITY_CONFIG).map(([key, cfg]) => ({ key, ...cfg }));
 
 const TYPE_ICON: any = {
   CAR: 'car-outline', VAN: 'car-sport-outline', HIACE: 'bus-outline',

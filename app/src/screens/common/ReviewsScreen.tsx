@@ -50,7 +50,7 @@ export default function ReviewsScreen({ navigation }) {
         </View>
         <View style={styles.ratingBadge}>
           <Text style={styles.ratingText}>{item.rating}</Text>
-          <Ionicons name="star" size={12} color="#f59e0b" />
+          <Ionicons name="star" size={12} color={COLORS.warning} />
         </View>
       </View>
       {item.comment ? (
@@ -82,7 +82,7 @@ export default function ReviewsScreen({ navigation }) {
                   key={n} 
                   name={n <= Math.round(stats.averageRating) ? "star" : "star-outline"} 
                   size={16} 
-                  color="#f59e0b" 
+                  color={COLORS.warning} 
                 />
               ))}
             </View>
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   breakdownRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   starNum: { fontSize: 11, color: COLORS.gray, fontWeight: '700', width: 10 },
   progressTrack: { flex: 1, height: 5, backgroundColor: COLORS.lightGray, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#f59e0b', borderRadius: 3 },
+  progressFill: { height: '100%', backgroundColor: COLORS.warning, borderRadius: 3 },
   countNum: { fontSize: 10, color: COLORS.gray, width: 20, textAlign: 'right' },
   reviewCard: { backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 15, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#f0f0f0' },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },

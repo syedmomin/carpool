@@ -1,0 +1,44 @@
+════════════════════════════════════════════════════════
+🕐 2026-04-19T19:05:26.461Z
+📍 GET /api/v1/auth/me
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-19T19:05:26.554Z
+📍 GET /api/v1/rides/active-session
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-19T19:05:28.787Z
+📍 GET /api/v1/rides/mine?page=1&limit=50
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-19T19:05:28.848Z
+📍 GET /api/v1/vehicles/mine
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+

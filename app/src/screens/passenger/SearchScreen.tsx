@@ -21,9 +21,13 @@ const VEHICLE_BRANDS = [
   // Korean
   'Hyundai', 'Kia',
   // Chinese
-  'Changan', 'MG', 'Proton', 'FAW', 'DFSK', 'Haval', 'Chery', 'BYD',
+  'Changan', 'MG', 'Proton', 'FAW', 'DFSK', 'Haval', 'Chery', 'BYD', 'JAC', 'Jinbei', 'Joylong', 'Foton',
+  // Heavy / Commercial / Bus
+  'Hino', 'Daewoo', 'Isuzu', 'Master', 'Yutong', 'King Long', 'Ankai', 'Zhongtong',
   // European / American (present in Pakistan)
   'Mercedes', 'BMW', 'Audi', 'Land Rover',
+  // Other
+  'Other',
 ];
 
 const TIME_SLOTS = [

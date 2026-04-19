@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 // ─── SafariShare Brand Palette ───────────────────────────────────────────────
-// Rule: passenger UI = primary blue | driver UI = teal
+// Rule: passenger UI = primary blue | driver UI = teal (unified to brand blue)
 // Never use purple — was replaced with blue
 export const COLORS = {
   // ── Core brand
@@ -112,4 +112,91 @@ export const RADIUS = {
   lg: 16,
   xl: 20,
   full: 999,
+};
+
+// ─── OVERLAYS ───────────────────────────────────────────────────────────────
+// Use these instead of inline rgba() — one place to tune all overlays
+export const OVERLAYS = {
+  dark:    'rgba(0,0,0,0.5)',
+  darker:  'rgba(0,0,0,0.6)',
+  darkest: 'rgba(0,0,0,0.75)',
+  light:   'rgba(255,255,255,0.75)',
+  lighter: 'rgba(255,255,255,0.9)',
+  faint:   'rgba(255,255,255,0.15)',
+};
+
+// ─── STATUS TOKENS ───────────────────────────────────────────────────────────
+// Single source of truth for all ride/booking/request status styling.
+// Screens and components must import from here — never hardcode status colors.
+export interface StatusToken {
+  text: string;
+  bg:   string;
+  label: string;
+}
+
+export const STATUS_COLORS: Record<string, StatusToken> = {
+  // Ride statuses
+  active:              { text: COLORS.secondary, bg: '#e8f5e9',  label: 'Active' },
+  in_progress:         { text: '#0891b2',         bg: '#ecfeff',  label: 'In Progress' },
+  completed:           { text: '#0369a1',         bg: '#f0f9ff',  label: 'Completed' },
+  cancelled:           { text: COLORS.danger,     bg: '#fef2f2',  label: 'Cancelled' },
+  expired:             { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired' },
+  expired_no_bookings: { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired – No Bookings' },
+  // Booking statuses
+  confirmed:           { text: COLORS.secondary, bg: '#e8f5e9',  label: 'Confirmed' },
+  rejected:            { text: COLORS.danger,     bg: '#fef2f2',  label: 'Rejected' },
+  // Request statuses
+  open:                { text: COLORS.secondary, bg: '#e8f5e9',  label: 'Open' },
+  accepted:            { text: '#0369a1',         bg: '#e0f2fe',  label: 'Accepted' },
+  // Misc
+  pending:             { text: '#b45309',         bg: '#fffbeb',  label: 'Pending' },
+  scheduled:           { text: '#7c3aed',         bg: '#f5f3ff',  label: 'Scheduled' },
+  no_requests:         { text: '#64748b',         bg: '#f1f5f9',  label: 'No Requests Yet' },
+};
+
+// ─── AMENITY CONFIG ──────────────────────────────────────────────────────────
+// Centralizes amenity icon + color for all vehicle amenity displays.
+export interface AmenityToken {
+  icon:  string;
+  color: string;
+  label: string;
+}
+
+// Keyed by camelCase API field name (e.g. vehicle.ac, vehicle.wifi)
+export const AMENITY_CONFIG: Record<string, AmenityToken> = {
+  ac:          { icon: 'snow-outline',           color: '#0ea5e9', label: 'A/C' },
+  wifi:        { icon: 'wifi-outline',           color: '#6366f1', label: 'WiFi' },
+  music:       { icon: 'musical-notes-outline',  color: '#ec4899', label: 'Music' },
+  usbCharging: { icon: 'flash-outline',          color: COLORS.warning, label: 'USB' },
+  waterCooler: { icon: 'water-outline',          color: '#06b6d4', label: 'Water' },
+  blanket:     { icon: 'bed-outline',            color: '#8b5cf6', label: 'Blanket' },
+  firstAid:    { icon: 'medkit-outline',         color: '#ef4444', label: 'First Aid' },
+  luggageRack: { icon: 'briefcase-outline',      color: '#64748b', label: 'Luggage' },
+};
+
+// Legacy string-key variants used in AmenityBadge (display name → token)
+export const AMENITY_DISPLAY_CONFIG: Record<string, AmenityToken> = {
+  'AC':           { icon: 'snow-outline',           color: '#0ea5e9', label: 'A/C' },
+  'WiFi':         { icon: 'wifi-outline',           color: '#6366f1', label: 'WiFi' },
+  'Music':        { icon: 'musical-notes-outline',  color: '#ec4899', label: 'Music' },
+  'Water Bottle': { icon: 'water-outline',          color: '#06b6d4', label: 'Water Bottle' },
+  'Snacks':       { icon: 'fast-food-outline',      color: COLORS.warning, label: 'Snacks' },
+  'Blanket':      { icon: 'bed-outline',            color: '#8b5cf6', label: 'Blanket' },
+};
+
+// ─── TRUST BADGE CONFIG ──────────────────────────────────────────────────────
+// Defines icon, color, and label for each user trust signal.
+export interface TrustToken {
+  label: string;
+  icon:  string;
+  color: string;
+  bg:    string;
+}
+
+export const TRUST_BADGE_CONFIG: Record<string, TrustToken> = {
+  phone:   { label: 'Phone Verified', icon: 'call',             color: '#00897b', bg: '#e0f7fa' },
+  cnic:    { label: 'CNIC Verified',  icon: 'card',             color: '#43a047', bg: '#e8f5e9' },
+  licence: { label: 'Licensed',       icon: 'car-sport',        color: COLORS.primary, bg: '#eff6ff' },
+  top:     { label: 'Top Rated',      icon: 'star',             color: '#f9a825', bg: '#fff8e1' },
+  trusted: { label: 'Trusted',        icon: 'shield-checkmark', color: COLORS.primary, bg: '#eff6ff' },
 };
