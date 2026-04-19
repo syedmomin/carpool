@@ -5,6 +5,7 @@ import { PaginationQuery } from '../types';
 import { AppError } from '../utils/AppError';
 import { notify, notifyMany } from '../utils/notificationDispatcher';
 import { isValidCity } from '../constants/cities';
+import { getPakistanToday } from '../utils/date';
 
 type RideStop = { city: string; order: number; arrivalTime?: string };
 
@@ -214,11 +215,23 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
 
     // Validate departure date+time is not in the past
     if (data.date && data.departureTime) {
+      const today = getPakistanToday();
+      if (data.date < today) throw AppError.badRequest('Departure date cannot be in the past.');
+
       const [y, m, d] = data.date.split('-').map(Number);
       const [h, min]  = data.departureTime.split(':').map(Number);
-      const departure = new Date(y, m - 1, d, h, min);
-      const buffer = new Date();
-      buffer.setMinutes(buffer.getMinutes() + 15); // 15 min buffer
+      
+      // For rides today, ensure time is at least 15 mins in future
+      // We calculate this in Pakistan time for consistency
+      const now = new Date();
+      const pkNow = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+      const departure = new Date(pkNow); 
+      departure.setFullYear(y, m - 1, d);
+      departure.setHours(h, min, 0, 0);
+
+      const buffer = new Date(pkNow);
+      buffer.setMinutes(buffer.getMinutes() + 15);
+      
       if (departure <= buffer) {
         throw AppError.badRequest('Departure time must be at least 15 minutes in the future.');
       }

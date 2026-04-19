@@ -7,6 +7,7 @@ import RNDateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS } from './theme';
+import { formatLocalDate } from '../utils/date';
 
 // ─── Shared Modal Wrapper (iOS) ───────────────────────────────────────────────
 interface PickerModalProps {
@@ -62,8 +63,7 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
     if (!selected) return;
     if (Platform.OS === 'android') {
       setShow(false);
-      const iso = selected.toISOString().split('T')[0];
-      onChange(iso);
+      onChange(formatLocalDate(selected));
     } else {
       setTempDate(selected);
     }
@@ -71,7 +71,7 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
 
   const handleDone = () => {
     setShow(false);
-    onChange(tempDate.toISOString().split('T')[0]);
+    onChange(formatLocalDate(tempDate));
   };
 
   return (

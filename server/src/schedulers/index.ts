@@ -1,9 +1,10 @@
 import prisma from '../data-source';
 import { notify, notifyMany } from '../utils/notificationDispatcher';
+import { getPakistanToday } from '../utils/date';
 
 // ─── Auto-expire rides that passed with NO bookings at all ───────────────────
 export async function expireRidesWithNoBookings(): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getPakistanToday();
 
   // Find all ACTIVE rides whose date has passed and have zero bookings
   const expiredRides = await prisma.ride.findMany({
@@ -43,7 +44,7 @@ export async function expireRidesWithNoBookings(): Promise<void> {
 
 // ─── Auto-complete past rides that HAD bookings ───────────────────────────────
 export async function completeExpiredRides(): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getPakistanToday();
 
   // Find ACTIVE rides with date in past that had at least one booking
   const ridesWithBookings = await prisma.ride.findMany({
@@ -119,7 +120,7 @@ export async function cleanAllOldNotifications(): Promise<void> {
 
 // ─── Auto-expire OPEN schedule requests whose date has passed ────────────────
 export async function expireOldScheduleRequests(): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getPakistanToday();
   const result = await prisma.scheduleRequest.updateMany({
     where: { status: 'OPEN', date: { lt: today } },
     data:  { status: 'EXPIRED' },

@@ -8,6 +8,8 @@ import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { vehiclesApi } from '../../services/api';
 
+import { formatLocalDate, getTodayStr } from '../../utils/date';
+
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { myRides, myRidesState, loadMyRides } = useSocketData();
@@ -23,7 +25,7 @@ export default function DriverHomeScreen({ navigation }) {
     });
   }, [myRidesState.loaded]));
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayStr();
   const todayRides     = myRides.filter(r => r.date === todayStr);
   const activeRides    = myRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
   const totalEarned    = todayRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);

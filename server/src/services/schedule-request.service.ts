@@ -2,6 +2,7 @@ import prisma from '../data-source';
 import { AppError } from '../utils/AppError';
 import { notify, notifyMany } from '../utils/notificationDispatcher';
 import { isValidCity } from '../constants/cities';
+import { getPakistanToday } from '../utils/date';
 
 const DRIVER_INCLUDE = {
   select: {
@@ -45,7 +46,7 @@ export class ScheduleRequestService {
     if (!isValidCity(data.toCity))   throw AppError.badRequest(`Invalid city: ${data.toCity}`);
     if (data.fromCity === data.toCity) throw AppError.badRequest('From and To cities cannot be the same');
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPakistanToday();
     if (data.date < today)
       throw AppError.badRequest('Date cannot be in the past');
 
@@ -94,7 +95,7 @@ export class ScheduleRequestService {
 
   // ── Driver: get all OPEN requests (for their feed) ────────────────────────
   async getOpenRequests(driverId: string, page = 1, limit = 20, city?: string) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPakistanToday();
     const skip  = (page - 1) * limit;
 
     // city param = driver's currently selected city (InDrive style — driver sets where they are)
@@ -170,7 +171,7 @@ export class ScheduleRequestService {
     if (!request) throw AppError.notFound('Schedule request not found');
     if (request.status !== 'OPEN') throw AppError.badRequest('This request is no longer open');
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getPakistanToday();
     if (request.date < today) throw AppError.badRequest('Request date has passed');
 
     if (!data.vehicleId) throw AppError.badRequest('Please select a vehicle for your bid');
