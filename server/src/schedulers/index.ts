@@ -117,6 +117,30 @@ export async function cleanAllOldNotifications(): Promise<void> {
     console.log(`[Scheduler] Purged ${result.count} notification(s) older than 30 days`);
 }
 
+// ─── Auto-expire OPEN schedule requests whose date has passed ────────────────
+export async function expireOldScheduleRequests(): Promise<void> {
+  const today = new Date().toISOString().split('T')[0];
+  const result = await prisma.scheduleRequest.updateMany({
+    where: { status: 'OPEN', date: { lt: today } },
+    data:  { status: 'EXPIRED' },
+  });
+  if (result.count > 0)
+    console.log(`[Scheduler] Expired ${result.count} old schedule request(s)`);
+}
+
+// ─── Delete chat messages from completed rides older than 10 days ────────────
+export async function cleanOldChatMessages(): Promise<void> {
+  const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+  const result = await prisma.chatMessage.deleteMany({
+    where: {
+      createdAt: { lt: tenDaysAgo },
+      booking: { ride: { status: 'COMPLETED' } },
+    },
+  });
+  if (result.count > 0)
+    console.log(`[Scheduler] Deleted ${result.count} old chat message(s)`);
+}
+
 // ─── Bootstrap all schedulers ────────────────────────────────────────────────
 // Called once from server startup. Uses setInterval — no external cron dependency.
 export function startSchedulers(): void {
@@ -141,5 +165,17 @@ export function startSchedulers(): void {
     cleanAllOldNotifications().catch(e => console.error('[Scheduler] cleanOldNotifications error:', e));
   }, DAY);
 
-  console.log('⏰ Schedulers started (rides: 6h, notifications: 24h)');
+  // Expire old schedule requests — run on boot then every 6 hours
+  expireOldScheduleRequests().catch(e => console.error('[Scheduler] expireOldScheduleRequests error:', e));
+  setInterval(() => {
+    expireOldScheduleRequests().catch(e => console.error('[Scheduler] expireOldScheduleRequests error:', e));
+  }, 6 * HOUR);
+
+  // Clean old chat messages — run on boot then every 24 hours
+  cleanOldChatMessages().catch(e => console.error('[Scheduler] cleanOldChatMessages error:', e));
+  setInterval(() => {
+    cleanOldChatMessages().catch(e => console.error('[Scheduler] cleanOldChatMessages error:', e));
+  }, DAY);
+
+  console.log('⏰ Schedulers started (rides: 6h, notifications/chat: 24h)');
 }

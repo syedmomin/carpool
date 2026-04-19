@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform,
-  Dimensions, ActivityIndicator, Animated, FlatList, Linking,
+  Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar,
 } from 'react-native';
 import { MapView, Marker } from '../../components/Map';
 import * as Location from 'expo-location';
@@ -100,6 +100,7 @@ export default function RideTrackingScreen({ route, navigation }) {
   const [isFinishing, setIsFinishing]         = useState(false);
   const [ratingIndex, setRatingIndex]         = useState(-1);
   const [mapReady, setMapReady]               = useState(false);
+  const [recentering, setRecentering]         = useState(false);
 
   const locationSub = useRef<any>(null);
   const mapRef      = useRef<any>(null);
@@ -127,7 +128,11 @@ export default function RideTrackingScreen({ route, navigation }) {
 
     const onRideCompleted = (data: any) => {
       if (!mountedRef.current || data.rideId !== rideId) return;
-      if (driver) navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
+      if (driver) {
+        navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
+      } else {
+        navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab' });
+      }
     };
 
     if (driver) {
@@ -218,6 +223,13 @@ export default function RideTrackingScreen({ route, navigation }) {
     locationSub.current = null;
   };
 
+  const handleRecenter = () => {
+    if (!driverLocation) return;
+    setRecentering(true);
+    mapRef.current?.animateCamera?.({ center: driverLocation, zoom: 17 });
+    setTimeout(() => setRecentering(false), 800);
+  };
+
   const handleCall = (phone?: string) => {
     if (!phone) { showToast('Phone number not available', 'error'); return; }
     Linking.openURL(`tel:${phone}`).catch(() => showToast('Unable to open dialer', 'error'));
@@ -262,8 +274,13 @@ export default function RideTrackingScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={s.loadingWrap}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={s.loadingText}>Starting tracking session...</Text>
+        <StatusBar barStyle="light-content" backgroundColor="#0d1b4b" />
+        <LinearGradient colors={['#0d1b4b', '#1d4ed8']} style={StyleSheet.absoluteFill} />
+        <View style={s.loadingInner}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={s.loadingText}>Starting tracking session...</Text>
+          <Text style={s.loadingSubText}>Getting GPS signal</Text>
+        </View>
       </View>
     );
   }
@@ -273,11 +290,12 @@ export default function RideTrackingScreen({ route, navigation }) {
   const driverRating      = ride?.driver?.rating ?? null;
 
   const initialRegion = driverLocation
-    ? { ...driverLocation, latitudeDelta: 0.04, longitudeDelta: 0.04 }
-    : { latitude: 30.3753, longitude: 69.3451, latitudeDelta: 0.06, longitudeDelta: 0.06 };
+    ? { ...driverLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 }
+    : { latitude: 30.3753, longitude: 69.3451, latitudeDelta: 0.02, longitudeDelta: 0.02 };
 
   return (
     <View style={s.container}>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
       {/* ── Full-screen Map ───────────────────────────────────────────── */}
       <MapView
@@ -316,6 +334,16 @@ export default function RideTrackingScreen({ route, navigation }) {
         )}
       </MapView>
 
+      {/* ── Recenter FAB ─────────────────────────────────────────────── */}
+      {driverLocation && (
+        <TouchableOpacity style={s.recenterFab} onPress={handleRecenter} activeOpacity={0.85}>
+          {recentering
+            ? <ActivityIndicator size="small" color={COLORS.primary} />
+            : <Ionicons name="locate" size={22} color={COLORS.primary} />
+          }
+        </TouchableOpacity>
+      )}
+
       {/* ── Top Header ───────────────────────────────────────────────── */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
@@ -337,6 +365,12 @@ export default function RideTrackingScreen({ route, navigation }) {
 
       {/* ── Bottom Panel ─────────────────────────────────────────────── */}
       <View style={s.panel}>
+        {/* Gradient accent line at top of panel */}
+        <LinearGradient
+          colors={[COLORS.primary, '#7c3aed']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={s.panelAccent}
+        />
         <View style={s.handle} />
 
         {driver ? (
@@ -344,18 +378,21 @@ export default function RideTrackingScreen({ route, navigation }) {
           <>
             <View style={s.statsRow}>
               <View style={s.statItem}>
+                <Ionicons name="people" size={16} color={COLORS.primary} style={{ marginBottom: 4 }} />
                 <Text style={s.statVal}>{confirmedBookings.length}/{ride?.totalSeats}</Text>
                 <Text style={s.statLabel}>Passengers</Text>
               </View>
               <View style={s.statDivider} />
               <View style={s.statItem}>
+                <Ionicons name="time" size={16} color="#7c3aed" style={{ marginBottom: 4 }} />
                 <Text style={s.statVal}>{elapsed}</Text>
                 <Text style={s.statLabel}>Elapsed</Text>
               </View>
               <View style={s.statDivider} />
               <View style={s.statItem}>
+                <Ionicons name="speedometer" size={16} color="#0891b2" style={{ marginBottom: 4 }} />
                 <Text style={s.statVal}>
-                  {currentSpeed} <Text style={{ fontSize: 11, fontWeight: '600' }}>km/h</Text>
+                  {currentSpeed}<Text style={{ fontSize: 11, fontWeight: '600' }}> km/h</Text>
                 </Text>
                 <Text style={s.statLabel}>Speed</Text>
               </View>
@@ -403,28 +440,38 @@ export default function RideTrackingScreen({ route, navigation }) {
         ) : (
           /* ─── PASSENGER PANEL ───────────────────────────────────────── */
           <>
-            <View style={s.driverCard}>
-              <Avatar name={ride?.driver?.name} size={54} />
+            {/* Driver card with gradient background */}
+            <LinearGradient
+              colors={['#eef2ff', '#f0fdf4']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={s.driverCardGrad}
+            >
+              <Avatar name={ride?.driver?.name} size={58} />
               <View style={s.driverMeta}>
                 <Text style={s.driverName}>{ride?.driver?.name || 'Your Driver'}</Text>
                 <Stars rating={driverRating} />
-                <Text style={s.vehicleText} numberOfLines={1}>
-                  {[ride?.vehicle?.brand, ride?.vehicle?.model].filter(Boolean).join(' ') || ride?.vehicle?.type || 'Vehicle'}
-                  {ride?.vehicle?.plateNumber ? ` · ${ride?.vehicle?.plateNumber}` : ''}
-                </Text>
+                <View style={s.vehiclePill}>
+                  <Ionicons name="car-sport" size={12} color={COLORS.primary} />
+                  <Text style={s.vehicleText} numberOfLines={1}>
+                    {[ride?.vehicle?.brand, ride?.vehicle?.model].filter(Boolean).join(' ') || ride?.vehicle?.type || 'Vehicle'}
+                    {ride?.vehicle?.plateNumber ? ` · ${ride?.vehicle?.plateNumber}` : ''}
+                  </Text>
+                </View>
               </View>
               <TouchableOpacity style={s.callDriverBtn} onPress={() => handleCall(ride?.driver?.phone)}>
-                <Ionicons name="call" size={20} color="#fff" />
+                <LinearGradient colors={GRADIENTS.primary as any} style={s.callDriverBtnInner}>
+                  <Ionicons name="call" size={20} color="#fff" />
+                </LinearGradient>
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <View style={s.routeRow}>
-              <View style={[s.routeDot, { backgroundColor: COLORS.primary }]} />
+              <View style={[s.routeDot, { backgroundColor: '#2563eb' }]} />
               <Text style={s.routeCity}>{ride?.fromCity}</Text>
               <View style={s.routeLine} />
               <Ionicons name="arrow-forward" size={14} color={COLORS.gray} />
               <View style={s.routeLine} />
-              <View style={[s.routeDot, { backgroundColor: COLORS.danger }]} />
+              <View style={[s.routeDot, { backgroundColor: '#ef4444' }]} />
               <Text style={s.routeCity}>{ride?.toCity}</Text>
             </View>
 
@@ -490,67 +537,87 @@ export default function RideTrackingScreen({ route, navigation }) {
 }
 
 const s = StyleSheet.create({
-  container:       { flex: 1, backgroundColor: '#f2efe9' },
-  loadingWrap:     { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0d1b4b', gap: 14 },
-  loadingText:     { fontSize: 14, color: '#fff', fontWeight: '600' },
+  container:       { flex: 1, backgroundColor: '#e8edf2' },
+  loadingWrap:     { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingInner:    { alignItems: 'center', gap: 14 },
+  loadingText:     { fontSize: 16, color: '#fff', fontWeight: '700' },
+  loadingSubText:  { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+
+  // Recenter FAB
+  recenterFab: {
+    position: 'absolute',
+    right: 16,
+    bottom: Platform.OS === 'ios' ? 340 : 320,
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 10,
+    zIndex: 9,
+  },
 
   // Header
   header: {
-    position: 'absolute', top: Platform.OS === 'ios' ? 52 : 22,
+    position: 'absolute', top: Platform.OS === 'ios' ? 56 : 28,
     left: 16, right: 16,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 18,
-    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.97)', borderRadius: 20,
+    paddingHorizontal: 12, paddingVertical: 11,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15, shadowRadius: 14, elevation: 12, zIndex: 10,
+    shadowOpacity: 0.18, shadowRadius: 16, elevation: 14, zIndex: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)',
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center',
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center',
   },
   headerCenter: { flex: 1 },
   headerRoute:  { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
   headerSub:    { fontSize: 11, color: COLORS.gray, marginTop: 1, fontWeight: '500' },
   livePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#f0fdf4', borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 4,
-    borderWidth: 1, borderColor: '#bbf7d0',
+    backgroundColor: '#f0fdf4', borderRadius: 12,
+    paddingHorizontal: 9, paddingVertical: 5,
+    borderWidth: 1, borderColor: '#86efac',
   },
-  liveText: { fontSize: 10, fontWeight: '800', color: '#16a34a', letterSpacing: 1 },
+  liveText: { fontSize: 10, fontWeight: '900', color: '#15803d', letterSpacing: 1.5 },
 
   // Panel
   panel: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingBottom: Platform.OS === 'ios' ? 38 : 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.12, shadowRadius: 20, elevation: 24,
+    borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 22,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.14, shadowRadius: 24, elevation: 28,
+    overflow: 'hidden',
+  },
+  panelAccent: {
+    height: 4, borderTopLeftRadius: 32, borderTopRightRadius: 32,
   },
   handle: {
-    width: 40, height: 4, backgroundColor: '#e5e7eb',
-    borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 18,
+    width: 44, height: 4, backgroundColor: '#e2e8f0',
+    borderRadius: 2, alignSelf: 'center', marginTop: 14, marginBottom: 18,
   },
 
   // Driver stats
   statsRow: {
     flexDirection: 'row', marginHorizontal: 20,
-    backgroundColor: '#f8faff', borderRadius: 18,
-    padding: 14, marginBottom: 20,
-    borderWidth: 1, borderColor: '#eef2ff',
+    backgroundColor: '#f8faff', borderRadius: 20,
+    padding: 16, marginBottom: 18,
+    borderWidth: 1, borderColor: '#e0e7ff',
   },
-  statItem:    { flex: 1, alignItems: 'center' },
-  statVal:     { fontSize: 20, fontWeight: '900', color: COLORS.textPrimary },
-  statLabel:   { fontSize: 10, color: COLORS.gray, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.5 },
-  statDivider: { width: 1, height: '70%', backgroundColor: '#dde3f0', alignSelf: 'center' },
+  statItem:    { flex: 1, alignItems: 'center', gap: 2 },
+  statVal:     { fontSize: 19, fontWeight: '900', color: COLORS.textPrimary },
+  statLabel:   { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.6 },
+  statDivider: { width: 1, height: '75%', backgroundColor: '#dde3f0', alignSelf: 'center' },
 
   sectionTitle:  { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary, marginHorizontal: 20, marginBottom: 10 },
-  passengerList: { maxHeight: 160, marginHorizontal: 20, marginBottom: 12 },
+  passengerList: { maxHeight: 155, marginHorizontal: 20, marginBottom: 12 },
   passengerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fafbff', borderRadius: 14,
-    padding: 10, marginBottom: 8,
+    backgroundColor: '#fafbff', borderRadius: 16,
+    padding: 11, marginBottom: 8,
     borderWidth: 1, borderColor: '#eef2ff',
   },
   pInfo:    { flex: 1 },
@@ -561,61 +628,63 @@ const s = StyleSheet.create({
 
   finishWrap: { paddingHorizontal: 20, marginTop: 4 },
   finishBtn: {
-    height: 58, borderRadius: 18, backgroundColor: '#ef4444',
+    height: 58, borderRadius: 20, backgroundColor: '#ef4444',
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     shadowColor: '#ef4444', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35, shadowRadius: 14, elevation: 8,
+    shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
   },
   finishBtnText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.3 },
 
   // Passenger
-  driverCard: {
+  driverCardGrad: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 16, gap: 14,
+    borderRadius: 20, padding: 14,
+    borderWidth: 1, borderColor: '#e0e7ff',
   },
-  driverMeta:    { flex: 1, gap: 3 },
-  driverName:    { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
-  vehicleText:   { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
-  callDriverBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center', justifyContent: 'center',
+  driverMeta:       { flex: 1, gap: 4 },
+  driverName:       { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
+  vehiclePill:      { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  vehicleText:      { fontSize: 12, color: COLORS.gray, fontWeight: '600', flex: 1 },
+  callDriverBtn:    { width: 52, height: 52, borderRadius: 26, overflow: 'hidden',
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
-  },
+    shadowOpacity: 0.35, shadowRadius: 8, elevation: 6 },
+  callDriverBtnInner: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
   routeRow: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 14, gap: 6,
   },
-  routeDot:  { width: 10, height: 10, borderRadius: 5 },
-  routeLine: { flex: 1, height: 1.5, backgroundColor: '#e5e7eb' },
-  routeCity: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
+  routeDot:  { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
+    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
+  routeLine: { flex: 1, height: 2, backgroundColor: '#e2e8f0', borderRadius: 1 },
+  routeCity: { fontSize: 13, fontWeight: '800', color: COLORS.textPrimary },
 
   tripInfoRow: {
     flexDirection: 'row', marginHorizontal: 20,
-    backgroundColor: '#f8faff', borderRadius: 16,
+    backgroundColor: '#f8faff', borderRadius: 18,
     padding: 12, marginBottom: 14,
     borderWidth: 1, borderColor: '#eef2ff',
   },
   tripInfoItem:    { flex: 1, alignItems: 'center', gap: 3 },
-  tripInfoLabel:   { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.4 },
+  tripInfoLabel:   { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.5 },
   tripInfoVal:     { fontSize: 13, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center' },
-  tripInfoDivider: { width: 1, height: '80%', backgroundColor: '#e5e7eb', alignSelf: 'center' },
+  tripInfoDivider: { width: 1, height: '80%', backgroundColor: '#e2e8f0', alignSelf: 'center' },
 
   liveStatus: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginHorizontal: 20, marginBottom: 16,
-    backgroundColor: '#f0fdf4', borderRadius: 12,
+    marginHorizontal: 20, marginBottom: 14,
+    backgroundColor: '#f0fdf4', borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: '#bbf7d0',
+    borderWidth: 1, borderColor: '#86efac',
   },
-  liveStatusText: { fontSize: 13, fontWeight: '600', color: '#166534' },
+  liveStatusText: { fontSize: 13, fontWeight: '700', color: '#15803d' },
 
   safetyRow: { flexDirection: 'row', marginHorizontal: 20, gap: 12 },
   safetyBtn: {
-    flex: 1, height: 52, borderRadius: 16,
+    flex: 1, height: 54, borderRadius: 18,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 5,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 10, elevation: 6,
   },
   sosBtn:        { backgroundColor: '#ef4444', shadowColor: '#ef4444' },
   callBtn2:      { backgroundColor: COLORS.primary, shadowColor: COLORS.primary },

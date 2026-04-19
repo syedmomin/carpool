@@ -1,6 +1,7 @@
 import prisma from '../data-source';
 import { AppError } from '../utils/AppError';
 import { notify, notifyMany } from '../utils/notificationDispatcher';
+import { isValidCity } from '../constants/cities';
 
 const DRIVER_INCLUDE = {
   select: {
@@ -40,8 +41,9 @@ export class ScheduleRequestService {
   async createRequest(passengerId: string, data: {
     fromCity: string; toCity: string; date: string; departureTime?: string; seats: number; note?: string;
   }) {
-    if (data.fromCity.toLowerCase() === data.toCity.toLowerCase())
-      throw AppError.badRequest('From and To cities cannot be the same');
+    if (!isValidCity(data.fromCity)) throw AppError.badRequest(`Invalid city: ${data.fromCity}`);
+    if (!isValidCity(data.toCity))   throw AppError.badRequest(`Invalid city: ${data.toCity}`);
+    if (data.fromCity === data.toCity) throw AppError.badRequest('From and To cities cannot be the same');
 
     const today = new Date().toISOString().split('T')[0];
     if (data.date < today)
@@ -68,7 +70,7 @@ export class ScheduleRequestService {
       include: { passenger: PASSENGER_INCLUDE },
     });
 
-    // Broadcast to all drivers via socket
+    // Broadcast to all drivers — each driver filters by their selected city on frontend
     try {
       const { broadcastEvent } = await import('../socket');
       broadcastEvent('SCHEDULE_REQUEST', {
@@ -91,13 +93,20 @@ export class ScheduleRequestService {
   }
 
   // ── Driver: get all OPEN requests (for their feed) ────────────────────────
-  async getOpenRequests(driverId: string, page = 1, limit = 20) {
+  async getOpenRequests(driverId: string, page = 1, limit = 20, city?: string) {
     const today = new Date().toISOString().split('T')[0];
     const skip  = (page - 1) * limit;
 
+    // city param = driver's currently selected city (InDrive style — driver sets where they are)
+    const baseWhere = {
+      status: 'OPEN' as const,
+      date:   { gte: today },
+      ...(city ? { fromCity: city } : {}),
+    };
+
     const [data, total] = await Promise.all([
       prisma.scheduleRequest.findMany({
-        where:   { status: 'OPEN', date: { gte: today } },
+        where:   baseWhere,
         include: {
           passenger: PASSENGER_INCLUDE,
           bids: {
@@ -108,7 +117,7 @@ export class ScheduleRequestService {
         orderBy: { createdAt: 'desc' },
         skip, take: limit,
       }),
-      prisma.scheduleRequest.count({ where: { status: 'OPEN', date: { gte: today } } }),
+      prisma.scheduleRequest.count({ where: baseWhere }),
     ]);
 
     return {
@@ -165,6 +174,10 @@ export class ScheduleRequestService {
     if (request.date < today) throw AppError.badRequest('Request date has passed');
 
     if (!data.vehicleId) throw AppError.badRequest('Please select a vehicle for your bid');
+
+    // Verify the vehicle belongs to this driver
+    const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, driverId } });
+    if (!vehicle) throw AppError.forbidden('Vehicle not found or does not belong to you');
 
     // Departure time comes from the passenger's request
     const departureTime = (request as any).departureTime || '00:00';
@@ -396,17 +409,21 @@ export class ScheduleRequestService {
       }),
     ]);
 
-    // Notify all drivers who bid
+    // 1. Notify drivers who placed bids (FCM + in-app notification)
     if (request.bids.length) {
       notifyMany({
-        userIds:     request.bids.map(b => b.driverId),
-        title:       'Request Cancelled',
-        message:     `The ${request.fromCity} → ${request.toCity} schedule request on ${request.date} was cancelled by the passenger.`,
-        type:        'SCHEDULE_REQUEST',
-        socketEvent: 'REQUEST_CANCELLED',
-        socketData:  { scheduleRequestId, fromCity: request.fromCity, toCity: request.toCity },
+        userIds: request.bids.map(b => b.driverId),
+        title:   'Request Cancelled',
+        message: `The ${request.fromCity} → ${request.toCity} schedule request on ${request.date} was cancelled by the passenger.`,
+        type:    'SCHEDULE_REQUEST',
       });
     }
+
+    // 2. Broadcast REQUEST_CANCELLED so all drivers remove it from their feed instantly
+    try {
+      const { broadcastEvent } = await import('../socket');
+      broadcastEvent('REQUEST_CANCELLED', { scheduleRequestId, fromCity: request.fromCity, toCity: request.toCity });
+    } catch (e) { console.error('[Socket] REQUEST_CANCELLED broadcast failed:', e); }
 
     return { success: true };
   }

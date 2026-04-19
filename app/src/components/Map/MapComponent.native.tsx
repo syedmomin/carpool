@@ -27,13 +27,14 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
   const staticMs = markers.filter(m => !m.isDriver && m.pinColor !== 'green');
 
   const staticMarkersJs = staticMs.map(m => {
-    const color = m.pinColor === 'blue' ? '#3b82f6' : m.pinColor === 'red' ? '#ef4444' : '#6366f1';
-    const svgColor = color.replace('#', '%23');
+    const isPickup = m.pinColor === 'blue';
+    const bg    = isPickup ? '#2563eb' : '#ef4444';
+    const label = isPickup ? 'A' : 'B';
     return `
       L.marker([${m.coordinate.latitude}, ${m.coordinate.longitude}], {
         icon: L.divIcon({
-          html: '<div style="display:flex;align-items:center;justify-content:center;"><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'32\\' height=\\'40\\' viewBox=\\'0 0 24 30\\'><path fill=\\'${svgColor}\\' d=\\'M12 0C7.58 0 4 3.58 4 8c0 5.25 8 16 8 16s8-10.75 8-16c0-4.42-3.58-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z\\'/></svg></div>',
-          className: '', iconSize:[32,40], iconAnchor:[16,40], popupAnchor:[0,-40]
+          html: '<div style="display:flex;flex-direction:column;align-items:center;"><div style="width:36px;height:36px;background:${bg};border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-weight:900;font-size:15px;color:#fff;font-family:sans-serif;">${label}</div><div style="width:3px;height:10px;background:${bg};border-radius:0 0 2px 2px;margin-top:-1px;"></div></div>',
+          className: '', iconSize:[36,48], iconAnchor:[18,48], popupAnchor:[0,-48]
         })
       }).addTo(map)${m.title ? `.bindPopup('<b>${m.title}</b>')` : ''};
     `;
@@ -70,19 +71,19 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
   var map = L.map('map', {
     zoomControl: false,
     attributionControl: false,
-  }).setView([${lat}, ${lng}], 15);
+  }).setView([${lat}, ${lng}], 16);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 20,
     tileSize: 256,
   }).addTo(map);
 
-  // Car SVG icon for driver
+  // Car SVG icon for driver — white circle with blue border + glow ring
   var carIcon = L.divIcon({
-    html: '<div style="width:44px;height:44px;background:#fff;border:2.5px solid #1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.25)"><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'24\\' height=\\'24\\' viewBox=\\'0 0 512 512\\'><path fill=\\'#1d4ed8\\' d=\\'M135.2 117.4L109.1 192H402.9l-26.1-74.6C370.4 104.6 358.4 96 344.8 96H167.2c-13.6 0-25.6 8.6-32 21.4zM39.6 196.8L74.8 96.3C88.1 57.8 124.2 32 162.4 32H349.6c38.2 0 74.3 25.8 87.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0-64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z\\'/></svg></div>',
+    html: '<div style="position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;"><div style="position:absolute;inset:0;border-radius:50%;background:rgba(29,78,216,0.18);animation:none;"></div><div style="width:44px;height:44px;background:linear-gradient(145deg,#1d4ed8,#3b82f6);border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(29,78,216,0.5),0 0 0 5px rgba(29,78,216,0.15);"><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'22\\' height=\\'22\\' viewBox=\\'0 0 512 512\\'><path fill=\\'#fff\\' d=\\'M135.2 117.4L109.1 192H402.9l-26.1-74.6C370.4 104.6 358.4 96 344.8 96H167.2c-13.6 0-25.6 8.6-32 21.4zM39.6 196.8L74.8 96.3C88.1 57.8 124.2 32 162.4 32H349.6c38.2 0 74.3 25.8 87.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0-64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z\\'/></svg></div></div>',
     className: '',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
   });
 
   var driverMarker = null;

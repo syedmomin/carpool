@@ -18,7 +18,7 @@ export class BookingService extends BaseService<Booking, CreateBookingDto, Updat
       if (ride.status !== 'ACTIVE') throw AppError.badRequest('Ride is no longer active');
 
       const existing = await tx.booking.findFirst({
-        where: { rideId, passengerId, status: 'CONFIRMED' },
+        where: { rideId, passengerId, status: { in: ['PENDING', 'CONFIRMED'] } },
       });
       if (existing) throw AppError.conflict('You already have a booking for this ride');
 

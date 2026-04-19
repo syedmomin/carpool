@@ -231,14 +231,18 @@ export const verificationApi = {
 // ─── Schedule Requests (Passenger ↔ Driver Bidding) ──────────────────────────
 export const scheduleRequestsApi = {
   // Passenger
-  create:        (data: { fromCity: string; toCity: string; date: string; seats: number; note?: string }) =>
+  create:        (data: { fromCity: string; toCity: string; date: string; departureTime: string; seats: number; note?: string }) =>
                    request('POST', '/schedule-requests', data),
   getMine:       (page = 1, limit = 20) => request('GET', `/schedule-requests/mine?page=${page}&limit=${limit}`),
   cancel:        (requestId: string)    => request('DELETE', `/schedule-requests/${requestId}`),
   acceptBid:     (requestId: string, bidId: string) => request('PATCH', `/schedule-requests/${requestId}/bids/${bidId}/accept`),
   rejectBid:     (requestId: string, bidId: string) => request('PATCH', `/schedule-requests/${requestId}/bids/${bidId}/reject`),
   // Driver
-  getOpen:       (page = 1, limit = 20) => request('GET', `/schedule-requests?page=${page}&limit=${limit}`),
+  getOpen: (city?: string, page = 1, limit = 20) => {
+    const p = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (city) p.set('city', city);
+    return request('GET', `/schedule-requests?${p.toString()}`);
+  },
   placeBid:      (requestId: string, data: { pricePerSeat: number; vehicleId: string; departureTime: string; note?: string }) =>
                    request('POST', `/schedule-requests/${requestId}/bids`, data),
   withdrawBid:   (requestId: string, bidId: string) => request('DELETE', `/schedule-requests/${requestId}/bids/${bidId}`),

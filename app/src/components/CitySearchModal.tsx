@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator,
+  FlatList, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './theme';
 import { SearchInput } from './Input';
-import { searchPakistanLocations } from '../utils/locationSearch';
+import { searchCities, POPULAR_CITIES } from '../constants/cities';
 
 interface Props {
   visible: boolean;
@@ -17,67 +17,79 @@ interface Props {
 
 export default function CitySearchModal({ visible, title, onSelect, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const timerRef = useRef<any>(null);
+  const [results, setResults] = useState<string[]>(POPULAR_CITIES);
 
   useEffect(() => {
-    if (!visible) { setQuery(''); setResults([]); }
+    if (!visible) { setQuery(''); setResults(POPULAR_CITIES); }
   }, [visible]);
 
   const handleSearch = (text: string) => {
     setQuery(text);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (text.trim().length < 2) { setResults([]); return; }
-    setSearching(true);
-    timerRef.current = setTimeout(async () => {
-      const res = await searchPakistanLocations(text);
-      setResults(res);
-      setSearching(false);
-    }, 400);
+    setResults(searchCities(text));
   };
+
+  const handleSelect = (city: string) => {
+    onSelect(city);
+    onClose();
+  };
+
+  const isPopular = !query.trim();
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Ionicons name="close" size={22} color={COLORS.textPrimary} />
           </TouchableOpacity>
         </View>
+
+        {/* Search */}
         <View style={styles.searchWrap}>
           <SearchInput
-            placeholder="Search city or area..."
+            placeholder="Search city..."
             value={query}
             onChangeText={handleSearch}
-            onClear={() => { setQuery(''); setResults([]); }}
+            onClear={() => handleSearch('')}
           />
-          {searching && <ActivityIndicator style={{ marginTop: 8 }} color={COLORS.primary} />}
         </View>
+
+        {/* Section label */}
+        <View style={styles.sectionRow}>
+          <Ionicons
+            name={isPopular ? 'star-outline' : 'search-outline'}
+            size={13}
+            color={COLORS.gray}
+          />
+          <Text style={styles.sectionLabel}>
+            {isPopular ? 'Popular Cities' : `${results.length} result${results.length !== 1 ? 's' : ''}`}
+          </Text>
+        </View>
+
         {results.length > 0 ? (
           <FlatList
             data={results}
-            keyExtractor={(_, i) => String(i)}
+            keyExtractor={item => item}
+            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.item} onPress={() => onSelect((item as any).name)}>
-                <Ionicons name="location-outline" size={18} color={COLORS.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.itemName}>{(item as any).name}</Text>
-                  <Text style={styles.itemSub} numberOfLines={1}>{(item as any).displayName}</Text>
+              <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="location-outline" size={16} color={COLORS.primary} />
                 </View>
+                <Text style={styles.itemName}>{item}</Text>
+                <Ionicons name="chevron-forward" size={14} color={COLORS.border} />
               </TouchableOpacity>
             )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            contentContainerStyle={{ paddingBottom: 40 }}
           />
-        ) : query.length >= 2 && !searching ? (
-          <View style={styles.empty}>
-            <Ionicons name="search-outline" size={40} color={COLORS.border} />
-            <Text style={styles.emptyText}>No results. Try a different name.</Text>
-          </View>
         ) : (
-          <View style={styles.hint}>
-            <Ionicons name="information-circle-outline" size={18} color={COLORS.gray} />
-            <Text style={styles.hintText}>Type at least 2 characters to search</Text>
+          <View style={styles.empty}>
+            <Ionicons name="location-outline" size={44} color={COLORS.border} />
+            <Text style={styles.emptyTitle}>City not found</Text>
+            <Text style={styles.emptyText}>Check spelling or try a nearby major city</Text>
           </View>
         )}
       </View>
@@ -86,15 +98,18 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#fff' },
-  header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title:      { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  searchWrap: { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  item:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  itemName:   { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  itemSub:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  empty:      { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText:  { fontSize: 14, color: COLORS.gray },
-  hint:       { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20 },
-  hintText:   { fontSize: 13, color: COLORS.gray },
+  container:    { flex: 1, backgroundColor: '#fff' },
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: Platform.OS === 'ios' ? 55 : 45, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  title:        { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  closeBtn:     { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  searchWrap:   { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  sectionRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 10 },
+  sectionLabel: { fontSize: 12, color: COLORS.gray, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  item:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 12 },
+  iconBox:      { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  itemName:     { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  separator:    { height: 1, backgroundColor: COLORS.border, marginLeft: 64 },
+  empty:        { alignItems: 'center', paddingTop: 80, gap: 10, paddingHorizontal: 40 },
+  emptyTitle:   { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  emptyText:    { fontSize: 13, color: COLORS.gray, textAlign: 'center', lineHeight: 20 },
 });

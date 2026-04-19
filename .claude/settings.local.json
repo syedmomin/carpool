@@ -19,7 +19,9 @@
       "Bash(netstat -ano)",
       "Bash(findstr :8081)",
       "Bash(tasklist)",
-      "Bash(findstr 19424)"
+      "Bash(findstr 19424)",
+      "Read(//d/d/projects/carpool/app/**)",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\jamal\\.claude\\projects\\d--projects-carpool"

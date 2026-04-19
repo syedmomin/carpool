@@ -19,7 +19,8 @@ export class ScheduleRequestController {
     try {
       const page  = Number(req.query.page)  || 1;
       const limit = Number(req.query.limit) || 20;
-      const result = await scheduleRequestService.getOpenRequests(req.user!.id, page, limit);
+      const city  = req.query.city as string | undefined;
+      const result = await scheduleRequestService.getOpenRequests(req.user!.id, page, limit, city);
       ResponseUtil.paginated(res, result.data, result.meta.total, result.meta.page, result.meta.limit);
     } catch (err) { next(err); }
   };

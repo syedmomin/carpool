@@ -23,9 +23,11 @@ export default function DriverHomeScreen({ navigation }) {
     });
   }, [myRidesState.loaded]));
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayRides     = myRides.filter(r => r.date === todayStr);
   const activeRides    = myRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
-  const totalEarned    = myRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
-  const totalPassengers= myRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
+  const totalEarned    = todayRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
+  const totalPassengers= todayRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
 
   const QUICK_ACTIONS = [
     { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
@@ -64,9 +66,9 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Stats */}
         <View style={styles.statsGrid}>
           {[
-            { icon: 'car-sport-outline', value: activeRides.length, label: 'Active Rides' },
-            { icon: 'people-outline', value: totalPassengers, label: 'Passengers' },
-            { icon: 'wallet-outline', value: `Rs ${totalEarned > 0 ? (totalEarned / 1000).toFixed(1) + 'k' : '0'}`, label: 'Total Earned', accent: true },
+            { icon: 'car-sport-outline', value: todayRides.length, label: "Today's Rides" },
+            { icon: 'people-outline', value: totalPassengers, label: "Today's Passengers" },
+            { icon: 'wallet-outline', value: `Rs ${totalEarned > 0 ? (totalEarned / 1000).toFixed(1) + 'k' : '0'}`, label: "Today's Earnings", accent: true },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
               <Ionicons name={(s.icon) as any} size={18} color={s.accent ? COLORS.accent : 'rgba(255,255,255,0.9)'} />

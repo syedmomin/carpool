@@ -161,6 +161,11 @@ export const broadcastEvent = (event: string, data: any) => {
   io.emit(event, data);
 };
 
+export const emitToRoom = (room: string, event: string, data: any) => {
+  if (!io) return;
+  io.to(room).emit(event, data);
+};
+
 export const getIO = () => {
   if (!io) throw new Error('Socket.IO is not initialized');
   return io;

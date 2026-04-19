@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
+import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -144,12 +145,17 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
 export default function OpenRequestsScreen({ navigation }) {
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
-  const { openRequests, openRequestsState, loadOpenRequests, upsertOwnBid, patchOpenRequest } = useSocketData();
+  const {
+    openRequests, openRequestsState, loadOpenRequests,
+    upsertOwnBid, patchOpenRequest,
+    driverCity, setDriverCity,
+  } = useSocketData();
 
-  const [refreshing, setRefreshing]   = useState(false);
-  const [vehicles, setVehicles]       = useState<any[]>([]);
-  const [bidTarget, setBidTarget]     = useState<any>(null);
-  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [refreshing, setRefreshing]     = useState(false);
+  const [vehicles, setVehicles]         = useState<any[]>([]);
+  const [bidTarget, setBidTarget]       = useState<any>(null);
+  const [withdrawing, setWithdrawing]   = useState<string | null>(null);
+  const [cityModal, setCityModal]       = useState(false);
 
   const loadVehicles = useCallback(async () => {
     const { data } = await vehiclesApi.myVehicles();
@@ -160,6 +166,12 @@ export default function OpenRequestsScreen({ navigation }) {
     if (!openRequestsState.loaded) loadOpenRequests();
     loadVehicles();
   }, [openRequestsState.loaded]));
+
+  const handleCityChange = useCallback(async (city: string) => {
+    setDriverCity(city);
+    setCityModal(false);
+    await loadOpenRequests(true, city);
+  }, []);
 
   const handlePlaceBid = async (bidData: any) => {
     const { data, error } = await scheduleRequestsApi.placeBid(bidTarget.id, bidData);
@@ -322,6 +334,21 @@ export default function OpenRequestsScreen({ navigation }) {
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
 
+      {/* InDrive-style city selector */}
+      <TouchableOpacity style={styles.cityBar} onPress={() => setCityModal(true)} activeOpacity={0.8}>
+        <View style={styles.cityBarLeft}>
+          <View style={styles.cityDot} />
+          <View>
+            <Text style={styles.cityBarLabel}>Your current city</Text>
+            <Text style={styles.cityBarValue}>{driverCity || 'Select city to see requests'}</Text>
+          </View>
+        </View>
+        <View style={styles.changeCityBtn}>
+          <Ionicons name="swap-vertical-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.changeCityText}>Change</Text>
+        </View>
+      </TouchableOpacity>
+
       {!openRequestsState.loaded && openRequestsState.loading ? (
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={COLORS.teal} />
@@ -338,8 +365,11 @@ export default function OpenRequestsScreen({ navigation }) {
           ListEmptyComponent={
             <EmptyState
               icon="calendar-outline"
-              title="No Open Requests"
-              subtitle="No passengers have posted schedule requests yet. Check back soon!"
+              title={driverCity ? `No requests from ${driverCity}` : 'Select your city'}
+              subtitle={driverCity
+                ? 'No passengers have posted requests from your city yet.'
+                : 'Tap "Change" above to set your current city and see nearby requests.'
+              }
             />
           }
         />
@@ -352,6 +382,13 @@ export default function OpenRequestsScreen({ navigation }) {
         onSubmit={handlePlaceBid}
         onClose={() => setBidTarget(null)}
       />
+
+      <CitySearchModal
+        visible={cityModal}
+        title="Where are you now?"
+        onSelect={handleCityChange}
+        onClose={() => setCityModal(false)}
+      />
     </View>
   );
 }
@@ -361,6 +398,15 @@ const styles = StyleSheet.create({
   loadingCenter:{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText:  { fontSize: 14, color: COLORS.gray },
   listContent:  { padding: 16, paddingBottom: 100 },
+
+  // InDrive-style city bar
+  cityBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.primary + '30', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  cityBarLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  cityDot:       { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary, borderWidth: 2, borderColor: COLORS.primary + '40' },
+  cityBarLabel:  { fontSize: 11, color: COLORS.gray, fontWeight: '500' },
+  cityBarValue:  { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 1 },
+  changeCityBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primary + '12', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  changeCityText:{ fontSize: 12, fontWeight: '700', color: COLORS.primary },
 
   card:         { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
   cardHeader:   { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },

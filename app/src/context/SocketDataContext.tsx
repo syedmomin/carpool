@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { bookingsApi, ridesApi, scheduleRequestsApi } from '../services/api';
+
+const DRIVER_CITY_KEY = 'driver_selected_city';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,11 +24,15 @@ interface SocketDataState {
   openRequests:     any[];
   openRequestsState:LoadState;
 
+  // ── Driver city (InDrive-style: driver sets where they are now) ────────────
+  driverCity:    string;
+  setDriverCity: (city: string) => void;
+
   // ── Loaders (called by screens on first mount) ────────────────────────────
   loadMyBookings:    (force?: boolean) => Promise<void>;
   loadMyRequests:    (force?: boolean) => Promise<void>;
   loadMyRides:       (force?: boolean) => Promise<void>;
-  loadOpenRequests:  (force?: boolean) => Promise<void>;
+  loadOpenRequests:  (force?: boolean, city?: string) => Promise<void>;
 
   // ── Patch functions (called by SocketListener on events) ──────────────────
   patchBooking:         (bookingId: string, patch: any) => void;
@@ -84,9 +91,24 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
   const [myRidesState,      setMyRidesState]      = useState<LoadState>(INIT_LOAD);
   const [openRequests,      setOpenRequests]      = useState<any[]>([]);
   const [openRequestsState, setOpenRequestsState] = useState<LoadState>(INIT_LOAD);
+  const [driverCity,        setDriverCityState]   = useState<string>('');
 
   // Prevent concurrent loads
-  const loadingRef = useRef({ bookings: false, requests: false, rides: false, openRequests: false });
+  const loadingRef   = useRef({ bookings: false, requests: false, rides: false, openRequests: false });
+  const driverCityRef = useRef('');
+
+  // Load persisted city on mount
+  useEffect(() => {
+    AsyncStorage.getItem(DRIVER_CITY_KEY).then(city => {
+      if (city) { setDriverCityState(city); driverCityRef.current = city; }
+    });
+  }, []);
+
+  const setDriverCity = useCallback((city: string) => {
+    setDriverCityState(city);
+    driverCityRef.current = city;
+    AsyncStorage.setItem(DRIVER_CITY_KEY, city);
+  }, []);
 
   // ── Loaders ───────────────────────────────────────────────────────────────
 
@@ -100,7 +122,7 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       const active = all.filter(b =>
         b.status === 'PENDING' ||
         b.status === 'CONFIRMED' ||
-        (b.ride?.status === 'IN_PROGRESS' && b.status !== 'CANCELLED')
+        (b.status === 'CONFIRMED' && b.ride?.status === 'IN_PROGRESS')
       );
       setMyBookings(active);
       setMyBookingsState({ loading: false, loaded: true });
@@ -112,6 +134,7 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
   }, []);
 
   const loadMyRequests = useCallback(async (force = false) => {
+    if (force) loadingRef.current.requests = false; // clear stuck guard on forced reload
     if (loadingRef.current.requests) return;
     loadingRef.current.requests = true;
     setMyRequestsState(s => ({ ...s, loading: true }));
@@ -119,8 +142,9 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       const { data } = await scheduleRequestsApi.getMine();
       setMyRequests(data?.data ?? []);
       setMyRequestsState({ loading: false, loaded: true });
-    } catch {
-      setMyRequestsState(s => ({ ...s, loading: false }));
+    } catch (e) {
+      console.warn('[SocketData] loadMyRequests failed:', e);
+      setMyRequestsState({ loading: false, loaded: true }); // mark loaded so empty state shows
     } finally {
       loadingRef.current.requests = false;
     }
@@ -141,12 +165,13 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  const loadOpenRequests = useCallback(async (force = false) => {
+  const loadOpenRequests = useCallback(async (force = false, city?: string) => {
     if (loadingRef.current.openRequests) return;
     loadingRef.current.openRequests = true;
     setOpenRequestsState(s => ({ ...s, loading: true }));
     try {
-      const { data } = await scheduleRequestsApi.getOpen();
+      const selectedCity = city ?? driverCityRef.current;
+      const { data } = await scheduleRequestsApi.getOpen(selectedCity || undefined);
       setOpenRequests(data?.data ?? []);
       setOpenRequestsState({ loading: false, loaded: true });
     } catch {
@@ -253,6 +278,9 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
   const addOpenRequest = useCallback((request: any) => {
     setOpenRequests(prev => {
       if (prev.find(r => r.id === request.id)) return prev;
+      // Only add if no city selected OR request fromCity matches driver's selected city
+      const city = driverCityRef.current;
+      if (city && request.fromCity !== city) return prev;
       return [{ ...request, bids: request.bids || [] }, ...prev];
     });
   }, []);
@@ -288,6 +316,7 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
     setOpenRequests([]);
     setOpenRequestsState(INIT_LOAD);
     loadingRef.current = { bookings: false, requests: false, rides: false, openRequests: false };
+    // Keep driverCity on logout — driver's city preference should persist
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -298,6 +327,7 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       myRequests, myRequestsState,
       myRides,    myRidesState,
       openRequests, openRequestsState,
+      driverCity, setDriverCity,
 
       loadMyBookings, loadMyRequests, loadMyRides, loadOpenRequests,
 

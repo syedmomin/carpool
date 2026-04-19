@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Modal, FlatList, ActivityIndicator, Switch,
+  KeyboardAvoidingView, Platform, Switch, Modal, FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { parseApiError } from '../../utils/errorMessages';
-import { searchPakistanLocations } from '../../utils/locationSearch';
+import CitySearchModal from '../../components/CitySearchModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { vehiclesApi } from '../../services/api';
 
@@ -21,78 +21,6 @@ const TEXT_FIELDS = [
   { key: 'dropPoint', label: 'Drop Location', icon: 'flag-outline', placeholder: 'e.g. Larkana Bus Stop' },
 ];
 
-// ─── City Search Modal ────────────────────────────────────────────────────────
-function CitySearchModal({ visible, title, onSelect, onClose }) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const timerRef = useRef(null);
-
-  useEffect(() => {
-    if (!visible) { setQuery(''); setResults([]); }
-  }, [visible]);
-
-  const handleSearch = (text) => {
-    setQuery(text);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (text.trim().length < 2) { setResults([]); return; }
-    setSearching(true);
-    timerRef.current = setTimeout(async () => {
-      const res = await searchPakistanLocations(text);
-      setResults(res);
-      setSearching(false);
-    }, 400);
-  };
-
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={ms.container}>
-        <View style={ms.header}>
-          <Text style={ms.title}>{title}</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-        </View>
-        <View style={ms.searchWrap}>
-          <SearchInput
-            placeholder="Search city or area..."
-            value={query}
-            onChangeText={handleSearch}
-            onClear={() => { setQuery(''); setResults([]); }}
-          />
-          {searching && <ActivityIndicator style={ms.spinner} color={COLORS.primary} />}
-        </View>
-        {results.length > 0 ? (
-          <FlatList
-            data={results}
-            keyExtractor={(_, i) => String(i)}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={ms.item} onPress={() => onSelect(item.name)}>
-                <Ionicons name="location-outline" size={18} color={COLORS.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={ms.itemName}>{item.name}</Text>
-                  <Text style={ms.itemSub} numberOfLines={1}>{item.displayName}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-        ) : (
-          query.length >= 2 && !searching ? (
-            <View style={ms.empty}>
-              <Ionicons name="search-outline" size={40} color={COLORS.border} />
-              <Text style={ms.emptyText}>No results. Try a different name.</Text>
-            </View>
-          ) : (
-            <View style={ms.hint}>
-              <Ionicons name="information-circle-outline" size={18} color={COLORS.gray} />
-              <Text style={ms.hintText}>Type at least 2 characters to search</Text>
-            </View>
-          )
-        )}
-      </View>
-    </Modal>
-  );
-}
 
 export default function PostRideScreen({ navigation }) {
   const { postRide, currentUser } = useApp();
@@ -463,21 +391,6 @@ export default function PostRideScreen({ navigation }) {
   );
 }
 
-// ─── City Search Modal Styles ─────────────────────────────────────────────────
-const ms = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  searchWrap: { padding: 16, paddingBottom: 8 },
-  spinner: { marginTop: 8 },
-  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border, gap: 12 },
-  itemName: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  itemSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-  empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText: { fontSize: 14, color: COLORS.gray },
-  hint: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingTop: 24 },
-  hintText: { fontSize: 13, color: COLORS.gray },
-});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },

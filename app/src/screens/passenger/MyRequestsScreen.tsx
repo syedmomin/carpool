@@ -213,10 +213,10 @@ export default function MyRequestsScreen({ navigation }) {
   const [actionBidId, setActionBidId]       = useState<string | null>(null);
   const [vehicleDetails, setVehicleDetails] = useState<{ vehicle: any; driver: any } | null>(null);
 
-  // Load once on first focus; socket keeps it live
+  // Load on every focus — loadingRef guard prevents concurrent calls
   useFocusEffect(useCallback(() => {
-    if (!myRequestsState.loaded) loadMyRequests();
-  }, [myRequestsState.loaded]));
+    loadMyRequests();
+  }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -449,7 +449,7 @@ export default function MyRequestsScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={myRequests}
+          data={myRequests.filter((r: any) => r.status !== 'ACCEPTED')}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           refreshing={refreshing}

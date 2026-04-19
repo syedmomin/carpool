@@ -4,6 +4,7 @@ import { BaseService } from './base.service';
 import { PaginationQuery } from '../types';
 import { AppError } from '../utils/AppError';
 import { notify, notifyMany } from '../utils/notificationDispatcher';
+import { isValidCity } from '../constants/cities';
 
 type RideStop = { city: string; order: number; arrivalTime?: string };
 
@@ -197,7 +198,9 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     });
     if (!vehicle) throw AppError.badRequest('Vehicle not found. Please register a vehicle first.');
 
-    if (data.fromCity.trim().toLowerCase() === data.toCity.trim().toLowerCase()) {
+    if (!isValidCity(data.fromCity)) throw AppError.badRequest(`Invalid city: ${data.fromCity}`);
+    if (!isValidCity(data.toCity))   throw AppError.badRequest(`Invalid city: ${data.toCity}`);
+    if (data.fromCity === data.toCity) {
       throw AppError.badRequest('Departure and destination cities cannot be the same.');
     }
 
@@ -322,9 +325,8 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       return r;
     });
 
-    // Cleanup outside transaction — these are non-critical and can be slow
+    // Cleanup location data only — chat messages are kept for user reference
     if (newStatus === 'COMPLETED') {
-      await prisma.chatMessage.deleteMany({ where: { booking: { rideId } } }).catch(() => {});
       await prisma.rideLocation.deleteMany({ where: { rideId } }).catch(() => {});
     }
 
@@ -484,6 +486,19 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       data: { ...data, updatedBy: driverId } as any,
       include: INCLUDE,
     });
+    try {
+      const { emitToRideRoom } = await import('../socket');
+      emitToRideRoom(rideId, 'RIDE_UPDATED', {
+        rideId,
+        pricePerSeat:   updated.pricePerSeat,
+        totalSeats:     updated.totalSeats,
+        departureTime:  updated.departureTime,
+        date:           updated.date,
+        fromCity:       updated.fromCity,
+        toCity:         updated.toCity,
+        status:         updated.status,
+      });
+    } catch (e) { console.error('Socket emit failed (RIDE_UPDATED):', e); }
     return withRating(updated);
   }
 

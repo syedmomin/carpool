@@ -17,6 +17,8 @@ class SocketService {
   // Track listener references so off() only removes the specific callback,
   // not ALL listeners for the event (prevents double-fire on re-subscribe).
   private _listeners: Map<string, Set<(data: any) => void>> = new Map();
+  // Track ride rooms so they auto-rejoin on every reconnect
+  private _rideRooms: Map<string, 'driver' | 'rider'> = new Map();
 
   async connect(): Promise<void> {
     if (this.socket?.connected) return;
@@ -25,17 +27,21 @@ class SocketService {
       transports: ['websocket'],
       auth: { token },
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
     });
 
     this.socket.on('connect', () => {
       console.log('[Socket] Connected:', this.socket?.id);
-      // Re-join user room on every (re)connect so server-side room membership is restored
+      // Re-join user room
       if (this._userId) {
         this.socket?.emit('join-user', this._userId);
-        console.log('[Socket] Re-joined user room:', this._userId);
       }
+      // Re-join all ride rooms (background → foreground, token refresh, etc.)
+      this._rideRooms.forEach((role, rideId) => {
+        this.socket?.emit('join-ride', { rideId, role });
+        console.log(`[Socket] Re-joined ride room: ${rideId} as ${role}`);
+      });
     });
 
     this.socket.on('connect_error', (err) => {
@@ -63,10 +69,12 @@ class SocketService {
   }
 
   joinRide(rideId: string, role: 'driver' | 'rider'): void {
+    this._rideRooms.set(rideId, role);
     this.socket?.emit('join-ride', { rideId, role });
   }
 
   leaveRide(rideId: string): void {
+    this._rideRooms.delete(rideId);
     this.socket?.emit('leave-ride', { rideId });
   }
 
@@ -78,8 +86,10 @@ class SocketService {
   // Use on(event, cb) + off(event, cb) pair to avoid stacking duplicate listeners.
 
   on(event: string, callback: (data: any) => void): void {
-    if (!this.socket) return;
-    // Avoid adding the same callback twice for the same event
+    if (!this.socket) {
+      console.warn(`[Socket] on('${event}') called before socket was created — listener dropped. Always await connect() first.`);
+      return;
+    }
     if (!this._listeners.has(event)) this._listeners.set(event, new Set());
     const set = this._listeners.get(event)!;
     if (set.has(callback)) return;
@@ -120,6 +130,7 @@ class SocketService {
       this.socket = null;
     }
     this._userId = null;
+    this._rideRooms.clear();
   }
 }
 
