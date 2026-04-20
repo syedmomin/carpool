@@ -13,7 +13,8 @@ import { useGlobalModal } from '../../context/GlobalModalContext';
 import { parseApiError } from '../../utils/errorMessages';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useFocusEffect } from '@react-navigation/native';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, scheduleRequestsApi } from '../../services/api';
+import { haptics } from '../../utils/haptics';
 
 const TEXT_FIELDS = [
   { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline', placeholder: 'e.g. 1500', type: 'numeric' },
@@ -51,6 +52,23 @@ export default function PostRideScreen({ navigation }) {
 
   // City search modal state
   const [cityModal, setCityModal] = useState(null); // 'from' | 'to' | { type:'stop', idx }
+
+  const [matchCount, setMatchCount] = useState(0);
+  const [matchLoading, setMatchLoading] = useState(false);
+
+  // Intelligent Matching: Check for passengers when route changes
+  useEffect(() => {
+    if (form.from && form.to) {
+      setMatchLoading(true);
+      scheduleRequestsApi.getMatchCount(form.from, form.to, form.date)
+        .then(({ data }) => {
+          if (data?.data?.count !== undefined) setMatchCount(data.data.count);
+        })
+        .finally(() => setMatchLoading(false));
+    } else {
+      setMatchCount(0);
+    }
+  }, [form.from, form.to, form.date]);
 
   const vehicleSeats = selectedVehicle?.totalSeats || '—';
   const vehicleAmenities = [
@@ -153,16 +171,13 @@ export default function PostRideScreen({ navigation }) {
 
       if (error) {
         showToast(parseApiError(error), 'error');
-        setLoading(false);
-        return;
+      } else {
+        haptics.success();
+        showToast('Ride posted successfully!', 'success');
+        // Reset form
+        setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
+        navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
       }
-
-      // Reset form
-      setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
-      setStops([]);
-      setIsMultiStop(false);
-      showToast('Ride posted successfully!', 'success');
-      navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
     } catch (err) {
       showToast('An unexpected error occurred. Please try again.', 'error');
     } finally {
@@ -231,6 +246,28 @@ export default function PostRideScreen({ navigation }) {
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
             </TouchableOpacity>
           </View>
+
+          {/* ── Route Matching Suggestions ────────────────────────────────── */}
+          {matchCount > 0 && (
+            <TouchableOpacity 
+              style={styles.matchBanner} 
+              onPress={() => navigation.navigate('DriverApp', { 
+                screen: 'OpenRequests', 
+                params: { city: form.from, to: form.to } 
+              })}
+            >
+              <LinearGradient colors={['#f0fdf4', '#dcfce7']} style={styles.matchGrad}>
+                <View style={styles.matchIconBox}>
+                  <Ionicons name="people" size={18} color={COLORS.secondary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.matchTitle}>{matchCount} passengers waiting!</Text>
+                  <Text style={styles.matchSub}>Found requests matching your route. View & bid now?</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* ── Multi-Stop Toggle ──────────────────────────────────────────── */}
           <View style={styles.toggleRow}>
@@ -444,4 +481,11 @@ const styles = StyleSheet.create({
   vehiclePickerItemActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
   vehiclePickerName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   vehiclePickerDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+
+  // Match Banner
+  matchBanner: { borderRadius: 14, overflow: 'hidden', marginBottom: 16, borderWidth: 1, borderColor: COLORS.secondary + '30' },
+  matchGrad: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
+  matchIconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.secondary + '15', alignItems: 'center', justifyContent: 'center' },
+  matchTitle: { fontSize: 13, fontWeight: '800', color: COLORS.secondary },
+  matchSub: { fontSize: 11, color: COLORS.secondary + 'CC', marginTop: 1 },
 });

@@ -5,7 +5,7 @@ import {
   Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, Avatar } from '../../components';
+import { COLORS, GRADIENTS, Avatar, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { socketService } from '../../services/socket.service';
@@ -124,8 +124,16 @@ export default function ChatScreen({ route, navigation }) {
           data={messages}
           keyExtractor={(item, index) => item.id || index.toString()}
           renderItem={renderMessage}
-          contentContainerStyle={styles.listContent}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          contentContainerStyle={[styles.listContent, messages.length === 0 && { flex: 1 }]}
+          ListEmptyComponent={
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No Messages Yet"
+              subtitle={`Send a reach out to ${otherUser?.name || 'them'} to start the conversation.`}
+              style={{ flex: 1, justifyContent: 'center' }}
+            />
+          }
+          onContentSizeChange={() => messages.length > 0 && flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
         <View style={styles.inputArea}>

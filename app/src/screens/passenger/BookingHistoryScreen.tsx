@@ -1,12 +1,12 @@
 import React, { useCallback, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
-    ActivityIndicator, Modal, TextInput, Linking, Alert,
+    ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge, BookingCardSkeleton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -374,10 +374,9 @@ export default function BookingHistoryScreen({ navigation }) {
             <View style={styles.container}>
                 <GradientHeader colors={GRADIENTS.primary as any} title="My Bookings" subtitle="Loading..."
                     onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
-                <View style={styles.loadingCenter}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={styles.loadingText}>Fetching your bookings...</Text>
-                </View>
+                <ScrollView contentContainerStyle={styles.listContent}>
+                    {[1, 2, 3].map(i => <BookingCardSkeleton key={i} />)}
+                </ScrollView>
             </View>
         );
     }

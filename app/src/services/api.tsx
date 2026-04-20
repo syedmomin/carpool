@@ -243,8 +243,10 @@ export const scheduleRequestsApi = {
     if (city) p.set('city', city);
     return request('GET', `/schedule-requests?${p.toString()}`);
   },
+  getMatchCount: (from: string, to: string, date?: string) =>
+    request('GET', `/schedule-requests/match-count?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date || ''}`),
   placeBid:      (requestId: string, data: { pricePerSeat: number; vehicleId: string; departureTime: string; note?: string }) =>
-                   request('POST', `/schedule-requests/${requestId}/bids`, data),
+    request('POST', `/schedule-requests/${requestId}/bids`, data),
   withdrawBid:   (requestId: string, bidId: string) => request('DELETE', `/schedule-requests/${requestId}/bids/${bidId}`),
 };
 

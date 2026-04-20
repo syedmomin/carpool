@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge, ProgressBar } from '../../components';
+import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge, ProgressBar, RideCardSkeleton } from '../../components';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -210,10 +210,12 @@ export default function ActiveRidesScreen({ navigation }) {
       <View style={styles.container}>
         <GradientHeader colors={GRADIENTS.teal as any} title="My Rides"
           rightIcon="add-outline" onRightPress={() => navigation.navigate('PostRide')} />
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color={COLORS.teal} />
-          <Text style={styles.loadingText}>Loading your rides...</Text>
-        </View>
+        <FlatList
+          data={[1, 2, 3]}
+          keyExtractor={item => item.toString()}
+          contentContainerStyle={styles.list}
+          renderItem={() => <RideCardSkeleton />}
+        />
       </View>
     );
   }

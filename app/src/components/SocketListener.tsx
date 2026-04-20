@@ -255,6 +255,13 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       if (isPassenger) socketData.removeRequest(data.scheduleRequestId);
     };
 
+    const onRequestExpired = (data: any) => {
+      if (isPassenger) {
+        socketData.patchRequest(data.scheduleRequestId, { status: 'EXPIRED' });
+        showToast(`Your request from ${data.fromCity} to ${data.toCity} has expired 📋`, 'info');
+      }
+    };
+
     const onReviewReceived = () => incrementUnreadCount();
 
     // ── Connect first, THEN register listeners ────────────────────────────────
@@ -288,6 +295,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('BID_WITHDRAWN',      onBidWithdrawn);
       socketService.on('REQUEST_ACCEPTED',   onRequestAccepted);
       socketService.on('REQUEST_CANCELLED',  onRequestCancelled);
+      socketService.on('REQUEST_EXPIRED',    onRequestExpired);
     });
 
     return () => {
@@ -312,6 +320,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('BID_WITHDRAWN',      onBidWithdrawn);
       socketService.off('REQUEST_ACCEPTED',   onRequestAccepted);
       socketService.off('REQUEST_CANCELLED',  onRequestCancelled);
+      socketService.off('REQUEST_EXPIRED',    onRequestExpired);
     };
   }, [currentUser?.id]);
 

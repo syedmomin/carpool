@@ -14,6 +14,15 @@ export class ScheduleRequestController {
     } catch (err) { next(err); }
   };
 
+  // GET /schedule-requests/match-count?from=...&to=...&date=...  (driver)
+  getMatchCount = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { from, to, date } = req.query;
+      const result = await scheduleRequestService.getMatchCount(from as string, to as string, date as string);
+      ResponseUtil.success(res, result);
+    } catch (err) { next(err); }
+  };
+
   // GET /schedule-requests  (driver — open requests feed)
   getOpen = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {

@@ -12,6 +12,7 @@ router.patch('/:id/bids/:bidId/accept', authenticate, authorize('PASSENGER'), sc
 router.patch('/:id/bids/:bidId/reject', authenticate, authorize('PASSENGER'), scheduleRequestController.rejectBid);
 
 // Driver routes
+router.get('/match-count',               authenticate, authorize('DRIVER'),    scheduleRequestController.getMatchCount);
 router.get('/',                         authenticate, authorize('DRIVER'),    scheduleRequestController.getOpen);
 router.post('/:id/bids',               authenticate, authorize('DRIVER'),    scheduleRequestController.placeBid);
 router.delete('/:id/bids/:bidId',      authenticate, authorize('DRIVER'),    scheduleRequestController.withdrawBid);

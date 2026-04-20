@@ -14,6 +14,7 @@ interface RideCardProps {
   boardingCity?: string;
   exitCity?: string;
   segmentPrice?: number;
+  isBestValue?: boolean;
 }
 export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice }) => {
   const available = (ride.totalSeats || 0) - (ride.bookedSeats || 0);
@@ -24,6 +25,13 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
 
   return (
     <TouchableOpacity style={[styles.card, SHADOWS.md]} onPress={onPress} activeOpacity={0.9}>
+      {isBestValue && (
+        <View style={styles.bestValueBadge}>
+          <Ionicons name="sparkles" size={12} color="#fff" />
+          <Text style={styles.bestValueText}>BEST VALUE</Text>
+        </View>
+      )}
+
       {/* Segment badge */}
       {isSegment && (
         <View style={styles.segmentBadge}>
@@ -176,6 +184,30 @@ const styles = StyleSheet.create({
   multiStopBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f7fa', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
   multiStopText: { fontSize: 11, fontWeight: '600', color: COLORS.teal },
   fullPriceNote: { fontSize: 10, color: COLORS.gray, textDecorationLine: 'line-through', marginTop: 2 },
+  bestValueBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 20,
+    backgroundColor: COLORS.teal,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 10,
+    shadowColor: COLORS.teal,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  bestValueText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
   rideFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   driverInfo: { flexDirection: 'row', alignItems: 'center' },

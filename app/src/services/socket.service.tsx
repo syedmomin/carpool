@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { AppState, AppStateStatus } from 'react-native';
 import { SERVER_URL } from '../config/network';
 import { tokenStorage } from './api';
 
@@ -19,6 +20,21 @@ class SocketService {
   private _listeners: Map<string, Set<(data: any) => void>> = new Map();
   // Track ride rooms so they auto-rejoin on every reconnect
   private _rideRooms: Map<string, 'driver' | 'rider'> = new Map();
+  private _appState: AppStateStatus = AppState.currentState;
+
+  constructor() {
+    AppState.addEventListener('change', this._handleAppStateChange);
+  }
+
+  private _handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (this._appState.match(/inactive|background/) && nextAppState === 'active') {
+      console.log('[Socket] App has come to the foreground, checking connection...');
+      if (this.socket && !this.socket.connected) {
+        this.socket.connect();
+      }
+    }
+    this._appState = nextAppState;
+  };
 
   async connect(): Promise<void> {
     if (this.socket?.connected) return;
@@ -27,8 +43,9 @@ class SocketService {
       transports: ['websocket'],
       auth: { token },
       reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1500,
+      reconnectionAttempts: 15,
+      reconnectionDelay: 2000,
+      timeout: 10000,
     });
 
     this.socket.on('connect', () => {

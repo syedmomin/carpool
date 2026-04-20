@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar } from '../../components';
+import { Skeleton, CardSkeleton, RideCardSkeleton } from '../../components/Skeleton';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { vehiclesApi } from '../../services/api';
@@ -15,14 +16,18 @@ export default function DriverHomeScreen({ navigation }) {
   const { myRides, myRidesState, loadMyRides } = useSocketData();
   const [myVehicle, setMyVehicle] = useState(null);
 
+  const [loadingVehicles, setLoadingVehicles] = useState(!myVehicle);
+
   useFocusEffect(useCallback(() => {
     if (!myRidesState.loaded) loadMyRides();
+    setLoadingVehicles(true);
     vehiclesApi.myVehicles().then(({ data }) => {
       if (data?.data) {
         const active = data.data.find((v: any) => v.isActive) || data.data[0] || null;
         setMyVehicle(active);
       }
-    });
+      setLoadingVehicles(false);
+    }).catch(() => setLoadingVehicles(false));
   }, [myRidesState.loaded]));
 
   const todayStr = getTodayStr();
@@ -103,7 +108,9 @@ export default function DriverHomeScreen({ navigation }) {
 
         {/* Active Vehicle */}
         <SectionHeader title="Active Vehicle" onSeeAll={() => navigation.navigate('MyVehicles')} />
-        {myVehicle ? (
+        {loadingVehicles ? (
+           <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 24 }} />
+        ) : myVehicle ? (
           <TouchableOpacity style={styles.vehicleCard} onPress={() => navigation.navigate('MyVehicles')}>
             <View style={styles.vehicleInner}>
               <View style={styles.vehicleIconBox}>
@@ -136,7 +143,13 @@ export default function DriverHomeScreen({ navigation }) {
         )}
 
         {/* Recent Rides */}
-        {myRides.length > 0 && (
+        {(myRidesState.loading && !myRidesState.loaded) ? (
+          <>
+            <SectionHeader title="Recent Rides" />
+            <RideCardSkeleton />
+            <RideCardSkeleton />
+          </>
+        ) : myRides.length > 0 && (
           <>
             <SectionHeader title="Recent Rides" onSeeAll={() => navigation.navigate('MyRidesTab')} />
             {myRides.slice(0, 2).map(ride => (

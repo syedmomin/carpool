@@ -6,6 +6,8 @@ import {
   emptyBookingsIllustration,
   emptyNotificationsIllustration,
   emptyGeneralIllustration,
+  emptyChatIllustration,
+  emptyReviewsIllustration,
 } from './IllustrationAssets';
 
 interface IllustrationProps {
@@ -33,4 +35,12 @@ export function EmptyNotificationsIllustration({ size = 130 }: IllustrationProps
 
 export function EmptyGeneralIllustration({ size = 130 }: IllustrationProps) {
   return <SvgXml xml={emptyGeneralIllustration} width={size} height={size * 0.85} />;
+}
+
+export function EmptyChatIllustration({ size = 130 }: IllustrationProps) {
+  return <SvgXml xml={emptyChatIllustration} width={size} height={size * 0.85} />;
+}
+
+export function EmptyReviewsIllustration({ size = 130 }: IllustrationProps) {
+  return <SvgXml xml={emptyReviewsIllustration} width={size} height={size * 0.85} />;
 }

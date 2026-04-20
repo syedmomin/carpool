@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, GradientHeader, EmptyState, RequestCardSkeleton } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -350,9 +350,8 @@ export default function OpenRequestsScreen({ navigation }) {
       </TouchableOpacity>
 
       {!openRequestsState.loaded && openRequestsState.loading ? (
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color={COLORS.teal} />
-          <Text style={styles.loadingText}>Loading requests...</Text>
+        <View style={{ flex: 1, padding: 16 }}>
+          {[1, 2, 3].map(i => <RequestCardSkeleton key={i} />)}
         </View>
       ) : (
         <FlatList

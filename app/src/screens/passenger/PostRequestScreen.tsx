@@ -8,6 +8,7 @@ import { COLORS, GRADIENTS, GradientHeader, PrimaryButton } from '../../componen
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { scheduleRequestsApi } from '../../services/api';
+import { haptics } from '../../utils/haptics';
 
 // ─── Calendar helpers ──────────────────────────────────────────────────────────
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -28,7 +29,7 @@ function fmt(year: number, month: number, day: number) {
 
 const SEAT_OPTIONS = [1, 2, 3, 4, 5, 6];
 
-export default function PostRequestScreen({ navigation }) {
+export default function PostRequestScreen({ navigation, route }: any) {
   const { showToast } = useToast();
 
   const today    = new Date();
@@ -44,6 +45,19 @@ export default function PostRequestScreen({ navigation }) {
   const [note, setNote]   = useState('');
   const [posting, setPosting]   = useState(false);
   const [cityModal, setCityModal] = useState<'from' | 'to' | null>(null);
+
+  // Pre-fill from route params (Re-post feature)
+  React.useEffect(() => {
+    const p = route?.params;
+    if (p) {
+      if (p.from) setFrom(p.from);
+      if (p.to)   setTo(p.to);
+      if (p.seats) setSeats(p.seats);
+      if (p.departureTime) setDepartureTime(p.departureTime);
+      if (p.note) setNote(p.note);
+      showToast('Details pre-filled from your previous request', 'info');
+    }
+  }, [route?.params]);
 
   const cells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
 
@@ -84,12 +98,14 @@ export default function PostRequestScreen({ navigation }) {
     });
     setPosting(false);
 
-    if (error) { showToast(error, 'error'); return; }
-
-    showToast('Request posted! Drivers will bid soon.', 'success', 4000);
-    setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
-    // Navigate to My Requests tab
-    navigation.navigate('MyRequests');
+    if (error) {
+      showToast(error, 'error');
+    } else {
+      haptics.success();
+      showToast('Request posted! Drivers will bid soon.', 'success', 4000);
+      setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
+      navigation.navigate('MyRequests');
+    }
   };
 
   return (

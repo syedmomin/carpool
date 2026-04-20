@@ -5,12 +5,13 @@ import {
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, RideCard, EmptyState, Chip, GradientHeader } from '../../components';
+import { COLORS, GRADIENTS, RideCard, EmptyState, Chip, GradientHeader, RideCardSkeleton } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { ridesApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
+import { searchHistory, SearchEntry } from '../../utils/searchHistory';
 
 const SORT_OPTIONS = ['Price: Low to High', 'Price: High to Low', 'Earliest Departure', 'Highest Rated'];
 
@@ -183,6 +184,7 @@ export default function SearchScreen({ navigation, route }) {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [showMaxPriceModal, setShowMaxPriceModal] = useState(false);
   const [cityModal, setCityModal] = useState(null);
+  const [recentSearches, setRecentSearches] = useState<SearchEntry[]>([]);
 
   const activeFilterCount = [filterAC, filterFemale, filterVehicle, filterBrand, filterTime !== null, !!filterMaxPrice].filter(Boolean).length;
 
@@ -214,15 +216,40 @@ export default function SearchScreen({ navigation, route }) {
     return list;
   }, [searchResults, allRides, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
 
-  const doSearch = useCallback(async () => {
-    if (!from && !to) { setSearchResults(null); return; }
+  const bestValueId = useMemo(() => {
+    if (!displayList || displayList.length < 2) return null;
+    let min = Infinity;
+    let minId = null;
+    displayList.forEach(r => {
+      const p = r.segmentPrice ?? r.pricePerSeat;
+      if (p < min) { min = p; minId = r.id; }
+    });
+    return minId;
+  }, [displayList]);
+
+  const doSearch = useCallback(async (forcedFrom?: string, forcedTo?: string) => {
+    const sFrom = forcedFrom !== undefined ? forcedFrom : from;
+    const sTo = forcedTo !== undefined ? forcedTo : to;
+    
+    if (!sFrom && !sTo) { setSearchResults(null); return; }
     setLoading(true);
-    const { data, error } = await searchRides(from, to, date);
+    const { data, error } = await searchRides(sFrom, sTo, date);
     setLoading(false);
     setSearchResults(error || !data ? [] : data);
+    
+    if (sFrom && sTo && !error && data && data.length > 0) {
+      searchHistory.save(sFrom, sTo).then(setRecentSearches);
+    }
   }, [from, to, date, searchRides]);
+  
+  const handleRecentPress = (entry: SearchEntry) => {
+    setFrom(entry.from);
+    setTo(entry.to);
+    doSearch(entry.from, entry.to);
+  };
 
   useFocusEffect(useCallback(() => {
+    searchHistory.get().then(setRecentSearches);
     if (allRides.length === 0) {
       ridesApi.getAll(1, 20).then(({ data }) => {
         if (data?.data) {
@@ -360,6 +387,26 @@ export default function SearchScreen({ navigation, route }) {
             <Chip label="Sort" icon="funnel-outline" active={sort !== null} onPress={() => setShowSortModal(true)} style={styles.filterChip} />
           </ScrollView>
         </View>
+
+        {/* Recent Searches */}
+        {recentSearches.length > 0 && searchResults === null && !loading && (
+          <View style={styles.recentSection}>
+            <View style={styles.recentHeader}>
+              <Text style={styles.recentTitle}>Recent Searches</Text>
+              <TouchableOpacity onPress={() => searchHistory.clear().then(() => setRecentSearches([]))}>
+                <Text style={styles.clearHistory}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+              {recentSearches.map((h, i) => (
+                <TouchableOpacity key={i} style={styles.recentCard} onPress={() => handleRecentPress(h)}>
+                  <Ionicons name="time-outline" size={14} color={COLORS.gray} />
+                  <Text style={styles.recentText}>{h.from} → {h.to}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {/* Active filter pills */}
@@ -404,6 +451,7 @@ export default function SearchScreen({ navigation, route }) {
             boardingCity={item.boardingCity}
             exitCity={item.exitCity}
             segmentPrice={item.segmentPrice}
+            isBestValue={item.id === bestValueId}
             onPress={() => navigation.navigate('RideDetail', {
               rideId: item.id,
               rideData: item,
@@ -414,9 +462,8 @@ export default function SearchScreen({ navigation, route }) {
         )}
         ListEmptyComponent={
           loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.primary} />
-              <Text style={styles.loadingText}>Searching for your best ride...</Text>
+            <View style={{ paddingTop: 10 }}>
+              {[1, 2, 3].map(i => <RideCardSkeleton key={i} />)}
             </View>
           ) : (
             <EmptyState
@@ -526,6 +573,12 @@ const styles = StyleSheet.create({
   brandChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.lightGray },
   brandChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   brandChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  recentSection: { marginTop: 16, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 16 },
+  recentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
+  recentTitle: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
+  clearHistory: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
+  recentCard: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 10 },
+  recentText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   loadingContainer: {
     paddingTop: 80,
     alignItems: 'center',

@@ -61,3 +61,12 @@ export {
   EmptyNotificationsIllustration,
   EmptyGeneralIllustration,
 } from './Illustrations';
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+export {
+  Skeleton,
+  CardSkeleton,
+  RideCardSkeleton,
+  BookingCardSkeleton,
+  RequestCardSkeleton,
+} from './Skeleton';

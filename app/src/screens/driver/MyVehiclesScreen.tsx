@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Platform } f
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, AMENITY_CONFIG, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, AMENITY_CONFIG, GradientHeader, EmptyState, CardSkeleton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -23,12 +23,18 @@ export default function MyVehiclesScreen({ navigation }) {
   const { showToast } = useToast();
   const [myVehicles, setMyVehicles] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchVehicles = useCallback(async () => {
+  const fetchVehicles = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsInitialLoad(true);
     setRefreshing(true);
-    const { data } = await vehiclesApi.myVehicles();
-    setRefreshing(false);
-    if (data?.data) setMyVehicles(data.data);
+    try {
+      const { data } = await vehiclesApi.myVehicles();
+      if (data?.data) setMyVehicles(data.data);
+    } finally {
+      setRefreshing(false);
+      setIsInitialLoad(false);
+    }
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -183,19 +189,26 @@ export default function MyVehiclesScreen({ navigation }) {
         onRightPress={() => navigation.navigate('VehicleSetup', { vehicleId: null })}
       />
 
-      <FlatList
-        data={myVehicles}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={renderVehicle}
-        refreshing={refreshing}
-        onRefresh={fetchVehicles}
-        ListEmptyComponent={
-          !refreshing ? (
-            <EmptyState icon="car-outline" title="No Vehicles Found" subtitle="Add your vehicle to start posting rides" />
-          ) : null
-        }
-      />
+      {isInitialLoad ? (
+        <View style={styles.listContent}>
+          <CardSkeleton />
+          <CardSkeleton />
+        </View>
+      ) : (
+        <FlatList
+          data={myVehicles}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={renderVehicle}
+          refreshing={refreshing}
+          onRefresh={fetchVehicles}
+          ListEmptyComponent={
+            !refreshing ? (
+              <EmptyState icon="car-outline" title="No Vehicles Found" subtitle="Add your vehicle to start posting rides" />
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 }

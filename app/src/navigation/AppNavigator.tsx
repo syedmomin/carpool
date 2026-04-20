@@ -85,9 +85,9 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
   `;
   };
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: COLORS.white }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       {/* SVG Background with shadow for the cutout look */}
-      <View style={[styles.svgWrapper, { bottom: insets.bottom }]}>
+      <View style={styles.svgWrapper}>
         <Svg width={width} height={TAB_BAR_HEIGHT}>
           <Path
             fill="white"
@@ -110,10 +110,13 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               canPreventDefault: true,
             });
             if (isFocused) {
-              // Already on this tab — dispatch popToTop to the nested stack if it has more than one screen
-              const routeState = route.state as any;
-              if (routeState && routeState.index > 0) {
-                navigation.dispatch(StackActions.popToTop());
+              try {
+                const routeState = route.state as any;
+                if (routeState && routeState.index > 0) {
+                  navigation.dispatch(StackActions.popToTop());
+                }
+              } catch (e) {
+                // Ignore if popToTop is not supported or fails
               }
             } else if (!event.defaultPrevented) {
               navigation.navigate(route.name);
@@ -149,22 +152,26 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
           );
         })}
       </View>
+      
+      {/* Safe Area Fill at bottom */}
+      {insets.bottom > 0 && (
+        <View style={{ height: insets.bottom, backgroundColor: 'white' }} />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 0,
     width: width,
     elevation: 0,
     borderTopWidth: Platform.OS === 'android' ? 0.5 : 0,
     borderTopColor: 'rgba(0,0,0,0.05)',
+    overflow: 'visible',
   },
   svgWrapper: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
@@ -383,11 +390,20 @@ const DRIVER_TABS = [
 
 
 function PassengerTabNav() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       id="PassengerTab"
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
+      screenOptions={{ 
+        headerShown: false, 
+        tabBarStyle: { 
+          height: TAB_BAR_HEIGHT + insets.bottom,
+          borderTopWidth: 0,
+          elevation: 0,
+          backgroundColor: 'transparent',
+        } 
+      }}
     >
       {PASSENGER_TABS.map(t => (
         <Tab.Screen
@@ -402,11 +418,20 @@ function PassengerTabNav() {
 }
 
 function DriverTabNav() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       id="DriverTab"
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: COLORS.bg } }}
+      screenOptions={{ 
+        headerShown: false, 
+        tabBarStyle: { 
+          height: TAB_BAR_HEIGHT + insets.bottom,
+          borderTopWidth: 0,
+          elevation: 0,
+          backgroundColor: 'transparent',
+        } 
+      }}
     >
       {DRIVER_TABS.map(t => (
         <Tab.Screen

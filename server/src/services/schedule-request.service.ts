@@ -93,6 +93,20 @@ export class ScheduleRequestService {
     return request;
   }
 
+  // ── Driver: count matching OPEN requests for a route ────────────────────
+  async getMatchCount(fromCity: string, toCity: string, date?: string) {
+    const today = getPakistanToday();
+    const where: any = {
+      status:   'OPEN' as const,
+      fromCity: { equals: fromCity, mode: 'insensitive' },
+      toCity:   { equals: toCity, mode: 'insensitive' },
+      date:     { gte: date || today },
+    };
+
+    const count = await prisma.scheduleRequest.count({ where });
+    return { count };
+  }
+
   // ── Driver: get all OPEN requests (for their feed) ────────────────────────
   async getOpenRequests(driverId: string, page = 1, limit = 20, city?: string) {
     const today = getPakistanToday();

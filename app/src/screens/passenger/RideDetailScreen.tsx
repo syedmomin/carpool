@@ -12,6 +12,7 @@ import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { ridesApi } from '../../services/api';
+import { haptics } from '../../utils/haptics';
 
 export default function RideDetailScreen({ navigation, route }) {
   const params = route.params || {};
@@ -72,6 +73,7 @@ export default function RideDetailScreen({ navigation, route }) {
           showToast(parseApiError(error), 'error');
           return;
         }
+        haptics.success();
         navigation.replace('BookingConfirm', { rideId, seats: selectedSeats, rideData: ride });
       },
     });

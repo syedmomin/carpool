@@ -12,6 +12,7 @@ import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from '../../utils/imagePicker';
 import { vehiclesApi, uploadApi } from '../../services/api';
+import { haptics } from '../../utils/haptics';
 
 // ─── Vehicle types ─────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = [
@@ -221,15 +222,15 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }));
 
     if (existing) {
-      const { error } = await vehiclesApi.update(vehicleId, formData);
-      setLoading(false);
       if (error) { showToast(parseApiError(error), 'error'); return; }
+      haptics.success();
       showToast('Vehicle updated successfully!', 'success');
       navigation.goBack();
     } else {
       const { error } = await vehiclesApi.register(formData);
       setLoading(false);
       if (error) { showToast(parseApiError(error), 'error'); return; }
+      haptics.success();
       showToast('Vehicle registered! You can now post rides.', 'success');
       navigation.goBack();
     }

@@ -7,10 +7,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState } from '../../components';
+import { Skeleton, CardSkeleton, RequestCardSkeleton } from '../../components/Skeleton';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi } from '../../services/api';
+import { haptics } from '../../utils/haptics';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -194,6 +196,7 @@ export default function MyRequestsScreen({ navigation }) {
   const { showModal }  = useGlobalModal();
   const { myRequests, myRequestsState, loadMyRequests, removeRequest, patchRequest } = useSocketData();
 
+  const [selectedTab, setSelectedTab]       = useState<'active' | 'history'>('active');
   const [refreshing, setRefreshing]         = useState(false);
   const [actionBidId, setActionBidId]       = useState<string | null>(null);
   const [vehicleDetails, setVehicleDetails] = useState<{ vehicle: any; driver: any } | null>(null);
@@ -231,6 +234,7 @@ export default function MyRequestsScreen({ navigation }) {
       onConfirm: async () => {
         const { data, error } = await scheduleRequestsApi.acceptBid(req.id, bid.id);
         if (error) { showToast(error, 'error'); return; }
+        haptics.success();
         removeRequest(req.id);
         const rideData = {
           ...(data?.data ?? {}),
@@ -261,16 +265,32 @@ export default function MyRequestsScreen({ navigation }) {
     });
   };
 
+  const handleRepost = (req: any) => {
+    navigation.navigate('PostRequest', {
+      from: req.fromCity,
+      to: req.toCity,
+      seats: req.seats,
+      departureTime: req.departureTime,
+      note: req.note
+    });
+  };
+
   const isInitialLoad = !myRequestsState.loaded && myRequestsState.loading;
+
+  const activeRequests = myRequests.filter(r => r.status === 'OPEN');
+  const pastRequests   = myRequests.filter(r => r.status === 'EXPIRED' || r.status === 'CANCELLED' || r.status === 'REJECTED');
+
+  const displayRequests = selectedTab === 'active' ? activeRequests : pastRequests;
 
   const renderRequest = ({ item: req }: any) => {
     const sc = STATUS_COLORS[(req.status || 'open').toLowerCase()] ?? STATUS_COLORS.open;
     const pendingBids = (req.bids || []).filter((b: any) => b.status === 'PENDING');
     const acceptedBid = (req.bids || []).find((b: any) => b.status === 'ACCEPTED');
     const hasTime     = req.departureTime && req.departureTime !== '00:00';
+    const isExpired   = req.status === 'EXPIRED';
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, isExpired && { opacity: 0.85 }]}>
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
@@ -406,13 +426,22 @@ export default function MyRequestsScreen({ navigation }) {
           </View>
         )}
 
-        {/* Cancel */}
-        {req.status === 'OPEN' && (
-          <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(req)}>
-            <Ionicons name="close-circle-outline" size={15} color={COLORS.danger} />
-            <Text style={styles.cancelBtnText}>Cancel Request</Text>
-          </TouchableOpacity>
-        )}
+        {/* Actions Footer */}
+        <View style={styles.cardFooter}>
+          {req.status === 'OPEN' && (
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(req)}>
+              <Ionicons name="close-circle-outline" size={15} color={COLORS.danger} />
+              <Text style={styles.cancelBtnText}>Cancel Request</Text>
+            </TouchableOpacity>
+          )}
+
+          {isExpired && (
+            <TouchableOpacity style={styles.repostBtn} onPress={() => handleRepost(req)}>
+              <Ionicons name="refresh-outline" size={15} color={COLORS.primary} />
+              <Text style={styles.repostBtnText}>Re-post for another date</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -428,13 +457,36 @@ export default function MyRequestsScreen({ navigation }) {
         onRightPress={() => navigation.navigate('PostRequest')}
       />
 
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, selectedTab === 'active' && styles.tabActive]} 
+          onPress={() => setSelectedTab('active')}
+        >
+          <Ionicons name="search-outline" size={16} color={selectedTab === 'active' ? COLORS.primary : COLORS.gray} />
+          <Text style={[styles.tabText, selectedTab === 'active' && styles.tabTextActive]}>Active</Text>
+          {activeRequests.length > 0 && (
+            <View style={styles.countBadge}><Text style={styles.countText}>{activeRequests.length}</Text></View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, selectedTab === 'history' && styles.tabActive]} 
+          onPress={() => setSelectedTab('history')}
+        >
+          <Ionicons name="time-outline" size={16} color={selectedTab === 'history' ? COLORS.primary : COLORS.gray} />
+          <Text style={[styles.tabText, selectedTab === 'history' && styles.tabTextActive]}>History</Text>
+        </TouchableOpacity>
+      </View>
+
       {isInitialLoad ? (
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View style={styles.list}>
+          <RequestCardSkeleton />
+          <RequestCardSkeleton />
+          <RequestCardSkeleton />
         </View>
       ) : (
         <FlatList
-          data={myRequests.filter((r: any) => r.status !== 'ACCEPTED')}
+          data={displayRequests}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.list}
           refreshing={refreshing}
@@ -443,10 +495,13 @@ export default function MyRequestsScreen({ navigation }) {
           ListEmptyComponent={
             !refreshing ? (
               <EmptyState
-                icon="calendar-outline"
-                title="No Requests Yet"
-                subtitle="Post a schedule request and drivers will bid with their prices."
-                action={{ label: 'Post a Request', onPress: () => navigation.navigate('PostRequest') }}
+                icon={selectedTab === 'active' ? "calendar-outline" : "time-outline"}
+                title={selectedTab === 'active' ? "No Requests Yet" : "No Past Requests"}
+                subtitle={selectedTab === 'active' 
+                  ? "Post a schedule request and drivers will bid with their prices."
+                  : "Your expired, cancelled and completed requests will appear here."
+                }
+                action={selectedTab === 'active' ? { label: 'Post a Request', onPress: () => navigation.navigate('PostRequest') } : undefined}
               />
             ) : null
           }
@@ -517,11 +572,26 @@ const styles = StyleSheet.create({
   acceptBtnText:    { fontSize: 13, fontWeight: '800', color: '#fff' },
 
   // ── Footer ────────────────────────────────────────────────────────────────
+  cancelBtnText:    { fontSize: 13, fontWeight: '600', color: COLORS.danger },
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────
+  tabContainer:     { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  tab:              { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
+  tabActive:        { borderBottomWidth: 2.5, borderBottomColor: COLORS.primary },
+  tabText:          { fontSize: 13, fontWeight: '600', color: COLORS.gray },
+  tabTextActive:    { color: COLORS.primary, fontWeight: '800' },
+  countBadge:       { backgroundColor: COLORS.lightGray, paddingHorizontal: 6, borderRadius: 10, minWidth: 18, alignItems: 'center' },
+  countText:        { fontSize: 10, fontWeight: '900', color: COLORS.primary },
+
+  // ── Footer ────────────────────────────────────────────────────────────────
   waitingRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#f0f7ff', borderRadius: 12, padding: 12, marginTop: 4 },
   waitingText:      { fontSize: 13, fontWeight: '700', color: COLORS.primary },
   waitingSubText:   { fontSize: 11, color: COLORS.gray, marginTop: 1 },
-  cancelBtn:        { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 12, marginTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
-  cancelBtnText:    { fontSize: 13, fontWeight: '600', color: COLORS.danger },
+  
+  cardFooter:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
+  cancelBtn:        { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  repostBtn:        { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  repostBtnText:    { fontSize: 12, fontWeight: '700', color: COLORS.primary },
 });
 
 // ─── Vehicle Details Modal Styles ─────────────────────────────────────────────

@@ -121,12 +121,36 @@ export async function cleanAllOldNotifications(): Promise<void> {
 // ─── Auto-expire OPEN schedule requests whose date has passed ────────────────
 export async function expireOldScheduleRequests(): Promise<void> {
   const today = getPakistanToday();
-  const result = await prisma.scheduleRequest.updateMany({
+
+  // Find OPEN requests whose date has passed
+  const expiring = await prisma.scheduleRequest.findMany({
     where: { status: 'OPEN', date: { lt: today } },
+    select: { id: true, passengerId: true, fromCity: true, toCity: true, date: true },
+  });
+
+  if (!expiring.length) return;
+
+  const ids = expiring.map(r => r.id);
+
+  // Mark status as EXPIRED in DB
+  await prisma.scheduleRequest.updateMany({
+    where: { id: { in: ids } },
     data:  { status: 'EXPIRED' },
   });
-  if (result.count > 0)
-    console.log(`[Scheduler] Expired ${result.count} old schedule request(s)`);
+
+  // Notify each passenger so the app updates via socket instantly
+  for (const req of expiring) {
+    notify({
+      userId:      req.passengerId,
+      title:       'Request Expired 📋',
+      message:     `Your request from ${req.fromCity} to ${req.toCity} on ${req.date} has expired. No driver bids were accepted in time.`,
+      type:        'RIDE_EXPIRED',
+      socketEvent: 'REQUEST_EXPIRED',
+      socketData:  { scheduleRequestId: req.id, fromCity: req.fromCity, toCity: req.toCity },
+    }).catch(e => console.error('[Scheduler] notify REQUEST_EXPIRED failed:', e));
+  }
+
+  console.log(`[Scheduler] Expired ${expiring.length} old schedule request(s) and notified passengers.`);
 }
 
 // ─── Delete chat messages from completed rides older than 10 days ────────────

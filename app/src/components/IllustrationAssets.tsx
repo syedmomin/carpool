@@ -258,11 +258,40 @@ export const emptyGeneralIllustration = `<svg viewBox="0 0 400 320" fill="none" 
   <path d="M191 98 Q200 92 209 98" fill="none" stroke="#1a73e8" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
 </svg>`;
 
+// ─── Empty Chat: Empty message box ───────────────────────────────────────────
+export const emptyChatIllustration = `<svg viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="320" fill="#e8f0fe" rx="16"/>
+  <path d="M100 100 Q100 80 120 80 L280 80 Q300 80 300 100 L300 200 Q300 220 280 220 L180 220 L140 250 L140 220 L120 220 Q100 220 100 200 Z" fill="white" opacity="0.8"/>
+  <rect x="130" y="110" width="140" height="8" rx="4" fill="#1a73e8" opacity="0.15"/>
+  <rect x="130" y="130" width="100" height="8" rx="4" fill="#1a73e8" opacity="0.1"/>
+  <rect x="130" y="150" width="120" height="8" rx="4" fill="#1a73e8" opacity="0.1"/>
+  <circle cx="330" cy="80" r="30" fill="#00897b" opacity="0.1"/>
+  <path d="M320 80 Q330 70 340 80 L340 95 L330 90 L320 95 Z" fill="#00897b" opacity="0.3"/>
+  <circle cx="70" cy="240" r="25" fill="#1a73e8" opacity="0.1"/>
+  <path d="M60 240 Q70 230 80 240 L80 255 L70 250 L60 255 Z" fill="#1a73e8" opacity="0.3"/>
+</svg>`;
+
+// ─── Empty Reviews: Empty star rating ───────────────────────────────────────
+export const emptyReviewsIllustration = `<svg viewBox="0 0 400 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="320" fill="#fef9c3" rx="16" opacity="0.3"/>
+  <path d="M200 60 L215 105 L262 105 L224 133 L238 178 L200 150 L162 178 L176 133 L138 105 L185 105 Z" fill="#facc15" opacity="0.2"/>
+  <path d="M120 180 L130 210 L160 210 L135 228 L145 258 L120 239 L95 258 L105 228 L80 210 L110 210 Z" fill="#facc15" opacity="0.15"/>
+  <path d="M280 180 L290 210 L320 210 L295 228 L305 258 L280 239 L255 258 L265 228 L240 210 L270 210 Z" fill="#facc15" opacity="0.15"/>
+  <rect x="140" y="110" width="120" height="100" rx="12" fill="white" opacity="0.9"/>
+  <circle cx="200" cy="140" r="18" fill="#e2e8f0"/>
+  <rect x="160" y="170" width="80" height="6" rx="3" fill="#e2e8f0"/>
+  <rect x="170" y="182" width="60" height="6" rx="3" fill="#e2e8f0"/>
+</svg>`;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Default export map for convenience
 // ─────────────────────────────────────────────────────────────────────────────
 export default {
-  splashIllustration, emptyRidesIllustration,
-  emptyBookingsIllustration, emptyNotificationsIllustration,
-  emptyGeneralIllustration
+  splashIllustration, 
+  emptyRidesIllustration,
+  emptyBookingsIllustration, 
+  emptyNotificationsIllustration,
+  emptyGeneralIllustration,
+  emptyChatIllustration,
+  emptyReviewsIllustration
 };

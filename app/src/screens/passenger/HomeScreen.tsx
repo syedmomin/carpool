@@ -21,8 +21,8 @@ function getUpcomingDates() {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const yyyy = d.getFullYear();
-    const mm   = String(d.getMonth() + 1).padStart(2, '0');
-    const dd   = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
     const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
       : d.toLocaleDateString('en-PK', { weekday: 'short', month: 'short', day: 'numeric' });
     dates.push({ value: `${yyyy}-${mm}-${dd}`, label });
@@ -36,11 +36,11 @@ export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { showToast } = useToast();
 
-  const [fromCity, setFromCity]     = useState('');
-  const [toCity, setToCity]         = useState('');
+  const [fromCity, setFromCity] = useState('');
+  const [toCity, setToCity] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [scheduleModal, setScheduleModal] = useState(false);
-  const [cityModal, setCityModal]   = useState<'from' | 'to' | null>(null);
+  const [cityModal, setCityModal] = useState<'from' | 'to' | null>(null);
 
   useEffect(() => {
     const onNewRide = (data: any) => {
@@ -204,8 +204,8 @@ export default function PassengerHomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#f2efe9' },
-  mapSection:   { flex: 1 },
+  container: { flex: 1, backgroundColor: '#f2efe9' },
+  mapSection: { flex: 1 },
   topBar: {
     position: 'absolute', top: Platform.OS === 'ios' ? 52 : 44,
     left: 16, right: 16,
@@ -233,18 +233,18 @@ const styles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: 20, paddingTop: 12,
-    paddingBottom: 80,
+    paddingBottom: 20,
     shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 20,
   },
   sheetHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  sheetTitle:  { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
-  routeCard:   { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 14, marginBottom: 12, gap: 12 },
-  routeLeft:   { alignItems: 'center', gap: 3 },
-  routeDot:    { width: 10, height: 10, borderRadius: 5 },
+  sheetTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
+  routeCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 14, marginBottom: 12, gap: 12 },
+  routeLeft: { alignItems: 'center', gap: 3 },
+  routeDot: { width: 10, height: 10, borderRadius: 5 },
   routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
   routeInputs: { flex: 1 },
   routeInputTouch: { paddingVertical: 6 },
-  routeInput:  { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
+  routeInput: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
   routeInputPlaceholder: { color: COLORS.gray },
   routeInputDivider: { height: 1, backgroundColor: COLORS.border },
   swapBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
@@ -256,16 +256,16 @@ const styles = StyleSheet.create({
   findBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 16, gap: 8, marginBottom: 16 },
   findBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  modalSheet:   { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },
-  modalHandle:  { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
-  modalHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, marginBottom: 8 },
-  modalTitle:   { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
-  modalClose:   { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
-  dateItem:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },
+  modalHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  modalClose: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
+  dateItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   dateItemActive: { backgroundColor: '#eff6ff' },
-  dateIcon:     { width: 40, height: 40, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  dateIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
   dateIconActive: { backgroundColor: COLORS.primary },
   dateLabelWrap: { flex: 1 },
-  dateLabel:    { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  dateValue:    { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  dateLabel: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  dateValue: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
 });

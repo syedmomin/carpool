@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, GradientHeader, EmptyState, RideCardSkeleton, Skeleton } from '../../components';
 import { ridesApi } from '../../services/api';
 
 const TABS = ['All Time', 'This Month', 'This Week'];
@@ -24,6 +24,100 @@ function filterByTab(rides: any[], tab: number) {
   });
 }
 
+function getWeeklyChartData(rides: any[]) {
+  const chart = [];
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const now = new Date();
+  const day = now.getDay() === 0 ? 6 : now.getDay() - 1;
+  const monday = new Date(now); monday.setDate(now.getDate() - day); monday.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < 7; i++) {
+    const targetDate = new Date(monday);
+    targetDate.setDate(monday.getDate() + i);
+    const dateStr = targetDate.toISOString().split('T')[0];
+    
+    const dayTotal = rides
+      .filter(r => r.date === dateStr)
+      .reduce((s, r) => s + (confirmedSeats(r) * r.pricePerSeat || 0), 0);
+    
+    chart.push({ label: days[i], value: dayTotal, isToday: i === day });
+  }
+  return chart;
+}
+
+// ─── Chart Component ──────────────────────────────────────────────────────────
+function EarningsChart({ data }: { data: any[] }) {
+  const maxVal = Math.max(...data.map(d => d.value), 1000); // Floor of 1k for scale
+  
+  return (
+    <View style={chartStyles.container}>
+      <View style={chartStyles.chartArea}>
+        {data.map((d, i) => {
+          const height = (d.value / maxVal) * 100;
+          return (
+            <View key={i} style={chartStyles.barCol}>
+              <View style={chartStyles.barGhost}>
+                <LinearGradient
+                  colors={(d.isToday ? GRADIENTS.primary : [COLORS.bg, COLORS.bg]) as any}
+                  style={[chartStyles.barFill, { height: `${height}%` }]}
+                />
+              </View>
+              <Text style={[chartStyles.barLabel, d.isToday && chartStyles.barLabelActive]}>{d.label}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const chartStyles = StyleSheet.create({
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  chartArea: {
+    flexDirection: 'row',
+    height: 140,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingHorizontal: 5,
+  },
+  barCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  barGhost: {
+    width: 14,
+    height: 100,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 7,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  barFill: {
+    width: '100%',
+    borderRadius: 7,
+  },
+  barLabel: {
+    fontSize: 10,
+    color: COLORS.gray,
+    fontWeight: '600',
+  },
+  barLabelActive: {
+    color: COLORS.primary,
+    fontWeight: '800',
+  }
+});
+
 // Compute confirmed seats from bookings array (same logic as MyRidesScreen)
 function confirmedSeats(ride: any): number {
   return (ride.bookings || [])
@@ -34,13 +128,16 @@ function confirmedSeats(ride: any): number {
 export default function EarningsScreen({ navigation }) {
   const [myRides, setMyRides] = useState([]);
   const [tab,     setTab]     = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
   useFocusEffect(useCallback(() => {
+    setLoading(true);
     ridesApi.myRides(1, 200).then(({ data }) => {
       if (data?.data) setMyRides(data.data.map(normalize));
-    });
+      setLoading(false);
+    }).catch(() => setLoading(false));
   }, []));
 
   const filtered = filterByTab(myRides.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS'), tab);
@@ -52,9 +149,9 @@ export default function EarningsScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <GradientHeader
-        colors={GRADIENTS.secondary as any}
+        colors={GRADIENTS.primary as any}
         title="My Earnings"
-        subtitle="Track your income"
+        subtitle="Track your performance"
         onBack={() => navigation.goBack()}
       >
         {/* Big total */}
@@ -63,6 +160,17 @@ export default function EarningsScreen({ navigation }) {
             {tab === 0 ? 'Total Earned' : tab === 1 ? 'This Month' : 'This Week'}
           </Text>
           <Text style={styles.totalAmount}>Rs {total.toLocaleString()}</Text>
+        </View>
+        
+        {/* Weekly Goal */}
+        <View style={styles.goalBox}>
+          <View style={styles.goalLine}>
+            <Text style={styles.goalLabel}>Weekly Target (Rs 15k)</Text>
+            <Text style={styles.goalPercent}>{Math.min(100, Math.round((total / 15000) * 100))}%</Text>
+          </View>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${Math.min(100, (total / 15000) * 100)}%` }]} />
+          </View>
         </View>
       </GradientHeader>
 
@@ -93,9 +201,20 @@ export default function EarningsScreen({ navigation }) {
           ))}
         </View>
 
+        {/* Analytics Section */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Weekly Trend</Text>
+          <Ionicons name="stats-chart" size={16} color={COLORS.primary} />
+        </View>
+        <EarningsChart data={getWeeklyChartData(myRides)} />
+
         {/* Ride Earnings List */}
         <Text style={styles.sectionTitle}>Ride Breakdown</Text>
-        {filtered.length === 0 ? (
+        {loading ? (
+          <View style={{ gap: 10 }}>
+            {[1, 2, 3].map(i => <RideCardSkeleton key={i} />)}
+          </View>
+        ) : filtered.length === 0 ? (
           <EmptyState icon="wallet-outline" title="No Earnings Yet" subtitle={tab === 0 ? 'Post your first ride to start earning!' : 'No completed rides in this period.'} />
         ) : (
           filtered.map(ride => {
@@ -135,8 +254,15 @@ const styles = StyleSheet.create({
   totalBox:    { marginTop: 16, alignItems: 'center' },
   totalLabel:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
   totalAmount: { fontSize: 36, fontWeight: '900', color: '#fff' },
+  goalBox:     { width: '100%', marginTop: 24, paddingHorizontal: 10 },
+  goalLine:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  goalLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
+  goalPercent: { fontSize: 11, color: '#fff', fontWeight: '800' },
+  progressBar: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 3 },
   body:        { flex: 1, padding: 20 },
-  statsRow:    { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  statsRow:    { flexDirection: 'row', gap: 12, marginBottom: 24, marginTop: 4 },
   statCard:    { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
   statIcon:    { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   statVal:     { fontSize: 16, fontWeight: '800', marginBottom: 2 },

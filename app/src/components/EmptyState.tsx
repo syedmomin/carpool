@@ -6,13 +6,22 @@ import {
   EmptyBookingsIllustration,
   EmptyNotificationsIllustration,
   EmptyGeneralIllustration,
+  EmptyChatIllustration,
+  EmptyReviewsIllustration,
 } from './Illustrations';
 
-const ILLUSTRATION_MAP = {
+const ILLUSTRATION_MAP: Record<string, any> = {
   'car-outline':                EmptyRidesIllustration,
   'car-sport-outline':          EmptyRidesIllustration,
+  'calendar-outline':           EmptyRidesIllustration,
+  'time-outline':               EmptyBookingsIllustration,
   'receipt-outline':            EmptyBookingsIllustration,
   'notifications-off-outline':  EmptyNotificationsIllustration,
+  'notifications-outline':      EmptyNotificationsIllustration,
+  'chatbubbles-outline':        EmptyChatIllustration,
+  'star-outline':               EmptyReviewsIllustration,
+  'wallet-outline':             EmptyGeneralIllustration,
+  'search-outline':             EmptyRidesIllustration,
 };
 
 interface EmptyStateProps {
