@@ -1,0 +1,143 @@
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:52:03.994Z
+📍 GET /api/v1/auth/me
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:52:04.041Z
+📍 GET /api/v1/rides/active-session
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:53:31.443Z
+📍 GET /api/v1/bookings/mine?page=1&limit=50
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:54:42.967Z
+📍 GET /api/v1/rides/mine?page=1&limit=50
+⚠️  Status: 500
+💬 Message: timeout exceeded when trying to connect
+📋 Stack:
+Error: timeout exceeded when trying to connect
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:56:35.484Z
+📍 GET /api/v1/rides/active-session
+⚠️  Status: 500
+💬 Message: timeout exceeded when trying to connect
+📋 Stack:
+Error: timeout exceeded when trying to connect
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:57:49.251Z
+📍 GET /api/v1/rides?page=1&limit=20
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T20:59:02.881Z
+📍 GET /api/v1/rides/active-session
+⚠️  Status: 500
+💬 Message: timeout exceeded when trying to connect
+📋 Stack:
+Error: timeout exceeded when trying to connect
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T21:00:04.505Z
+📍 GET /api/v1/schedule-requests/mine?page=1&limit=20
+⚠️  Status: 500
+💬 Message: timeout exceeded when trying to connect
+📋 Stack:
+Error: timeout exceeded when trying to connect
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T21:23:52.923Z
+📍 GET /api/v1/schedule-requests/mine?page=1&limit=20
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T21:24:28.006Z
+📍 GET /api/v1/rides/mine?page=1&limit=50
+⚠️  Status: 500
+💬 Message: timeout exceeded when trying to connect
+📋 Stack:
+Error: timeout exceeded when trying to connect
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at runNextTicks (node:internal/process/task_queues:60:5)
+    at listOnTimeout (node:internal/timers:545:9)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T21:24:28.036Z
+📍 GET /api/v1/vehicles/mine
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T21:24:39.562Z
+📍 GET /api/v1/rides/active-session
+⚠️  Status: 500
+💬 Message: Connection terminated unexpectedly
+📋 Stack:
+Error: Connection terminated unexpectedly
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+
+════════════════════════════════════════════════════════
+🕐 2026-04-20T21:24:47.103Z
+📍 GET /api/v1/schedule-requests/mine?page=1&limit=20
+⚠️  Status: 500
+💬 Message: Connection terminated due to connection timeout
+📋 Stack:
+Error: Connection terminated due to connection timeout
+    at D:\projects\carpool\server\node_modules\pg-pool\index.js:45:11
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at PrismaPgAdapter.performIO (D:\projects\carpool\server\node_modules\@prisma\adapter-pg\dist\index.js:654:22)
+

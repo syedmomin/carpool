@@ -250,26 +250,27 @@ export default function SearchScreen({ navigation, route }) {
 
   useFocusEffect(useCallback(() => {
     searchHistory.get().then(setRecentSearches);
-    if (allRides.length === 0) {
-      ridesApi.getAll(1, 20).then(({ data }) => {
-        if (data?.data) {
-          const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
-          setAllRides((data.data || []).filter(r => r.status === 'ACTIVE').map(normalize));
-        }
-      });
-    }
+    ridesApi.getAll(1, 20).then(({ data }) => {
+      if (data?.data) {
+        const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
+        setAllRides((data.data || []).filter(r => r.status === 'ACTIVE').map(normalize));
+      }
+    });
   }, []));
 
   const onNewRide = useCallback((data) => {
+    const normalized = { ...data, from: data.fromCity || data.from, to: data.toCity || data.to, driver: data.driver || { name: 'Driver' }, vehicle: data.vehicle || { type: 'Car' } };
+
+    // Always add to allRides (global browse list) — displayList handles filtering
+    setAllRides(prev => {
+      if (prev.find(r => r.id === data.id)) return prev;
+      return [normalized, ...prev];
+    });
+
+    // Inject into searchResults only if it matches the active search route
     const matchesFrom = !from || data.fromCity?.toLowerCase().includes(from.toLowerCase());
     const matchesTo = !to || data.toCity?.toLowerCase().includes(to.toLowerCase());
     if (matchesFrom && matchesTo) {
-      const normalized = { ...data, from: data.fromCity, to: data.toCity, driver: data.driver || { name: 'Driver' }, vehicle: data.vehicle || { type: 'Car' } };
-      setAllRides(prev => {
-        if (prev.find(r => r.id === data.id)) return prev;
-        return [normalized, ...prev];
-      });
-      // Agar search active hai toh searchResults mein bhi inject karo
       setSearchResults(prev => {
         if (prev === null) return prev;
         if (prev.find((r: any) => r.id === data.id)) return prev;
