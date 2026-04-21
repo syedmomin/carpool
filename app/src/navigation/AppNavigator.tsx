@@ -113,7 +113,7 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               try {
                 const routeState = route.state as any;
                 if (routeState && routeState.index > 0) {
-                  navigation.dispatch(StackActions.popToTop());
+                  descriptors[route.key].navigation.dispatch(StackActions.popToTop());
                 }
               } catch (e) {
                 // Ignore if popToTop is not supported or fails

@@ -16,7 +16,7 @@ interface RideCardProps {
   segmentPrice?: number;
   isBestValue?: boolean;
 }
-export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice }) => {
+export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice, isBestValue }) => {
   const available = (ride.totalSeats || 0) - (ride.bookedSeats || 0);
   const isSegment = !!(boardingCity && exitCity);
   const displayFrom = isSegment ? boardingCity : ride.from;

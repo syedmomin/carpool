@@ -197,8 +197,8 @@ export default function BookingHistoryScreen({ navigation }) {
 
     // Load once on first focus; subsequent updates come via socket
     useFocusEffect(useCallback(() => {
-        if (!myBookingsState.loaded) loadMyBookings();
-    }, [myBookingsState.loaded]));
+        loadMyBookings();
+    }, [loadMyBookings]));
 
     const onRefresh = async () => {
         setRefreshing(true);

@@ -11,6 +11,7 @@ import { useApp } from '../../context/AppContext';
 import { ridesApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
+import { useSocketData } from '../../context/SocketDataContext';
 import { searchHistory, SearchEntry } from '../../utils/searchHistory';
 
 const SORT_OPTIONS = ['Price: Low to High', 'Price: High to Low', 'Earliest Departure', 'Highest Rated'];
@@ -166,7 +167,7 @@ function timeInSlot(departureTime, slot) {
 export default function SearchScreen({ navigation, route }) {
   const { searchRides } = useApp();
   const { showToast } = useToast();
-  const [allRides, setAllRides] = useState([]);
+  const { availableRides, availableRidesState, loadAvailableRides } = useSocketData() as any;
   const [from, setFrom] = useState(route.params?.from || '');
   const [to, setTo] = useState(route.params?.to || '');
   const [date, setDate] = useState(route.params?.date || '');
@@ -192,7 +193,7 @@ export default function SearchScreen({ navigation, route }) {
   const displayList = useMemo(() => {
     const base = searchResults !== null
       ? searchResults
-      : allRides.filter(r => r.status === 'ACTIVE');
+      : (availableRides || []).filter(r => r.status === 'ACTIVE');
 
     let list = base.filter(r => (r.totalSeats - r.bookedSeats) > 0);
     if (filterAC) list = list.filter(r => r.vehicle?.ac);
@@ -214,7 +215,39 @@ export default function SearchScreen({ navigation, route }) {
     if (sort === 3) list.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0));
 
     return list;
-  }, [searchResults, allRides, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
+  }, [searchResults, availableRides, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
+
+  useEffect(() => {
+    if (searchResults !== null && availableRides.length > 0) {
+      console.log('[SearchScreen] Global Ride Feed Update. Current Results:', searchResults.length, 'Available:', availableRides.length);
+      
+      let changed = false;
+      const updatedResults = searchResults.map((sr: any) => {
+        const matchingGlobal = availableRides.find(r => r.id === sr.id);
+        if (matchingGlobal && JSON.stringify(matchingGlobal) !== JSON.stringify(sr)) {
+          changed = true;
+          return { ...sr, ...matchingGlobal };
+        }
+        return sr;
+      });
+
+      // Find truly NEW rides that match filters
+      const newMatches = availableRides.filter(r => {
+        if (r.status !== 'ACTIVE') return false;
+        const isNotPresent = !searchResults.find((sr: any) => sr.id === r.id);
+        const matchesFrom  = !from || r.fromCity?.toLowerCase().includes(from.toLowerCase()) || r.from?.toLowerCase().includes(from.toLowerCase());
+        const matchesTo    = !to   || r.toCity?.toLowerCase().includes(to.toLowerCase()) || r.to?.toLowerCase().includes(to.toLowerCase());
+        return isNotPresent && matchesFrom && matchesTo;
+      });
+
+      if (newMatches.length > 0) {
+        setSearchResults(prev => [...(newMatches as any), ...(prev || [])]);
+        showToast(`Found ${newMatches.length} new ride(s) matching your search!`, 'info');
+      } else if (changed) {
+        setSearchResults(updatedResults);
+      }
+    }
+  }, [availableRides, from, to, showToast]);
 
   const bestValueId = useMemo(() => {
     if (!displayList || displayList.length < 2) return null;
@@ -250,41 +283,12 @@ export default function SearchScreen({ navigation, route }) {
 
   useFocusEffect(useCallback(() => {
     searchHistory.get().then(setRecentSearches);
-    ridesApi.getAll(1, 20).then(({ data }) => {
-      if (data?.data) {
-        const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
-        setAllRides((data.data || []).filter(r => r.status === 'ACTIVE').map(normalize));
-      }
-    });
-  }, []));
-
-  const onNewRide = useCallback((data) => {
-    const normalized = { ...data, from: data.fromCity || data.from, to: data.toCity || data.to, driver: data.driver || { name: 'Driver' }, vehicle: data.vehicle || { type: 'Car' } };
-
-    // Always add to allRides (global browse list) — displayList handles filtering
-    setAllRides(prev => {
-      if (prev.find(r => r.id === data.id)) return prev;
-      return [normalized, ...prev];
-    });
-
-    // Inject into searchResults only if it matches the active search route
-    const matchesFrom = !from || data.fromCity?.toLowerCase().includes(from.toLowerCase());
-    const matchesTo = !to || data.toCity?.toLowerCase().includes(to.toLowerCase());
-    if (matchesFrom && matchesTo) {
-      setSearchResults(prev => {
-        if (prev === null) return prev;
-        if (prev.find((r: any) => r.id === data.id)) return prev;
-        return [normalized, ...prev];
-      });
-      showToast('A new ride matching your route was just posted!', 'info');
-    }
-  }, [from, to, showToast]);
+    loadAvailableRides(1, 40);
+  }, [loadAvailableRides]));
 
   useEffect(() => {
     if (route.params?.from || route.params?.to) doSearch();
-    socketService.on('NEW_RIDE', onNewRide);
-    return () => { socketService.off('NEW_RIDE', onNewRide); };
-  }, [doSearch, onNewRide]);
+  }, [doSearch]);
 
   const swapCities = () => { setFrom(to); setTo(from); };
 

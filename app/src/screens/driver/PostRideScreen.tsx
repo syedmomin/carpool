@@ -176,7 +176,7 @@ export default function PostRideScreen({ navigation }) {
         showToast('Ride posted successfully!', 'success');
         // Reset form
         setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
-        navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
+        navigation.navigate('MyRides');
       }
     } catch (err) {
       showToast('An unexpected error occurred. Please try again.', 'error');

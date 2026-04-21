@@ -18,21 +18,24 @@ interface SocketDataState {
   myRequests:       any[];
   myRequestsState:  LoadState;
 
-  // ── Driver ─────────────────────────────────────────────────────────────────
-  myRides:          any[];
-  myRidesState:     LoadState;
-  openRequests:     any[];
-  openRequestsState:LoadState;
+  // ── All Available Rides (Passenger search feed) ────────────────────────────
+  availableRides:      any[];
+  availableRidesState: LoadState;
 
-  // ── Driver city (InDrive-style: driver sets where they are now) ────────────
-  driverCity:    string;
-  setDriverCity: (city: string) => void;
+  // ── Driver ─────────────────────────────────────────────────────────────────
+  myRides:           any[];
+  myRidesState:      LoadState;
+  openRequests:      any[];
+  openRequestsState: LoadState;
+  driverCity:        string;
+  setDriverCity:     (city: string) => void;
 
   // ── Loaders (called by screens on first mount) ────────────────────────────
   loadMyBookings:    (force?: boolean) => Promise<void>;
   loadMyRequests:    (force?: boolean) => Promise<void>;
   loadMyRides:       (force?: boolean) => Promise<void>;
   loadOpenRequests:  (force?: boolean, city?: string) => Promise<void>;
+  loadAvailableRides:(page?: number, limit?: number) => Promise<void>;
 
   // ── Patch functions (called by SocketListener on events) ──────────────────
   patchBooking:         (bookingId: string, patch: any) => void;
@@ -55,6 +58,10 @@ interface SocketDataState {
   addOpenRequest:       (request: any) => void;
   patchBidInOpenRequest:(requestId: string, bidPatch: Partial<any> & { id: string }) => void;
   upsertOwnBid:         (requestId: string, bid: any) => void;
+
+  addAvailableRide:     (ride: any) => void;
+  patchAvailableRide:   (rideId: string, patch: any) => void;
+  removeAvailableRide:  (rideId: string) => void;
 
   // ── Reset (on logout) ─────────────────────────────────────────────────────
   resetAll: () => void;
@@ -91,6 +98,8 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
   const [myRidesState,      setMyRidesState]      = useState<LoadState>(INIT_LOAD);
   const [openRequests,      setOpenRequests]      = useState<any[]>([]);
   const [openRequestsState, setOpenRequestsState] = useState<LoadState>(INIT_LOAD);
+  const [availableRides,    setAvailableRides]    = useState<any[]>([]);
+  const [availableRidesState, setAvailableRidesState] = useState<LoadState>(INIT_LOAD);
   const [driverCity,        setDriverCityState]   = useState<string>('');
 
   // Prevent concurrent loads
@@ -181,6 +190,20 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
+  const loadAvailableRides = useCallback(async (page = 1, limit = 50) => {
+    if (loadingRef.current.openRequests) return; // shared loading ref for simplicity or add specific one
+    setAvailableRidesState(s => ({ ...s, loading: true }));
+    try {
+      const { data } = await ridesApi.getAll(page, limit);
+      const normalized = (data?.data?.data ?? data?.data ?? []).map(normalizeRide);
+      setAvailableRides(normalized);
+      setAvailableRidesState({ loading: false, loaded: true });
+    } catch (e) {
+      console.warn('[SocketData] loadAvailableRides failed:', e);
+      setAvailableRidesState(s => ({ ...s, loading: false }));
+    }
+  }, []);
+
   // ── Booking patch functions ───────────────────────────────────────────────
 
   const patchBooking = useCallback((bookingId: string, patch: any) => {
@@ -224,18 +247,31 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
     });
   }, []);
 
-  // When a booking changes within a ride (accept/reject/cancel) update the ride's bookings[]
+  // When a booking changes within a ride (accept/reject/cancel/new) update the ride's bookings[]
   const patchBookingInRide = useCallback((rideId: string, bookingId: string, patch: any) => {
     setMyRides(prev => prev.map(r => {
       if (r.id !== rideId) return r;
+      
+      const existingBookings = r.bookings || [];
+      const index = existingBookings.findIndex((b: any) => b.id === bookingId);
+      let updatedBookings = [...existingBookings];
+
+      if (index > -1) {
+        updatedBookings[index] = { ...updatedBookings[index], ...patch };
+      } else {
+        // New booking requested! Add it to the top.
+        updatedBookings = [normalizeBooking({ ...patch, id: bookingId }), ...updatedBookings];
+      }
+
+      // Re-calculate bookedSeats from confirmed bookings
+      const bookedSeats = updatedBookings
+        .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
+        .reduce((sum: number, b: any) => sum + (b.seats || 1), 0);
+
       return {
         ...r,
-        bookings: (r.bookings || []).map((b: any) => b.id === bookingId ? { ...b, ...patch } : b),
-        bookedSeats: patch.status === 'CONFIRMED'
-          ? (r.bookedSeats || 0) + (patch.seats || 1)
-          : patch.status === 'CANCELLED'
-          ? Math.max(0, (r.bookedSeats || 0) - (patch.seats || 1))
-          : r.bookedSeats,
+        bookings: updatedBookings,
+        bookedSeats,
       };
     }));
   }, []);
@@ -304,6 +340,23 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
     }));
   }, []);
 
+  // ── Available Rides (Public Feed) ──────────────────────────────────────────
+
+  const addAvailableRide = useCallback((ride: any) => {
+    setAvailableRides(prev => {
+      if (prev.find(r => r.id === ride.id)) return prev;
+      return [normalizeRide(ride), ...prev];
+    });
+  }, []);
+
+  const patchAvailableRide = useCallback((rideId: string, patch: any) => {
+    setAvailableRides(prev => prev.map(r => r.id === rideId ? { ...r, ...patch } : r));
+  }, []);
+
+  const removeAvailableRide = useCallback((rideId: string) => {
+    setAvailableRides(prev => prev.filter(r => r.id !== rideId));
+  }, []);
+
   // ── Reset ─────────────────────────────────────────────────────────────────
 
   const resetAll = useCallback(() => {
@@ -327,14 +380,16 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       myRequests, myRequestsState,
       myRides,    myRidesState,
       openRequests, openRequestsState,
+      availableRides, availableRidesState,
       driverCity, setDriverCity,
 
-      loadMyBookings, loadMyRequests, loadMyRides, loadOpenRequests,
+      loadMyBookings, loadMyRequests, loadMyRides, loadOpenRequests, loadAvailableRides,
 
       patchBooking, removeBooking, addBooking, patchRideInBookings,
       patchRide, removeRide, addRide, patchBookingInRide,
       patchRequest, removeRequest, upsertBidInRequest, removeBidFromRequest,
       patchOpenRequest, removeOpenRequest, addOpenRequest, patchBidInOpenRequest, upsertOwnBid,
+      addAvailableRide, patchAvailableRide, removeAvailableRide,
 
       resetAll,
     }}>

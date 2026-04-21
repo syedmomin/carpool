@@ -270,29 +270,7 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     // Broadcast via socket to all passengers
     try {
       const { broadcastEvent } = await import('../socket');
-      broadcastEvent('NEW_RIDE', {
-        id: ride.id,
-        from: ride.fromCity,
-        to: ride.toCity,
-        fromCity: ride.fromCity, // keeping for compatibility
-        toCity: ride.toCity,     // keeping for compatibility
-        date: ride.date,
-        departureTime: ride.departureTime,
-        pricePerSeat: ride.pricePerSeat,
-        totalSeats: ride.totalSeats,
-        bookedSeats: ride.bookedSeats,
-        driver: {
-          id: ride.driver.id,
-          name: ride.driver.name,
-          avatar: (ride.driver as any).avatar
-        },
-        vehicle: ride.vehicle ? {
-          type: ride.vehicle.type,
-          brand: ride.vehicle.brand,
-          model: ride.vehicle.model,
-          plateNumber: ride.vehicle.plateNumber
-        } : null
-      });
+      broadcastEvent('NEW_RIDE', withRating(ride));
     } catch (e) { console.error('Socket broadcast failed:', e); }
 
     return withRating(ride);

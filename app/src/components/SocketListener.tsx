@@ -48,279 +48,261 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       return;
     }
 
-    const isPassenger = currentUser.role === 'PASSENGER';
-    const isDriver    = currentUser.role === 'DRIVER';
-
     // ── Define all handlers first (stable refs needed for off() cleanup) ──────
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // BOOKING EVENTS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const onBookingRequested = (data: any) => {
-      incrementUnreadCount();
-      if (isDriver) {
-        if (data.rideId) {
-          socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
-          if (data.booking) {
-            socketData.patchBookingInRide(data.rideId, data.booking.id, data.booking);
+    const handlers = {
+      onBookingRequested: (data: any) => {
+        incrementUnreadCount();
+        if (currentUser.role === 'DRIVER') {
+          if (data.rideId) {
+            socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
+            if (data.booking) {
+              socketData.patchBookingInRide(data.rideId, data.booking.id, data.booking);
+            }
           }
+          showToast('New booking request received! 🚕', 'info');
         }
-        showToast('New booking request received! 🚕', 'info');
-      }
-    };
+      },
 
-    const onBookingAccepted = (data: any) => {
-      incrementUnreadCount();
-      if (isPassenger) {
-        socketData.patchBooking(data.bookingId, { status: 'CONFIRMED' });
-        if (data.rideId) socketService.joinRide(data.rideId, 'rider');
-        showModal({
-          type: 'success',
-          title: 'Booking Confirmed! 🎉',
-          message: 'Your seat has been confirmed by the driver. You can view details in My Bookings.',
-          confirmText: 'View Bookings',
-          onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
-        });
-      }
-      if (isDriver && data.rideId) {
-        socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'CONFIRMED' });
-      }
-    };
-
-    const onBookingRejected = (data: any) => {
-      incrementUnreadCount();
-      if (isPassenger) {
-        socketData.removeBooking(data.bookingId);
-        showToast('Your booking request was not accepted ❌', 'error');
-      }
-      if (isDriver && data.rideId) {
-        socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'REJECTED' });
-      }
-    };
-
-    const onBookingCancelled = (data: any) => {
-      incrementUnreadCount();
-      if (isDriver && data.rideId) {
-        socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'CANCELLED' });
-        if (data.bookedSeats !== undefined) {
-          socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
+      onBookingAccepted: (data: any) => {
+        incrementUnreadCount();
+        if (currentUser.role === 'PASSENGER') {
+          socketData.patchBooking(data.bookingId, { status: 'CONFIRMED' });
+          if (data.rideId) socketService.joinRide(data.rideId, 'rider');
+          showModal({
+            type: 'success',
+            title: 'Booking Confirmed! 🎉',
+            message: 'Your seat has been confirmed by the driver. You can view details in My Bookings.',
+            confirmText: 'View Bookings',
+            onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
+          });
         }
-        showToast('A passenger cancelled their booking', 'info');
-      }
-      if (isPassenger) {
-        socketData.removeBooking(data.bookingId);
-      }
-    };
+        if (currentUser.role === 'DRIVER' && data.rideId) {
+          socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'CONFIRMED' });
+        }
+      },
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RIDE EVENTS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const onRideStarted = (data: any) => {
-      incrementUnreadCount();
-      if (isPassenger) {
-        socketData.patchRideInBookings(data.rideId, { status: 'IN_PROGRESS' });
-        showToast('Your ride has started! 🚗', 'success');
-        navigationRef.current?.navigate('RideTracking', { rideId: data.rideId });
-      }
-      if (isDriver) {
-        socketData.patchRide(data.rideId, { status: 'IN_PROGRESS' });
-      }
-    };
-
-    const onRideCompleted = (data: any) => {
-      incrementUnreadCount();
-      if (isPassenger) {
-        socketData.patchRideInBookings(data.rideId, { status: 'COMPLETED' });
-        socketData.loadMyBookings(true); // server updated booking status — reload for clean state
-        navigationRef.current?.navigate('PassengerApp', { screen: 'PassengerHomeTab' });
-        setTimeout(() => setCompletedRide({ ...data, targetRole: 'DRIVER' }), 600);
-      }
-      if (isDriver) {
-        socketData.patchRide(data.rideId, { status: 'COMPLETED' });
-        showToast('Ride completed! 🏁 Check your earnings.', 'success');
-      }
-    };
-
-    const onRideCancelled = (data: any) => {
-      incrementUnreadCount();
-      if (isPassenger) {
-        socketData.patchRideInBookings(data.rideId, { status: 'CANCELLED' });
-        showModal({
-          type: 'danger',
-          title: 'Ride Cancelled ❌',
-          message: `The ${data.fromCity} → ${data.toCity} ride on ${data.date} has been cancelled by the driver.`,
-          confirmText: 'Find Another Ride',
-          onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
-        });
-      }
-      if (isDriver) {
-        socketData.patchRide(data.rideId, { status: 'CANCELLED' });
-      }
-    };
-
-    const onRideExpired = (data: any) => {
-      incrementUnreadCount();
-      if (isDriver) {
-        socketData.patchRide(data.rideId, { status: 'EXPIRED' });
-        showToast(`Ride ${data.fromCity} → ${data.toCity} expired with no bookings`, 'info');
-      }
-    };
-
-    const onRideUpdated = (data: any) => {
-      if (isDriver) socketData.patchRide(data.rideId, data);
-      if (isPassenger) socketData.patchRideInBookings(data.rideId, data);
-    };
-
-    const onNewRide = (data: any) => {
-      if (isDriver && data.driver?.id === currentUser.id) {
-        socketData.addRide(data);
-      }
-    };
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // SCHEDULE REQUEST / BID EVENTS
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const onScheduleRequest = (data: any) => {
-      if (isDriver) {
-        socketData.addOpenRequest({ ...data, bids: [] });
-        showToast(`New request: ${data.fromCity} → ${data.toCity} 📋`, 'info');
-      }
-    };
-
-    const onRideBid = (data: any) => {
-      if (isPassenger) {
+      onBookingRejected: (data: any) => {
         incrementUnreadCount();
-        socketData.upsertBidInRequest(data.scheduleRequestId, data.bid);
-        showToast(`New bid: Rs ${data.bid?.pricePerSeat}/seat — check your requests! 💰`, 'info');
-      }
-    };
+        if (currentUser.role === 'PASSENGER') {
+          socketData.removeBooking(data.bookingId);
+          showToast('Your booking request was not accepted ❌', 'error');
+        }
+        if (currentUser.role === 'DRIVER' && data.rideId) {
+          socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'REJECTED' });
+        }
+      },
 
-    const onBidPlaced = (data: any) => {
-      if (isDriver) {
-        socketData.upsertOwnBid(data.scheduleRequestId, data.bid);
-      }
-    };
-
-    const onBidAccepted = (data: any) => {
-      if (isDriver) {
+      onBookingCancelled: (data: any) => {
         incrementUnreadCount();
-        // Remove from open-requests — request is closed, ride is now created
-        socketData.removeOpenRequest(data.scheduleRequestId);
-        socketData.loadMyRides(true);
-        showModal({
-          type: 'success',
-          title: 'Bid Accepted! 🎉',
-          message: `Your bid for ${data.fromCity} → ${data.toCity} on ${data.date} was accepted. A ride has been created for you.`,
-          confirmText: 'View My Rides',
-          onConfirm: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
-        });
-      }
-    };
+        if (currentUser.role === 'DRIVER' && data.rideId) {
+          socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'CANCELLED' });
+          if (data.bookedSeats !== undefined) {
+            socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
+          }
+          showToast('A passenger cancelled their booking', 'info');
+        }
+        if (currentUser.role === 'PASSENGER') {
+          socketData.removeBooking(data.bookingId);
+        }
+      },
 
-    const onBidRejected = (data: any) => {
-      if (isDriver) {
+      onRideStarted: (data: any) => {
         incrementUnreadCount();
-        socketData.patchBidInOpenRequest(data.scheduleRequestId, { id: data.bidId, status: 'REJECTED' });
-        showToast('Your bid was not selected for this request', 'info');
-      }
-    };
+        if (currentUser.role === 'PASSENGER') {
+          socketData.patchRideInBookings(data.rideId, { status: 'IN_PROGRESS' });
+          showToast('Your ride has started! 🚗', 'success');
+          navigationRef.current?.navigate('RideTracking', { rideId: data.rideId });
+        }
+        if (currentUser.role === 'DRIVER') {
+          socketData.patchRide(data.rideId, { status: 'IN_PROGRESS' });
+        }
+      },
 
-    const onBidWithdrawn = (data: any) => {
-      if (isPassenger) {
-        socketData.removeBidFromRequest(data.scheduleRequestId, data.bidId);
-      }
-    };
+      onRideCompleted: (data: any) => {
+        incrementUnreadCount();
+        if (currentUser.role === 'PASSENGER') {
+          socketData.patchRideInBookings(data.rideId, { status: 'COMPLETED' });
+          socketData.loadMyBookings(true);
+          navigationRef.current?.navigate('PassengerApp', { screen: 'PassengerHomeTab' });
+          setTimeout(() => setCompletedRide({ ...data, targetRole: 'DRIVER' }), 600);
+        }
+        if (currentUser.role === 'DRIVER') {
+          socketData.patchRide(data.rideId, { status: 'COMPLETED' });
+          showToast('Ride completed! 🏁 Check your earnings.', 'success');
+        }
+      },
 
-    const onRequestAccepted = (data: any) => {
-      if (isPassenger) {
-        // Remove request from MyRequests, load updated bookings, join ride room
-        socketData.removeRequest(data.scheduleRequestId);
-        socketData.loadMyBookings(true);
-        if (data.rideId) socketService.joinRide(data.rideId, 'rider');
-        showModal({
-          type: 'success',
-          title: 'Ride Booked! 🚗',
-          message: 'The driver accepted your request and your seat is confirmed. You can chat, track, and manage your ride from My Bookings.',
-          confirmText: 'View Booking',
-          onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
-        });
-      }
-    };
+      onRideCancelled: (data: any) => {
+        incrementUnreadCount();
+        if (currentUser.role === 'PASSENGER') {
+          socketData.patchRideInBookings(data.rideId, { status: 'CANCELLED' });
+          showModal({
+            type: 'danger',
+            title: 'Ride Cancelled ❌',
+            message: `The ${data.fromCity} → ${data.toCity} ride on ${data.date} has been cancelled by the driver.`,
+            confirmText: 'Find Another Ride',
+            onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
+          });
+        }
+        if (currentUser.role === 'DRIVER') {
+          socketData.patchRide(data.rideId, { status: 'CANCELLED' });
+        }
+      },
 
-    const onRequestCancelled = (data: any) => {
-      if (isDriver) socketData.removeOpenRequest(data.scheduleRequestId);
-      if (isPassenger) socketData.removeRequest(data.scheduleRequestId);
-    };
+      onRideExpired: (data: any) => {
+        incrementUnreadCount();
+        if (currentUser.role === 'DRIVER') {
+          socketData.patchRide(data.rideId, { status: 'EXPIRED' });
+          showToast(`Ride ${data.fromCity} → ${data.toCity} expired with no bookings`, 'info');
+        }
+      },
 
-    const onRequestExpired = (data: any) => {
-      if (isPassenger) {
-        socketData.patchRequest(data.scheduleRequestId, { status: 'EXPIRED' });
-        showToast(`Your request from ${data.fromCity} to ${data.toCity} has expired 📋`, 'info');
-      }
-    };
+      onRideUpdated: (data: any) => {
+        if (currentUser.role === 'DRIVER') socketData.patchRide(data.rideId, data);
+        if (currentUser.role === 'PASSENGER') socketData.patchRideInBookings(data.rideId, data);
+      },
 
-    const onReviewReceived = () => incrementUnreadCount();
+      onNewRide: (data: any) => {
+        console.log('[Socket] NEW_RIDE Event:', data);
+        socketData.addAvailableRide(data);
+        if (currentUser.role === 'DRIVER' && data.driver?.id === currentUser.id) {
+          socketData.addRide(data);
+        }
+      },
+
+      onScheduleRequest: (data: any) => {
+        if (currentUser.role === 'DRIVER') {
+          socketData.addOpenRequest({ ...data, bids: [] });
+          showToast(`New request: ${data.fromCity} → ${data.toCity} 📋`, 'info');
+        }
+      },
+
+      onRideBid: (data: any) => {
+        if (currentUser.role === 'PASSENGER') {
+          incrementUnreadCount();
+          socketData.upsertBidInRequest(data.scheduleRequestId, data.bid);
+          showToast(`New bid: Rs ${data.bid?.pricePerSeat}/seat — check your requests! 💰`, 'info');
+        }
+      },
+
+      onBidPlaced: (data: any) => {
+        if (currentUser.role === 'DRIVER') {
+          socketData.upsertOwnBid(data.scheduleRequestId, data.bid);
+        }
+      },
+
+      onBidAccepted: (data: any) => {
+        if (currentUser.role === 'DRIVER') {
+          incrementUnreadCount();
+          socketData.removeOpenRequest(data.scheduleRequestId);
+          socketData.loadMyRides(true);
+          showModal({
+            type: 'success',
+            title: 'Bid Accepted! 🎉',
+            message: `Your bid for ${data.fromCity} → ${data.toCity} on ${data.date} was accepted. A ride has been created for you.`,
+            confirmText: 'View My Rides',
+            onConfirm: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
+          });
+        }
+      },
+
+      onBidRejected: (data: any) => {
+        if (currentUser.role === 'DRIVER') {
+          incrementUnreadCount();
+          socketData.patchBidInOpenRequest(data.scheduleRequestId, { id: data.bidId, status: 'REJECTED' });
+          showToast('Your bid was not selected for this request', 'info');
+        }
+      },
+
+      onBidWithdrawn: (data: any) => {
+        if (currentUser.role === 'PASSENGER') {
+          socketData.removeBidFromRequest(data.scheduleRequestId, data.bidId);
+        }
+      },
+
+      onRequestAccepted: (data: any) => {
+        if (currentUser.role === 'PASSENGER') {
+          socketData.removeRequest(data.scheduleRequestId);
+          socketData.loadMyBookings(true);
+          if (data.rideId) socketService.joinRide(data.rideId, 'rider');
+          showModal({
+            type: 'success',
+            title: 'Ride Booked! 🚗',
+            message: 'The driver accepted your request and your seat is confirmed. You can chat, track, and manage your ride from My Bookings.',
+            confirmText: 'View Booking',
+            onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
+          });
+        }
+      },
+
+      onRequestCancelled: (data: any) => {
+        if (currentUser.role === 'DRIVER') socketData.removeOpenRequest(data.scheduleRequestId);
+        if (currentUser.role === 'PASSENGER') socketData.removeRequest(data.scheduleRequestId);
+      },
+
+      onRequestExpired: (data: any) => {
+        if (currentUser.role === 'PASSENGER') {
+          socketData.patchRequest(data.scheduleRequestId, { status: 'EXPIRED' });
+          showToast(`Your request from ${data.fromCity} to ${data.toCity} has expired 📋`, 'info');
+        }
+      },
+
+      onReviewReceived: () => incrementUnreadCount(),
+    };
 
     // ── Connect first, THEN register listeners ────────────────────────────────
-    // socketService.connect() awaits tokenStorage.get() before creating the
-    // Socket.IO instance. Calling on() before that resolves means this.socket
-    // is null and every listener is silently dropped. Use a cancelled flag so
-    // cleanup works correctly if the effect re-runs before connect resolves.
     let cancelled = false;
 
     socketService.connect().then(() => {
       if (cancelled) return;
-
+      console.log('[Socket] Initializing room and listeners for user:', currentUser.id);
       socketService.joinUser(currentUser.id);
 
-      socketService.on('NEW_RIDE',           onNewRide);
-      socketService.on('RIDE_UPDATED',       onRideUpdated);
-      socketService.on('REVIEW_RECEIVED',    onReviewReceived);
-      socketService.on('BOOKING_REQUESTED',  onBookingRequested);
-      socketService.on('BOOKING_ACCEPTED',   onBookingAccepted);
-      socketService.on('BOOKING_REJECTED',   onBookingRejected);
-      socketService.on('BOOKING_CANCELLED',  onBookingCancelled);
-      socketService.on('RIDE_STARTED',       onRideStarted);
-      socketService.on('RIDE_COMPLETED',     onRideCompleted);
-      socketService.on('RIDE_CANCELLED',     onRideCancelled);
-      socketService.on('RIDE_EXPIRED',       onRideExpired);
-      socketService.on('SCHEDULE_REQUEST',   onScheduleRequest);
-      socketService.on('RIDE_BID',           onRideBid);
-      socketService.on('BID_PLACED',         onBidPlaced);
-      socketService.on('BID_ACCEPTED',       onBidAccepted);
-      socketService.on('BID_REJECTED',       onBidRejected);
-      socketService.on('BID_WITHDRAWN',      onBidWithdrawn);
-      socketService.on('REQUEST_ACCEPTED',   onRequestAccepted);
-      socketService.on('REQUEST_CANCELLED',  onRequestCancelled);
-      socketService.on('REQUEST_EXPIRED',    onRequestExpired);
+      socketService.on('NEW_RIDE',           handlers.onNewRide);
+      socketService.on('RIDE_UPDATED',       handlers.onRideUpdated);
+      socketService.on('REVIEW_RECEIVED',    handlers.onReviewReceived);
+      socketService.on('BOOKING_REQUESTED',  handlers.onBookingRequested);
+      socketService.on('BOOKING_ACCEPTED',   handlers.onBookingAccepted);
+      socketService.on('BOOKING_REJECTED',   handlers.onBookingRejected);
+      socketService.on('BOOKING_CANCELLED',  handlers.onBookingCancelled);
+      socketService.on('RIDE_STARTED',       handlers.onRideStarted);
+      socketService.on('RIDE_COMPLETED',     handlers.onRideCompleted);
+      socketService.on('RIDE_CANCELLED',     handlers.onRideCancelled);
+      socketService.on('RIDE_EXPIRED',       handlers.onRideExpired);
+      socketService.on('SCHEDULE_REQUEST',   handlers.onScheduleRequest);
+      socketService.on('RIDE_BID',           handlers.onRideBid);
+      socketService.on('BID_PLACED',         handlers.onBidPlaced);
+      socketService.on('BID_ACCEPTED',       handlers.onBidAccepted);
+      socketService.on('BID_REJECTED',       handlers.onBidRejected);
+      socketService.on('BID_WITHDRAWN',      handlers.onBidWithdrawn);
+      socketService.on('REQUEST_ACCEPTED',   handlers.onRequestAccepted);
+      socketService.on('REQUEST_CANCELLED',  handlers.onRequestCancelled);
+      socketService.on('REQUEST_EXPIRED',    handlers.onRequestExpired);
     });
 
     return () => {
       cancelled = true;
-
-      socketService.off('NEW_RIDE',           onNewRide);
-      socketService.off('RIDE_UPDATED',       onRideUpdated);
-      socketService.off('REVIEW_RECEIVED',    onReviewReceived);
-      socketService.off('BOOKING_REQUESTED',  onBookingRequested);
-      socketService.off('BOOKING_ACCEPTED',   onBookingAccepted);
-      socketService.off('BOOKING_REJECTED',   onBookingRejected);
-      socketService.off('BOOKING_CANCELLED',  onBookingCancelled);
-      socketService.off('RIDE_STARTED',       onRideStarted);
-      socketService.off('RIDE_COMPLETED',     onRideCompleted);
-      socketService.off('RIDE_CANCELLED',     onRideCancelled);
-      socketService.off('RIDE_EXPIRED',       onRideExpired);
-      socketService.off('SCHEDULE_REQUEST',   onScheduleRequest);
-      socketService.off('RIDE_BID',           onRideBid);
-      socketService.off('BID_PLACED',         onBidPlaced);
-      socketService.off('BID_ACCEPTED',       onBidAccepted);
-      socketService.off('BID_REJECTED',       onBidRejected);
-      socketService.off('BID_WITHDRAWN',      onBidWithdrawn);
-      socketService.off('REQUEST_ACCEPTED',   onRequestAccepted);
-      socketService.off('REQUEST_CANCELLED',  onRequestCancelled);
-      socketService.off('REQUEST_EXPIRED',    onRequestExpired);
+      console.log('[Socket] Cleaning up listeners for effect cycle');
+      socketService.off('NEW_RIDE',           handlers.onNewRide);
+      socketService.off('RIDE_UPDATED',       handlers.onRideUpdated);
+      socketService.off('REVIEW_RECEIVED',    handlers.onReviewReceived);
+      socketService.off('BOOKING_REQUESTED',  handlers.onBookingRequested);
+      socketService.off('BOOKING_ACCEPTED',   handlers.onBookingAccepted);
+      socketService.off('BOOKING_REJECTED',   handlers.onBookingRejected);
+      socketService.off('BOOKING_CANCELLED',  handlers.onBookingCancelled);
+      socketService.off('RIDE_STARTED',       handlers.onRideStarted);
+      socketService.off('RIDE_COMPLETED',     handlers.onRideCompleted);
+      socketService.off('RIDE_CANCELLED',     handlers.onRideCancelled);
+      socketService.off('RIDE_EXPIRED',       handlers.onRideExpired);
+      socketService.off('SCHEDULE_REQUEST',   handlers.onScheduleRequest);
+      socketService.off('RIDE_BID',           handlers.onRideBid);
+      socketService.off('BID_PLACED',         handlers.onBidPlaced);
+      socketService.off('BID_ACCEPTED',       handlers.onBidAccepted);
+      socketService.off('BID_REJECTED',       handlers.onBidRejected);
+      socketService.off('BID_WITHDRAWN',      handlers.onBidWithdrawn);
+      socketService.off('REQUEST_ACCEPTED',   handlers.onRequestAccepted);
+      socketService.off('REQUEST_CANCELLED',  handlers.onRequestCancelled);
+      socketService.off('REQUEST_EXPIRED',    handlers.onRequestExpired);
     };
   }, [currentUser?.id]);
 

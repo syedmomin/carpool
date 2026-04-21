@@ -19,7 +19,7 @@ export default function DriverHomeScreen({ navigation }) {
   const [loadingVehicles, setLoadingVehicles] = useState(!myVehicle);
 
   useFocusEffect(useCallback(() => {
-    if (!myRidesState.loaded) loadMyRides();
+    loadMyRides();
     setLoadingVehicles(true);
     vehiclesApi.myVehicles().then(({ data }) => {
       if (data?.data) {
@@ -28,7 +28,7 @@ export default function DriverHomeScreen({ navigation }) {
       }
       setLoadingVehicles(false);
     }).catch(() => setLoadingVehicles(false));
-  }, [myRidesState.loaded]));
+  }, [loadMyRides]));
 
   const todayStr = getTodayStr();
   const todayRides     = myRides.filter(r => r.date === todayStr);

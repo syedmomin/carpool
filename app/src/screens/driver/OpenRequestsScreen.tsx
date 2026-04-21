@@ -163,9 +163,9 @@ export default function OpenRequestsScreen({ navigation }) {
   }, []);
 
   useFocusEffect(useCallback(() => {
-    if (!openRequestsState.loaded) loadOpenRequests();
+    loadOpenRequests();
     loadVehicles();
-  }, [openRequestsState.loaded]));
+  }, [loadOpenRequests, loadVehicles]));
 
   const handleCityChange = useCallback(async (city: string) => {
     setDriverCity(city);
