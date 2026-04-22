@@ -50,3 +50,13 @@ Based on my deep analysis of your current codebase (App and Server), here is a *
 Sabse pehle **"Skeleton Loaders"** aur **"Haptic Feedback"** add karein, kyunki ye user ko foran nazar aate hain aur app ka "Feel" change kar dete hain. 
 
 **Kya aap chahte hain ke main in mein se kisi specific suggestion par kaam shuru karun?**
+
+
+
+
+
+
+Offline Socket Queue: Agar user chat kar raha hai aur internet 10 seconds ke liye chala jaye, to uske bheje hue messages fail hone ke bajaye ek "Queue" mein save ho jane chahiye, aur net aate hi auto-send ho jane chahiye (jese WhatsApp karta hai).
+Interactive Notifications: Push Notifications ke andar hi "Accept" aur "Reject" ke buttons add karein. Taake Driver app open kiye bina hi background se passenger ki request approve kar sake.
+Cron Jobs for "Expired" Rides: Abhi agar koi ride ACTIVE hai aur uska departureTime guzar jaye, to wo list mein rehti hai. Server par node-cron use karein jo har ghante chale aur purani rides ko automatically EXPIRED mark kar de.
+Socket.IO Rate Limiting: Aapne API par to Rate Limiting (express-rate-limit) lagayi hai, lekin hackers Sockets par lakhon messages bhej kar server crash kar sakte hain. Socket par bhi ek basic "Message Throttling" logic lagayein (e.g., max 5 messages per second per user).
