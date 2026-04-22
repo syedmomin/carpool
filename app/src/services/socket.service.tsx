@@ -59,6 +59,8 @@ class SocketService {
         this.socket?.emit('join-ride', { rideId, role });
         console.log(`[Socket] Re-joined ride room: ${rideId} as ${role}`);
       });
+      // Start heartbeat
+      this._startHeartbeat();
     });
 
     this.socket.on('connect_error', (err) => {
@@ -67,7 +69,29 @@ class SocketService {
 
     this.socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
+      this._stopHeartbeat();
     });
+
+    this.socket.on('pong', () => {
+      // Server-side ping/pong logic
+    });
+  }
+
+  private _heartbeatInterval: any = null;
+  private _startHeartbeat() {
+    this._stopHeartbeat();
+    this._heartbeatInterval = setInterval(() => {
+      if (this.socket?.connected) {
+        this.socket.emit('heartbeat', { timestamp: Date.now() });
+      }
+    }, 30000); // every 30s
+  }
+
+  private _stopHeartbeat() {
+    if (this._heartbeatInterval) {
+      clearInterval(this._heartbeatInterval);
+      this._heartbeatInterval = null;
+    }
   }
 
   // Called by api.tsx after a successful token refresh

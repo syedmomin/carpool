@@ -138,8 +138,38 @@ export const initSocket = (server: HttpServer) => {
       }
     });
 
+    // ── Typing status ──────────────────────────────────────────────────────────
+    socket.on('typing-start', ({ bookingId }) => {
+      if (!bookingId) return;
+      socket.to(`chat_${bookingId}`).emit('typing-start', { bookingId, userId: socket.userId });
+    });
+
+    socket.on('typing-stop', ({ bookingId }) => {
+      if (!bookingId) return;
+      socket.to(`chat_${bookingId}`).emit('typing-stop', { bookingId, userId: socket.userId });
+    });
+
+    // ── Read receipts ──────────────────────────────────────────────────────────
+    socket.on('read-messages', async ({ bookingId }) => {
+      if (!bookingId) return;
+      try {
+        await prisma.chatMessage.updateMany({
+          where: { bookingId, senderId: { not: socket.userId }, readAt: null },
+          data: { readAt: new Date() },
+        });
+        socket.to(`chat_${bookingId}`).emit('messages-read', { bookingId, userId: socket.userId });
+      } catch (err) {
+        console.error('[Socket] read-messages error:', err);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] User disconnected: ${socket.id}`);
+    });
+
+    socket.on('heartbeat', (data) => {
+      // Just log or update last active status if needed
+      // console.log(`[Socket] Heartbeat from ${socket.userId}:`, data);
     });
   });
 

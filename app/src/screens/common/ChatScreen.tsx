@@ -12,33 +12,105 @@ import { socketService } from '../../services/socket.service';
 import { chatApi } from '../../services/api';
 
 export default function ChatScreen({ route, navigation }) {
-  const { bookingId, otherUser, rideInfo } = route.params || {};
+  const { bookingId, otherUser: initialOtherUser, rideInfo: initialRideInfo } = route.params || {};
   const { currentUser } = useApp();
   const { showToast } = useToast();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [fetchingInfo, setFetchingInfo] = useState(!initialOtherUser);
+  const [otherUser, setOtherUser] = useState(initialOtherUser);
+  const [rideInfo, setRideInfo] = useState(initialRideInfo);
   const [sending, setSending] = useState(false);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!initialOtherUser) {
+      fetchBookingInfo();
+    }
+  }, [bookingId]);
+
+  const fetchBookingInfo = async () => {
+    try {
+      const { bookingsApi } = require('../../services/api');
+      const { data, error } = await bookingsApi.getById(bookingId);
+      if (data?.data) {
+        const b = data.data;
+        const isDriver = b.ride.driverId === currentUser.id;
+        setOtherUser(isDriver ? b.passenger : b.ride.driver);
+        setRideInfo({ label: `${b.ride.fromCity} → ${b.ride.toCity}` });
+      }
+    } catch (err) {
+      console.error('[ChatScreen] Failed to fetch booking info:', err);
+    } finally {
+      setFetchingInfo(false);
+    }
+  };
 
   useEffect(() => {
     fetchHistory();
     socketService.connect();
     socketService.socket?.emit('join-chat', { bookingId });
 
+    // Mark as read on entry
+    socketService.socket?.emit('read-messages', { bookingId });
+
     const handleNewMessage = (msg: any) => {
       setMessages(prev => [...prev, msg]);
-      // Small delay to ensure list has rendered the new item
+      // Mark as read when new message arrives while active
+      socketService.socket?.emit('read-messages', { bookingId });
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     };
 
+    const handleTypingStart = ({ userId }: any) => {
+      if (userId !== currentUser.id) setIsOtherTyping(true);
+    };
+
+    const handleTypingStop = ({ userId }: any) => {
+      if (userId !== currentUser.id) setIsOtherTyping(false);
+    };
+
+    const handleMessagesRead = ({ userId }: any) => {
+      if (userId !== currentUser.id) {
+        setMessages(prev => prev.map(m => m.senderId === currentUser.id ? { ...m, readAt: new Date() } : m));
+      }
+    };
+
     socketService.on('new-message', handleNewMessage);
+    socketService.on('typing-start', handleTypingStart);
+    socketService.on('typing-stop', handleTypingStop);
+    socketService.on('messages-read', handleMessagesRead);
 
     return () => {
       socketService.off('new-message');
+      socketService.off('typing-start');
+      socketService.off('typing-stop');
+      socketService.off('messages-read');
     };
   }, [bookingId]);
+
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+
+    // Typing start
+    if (text.length > 0 && !inputText) {
+      socketService.socket?.emit('typing-start', { bookingId });
+    }
+
+    // Debounce typing stop
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketService.socket?.emit('typing-stop', { bookingId });
+    }, 2000);
+
+    // Typing stop on clear
+    if (text.length === 0) {
+      socketService.socket?.emit('typing-stop', { bookingId });
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -67,6 +139,7 @@ export default function ChatScreen({ route, navigation }) {
     };
 
     socketService.socket?.emit('send-message', payload);
+    socketService.socket?.emit('typing-stop', { bookingId });
     setInputText('');
     Keyboard.dismiss();
   };
@@ -74,6 +147,7 @@ export default function ChatScreen({ route, navigation }) {
   const renderMessage = ({ item }) => {
     const isMe = item.senderId === currentUser?.id;
     const time = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const isRead = !!item.readAt;
 
     return (
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
@@ -84,9 +158,19 @@ export default function ChatScreen({ route, navigation }) {
           <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
             {item.content}
           </Text>
-          <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>
-            {time}
-          </Text>
+          <View style={styles.messageFooter}>
+            <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>
+              {time}
+            </Text>
+            {isMe && (
+              <Ionicons
+                name="checkmark-done"
+                size={12}
+                color={isRead ? '#4ade80' : 'rgba(255,255,255,0.5)'}
+                style={styles.readIcon}
+              />
+            )}
+          </View>
         </View>
       </View>
     );
@@ -110,7 +194,9 @@ export default function ChatScreen({ route, navigation }) {
         <Avatar name={otherUser?.name} size={36} />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{otherUser?.name || 'User'}</Text>
-          <Text style={styles.headerRide} numberOfLines={1}>{rideInfo?.label || 'Trip Details'}</Text>
+          <Text style={styles.headerRide} numberOfLines={1}>
+            {isOtherTyping ? 'typing...' : (rideInfo?.label || 'Trip Details')}
+          </Text>
         </View>
       </View>
 
@@ -141,7 +227,7 @@ export default function ChatScreen({ route, navigation }) {
             style={styles.input}
             placeholder="Type a message..."
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={handleInputChange}
             multiline
             maxLength={500}
           />
@@ -197,9 +283,11 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15, lineHeight: 20 },
   myText: { color: '#fff' },
   otherText: { color: COLORS.textPrimary },
-  timeText: { fontSize: 9, marginTop: 4, alignSelf: 'flex-end' },
+  messageFooter: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: 4, marginTop: 4 },
+  timeText: { fontSize: 9 },
   myTime: { color: 'rgba(255,255,255,0.7)' },
   otherTime: { color: COLORS.gray },
+  readIcon: { marginLeft: 2 },
 
   inputArea: {
     flexDirection: 'row',

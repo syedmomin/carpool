@@ -8,6 +8,8 @@ import { COLORS } from './theme';
 import { SearchInput } from './Input';
 import { searchCities, POPULAR_CITIES } from '../constants/cities';
 
+import { haptics } from '../utils/haptics';
+
 interface Props {
   visible: boolean;
   title: string;
@@ -29,6 +31,7 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
   };
 
   const handleSelect = (city: string) => {
+    haptics.selection();
     onSelect(city);
     onClose();
   };

@@ -49,6 +49,7 @@ async function bootstrap(): Promise<void> {
   try {
     await prisma.$connect();
     console.log('✅ Database connected');
+    await connectRedis();
     startSchedulers();
     httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 SafariShare API running on port ${PORT} [${ENV}]`);

@@ -101,42 +101,46 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     return withRating(ride);
   }
 
+import { cacheGet, cacheSet } from '../utils/redis';
+
+// ... inside RideService class
+
   // ── Search with stop-based matching ───────────────────────────────────────
   async search(from: string, to: string, date?: string): Promise<any[]> {
-    const fromNorm = from?.trim().toLowerCase();
-    const toNorm   = to?.trim().toLowerCase();
+    const fromNorm = from?.trim();
+    const toNorm   = to?.trim();
 
-    // ── DB-level pre-filter: only load rides that could possibly match ──────
-    // Multi-stop rides always pass through (stop cities are in JSON).
-    // For direct rides, require fromCity or toCity to match the query.
+    // ── Redis Cache Check ─────────────────────────────────────────────────────
+    const cacheKey = `search:${fromNorm || 'any'}:${toNorm || 'any'}:${date || 'any'}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached;
+
+    // ── Fuzzy Search (using ILIKE/Trigram) ────────────────────────────────────
+    // We use a broader query first, then post-filter for multi-stop logic.
+    // If pg_trgm is enabled, we could use % operator or similarity()
     const where: any = {
-      status:     'ACTIVE',
-      bookedSeats: { lt: prisma.ride.fields?.totalSeats as any }, // guarded below
+      status: 'ACTIVE',
       ...(date ? { date } : {}),
     };
 
-    // Build targeted OR filter so we don't pull the entire rides table
     if (fromNorm || toNorm) {
       where.OR = [
-        { isMultiStop: true }, // multi-stop: can't filter stops at DB level without raw SQL
+        { isMultiStop: true },
         ...(fromNorm ? [
-          { fromCity: { equals: fromNorm, mode: 'insensitive' } },
-          { toCity:   { equals: fromNorm, mode: 'insensitive' } },
+          { fromCity: { contains: fromNorm, mode: 'insensitive' } },
+          { from:     { contains: fromNorm, mode: 'insensitive' } },
         ] : []),
         ...(toNorm ? [
-          { toCity:   { equals: toNorm, mode: 'insensitive' } },
-          { fromCity: { equals: toNorm, mode: 'insensitive' } },
+          { toCity: { contains: toNorm, mode: 'insensitive' } },
+          { to:     { contains: toNorm, mode: 'insensitive' } },
         ] : []),
       ];
     }
 
-    // Remove the Prisma fields reference — use JS post-filter for availability
-    delete where.bookedSeats;
-
     const rides = await prisma.ride.findMany({
       where,
-      include:  INCLUDE,
-      orderBy:  { pricePerSeat: 'asc' }, // sort at DB level
+      include: INCLUDE,
+      orderBy: { pricePerSeat: 'asc' },
     });
 
     const matched: any[] = [];
@@ -169,6 +173,7 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
       }));
     }
 
+    await cacheSet(cacheKey, matched, 300); // cache for 5 minutes
     return matched; // already sorted by pricePerSeat at DB level
   }
 

@@ -272,15 +272,14 @@ model RideBid {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   bookingId String
   senderId  String
   content   String
-  createdAt DateTime @default(now())
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId], references: [id])
-
-  @@map("chat_messages")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender    User      @relation(senderId, references: [id])
 }
 
 enum UserRole {

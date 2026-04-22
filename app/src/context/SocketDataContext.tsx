@@ -1,8 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { bookingsApi, ridesApi, scheduleRequestsApi } from '../services/api';
+import { cacheService } from '../services/cache.service';
 
 const DRIVER_CITY_KEY = 'driver_selected_city';
+const CACHE_KEY_BOOKINGS = 'my_bookings';
+const CACHE_KEY_REQUESTS = 'my_requests';
+const CACHE_KEY_RIDES    = 'my_rides';
+const CACHE_KEY_OPEN_REQ = 'open_requests';
+const CACHE_KEY_FEED     = 'available_rides';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -122,6 +128,12 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
   // ── Loaders ───────────────────────────────────────────────────────────────
 
   const loadMyBookings = useCallback(async (force = false) => {
+    // 1. Load from cache first for instant UI response
+    if (!myBookingsState.loaded) {
+      const cached = await cacheService.get(CACHE_KEY_BOOKINGS);
+      if (cached) setMyBookings(cached);
+    }
+
     if (loadingRef.current.bookings) return;
     loadingRef.current.bookings = true;
     setMyBookingsState(s => ({ ...s, loading: true }));
@@ -135,74 +147,99 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       );
       setMyBookings(active);
       setMyBookingsState({ loading: false, loaded: true });
+      await cacheService.set(CACHE_KEY_BOOKINGS, active);
     } catch {
       setMyBookingsState(s => ({ ...s, loading: false }));
     } finally {
       loadingRef.current.bookings = false;
     }
-  }, []);
+  }, [myBookingsState.loaded]);
 
   const loadMyRequests = useCallback(async (force = false) => {
+    if (!myRequestsState.loaded) {
+      const cached = await cacheService.get(CACHE_KEY_REQUESTS);
+      if (cached) setMyRequests(cached);
+    }
+
     if (force) loadingRef.current.requests = false; // clear stuck guard on forced reload
     if (loadingRef.current.requests) return;
     loadingRef.current.requests = true;
     setMyRequestsState(s => ({ ...s, loading: true }));
     try {
       const { data } = await scheduleRequestsApi.getMine();
-      setMyRequests(data?.data ?? []);
+      const items = data?.data ?? [];
+      setMyRequests(items);
       setMyRequestsState({ loading: false, loaded: true });
+      await cacheService.set(CACHE_KEY_REQUESTS, items);
     } catch (e) {
-      console.warn('[SocketData] loadMyRequests failed:', e);
-      setMyRequestsState({ loading: false, loaded: true }); // mark loaded so empty state shows
+      setMyRequestsState({ loading: false, loaded: true });
     } finally {
       loadingRef.current.requests = false;
     }
-  }, []);
+  }, [myRequestsState.loaded]);
 
   const loadMyRides = useCallback(async (force = false) => {
+    if (!myRidesState.loaded) {
+      const cached = await cacheService.get(CACHE_KEY_RIDES);
+      if (cached) setMyRides(cached);
+    }
+
     if (loadingRef.current.rides) return;
     loadingRef.current.rides = true;
     setMyRidesState(s => ({ ...s, loading: true }));
     try {
       const { data } = await ridesApi.myRides(1, 50);
-      setMyRides((data?.data ?? []).map(normalizeRide));
+      const normalized = (data?.data ?? []).map(normalizeRide);
+      setMyRides(normalized);
       setMyRidesState({ loading: false, loaded: true });
+      await cacheService.set(CACHE_KEY_RIDES, normalized);
     } catch {
       setMyRidesState(s => ({ ...s, loading: false }));
     } finally {
       loadingRef.current.rides = false;
     }
-  }, []);
+  }, [myRidesState.loaded]);
 
   const loadOpenRequests = useCallback(async (force = false, city?: string) => {
+    if (!openRequestsState.loaded) {
+      const cached = await cacheService.get(CACHE_KEY_OPEN_REQ);
+      if (cached) setOpenRequests(cached);
+    }
+
     if (loadingRef.current.openRequests) return;
     loadingRef.current.openRequests = true;
     setOpenRequestsState(s => ({ ...s, loading: true }));
     try {
       const selectedCity = city ?? driverCityRef.current;
       const { data } = await scheduleRequestsApi.getOpen(selectedCity || undefined);
-      setOpenRequests(data?.data ?? []);
+      const items = data?.data ?? [];
+      setOpenRequests(items);
       setOpenRequestsState({ loading: false, loaded: true });
+      await cacheService.set(CACHE_KEY_OPEN_REQ, items);
     } catch {
       setOpenRequestsState(s => ({ ...s, loading: false }));
     } finally {
       loadingRef.current.openRequests = false;
     }
-  }, []);
+  }, [openRequestsState.loaded]);
 
   const loadAvailableRides = useCallback(async (page = 1, limit = 50) => {
-    if (loadingRef.current.openRequests) return; // shared loading ref for simplicity or add specific one
+    if (page === 1 && !availableRidesState.loaded) {
+      const cached = await cacheService.get(CACHE_KEY_FEED);
+      if (cached) setAvailableRides(cached);
+    }
+
     setAvailableRidesState(s => ({ ...s, loading: true }));
     try {
       const { data } = await ridesApi.getAll(page, limit);
       const normalized = (data?.data?.data ?? data?.data ?? []).map(normalizeRide);
       setAvailableRides(normalized);
       setAvailableRidesState({ loading: false, loaded: true });
+      if (page === 1) await cacheService.set(CACHE_KEY_FEED, normalized);
     } catch (e) {
-      console.warn('[SocketData] loadAvailableRides failed:', e);
       setAvailableRidesState(s => ({ ...s, loading: false }));
     }
-  }, []);
+  }, [availableRidesState.loaded]);
 
   // ── Booking patch functions ───────────────────────────────────────────────
 

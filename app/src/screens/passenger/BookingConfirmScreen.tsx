@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, GradientHeader, PrimaryButton, GhostButton } from '../../components';
+import { haptics } from '../../utils/haptics';
 
 export default function BookingConfirmScreen({ navigation, route }) {
+  useEffect(() => {
+    haptics.success();
+  }, []);
   const { rideId, seats, rideData } = route.params;
   const ride   = rideData || null;
   const driver = ride?.driver;

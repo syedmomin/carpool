@@ -150,6 +150,7 @@ export default function PostRideScreen({ navigation }) {
       });
       return;
     }
+    haptics.impact();
     try {
       setLoading(true);
       const stopsPayload = isMultiStop
