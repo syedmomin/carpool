@@ -138,7 +138,7 @@ export default function ChatScreen({ route, navigation }) {
       content: inputText.trim(),
     };
 
-    socketService.socket?.emit('send-message', payload);
+    socketService.emitWithQueue('send-message', payload);
     socketService.socket?.emit('typing-stop', { bookingId });
     setInputText('');
     Keyboard.dismiss();

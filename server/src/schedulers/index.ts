@@ -1,6 +1,40 @@
+import cron from 'node-cron';
 import prisma from '../data-source';
 import { notify, notifyMany } from '../utils/notificationDispatcher';
 import { getPakistanToday } from '../utils/date';
+
+// ─── mark rides whose departureTime has passed TODAY ───────────────────────
+export async function markPastDepartureRidesAsExpired(): Promise<void> {
+  const today = getPakistanToday();
+  const now = new Date();
+  
+  // Format current time as HH:mm in PKT
+  // DB stores times in 24h format "HH:mm"
+  const pktTime = now.toLocaleTimeString('en-GB', { 
+    timeZone: 'Asia/Karachi', 
+    hour12: false, 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+
+  const expiring = await prisma.ride.findMany({
+    where: {
+      date: today,
+      status: 'ACTIVE',
+      departureTime: { lt: pktTime },
+      bookings: { none: {} }
+    }
+  });
+
+  if (!expiring.length) return;
+
+  await prisma.ride.updateMany({
+    where: { id: { in: expiring.map(r => r.id) } },
+    data: { status: 'EXPIRED' }
+  });
+
+  console.log(`[Cron] Expired ${expiring.length} rides whose departure time passed today (${pktTime})`);
+}
 
 // ─── Auto-expire rides that passed with NO bookings at all ───────────────────
 export async function expireRidesWithNoBookings(): Promise<void> {
@@ -167,40 +201,36 @@ export async function cleanOldChatMessages(): Promise<void> {
 }
 
 // ─── Bootstrap all schedulers ────────────────────────────────────────────────
-// Called once from server startup. Uses setInterval — no external cron dependency.
+// Now using node-cron for precise hourly/daily execution
 export function startSchedulers(): void {
-  const HOUR = 60 * 60 * 1000;
-  const DAY  = 24 * HOUR;
+  // Every hour on the dot
+  cron.schedule('0 * * * *', async () => {
+    console.log('[Cron] Running hourly ride cleanup...');
+    try {
+      await markPastDepartureRidesAsExpired();
+      await completeExpiredRides();
+      await expireRidesWithNoBookings();
+      await expireOldScheduleRequests();
+    } catch (e) {
+      console.error('[Cron] Hourly job failed:', e);
+    }
+  });
 
-  // Run once immediately on boot, then every 6 hours
-  completeExpiredRides().catch(e => console.error('[Scheduler] completeExpiredRides error:', e));
-  setInterval(() => {
-    completeExpiredRides().catch(e => console.error('[Scheduler] completeExpiredRides error:', e));
-  }, 6 * HOUR);
+  // Every day at 2 AM
+  cron.schedule('0 2 * * *', async () => {
+    console.log('[Cron] Running daily maintenance...');
+    try {
+      await cleanAllOldNotifications();
+      await cleanOldChatMessages();
+    } catch (e) {
+      console.error('[Cron] Daily job failed:', e);
+    }
+  });
 
-  // Expire rides with no bookings — run on boot then every 6 hours
-  expireRidesWithNoBookings().catch(e => console.error('[Scheduler] expireRidesWithNoBookings error:', e));
-  setInterval(() => {
-    expireRidesWithNoBookings().catch(e => console.error('[Scheduler] expireRidesWithNoBookings error:', e));
-  }, 6 * HOUR);
-
-  // Run once on boot, then every 24 hours
-  cleanAllOldNotifications().catch(e => console.error('[Scheduler] cleanOldNotifications error:', e));
-  setInterval(() => {
-    cleanAllOldNotifications().catch(e => console.error('[Scheduler] cleanOldNotifications error:', e));
-  }, DAY);
-
-  // Expire old schedule requests — run on boot then every 6 hours
-  expireOldScheduleRequests().catch(e => console.error('[Scheduler] expireOldScheduleRequests error:', e));
-  setInterval(() => {
-    expireOldScheduleRequests().catch(e => console.error('[Scheduler] expireOldScheduleRequests error:', e));
-  }, 6 * HOUR);
-
-  // Clean old chat messages — run on boot then every 24 hours
-  cleanOldChatMessages().catch(e => console.error('[Scheduler] cleanOldChatMessages error:', e));
-  setInterval(() => {
-    cleanOldChatMessages().catch(e => console.error('[Scheduler] cleanOldChatMessages error:', e));
-  }, DAY);
-
-  console.log('⏰ Schedulers started (rides: 6h, notifications/chat: 24h)');
+  console.log('⏰ Schedulers initialized with node-cron');
+  
+  // Optional: Run once on boot to catch missed periods
+  markPastDepartureRidesAsExpired().catch(() => {});
+  completeExpiredRides().catch(() => {});
+  expireRidesWithNoBookings().catch(() => {});
 }

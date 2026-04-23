@@ -1,4 +1,5 @@
 import { Ride } from '@prisma/client';
+import { cacheGet, cacheSet } from '../utils/redis';
 import prisma from '../data-source';
 import { BaseService } from './base.service';
 import { PaginationQuery } from '../types';
@@ -101,9 +102,6 @@ export class RideService extends BaseService<Ride, CreateRideDto, UpdateRideDto>
     return withRating(ride);
   }
 
-import { cacheGet, cacheSet } from '../utils/redis';
-
-// ... inside RideService class
 
   // ── Search with stop-based matching ───────────────────────────────────────
   async search(from: string, to: string, date?: string): Promise<any[]> {

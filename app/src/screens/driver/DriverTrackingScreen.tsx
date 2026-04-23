@@ -79,7 +79,7 @@ export const DriverTrackingScreen = () => {
     setIsTracking(true);
 
     // Start background tracking for robust operation
-    await locationService.startBackgroundTracking();
+    await locationService.startBackgroundTracking(rideId);
 
     // Start foreground tracking to get real-time quick updates for the UX
     await locationService.startForegroundTracking((location) => {

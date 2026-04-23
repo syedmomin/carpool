@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
-
-const LOCATION_TASK_NAME = 'background-location-task';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY } from '../tasks/locationTask';
 
 class LocationService {
   async requestPermissions(): Promise<boolean> {
@@ -36,20 +36,22 @@ class LocationService {
     return subscription;
   }
 
-  // NOTE: Background tracking requires TaskManager to be registered in the global scope (usually App.js/ts)
-  async startBackgroundTracking(): Promise<void> {
+  async startBackgroundTracking(rideId: string): Promise<void> {
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
 
+    // Save Ride ID so the background task knows which ride to update
+    await AsyncStorage.setItem(TRACKING_RIDE_ID_KEY, rideId);
+
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Balanced,
-      timeInterval: 10000,
-      distanceInterval: 30, // Every 30 meters
+      timeInterval: 15000, // 15 seconds for background is good
+      distanceInterval: 40, // Every 40 meters
       showsBackgroundLocationIndicator: true,
       foregroundService: {
-        notificationTitle: 'Tracking Active Ride',
-        notificationBody: 'Your location is being shared with riders.',
-        notificationColor: '#333333',
+        notificationTitle: 'Ride Tracking Active',
+        notificationBody: 'Sharing your real-time location with passengers.',
+        notificationColor: '#0d1b4b',
       },
     });
   }
@@ -59,8 +61,8 @@ class LocationService {
     if (isStarted) {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
     }
+    await AsyncStorage.removeItem(TRACKING_RIDE_ID_KEY);
   }
 }
 
 export const locationService = new LocationService();
-export { LOCATION_TASK_NAME };

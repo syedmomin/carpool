@@ -16,6 +16,7 @@ export async function sendPushNotification(
   title: string,
   body: string,
   data: Record<string, string> = {},
+  categoryId?: string,
 ): Promise<boolean> {
   try {
     await messaging.send({
@@ -29,11 +30,16 @@ export async function sendPushNotification(
           channelId: 'safarishare_default',
           priority:  'max',
           icon:      'notification_icon',
+          clickAction: categoryId, // For interactive buttons on Android
         },
       },
       apns: {
         payload: {
-          aps: { sound: 'default', badge: 1 },
+          aps: { 
+            sound: 'default', 
+            badge: 1,
+            category: categoryId, // For interactive buttons on iOS
+          },
         },
       },
     });

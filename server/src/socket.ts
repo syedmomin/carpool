@@ -38,8 +38,29 @@ export const initSocket = (server: HttpServer) => {
     }
   });
 
+  // ─── Rate Limiting State ───────────────────────────────────────────────────
+  const messageCounts = new Map<string, number>();
+  const MESSAGE_LIMIT = 5; // 5 messages per second
+  const LIMIT_WINDOW = 1000; // 1 second
+
+  setInterval(() => messageCounts.clear(), LIMIT_WINDOW);
+
   io.on('connection', (socket: Socket) => {
     console.log(`[Socket] User connected: ${socket.id} (userId: ${socket.userId})`);
+
+    // ── Rate Limit Middleware (per socket) ──
+    socket.use(([event, ...args], next) => {
+      // We only rate limit 'incoming' data events from client
+      const count = messageCounts.get(socket.id) || 0;
+      if (count >= MESSAGE_LIMIT) {
+        console.warn(`[Socket] Throttling ${socket.id} - limit exceeded`);
+        // Silently drop or warn the client
+        socket.emit('warning', { message: 'Message rate limit exceeded. Please slow down.' });
+        return; // drop message
+      }
+      messageCounts.set(socket.id, count + 1);
+      next();
+    });
 
     // ── Personal notifications room — only join YOUR OWN room ────────────────
     socket.on('join-user', (userId: string) => {

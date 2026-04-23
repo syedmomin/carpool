@@ -1,37 +1,34 @@
-import { createClient } from 'redis';
+import Redis from 'ioredis';
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
+const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: 3,
 });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisClient.on('error', (err: any) => console.log('Redis Client Error', err));
 
 let isConnected = false;
 
+redisClient.on('connect', () => {
+  isConnected = true;
+  console.log('[Redis] Connected successfully');
+});
+
 export const connectRedis = async () => {
-  if (isConnected) return;
-  try {
-    await redisClient.connect();
+  // ioredis connects automatically, we just wait for it if needed
+  if (redisClient.status === 'ready') {
     isConnected = true;
-    console.log('[Redis] Connected successfully');
-  } catch (err) {
-    console.warn('[Redis] Connection failed, caching will be disabled.', err);
   }
 };
 
 export const cacheSet = async (key: string, value: any, expirySeconds = 300) => {
-  if (!isConnected) return;
   try {
-    await redisClient.set(key, JSON.stringify(value), {
-      EX: expirySeconds,
-    });
+    await redisClient.set(key, JSON.stringify(value), 'EX', expirySeconds);
   } catch (err) {
     console.error('[Redis] Cache Set Error:', err);
   }
 };
 
 export const cacheGet = async (key: string) => {
-  if (!isConnected) return null;
   try {
     const data = await redisClient.get(key);
     return data ? JSON.parse(data) : null;
@@ -42,7 +39,6 @@ export const cacheGet = async (key: string) => {
 };
 
 export const cacheDel = async (key: string) => {
-  if (!isConnected) return;
   try {
     await redisClient.del(key);
   } catch (err) {

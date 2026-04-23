@@ -24,6 +24,7 @@ export interface NotifyPayload {
   fcmToken?: string | null;  // pass if already known — avoids extra DB query
   socketEvent?: string;      // socket event name to emit to user room
   socketData?:  any;         // payload for the socket event
+  categoryId?:  string;      // For interactive notifications
 }
 
 export interface NotifyManyPayload {
@@ -47,6 +48,12 @@ export async function notify(payload: NotifyPayload): Promise<void> {
     });
   } catch (e) { console.error('[Notify] DB create failed:', e); }
 
+  // Auto-assign category for specific types if not provided
+  let finalCategoryId = payload.categoryId;
+  if (!finalCategoryId && type === 'BOOKING') {
+    finalCategoryId = 'BOOKING_REQUEST';
+  }
+
   // 2. FCM push — resolve token if not already provided
   try {
     let token = fcmToken;
@@ -58,7 +65,7 @@ export async function notify(payload: NotifyPayload): Promise<void> {
       sendPushNotification(token, title, message, {
         ...(rideId ? { rideId } : {}),
         type,
-      }).catch(e => console.error('[Notify] FCM failed:', e));
+      }, finalCategoryId).catch(e => console.error('[Notify] FCM failed:', e));
     }
   } catch (e) { console.error('[Notify] FCM lookup failed:', e); }
 

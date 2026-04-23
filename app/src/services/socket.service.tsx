@@ -21,6 +21,7 @@ class SocketService {
   // Track ride rooms so they auto-rejoin on every reconnect
   private _rideRooms: Map<string, 'driver' | 'rider'> = new Map();
   private _appState: AppStateStatus = AppState.currentState;
+  private _queuedEvents: { event: string; data: any }[] = [];
 
   constructor() {
     AppState.addEventListener('change', this._handleAppStateChange);
@@ -54,13 +55,15 @@ class SocketService {
       if (this._userId) {
         this.socket?.emit('join-user', this._userId);
       }
-      // Re-join all ride rooms (background → foreground, token refresh, etc.)
+      // Re-join all ride rooms
       this._rideRooms.forEach((role, rideId) => {
         this.socket?.emit('join-ride', { rideId, role });
-        console.log(`[Socket] Re-joined ride room: ${rideId} as ${role}`);
       });
       // Start heartbeat
       this._startHeartbeat();
+
+      // ── Flush Queued Events ──
+      this._flushQueue();
     });
 
     this.socket.on('connect_error', (err) => {
@@ -77,6 +80,14 @@ class SocketService {
     });
   }
 
+  private _flushQueue() {
+    if (!this.socket?.connected || this._queuedEvents.length === 0) return;
+    console.log(`[Socket] Flushing ${this._queuedEvents.length} queued events...`);
+    const events = [...this._queuedEvents];
+    this._queuedEvents = [];
+    events.forEach(({ event, data }) => this.socket?.emit(event, data));
+  }
+
   private _heartbeatInterval: any = null;
   private _startHeartbeat() {
     this._stopHeartbeat();
@@ -91,6 +102,16 @@ class SocketService {
     if (this._heartbeatInterval) {
       clearInterval(this._heartbeatInterval);
       this._heartbeatInterval = null;
+    }
+  }
+
+  // ── Emit with Queue (Auto-retry logic) ──
+  emitWithQueue(event: string, data: any): void {
+    if (this.socket?.connected) {
+      this.socket.emit(event, data);
+    } else {
+      console.log(`[Socket] Offline. Queuing '${event}' event.`);
+      this._queuedEvents.push({ event, data });
     }
   }
 

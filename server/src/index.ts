@@ -14,6 +14,7 @@ import prisma from './data-source';
 import { createServer } from 'http';
 import { initSocket } from './socket';
 import { startSchedulers } from './schedulers';
+import { connectRedis } from './utils/redis';
 
 const app = express();
 const httpServer = createServer(app);

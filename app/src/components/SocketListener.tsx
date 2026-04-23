@@ -4,6 +4,7 @@ import { useSocketData } from '../context/SocketDataContext';
 import { useToast } from '../context/ToastContext';
 import { socketService } from '../services/socket.service';
 import { useGlobalModal } from '../context/GlobalModalContext';
+import { bookingsApi } from '../services/api';
 import ReviewModal from './ReviewModal';
 
 /**
@@ -59,7 +60,24 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
               socketData.patchBookingInRide(data.rideId, data.booking.id, data.booking);
             }
           }
-          showToast('New booking request received! 🚕', 'info');
+          
+          showModal({
+            type: 'confirm',
+            title: 'New Ride Request! 🚗',
+            message: `${data.booking?.passenger?.name || 'A passenger'} wants to join your ride to ${data.booking?.exitCity}.\nSeats: ${data.seats}`,
+            confirmText: 'Accept',
+            cancelText: 'Decline',
+            onConfirm: async () => {
+              const { error } = await bookingsApi.accept(data.booking.id);
+              if (error) showToast(error, 'error');
+              else showToast('Booking Accepted!', 'success');
+            },
+            onCancel: async () => {
+              const { error } = await bookingsApi.reject(data.booking.id);
+              if (error) showToast(error, 'error');
+              else showToast('Booking Declined', 'info');
+            }
+          });
         }
       },
 
@@ -181,7 +199,15 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'PASSENGER') {
           incrementUnreadCount();
           socketData.upsertBidInRequest(data.scheduleRequestId, data.bid);
-          showToast(`New bid: Rs ${data.bid?.pricePerSeat}/seat — check your requests! 💰`, 'info');
+          
+          // InDrive-style Bid Popup for Passenger
+          showModal({
+            type: 'success',
+            title: 'New Bid Received! 💰',
+            message: `Driver ${data.bid?.driver?.name} offered Rs ${data.bid?.pricePerSeat} for your ${data.fromCity} → ${data.toCity} trip.`,
+            confirmText: 'View Bids',
+            onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestDetail', params: { requestId: data.scheduleRequestId } }),
+          });
         }
       },
 

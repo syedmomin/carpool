@@ -1,4 +1,3 @@
-import axios from 'axios';
 import prisma from '../data-source';
 
 class RoutingService {
@@ -19,7 +18,8 @@ class RoutingService {
     }
 
     // 2. Fetch from OpenRouteService
-    if (!process.env.OPENROUTESERVICE_API_KEY) {
+    const apiKey = process.env.OPENROUTESERVICE_API_KEY;
+    if (!apiKey) {
       console.warn('⚠️ OPENROUTESERVICE_API_KEY is not defined. Returning direct line stub.');
       return {
         polyline: [[startLng, startLat], [endLng, endLat]],
@@ -29,15 +29,15 @@ class RoutingService {
     }
 
     try {
-      const response = await axios.get(this.apiUrl, {
-        params: {
-          api_key: process.env.OPENROUTESERVICE_API_KEY,
-          start: `${startLng},${startLat}`,
-          end: `${endLng},${endLat}`
-        }
-      });
+      const url = `${this.apiUrl}?api_key=${apiKey}&start=${startLng},${startLat}&end=${endLng},${endLat}`;
+      const response = await fetch(url);
+      const data: any = await response.json();
 
-      const feature = response.data.features?.[0];
+      if (!response.ok) {
+        throw new Error(`OpenRouteService error: ${response.statusText}`);
+      }
+
+      const feature = data.features?.[0];
       if (!feature) {
         throw new Error('No route found from OpenRouteService');
       }
