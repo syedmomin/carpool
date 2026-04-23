@@ -222,6 +222,8 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }));
 
     if (existing) {
+      const { error } = await vehiclesApi.update(vehicleId, formData);
+      setLoading(false);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       haptics.success();
       showToast('Vehicle updated successfully!', 'success');
@@ -542,8 +544,8 @@ const styles = StyleSheet.create({
 
   // Features
   featureHint:    { fontSize: 12, color: COLORS.gray, marginBottom: 12, marginTop: -6, lineHeight: 18 },
-  featuresGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  featureChip:    { width: '48.5%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  featuresGrid:   { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  featureChip:    { width: '48%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
   featureChipActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
   featureIconBox:    { width: 28, height: 28, borderRadius: 8, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
   featureIconBoxActive: { backgroundColor: COLORS.primary },

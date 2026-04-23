@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import axios from 'axios';
 import { API_BASE_URL } from '../../config/network';
 import { MapTracker } from '../../components/MapTracker';
 import { socketService } from '../../services/socket.service';
@@ -41,7 +40,7 @@ export const DriverTrackingScreen = () => {
     setLoading(true);
     try {
       const [routeRes, rideRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/tracking/route/${rideId}`),
+        fetch(`${API_BASE_URL}/tracking/route/${rideId}`).then(r => r.json()),
         ridesApi.getById(rideId)
       ]);
 

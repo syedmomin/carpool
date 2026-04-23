@@ -36,6 +36,21 @@ export const errorHandler = (
   if (err.name === 'JsonWebTokenError') { ResponseUtil.unauthorized(res, 'Invalid token'); return; }
   if (err.name === 'TokenExpiredError') { ResponseUtil.unauthorized(res, 'Token expired');  return; }
 
+  // Multer errors (file upload validation)
+  if (err.name === 'MulterError') {
+    const multerErr = err as any;
+    if (multerErr.code === 'LIMIT_FILE_SIZE') {
+      ResponseUtil.badRequest(res, 'File too large. Maximum size is 10MB');
+    } else {
+      ResponseUtil.badRequest(res, multerErr.message || 'File upload error');
+    }
+    return;
+  }
+  if ((err as any).status === 400 && err.message?.includes('image')) {
+    ResponseUtil.badRequest(res, err.message);
+    return;
+  }
+
   // Database / TLS connection errors — never leak internals
   const msg = err.message || '';
   if (

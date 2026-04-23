@@ -41,7 +41,7 @@ class SocketService {
     if (this.socket?.connected) return;
     const token = await tokenStorage.get();
     this.socket = io(this.URL, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       auth: { token },
       reconnection: true,
       reconnectionAttempts: 15,

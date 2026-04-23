@@ -66,18 +66,20 @@ export default function MyVehiclesScreen({ navigation }) {
             <View style={[styles.typeIconBox, item.isActive && styles.typeIconBoxActive]}>
               <Ionicons name={typeIcon} size={18} color={item.isActive ? '#fff' : COLORS.primary} />
             </View>
-            <View>
-              <Text style={styles.vehicleBrand}>{item.brand}</Text>
-              <Text style={styles.vehicleModelSub}>{item.model || item.type}</Text>
+            <View style={styles.brandInfo}>
+              <Text style={styles.vehicleBrand} numberOfLines={1}>{item.brand}</Text>
+              <Text style={styles.vehicleModelSub} numberOfLines={1}>{item.model || item.type}</Text>
             </View>
+          </View>
+          <View style={styles.headerRight}>
             {item.isActive && (
               <View style={styles.activeBadge}>
                 <View style={styles.pulseDot} />
                 <Text style={styles.activeBadgeText}>ACTIVE</Text>
               </View>
             )}
+            <Text style={styles.plateBadge}>{item.plateNumber}</Text>
           </View>
-          <Text style={styles.plateBadge}>{item.plateNumber}</Text>
         </View>
 
         {/* ── Image + Specs ───────────────────────────────────────────────────── */}
@@ -246,8 +248,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
+    gap: 10,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  brandRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
+  brandInfo:  { flex: 1, minWidth: 0 },
+  headerRight:{ flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 },
   typeIconBox: {
     width: 38, height: 38, borderRadius: 12,
     backgroundColor: COLORS.primary + '12',
