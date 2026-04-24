@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   reviewerName: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 3 },
   reviewDate: { fontSize: 11, color: COLORS.gray },
   reviewComment: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20 },
-  bookingBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 78, borderTopWidth: 1, borderTopColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
+  bookingBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 18, borderTopWidth: 1, borderTopColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
   seatsSelector: { flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 8 },
   seatsSelectorLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   seatBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
