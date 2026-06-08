@@ -3,9 +3,9 @@ const PRODUCTION_URL = 'https://app-server-t62hcw.fly.dev';
 const DEV_SERVER_PORT = 5000;
 
 function getServerUrl(): string {
-  // if (Platform.OS === 'web') {
-  //   return `http://localhost:${DEV_SERVER_PORT}`;
-  // }
+  if (Platform.OS === 'web') {
+    return `http://localhost:${DEV_SERVER_PORT}`;
+  }
   return PRODUCTION_URL;
 }
 

@@ -1,6 +1,0 @@
-node_modules/
-dist/
-# *.log
-prisma/migrations/
-*firebase-admin*.json
-firebase-service-account.json
