@@ -21,6 +21,7 @@ interface FormInputProps {
   error?: boolean;
   errorMsg?: string;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  maxLength?: number;
 }
 export const FormInput: React.FC<FormInputProps> = ({
   label,
@@ -39,6 +40,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   error,
   errorMsg,
   autoCapitalize,
+  maxLength,
 }) => (
   <View style={[styles.wrapper, style]}>
     {label && <Text style={[styles.label, error && { color: COLORS.danger }]}>{label}</Text>}
@@ -56,6 +58,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         multiline={multiline}
         numberOfLines={numberOfLines}
         autoCapitalize={autoCapitalize}
+        maxLength={maxLength}
       />
       {rightIcon && (
         <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>

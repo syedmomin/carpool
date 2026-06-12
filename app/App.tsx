@@ -8,23 +8,10 @@ import { GlobalModalProvider } from "./src/context/GlobalModalContext";
 import AppNavigator from "./src/navigation/AppNavigator";
 import SocketListener from "./src/components/SocketListener";
 import { SocketDataProvider } from "./src/context/SocketDataContext";
-import {
-  registerForPushNotifications,
-  setupNotificationListeners,
-} from "./src/utils/notifications";
-import { profileApi } from "./src/services/api";
+import { setupNotificationListeners } from "./src/utils/notifications";
 
 export default function App() {
   const navigationRef = useRef(null);
-
-  useEffect(() => {
-    // Register for push notifications on app start
-    registerForPushNotifications().then((token) => {
-      if (token) {
-        profileApi.updateFcmToken(token).catch(() => {});
-      }
-    });
-  }, []);
 
   useEffect(() => {
     // Wire notification tap navigation once navigation is ready

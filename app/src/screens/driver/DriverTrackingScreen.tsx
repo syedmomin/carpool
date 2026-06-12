@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { API_BASE_URL } from '../../config/network';
 import { MapTracker } from '../../components/MapTracker';
 import { socketService } from '../../services/socket.service';
 import { locationService } from '../../services/location.service';
-import { ridesApi } from '../../services/api';
+import { ridesApi, trackingApi } from '../../services/api';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../components';
@@ -40,13 +39,12 @@ export const DriverTrackingScreen = () => {
     setLoading(true);
     try {
       const [routeRes, rideRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/tracking/route/${rideId}`).then(r => r.json()),
+        trackingApi.getRoute(rideId),
         ridesApi.getById(rideId)
       ]);
 
-      if (routeRes.data.success) {
-        setRoutePolyline(routeRes.data.data.polyline);
-      }
+      const polyline = routeRes.data?.data?.polyline;
+      if (polyline) setRoutePolyline(polyline);
       
       const ride = rideRes.data?.data || rideRes.data;
       if (ride) {

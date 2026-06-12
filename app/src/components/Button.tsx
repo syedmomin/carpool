@@ -14,15 +14,16 @@ interface ButtonProps {
   color?: string;
   size?: number;
   bg?: string;
+  disabled?: boolean;
 }
 
 // ─── Primary Button (Gradient) ───────────────────────────────────────────────
-export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, colors }) => (
+export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, colors, disabled }) => (
   <TouchableOpacity
     onPress={onPress}
-    disabled={!!loading}
+    disabled={!!loading || !!disabled}
     activeOpacity={0.85}
-    style={[styles.container, style]}
+    style={[styles.container, disabled && styles.disabled, style]}
   >
     <LinearGradient
       colors={(colors || GRADIENTS.primary) as any}
@@ -83,6 +84,7 @@ export const FAB: React.FC<ButtonProps> = ({ icon, onPress, colors, style }) => 
 
 const styles = StyleSheet.create({
   container: { borderRadius: RADIUS.md, overflow: 'hidden' },
+  disabled: { opacity: 0.5 },
   gradient: {
     flexDirection: 'row',
     alignItems: 'center',

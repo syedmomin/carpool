@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { secureStorage } from '../utils/secureStorage';
 import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi, setLogoutHandler } from '../services/api';
+import { registerForPushNotifications } from '../utils/notifications';
 
 const USER_STORAGE_KEY = '@chalparo_user';
 const ROLE_STORAGE_KEY = '@chalparo_role';
@@ -109,7 +110,14 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try { await authApi.logout(); } catch (_) { /* best-effort server-side invalidation */ }
+    // Only hit the server while we still hold a token. Without this guard a
+    // forced logout (401 → clearAll → onLogout → logout) would call the
+    // tokenless /auth/logout endpoint, get another 401, and recurse forever —
+    // flooding the server with requests and its error log with 401 stacks.
+    const token = await tokenStorage.get();
+    if (token) {
+      try { await authApi.logout(); } catch (_) { /* best-effort server-side invalidation */ }
+    }
     await tokenStorage.clearAll();
     setCurrentUser(null);
     setUserRole(null);
@@ -228,6 +236,17 @@ export const AppProvider = ({ children }) => {
   };
 
   const incrementUnreadCount = () => setUnreadCount(prev => prev + 1);
+
+  // Once authenticated: sync the unread badge with the server (it starts at 0
+  // and was previously never initialized) and (re)register the FCM token so a
+  // fresh login persists it — not only a cold start of an already-logged-in user.
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    refreshUnreadCount();
+    registerForPushNotifications().then(token => {
+      if (token) profileApi.updateFcmToken(token).catch(() => {});
+    });
+  }, [currentUser?.id]);
 
   // ─── Schedule Alerts ─────────────────────────────────────────────────────
   const addScheduleAlert = async ({ date, from, to }) => {

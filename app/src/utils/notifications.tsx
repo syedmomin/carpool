@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { profileApi } from '../services/api';
 
 let messaging;
 if (Platform.OS === 'web') {
@@ -42,6 +43,12 @@ export function setupNotificationListeners(navigation) {
     console.log('[Notifications] Foreground message:', remoteMessage);
   });
 
+  // FCM rotates tokens (reinstall, restore, periodic). Without this the server
+  // keeps a stale token and every push silently fails after rotation.
+  const unsubTokenRefresh = messaging().onTokenRefresh(token => {
+    profileApi.updateFcmToken(token).catch(() => {});
+  });
+
   const unsubBackground = messaging().onNotificationOpenedApp(remoteMessage => {
     const data = remoteMessage?.data;
     if (data?.screen && navigation) navigateTo(navigation, data);
@@ -58,6 +65,7 @@ export function setupNotificationListeners(navigation) {
   return () => {
     unsubForeground();
     unsubBackground();
+    unsubTokenRefresh();
   };
 }
 

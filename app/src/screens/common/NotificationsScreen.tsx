@@ -9,13 +9,20 @@ import { notificationsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 
 const PAGE_SIZE = 20;
+// Keys MUST match the server NotificationType enum (notificationDispatcher.ts) — all uppercase.
 const TYPE_CONFIG = {
-  BOOKING:  { icon: 'checkmark-circle', color: COLORS.secondary, bg: '#e8f5e9' },
-  booking:  { icon: 'checkmark-circle', color: COLORS.secondary, bg: '#e8f5e9' },
-  request:  { icon: 'person-add',       color: COLORS.primary,   bg: '#eff6ff' },
-  reminder: { icon: 'alarm',            color: COLORS.accent,    bg: '#fff8e1' },
-  new_ride: { icon: 'car-sport',        color: COLORS.teal,      bg: '#e0f2f1' },
-  default:  { icon: 'notifications',    color: COLORS.gray,      bg: COLORS.lightGray },
+  BOOKING:          { icon: 'checkmark-circle', color: COLORS.secondary, bg: '#e8f5e9' },
+  NEW_RIDE:         { icon: 'car-sport',        color: COLORS.teal,      bg: '#e0f2f1' },
+  RIDE:             { icon: 'car',              color: COLORS.teal,      bg: '#e0f2f1' },
+  RIDE_CANCELLED:   { icon: 'close-circle',     color: COLORS.danger,    bg: '#fde8e8' },
+  RIDE_EXPIRED:     { icon: 'time',             color: COLORS.gray,      bg: COLORS.lightGray },
+  SCHEDULE_REQUEST: { icon: 'person-add',       color: COLORS.primary,   bg: '#eff6ff' },
+  RIDE_BID:         { icon: 'cash',             color: COLORS.accent,    bg: '#fff8e1' },
+  BID_ACCEPTED:     { icon: 'checkmark-done-circle', color: COLORS.secondary, bg: '#e8f5e9' },
+  BID_REJECTED:     { icon: 'close-circle',     color: COLORS.danger,    bg: '#fde8e8' },
+  REMINDER:         { icon: 'alarm',            color: COLORS.accent,    bg: '#fff8e1' },
+  SYSTEM:           { icon: 'notifications',    color: COLORS.gray,      bg: COLORS.lightGray },
+  default:          { icon: 'notifications',    color: COLORS.gray,      bg: COLORS.lightGray },
 };
 
 export default function NotificationsScreen({ navigation }) {
@@ -105,7 +112,7 @@ export default function NotificationsScreen({ navigation }) {
         ListFooterComponent={loading ? <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 16 }} /> : null}
         renderItem={({ item }) => {
           const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.default;
-          const isNewRide = item.type === 'new_ride' || item.type === 'BOOKING';
+          const isNewRide = item.type === 'NEW_RIDE' || item.type === 'BOOKING';
           const isRead    = item.read ?? false;
           const timeLabel = item.time ?? (item.createdAt ? new Date(item.createdAt).toLocaleString('en-PK', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '');
 

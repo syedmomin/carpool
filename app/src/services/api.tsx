@@ -103,9 +103,9 @@ function parseError(json, status) {
 }
 
 // ─── Core request ─────────────────────────────────────────────────────────────
-async function request(method, path, body = null, isRetry = false) {
+async function request(method, path, body = null, isRetry = false, timeout = DEFAULT_TIMEOUT) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
 
   try {
     const token = await tokenStorage.get();
@@ -131,7 +131,7 @@ async function request(method, path, body = null, isRetry = false) {
     // ─── Handle token expiry (401) ───
     if (res.status === 401 && !isRetry && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
       const refreshed = await refreshAccessToken();
-      if (refreshed) return request(method, path, body, true);
+      if (refreshed) return request(method, path, body, true, timeout);
 
       // Refresh failed — force logout
       await tokenStorage.clearAll();
@@ -199,9 +199,9 @@ export const profileApi = {
 
 // ─── Vehicles ────────────────────────────────────────────────────────────────
 export const vehiclesApi = {
-  register: (vehicleData) => request('POST', '/vehicles', vehicleData),
+  register: (vehicleData) => request('POST', '/vehicles', vehicleData, false, 30000),
   getById: (vehicleId) => request('GET', `/vehicles/${vehicleId}`),
-  update: (vehicleId, updates) => request('PUT', `/vehicles/${vehicleId}`, updates),
+  update: (vehicleId, updates) => request('PUT', `/vehicles/${vehicleId}`, updates, false, 30000),
   delete: (vehicleId) => request('DELETE', `/vehicles/${vehicleId}`),
   setActive: (vehicleId) => request('POST', `/vehicles/${vehicleId}/activate`),
   myVehicles: () => request('GET', '/vehicles/mine'),

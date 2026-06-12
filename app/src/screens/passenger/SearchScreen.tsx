@@ -349,7 +349,7 @@ export default function SearchScreen({ navigation, route }) {
           </View>
 
           {/* Search Button */}
-          <TouchableOpacity style={styles.searchBtn} onPress={doSearch} disabled={loading}>
+          <TouchableOpacity style={styles.searchBtn} onPress={() => doSearch()} disabled={loading}>
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
