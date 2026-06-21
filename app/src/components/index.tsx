@@ -60,6 +60,9 @@ export { default as AuthHeader } from './AuthHeader';
 export { default as Logo } from './Logo';
 export type { LogoVariant } from './Logo';
 
+// ─── Route Loader (animated curved path) ──────────────────────────────────────
+export { default as RouteLoader } from './RouteLoader';
+
 // ─── Illustrations ────────────────────────────────────────────────────────────
 export {
   SplashIllustration,
