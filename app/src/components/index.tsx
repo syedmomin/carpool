@@ -53,6 +53,13 @@ export { default as Toast } from './Toast';
 // ─── City Search Modal (shared) ───────────────────────────────────────────────
 export { default as CitySearchModal } from './CitySearchModal';
 
+// ─── Auth Header (shared curved blue header + logo) ───────────────────────────
+export { default as AuthHeader } from './AuthHeader';
+
+// ─── Logo (centralized, variant-based) ────────────────────────────────────────
+export { default as Logo } from './Logo';
+export type { LogoVariant } from './Logo';
+
 // ─── Illustrations ────────────────────────────────────────────────────────────
 export {
   SplashIllustration,
