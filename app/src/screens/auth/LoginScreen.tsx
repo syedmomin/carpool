@@ -97,56 +97,21 @@ export default function LoginScreen({ navigation }) {
                     {/* Sign In Button */}
                     <TouchableOpacity style={styles.signInBtn} onPress={handleLogin} disabled={loading}>
                         <Text style={styles.signInText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
-                        {!loading && (
-                            <View style={styles.signInIconBox}>
-                                <Ionicons name="arrow-forward" size={16} color="#1565c0" />
-                            </View>
-                        )}
                     </TouchableOpacity>
 
                     {/* Divider */}
                     <View style={styles.dividerContainer}>
                         <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>or</Text>
+                        <Text style={styles.dividerText}>OR</Text>
                         <View style={styles.dividerLine} />
                     </View>
 
                     {/* Create Account Button */}
                     <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('Register')}>
-                        <Ionicons name="person-outline" size={18} color="#1565c0" style={{ marginRight: 8 }} />
+                        <Ionicons name="person-outline" size={18} color="#1a73e8" style={{ marginRight: 8 }} />
                         <Text style={styles.createText}>Create New Account</Text>
                     </TouchableOpacity>
 
-                    {/* Bottom Features Box */}
-                    <View style={styles.featuresBox}>
-                        <View style={styles.featureItem}>
-                            <View style={styles.featureIconBlue}>
-                                <Ionicons name="shield-checkmark" size={16} color="#1565c0" />
-                            </View>
-                            <Text style={styles.featureTitle}>Safe & Secure</Text>
-                            <Text style={styles.featureSub}>Your safety is{'\n'}our priority</Text>
-                        </View>
-
-                        <View style={styles.featureDivider} />
-
-                        <View style={styles.featureItem}>
-                            <View style={styles.featureIconGreen}>
-                                <Ionicons name="people" size={16} color="#2e7d32" />
-                            </View>
-                            <Text style={styles.featureTitle}>Ride Together</Text>
-                            <Text style={styles.featureSub}>Share rides,{'\n'}save money</Text>
-                        </View>
-
-                        <View style={styles.featureDivider} />
-
-                        <View style={styles.featureItem}>
-                            <View style={styles.featureIconLeaf}>
-                                <Ionicons name="leaf" size={16} color="#388e3c" />
-                            </View>
-                            <Text style={styles.featureTitle}>Eco Friendly</Text>
-                            <Text style={styles.featureSub}>Better for you,{'\n'}better for planet</Text>
-                        </View>
-                    </View>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -156,25 +121,27 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: '#fff',
     },
     scrollContent: {
         flexGrow: 1,
-        paddingBottom: 40,
+        backgroundColor: '#fff',
+        paddingBottom: 32,
     },
     formContainer: {
-        paddingHorizontal: 24,
+        paddingTop: 14,
+        paddingHorizontal: 22,
     },
     title: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#1a1a1a',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: 13,
         color: '#666',
-        marginBottom: 24,
+        marginBottom: 22,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -182,8 +149,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderWidth: 1,
         borderColor: '#e0e0e0',
-        borderRadius: 12,
-        height: 56,
+        borderRadius: 10,
+        height: 46,
         overflow: 'hidden',
     },
     inputError: {
@@ -198,15 +165,15 @@ const styles = StyleSheet.create({
         borderRightColor: '#e0e0e0',
     },
     countryCodeText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '600',
         color: '#333',
     },
     input: {
         flex: 1,
-        fontSize: 15,
+        fontSize: 14,
         color: '#333',
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         height: '100%',
     },
     iconBox: {
@@ -228,42 +195,31 @@ const styles = StyleSheet.create({
     },
     forgotBtn: {
         alignSelf: 'flex-end',
-        marginTop: 12,
-        marginBottom: 24,
+        marginTop: 10,
+        marginBottom: 20,
     },
     forgotText: {
-        fontSize: 14,
-        color: '#1565c0',
+        fontSize: 13,
+        color: '#1a73e8',
         fontWeight: '600',
     },
     signInBtn: {
-        backgroundColor: '#1565c0',
-        borderRadius: 12,
-        height: 56,
+        backgroundColor: '#1a73e8',
+        borderRadius: 10,
+        height: 46,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
     },
     signInText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
-        marginRight: 10,
-    },
-    signInIconBox: {
-        position: 'absolute',
-        right: 12,
-        width: 32,
-        height: 32,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     dividerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 24,
+        marginVertical: 20,
     },
     dividerLine: {
         flex: 1,
@@ -271,68 +227,25 @@ const styles = StyleSheet.create({
         backgroundColor: '#e0e0e0',
     },
     dividerText: {
-        marginHorizontal: 16,
-        color: '#666',
-        fontSize: 14,
+        marginHorizontal: 14,
+        color: '#999',
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
     createBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        height: 56,
-        borderRadius: 12,
+        height: 46,
+        borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#1565c0',
+        borderColor: '#1a73e8',
         backgroundColor: '#fff',
     },
     createText: {
-        color: '#1565c0',
-        fontSize: 16,
+        color: '#1a73e8',
+        fontSize: 14,
         fontWeight: 'bold',
-    },
-    featuresBox: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        marginTop: 32,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-    },
-    featureItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    featureDivider: {
-        width: 1,
-        height: '80%',
-        backgroundColor: '#f0f0f0',
-        alignSelf: 'center',
-    },
-    featureIconBlue: {
-        marginBottom: 8,
-    },
-    featureIconGreen: {
-        marginBottom: 8,
-    },
-    featureIconLeaf: {
-        marginBottom: 8,
-    },
-    featureTitle: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 4,
-    },
-    featureSub: {
-        fontSize: 10,
-        color: '#888',
-        textAlign: 'center',
-        lineHeight: 14,
     },
 });
