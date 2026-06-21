@@ -152,6 +152,12 @@ async function request(method, path, body = null, isRetry = false, timeout = DEF
   }
 }
 
+// ─── System / health ──────────────────────────────────────────────────────────
+export const systemApi = {
+  // Resolves with error: null when the backend is reachable (also confirms internet).
+  health: () => request('GET', '/health'),
+};
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
   login: (phone, password) => request('POST', '/auth/login', { phone, password }),

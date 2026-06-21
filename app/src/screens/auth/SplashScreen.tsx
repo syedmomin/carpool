@@ -1,19 +1,30 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, ImageBackground, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Logo, RouteLoader } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { systemApi } from '../../services/api';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 // Logo scales to ~44% of screen width, clamped so it never gets too big/small.
 const LOGO_SIZE = Math.max(160, Math.min(SCREEN_W * 0.44, 200));
 
+// Minimum time the splash stays up so the loader animation is actually seen.
+// This is polish only — real readiness (below) still gates navigation.
+const MIN_SPLASH_MS = 1400;
+const HEALTH_RETRY_MS = 2500;
+
 export default function SplashScreen({ navigation, onDone }) {
-  const { currentUser, userRole, isLoading } = useApp();
+  const { isLoading } = useApp();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const navigated = useRef(false);
+
+  // Dynamic readiness signals (no hardcoded navigation delay)
+  const [backendReady, setBackendReady] = useState(false);
+  const [minElapsed, setMinElapsed] = useState(false);
+  const [connecting, setConnecting] = useState(false); // shown only if it takes a while
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -23,20 +34,46 @@ export default function SplashScreen({ navigation, onDone }) {
     }).start();
   }, []);
 
+  // Minimum on-screen time floor
   useEffect(() => {
-    // TEMP: auto-navigation disabled while finalizing the splash design.
-    // Re-enable the block below to resume advancing to the auth/app screen.
-    return;
-    // eslint-disable-next-line no-unreachable
-    if (isLoading || navigated.current) return;
-    const delay = currentUser ? 1400 : 2800;
-    const timer = setTimeout(() => {
-      if (navigated.current) return;
+    const id = setTimeout(() => setMinElapsed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(id);
+  }, []);
+
+  // Poll the backend until it's reachable (confirms both internet + server up).
+  // Retries on failure, so it proceeds the moment connectivity is restored.
+  useEffect(() => {
+    let cancelled = false;
+    let timer: any;
+    let attempts = 0;
+
+    const ping = async () => {
+      const { error } = await systemApi.health();
+      if (cancelled) return;
+      if (!error) {
+        setConnecting(false);
+        setBackendReady(true);
+        return;
+      }
+      attempts += 1;
+      if (attempts >= 2) setConnecting(true); // surface a hint if it's slow/offline
+      timer = setTimeout(ping, HEALTH_RETRY_MS);
+    };
+
+    ping();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, []);
+
+  // Advance only when EVERYTHING is ready: auth bootstrap done + backend reachable
+  // + minimum splash time elapsed. AppNavigator then routes to dashboard (if logged
+  // in) or the auth screen automatically based on currentUser.
+  useEffect(() => {
+    if (navigated.current) return;
+    if (!isLoading && backendReady && minElapsed) {
       navigated.current = true;
       onDone?.();
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [isLoading, currentUser, userRole]);
+    }
+  }, [isLoading, backendReady, minElapsed]);
 
   return (
     <ImageBackground
@@ -60,6 +97,7 @@ export default function SplashScreen({ navigation, onDone }) {
         {/* ── Center loading animation: glowing pointer travels a curved route ── */}
         <View style={styles.loaderSection}>
           <RouteLoader width={240} height={120} />
+          {connecting && <Text style={styles.connectingText}>Connecting…</Text>}
         </View>
 
         <View style={styles.featuresContainer}>
@@ -143,6 +181,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  connectingText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    marginTop: 6,
   },
   featuresContainer: {
     flexDirection: 'row',
