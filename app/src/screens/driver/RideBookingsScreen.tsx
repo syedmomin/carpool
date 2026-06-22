@@ -20,7 +20,7 @@ export default function RideBookingsScreen({ navigation, route }) {
 
   const fetchRide = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await ridesApi.getById(rideId);
+    const { data, error } = await ridesApi.getMineById(rideId);
     setLoading(false);
     if (error) {
       showToast(error, 'error');

@@ -5,6 +5,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider } from "./src/context/AppContext";
 import { ToastProvider } from "./src/context/ToastContext";
 import { GlobalModalProvider } from "./src/context/GlobalModalContext";
+import { BannerProvider } from "./src/context/BannerContext";
 import AppNavigator from "./src/navigation/AppNavigator";
 import SocketListener from "./src/components/SocketListener";
 import { SocketDataProvider } from "./src/context/SocketDataContext";
@@ -26,9 +27,11 @@ export default function App() {
           <SocketDataProvider>
             <GlobalModalProvider>
               <ToastProvider>
-                <StatusBar style="light" />
-                <SocketListener navigationRef={navigationRef} />
-                <AppNavigator navigationRef={navigationRef} />
+                <BannerProvider>
+                  <StatusBar style="light" />
+                  <SocketListener navigationRef={navigationRef} />
+                  <AppNavigator navigationRef={navigationRef} />
+                </BannerProvider>
               </ToastProvider>
             </GlobalModalProvider>
           </SocketDataProvider>

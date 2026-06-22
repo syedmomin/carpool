@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 import { profileApi } from '../services/api';
+import { showGlobalBanner } from './bannerBus';
+import { targetForKind } from './notificationStyle';
 
 let messaging;
 if (Platform.OS === 'web') {
@@ -39,8 +41,20 @@ export async function registerForPushNotifications() {
 export function setupNotificationListeners(navigation) {
   if (!messaging) return () => {}; // native build nahi hai
 
+  // App is in the foreground: FCM does NOT show a system notification, so we
+  // surface it with the in-app banner instead (Uber/inDrive style).
   const unsubForeground = messaging().onMessage(async remoteMessage => {
-    console.log('[Notifications] Foreground message:', remoteMessage);
+    const n = remoteMessage?.notification;
+    const data = remoteMessage?.data || {};
+    if (!n?.title) return;
+    showGlobalBanner({
+      title:   n.title,
+      message: n.body || '',
+      kind:    (data.type as string) || (data.screen as string),
+      rideId:  data.rideId as string,
+      bookingId: data.bookingId as string,
+      onPress: () => navigation && navigateTo(navigation, data),
+    });
   });
 
   // FCM rotates tokens (reinstall, restore, periodic). Without this the server
@@ -71,7 +85,10 @@ export function setupNotificationListeners(navigation) {
 
 // ─── Navigate based on notification data ─────────────────────────────────────
 function navigateTo(navigation, data) {
-  switch (data.screen) {
+  // Server pushes send `type` (NotificationType), not `screen`. Derive the
+  // destination from type when `screen` isn't explicitly provided.
+  const screen = data.screen || targetForKind(data.type, data.role)?.screen;
+  switch (screen) {
     case 'BookingHistory': navigation.navigate('BookingHistory');                        break;
     case 'RideDetail':     navigation.navigate('RideDetail', { rideId: data.rideId });  break;
     case 'MyRides':

@@ -4,6 +4,7 @@ import { useSocketData } from '../context/SocketDataContext';
 import { useToast } from '../context/ToastContext';
 import { socketService } from '../services/socket.service';
 import { useGlobalModal } from '../context/GlobalModalContext';
+import { useBanner } from '../context/BannerContext';
 import { bookingsApi } from '../services/api';
 import ReviewModal from './ReviewModal';
 
@@ -24,7 +25,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
   const socketData = useSocketData();
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
+  const { showBanner } = useBanner();
   const [completedRide, setCompletedRide] = useState<any>(null);
+
+  // Convenience: route label from a socket payload for banner subtitles.
+  const routeOf = (d: any) =>
+    d?.fromCity && d?.toCity ? `${d.fromCity} → ${d.toCity}` : (d?.routeLabel || '');
 
   // Passenger: whenever bookings load/update, join ride rooms for any
   // confirmed booking whose ride is ACTIVE or IN_PROGRESS so the passenger
@@ -103,7 +109,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         incrementUnreadCount();
         if (currentUser.role === 'PASSENGER') {
           socketData.removeBooking(data.bookingId);
-          showToast('Your booking request was not accepted ❌', 'error');
+          showBanner({
+            title: 'Booking Not Accepted ❌',
+            message: `Your request${routeOf(data) ? ` for ${routeOf(data)}` : ''} was not accepted. Try another ride.`,
+            kind: 'BOOKING', rideId: data.rideId,
+            onPress: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
+          });
         }
         if (currentUser.role === 'DRIVER' && data.rideId) {
           socketData.patchBookingInRide(data.rideId, data.bookingId, { status: 'REJECTED' });
@@ -117,7 +128,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           if (data.bookedSeats !== undefined) {
             socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
           }
-          showToast('A passenger cancelled their booking', 'info');
+          showBanner({
+            title: 'Booking Cancelled',
+            message: 'A passenger cancelled their booking on your ride.',
+            kind: 'BOOKING', rideId: data.rideId,
+            onPress: () => navigationRef.current?.navigate('RideBookings', { rideId: data.rideId }),
+          });
         }
         if (currentUser.role === 'PASSENGER') {
           socketData.removeBooking(data.bookingId);
@@ -128,7 +144,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         incrementUnreadCount();
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRideInBookings(data.rideId, { status: 'IN_PROGRESS' });
-          showToast('Your ride has started! 🚗', 'success');
+          showBanner({
+            title: 'Your Ride Has Started! 🚗',
+            message: `${routeOf(data) || 'Your trip'} — your driver is on the way.`,
+            kind: 'RIDE_STARTED', rideId: data.rideId,
+            onPress: () => navigationRef.current?.navigate('RideTracking', { rideId: data.rideId }),
+          });
           navigationRef.current?.navigate('RideTracking', { rideId: data.rideId });
         }
         if (currentUser.role === 'DRIVER') {
@@ -146,7 +167,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         }
         if (currentUser.role === 'DRIVER') {
           socketData.patchRide(data.rideId, { status: 'COMPLETED' });
-          showToast('Ride completed! 🏁 Check your earnings.', 'success');
+          showBanner({
+            title: 'Ride Completed! 🏁',
+            message: `${routeOf(data) || 'Your ride'} is done. Check your earnings.`,
+            kind: 'RIDE_COMPLETED', rideId: data.rideId,
+            onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'DriverHomeTab', params: { screen: 'Earnings' } }),
+          });
         }
       },
 
@@ -171,7 +197,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         incrementUnreadCount();
         if (currentUser.role === 'DRIVER') {
           socketData.patchRide(data.rideId, { status: 'EXPIRED' });
-          showToast(`Ride ${data.fromCity} → ${data.toCity} expired with no bookings`, 'info');
+          showBanner({
+            title: 'Ride Expired ⏰',
+            message: `${routeOf(data) || 'Your ride'} expired with no bookings.`,
+            kind: 'RIDE_EXPIRED', rideId: data.rideId,
+            onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
+          });
         }
       },
 
@@ -191,7 +222,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       onScheduleRequest: (data: any) => {
         if (currentUser.role === 'DRIVER') {
           socketData.addOpenRequest({ ...data, bids: [] });
-          showToast(`New request: ${data.fromCity} → ${data.toCity} 📋`, 'info');
+          showBanner({
+            title: 'New Ride Request 📋',
+            message: `${routeOf(data)} — place your bid to win this trip.`,
+            kind: 'SCHEDULE_REQUEST',
+            onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'DriverRequestsTab' }),
+          });
         }
       },
 
@@ -236,7 +272,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'DRIVER') {
           incrementUnreadCount();
           socketData.patchBidInOpenRequest(data.scheduleRequestId, { id: data.bidId, status: 'REJECTED' });
-          showToast('Your bid was not selected for this request', 'info');
+          showBanner({
+            title: 'Bid Not Selected',
+            message: `Your bid${routeOf(data) ? ` for ${routeOf(data)}` : ''} was not selected.`,
+            kind: 'BID_REJECTED',
+            onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'DriverRequestsTab' }),
+          });
         }
       },
 
@@ -269,7 +310,12 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       onRequestExpired: (data: any) => {
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRequest(data.scheduleRequestId, { status: 'EXPIRED' });
-          showToast(`Your request from ${data.fromCity} to ${data.toCity} has expired 📋`, 'info');
+          showBanner({
+            title: 'Request Expired 📋',
+            message: `Your request${routeOf(data) ? ` from ${routeOf(data)}` : ''} expired with no accepted bids.`,
+            kind: 'RIDE_EXPIRED',
+            onPress: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestsTab' }),
+          });
         }
       },
 

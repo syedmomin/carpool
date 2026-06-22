@@ -172,6 +172,7 @@ export const authApi = {
 export const ridesApi = {
   search: (from, to, date) => request('GET', `/rides/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date || ''}`),
   getById: (rideId) => request('GET', `/rides/${rideId}`),
+  getMineById: (rideId) => request('GET', `/rides/mine/${rideId}`),
   getAll: (page = 1, limit = 10) => request('GET', `/rides?page=${page}&limit=${limit}`),
   post: (rideData) => request('POST', '/rides', rideData),
   update: (rideId, updates) => request('PUT', `/rides/${rideId}`, updates),
