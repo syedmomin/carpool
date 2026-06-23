@@ -116,7 +116,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
         subtitle="Drivers will bid with their price"
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
         {/* Calendar */}
         <View style={styles.calendarCard}>

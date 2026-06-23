@@ -18,7 +18,7 @@ export { FormInput, SearchInput, OTPInput } from './Input';
 export { RideCard, StatsCard, MenuCard, InfoItem } from './Card';
 
 // ─── Headers ─────────────────────────────────────────────────────────────────
-export { GradientHeader, BackHeader } from './Header';
+export { GradientHeader } from './Header';
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 export { Avatar } from './Avatar';

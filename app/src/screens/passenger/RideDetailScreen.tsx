@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS, GRADIENTS,
@@ -16,6 +17,7 @@ import { haptics } from '../../utils/haptics';
 
 export default function RideDetailScreen({ navigation, route }) {
   const params = route.params || {};
+  const insets = useSafeAreaInsets();
   const { rideId, rideData, boardingCity, exitCity } = params;
   const { bookRide } = useApp();
   const { showModal } = useGlobalModal();
@@ -83,7 +85,7 @@ export default function RideDetailScreen({ navigation, route }) {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
+        <LinearGradient colors={GRADIENTS.primary as any} style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={20} color="#fff" />

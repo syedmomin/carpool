@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bg },
     loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     loadingText: { fontSize: 14, color: COLORS.gray },
-    listContent: { padding: 16, paddingBottom: 80 },
+    listContent: { padding: 16, paddingBottom: 32 },
     card: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
     activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
     activeBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },

@@ -152,7 +152,7 @@ export default function ReviewsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { paddingBottom: 40 },
+  listContent: { paddingBottom: 32 },
   statsContainer: { backgroundColor: '#fff', margin: 20, borderRadius: 24, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
   statsRow: { flexDirection: 'row', alignItems: 'center' },
   mainStat: { flex: 1, alignItems: 'center' },

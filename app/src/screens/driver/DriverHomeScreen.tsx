@@ -10,10 +10,12 @@ import { useSocketData } from '../../context/SocketDataContext';
 import { vehiclesApi } from '../../services/api';
 
 import { formatLocalDate, getTodayStr } from '../../utils/date';
+import { useDoubleBackExit } from '../../utils/useDoubleBackExit';
 
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { myRides, myRidesState, loadMyRides } = useSocketData();
+  useDoubleBackExit();
   const [myVehicle, setMyVehicle] = useState(null);
 
   const [loadingVehicles, setLoadingVehicles] = useState(!myVehicle);
@@ -44,7 +46,7 @@ export default function DriverHomeScreen({ navigation }) {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <LinearGradient colors={GRADIENTS.teal as any} style={styles.header}>
         <View style={styles.bgCircle} />

@@ -3,6 +3,10 @@ import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, StyleProp, ViewS
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, RADIUS } from './theme';
+import { haptics } from '../utils/haptics';
+
+// Wraps a press handler with light haptic feedback for consistent tactile UX.
+const withHaptic = (fn?: () => void) => () => { haptics.impact(); fn?.(); };
 
 interface ButtonProps {
   title?: string;
@@ -20,7 +24,7 @@ interface ButtonProps {
 // ─── Primary Button (Gradient) ───────────────────────────────────────────────
 export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, colors, disabled }) => (
   <TouchableOpacity
-    onPress={onPress}
+    onPress={withHaptic(onPress)}
     disabled={!!loading || !!disabled}
     activeOpacity={0.85}
     style={[styles.container, disabled && styles.disabled, style]}
@@ -46,7 +50,7 @@ export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, lo
 // ─── Ghost Button (Outlined) ─────────────────────────────────────────────────
 export const GhostButton: React.FC<ButtonProps> = ({ title, onPress, style, color, icon }) => (
   <TouchableOpacity
-    onPress={onPress}
+    onPress={withHaptic(onPress)}
     activeOpacity={0.7}
     style={[styles.ghost, { borderColor: color || COLORS.primary }, style]}
   >
@@ -58,8 +62,9 @@ export const GhostButton: React.FC<ButtonProps> = ({ title, onPress, style, colo
 // ─── Icon Button (Circle) ────────────────────────────────────────────────────
 export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, color = COLORS.primary, bg, style }) => (
   <TouchableOpacity
-    onPress={onPress}
+    onPress={withHaptic(onPress)}
     activeOpacity={0.8}
+    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     style={[
       styles.iconBtn,
       { width: size, height: size, borderRadius: size / 2, backgroundColor: bg || COLORS.lightGray },
@@ -72,7 +77,7 @@ export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, co
 
 // ─── FAB (Floating Action Button) ────────────────────────────────────────────
 export const FAB: React.FC<ButtonProps> = ({ icon, onPress, colors, style }) => (
-  <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={[styles.fabContainer, style]}>
+  <TouchableOpacity onPress={withHaptic(onPress)} activeOpacity={0.85} style={[styles.fabContainer, style]}>
     <LinearGradient
       colors={(colors || GRADIENTS.primary) as any}
       style={styles.fab}

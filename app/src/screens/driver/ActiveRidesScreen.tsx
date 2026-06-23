@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomWidth: 2.5, borderBottomColor: COLORS.primary },
   tabText: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
   tabTextActive: { color: COLORS.primary, fontWeight: '800' },
-  list: { padding: 16, paddingBottom: 100 },
+  list: { padding: 16, paddingBottom: 32 },
   card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
   historyCard: { opacity: 0.9 },
   inProgressBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },

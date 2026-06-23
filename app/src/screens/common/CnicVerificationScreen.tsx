@@ -243,7 +243,6 @@ export default function CnicVerificationScreen({ navigation }) {
           colors={GRADIENTS.secondary as any}
           style={{ marginTop: 28 }}
         />
-        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );

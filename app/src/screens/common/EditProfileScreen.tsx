@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Image, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -8,12 +8,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { showImagePickerOptions } from '../../utils/imagePicker';
 
 export default function EditProfileScreen({ navigation }) {
   const { currentUser, updateProfile } = useApp();
   const { showToast } = useToast();
+  const { showModal } = useGlobalModal();
+  const savedRef = useRef(false);
   const [form, setForm] = useState({
     name:  currentUser?.name  || '',
     phone: currentUser?.phone || '',
@@ -25,6 +28,32 @@ export default function EditProfileScreen({ navigation }) {
   const [loading, setLoading]     = useState(false);
 
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
+
+  // Warn before leaving with unsaved edits.
+  const isDirty = useMemo(() =>
+    form.name  !== (currentUser?.name  || '') ||
+    form.phone !== (currentUser?.phone || '') ||
+    form.email !== (currentUser?.email || '') ||
+    form.city  !== (currentUser?.city  || '') ||
+    avatar     !== (currentUser?.avatar || null),
+  [form, avatar, currentUser]);
+
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e: any) => {
+      if (!isDirty || savedRef.current) return;
+      e.preventDefault();
+      showModal({
+        type: 'danger',
+        title: 'Discard changes?',
+        message: 'You have unsaved changes. Leave without saving them?',
+        confirmText: 'Discard',
+        cancelText: 'Keep Editing',
+        icon: 'alert-circle-outline',
+        onConfirm: () => navigation.dispatch(e.data.action),
+      });
+    });
+    return unsub;
+  }, [navigation, isDirty, showModal]);
 
   const handlePickImage = () => {
     showImagePickerOptions(async (result) => {
@@ -42,6 +71,7 @@ export default function EditProfileScreen({ navigation }) {
     const { error } = await updateProfile({ ...form, avatar });
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
+    savedRef.current = true; // bypass the unsaved-changes guard
     showToast('Profile updated successfully!', 'success');
     navigation.goBack();
   };
@@ -100,7 +130,6 @@ export default function EditProfileScreen({ navigation }) {
           <FormInput label="City"           icon="location-outline"   placeholder="e.g. Karachi"   value={form.city}  onChangeText={v => set('city', v)} />
 
           <PrimaryButton title="Save Changes" onPress={handleSave} loading={loading} icon="checkmark-circle-outline" style={{ marginTop: 24 }} />
-          <View style={{ height: 32 }} />
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
@@ -109,7 +138,7 @@ export default function EditProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container:         { flex: 1, backgroundColor: COLORS.bg },
-  body:              { padding: 24 },
+  body:              { padding: 24, paddingBottom: 32 },
   avatarSection:     { alignItems: 'center', marginBottom: 16 },
   avatarWrap:        { position: 'relative', marginBottom: 8 },
   avatarImg:         { width: 100, height: 100, borderRadius: 32, borderWidth: 3, borderColor: COLORS.primary + '50' },

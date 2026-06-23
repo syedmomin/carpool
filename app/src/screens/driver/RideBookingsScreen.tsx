@@ -218,7 +218,7 @@ export default function RideBookingsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 16, paddingBottom: 40 },
+  list: { padding: 16, paddingBottom: 32 },
   summary: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, alignItems: 'center', elevation: 2 },
   stat: { flex: 1, alignItems: 'center' },
   statVal: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },

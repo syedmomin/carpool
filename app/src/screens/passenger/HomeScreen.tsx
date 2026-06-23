@@ -11,6 +11,7 @@ import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
+import { useDoubleBackExit } from '../../utils/useDoubleBackExit';
 
 const { width } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ const UPCOMING_DATES = getUpcomingDates();
 export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { showToast } = useToast();
+  useDoubleBackExit();
 
   const [fromCity, setFromCity] = useState('');
   const [toCity, setToCity] = useState('');

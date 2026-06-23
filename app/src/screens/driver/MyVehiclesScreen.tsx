@@ -217,7 +217,7 @@ export default function MyVehiclesScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container:   { flex: 1, backgroundColor: COLORS.bg },
-  listContent: { padding: 16, paddingBottom: 100 },
+  listContent: { padding: 16, paddingBottom: 32 },
 
   card: {
     backgroundColor: '#fff',

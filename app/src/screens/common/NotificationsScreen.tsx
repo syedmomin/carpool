@@ -8,6 +8,7 @@ import { useApp } from '../../context/AppContext';
 import { notificationsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { getNotificationStyle } from '../../utils/notificationStyle';
+import { CardSkeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 20;
 
@@ -136,9 +137,13 @@ export default function NotificationsScreen({ navigation }) {
           );
         }}
         ListEmptyComponent={
-          !refreshing ? (
+          refreshing ? (
+            <View style={{ paddingTop: 8 }}>
+              {Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
+            </View>
+          ) : (
             <EmptyState icon="notifications-off-outline" title="No Notifications" subtitle="You're all caught up!" />
-          ) : null
+          )
         }
       />
     </View>
@@ -147,7 +152,7 @@ export default function NotificationsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  listContent: { padding: 16, paddingBottom: 32 },
+  listContent: { padding: 16, paddingBottom: 32, flexGrow: 1 },
   card: {
     flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fff',
     borderRadius: 16, padding: 14, marginBottom: 10,

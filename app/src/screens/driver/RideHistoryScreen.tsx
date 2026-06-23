@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import { RideCardSkeleton } from '../../components/Skeleton';
 import { ridesApi } from '../../services/api';
 
 const PAGE_SIZE = 10;
@@ -92,8 +93,8 @@ export default function RideHistoryScreen({ navigation }) {
           subtitle="Your past hosting activity"
           onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
         />
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color={COLORS.teal} />
+        <View style={styles.list}>
+          {Array.from({ length: 5 }).map((_, i) => <RideCardSkeleton key={i} />)}
         </View>
       </View>
     );
@@ -131,7 +132,7 @@ export default function RideHistoryScreen({ navigation }) {
 const styles = StyleSheet.create({
   container:      { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list:           { padding: 16, paddingBottom: 100 },
+  list:           { padding: 16, paddingBottom: 32 },
   card:           { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderWidth: 1, borderColor: '#f0f0f0' },
   cardHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   routeRow:       { flexDirection: 'row', alignItems: 'center', gap: 10 },

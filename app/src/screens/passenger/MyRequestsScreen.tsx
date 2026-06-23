@@ -68,7 +68,7 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
             </View>
           </LinearGradient>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
             {/* Image gallery */}
             {images.length > 0 ? (
               <View style={vm.galleryWrapper}>
@@ -522,7 +522,7 @@ export default function MyRequestsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container:        { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list:             { padding: 16, paddingBottom: 100 },
+  list:             { padding: 16, paddingBottom: 32 },
 
   card:             { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 14, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10 },
   cardHeader:       { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },

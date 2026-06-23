@@ -201,7 +201,7 @@ export default function PostRideScreen({ navigation }) {
           onBack={() => navigation.goBack()}
         />
 
-        <ScrollView contentContainerStyle={[styles.body, { paddingBottom: 100 }]} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.body, { paddingBottom: 32 }]} keyboardShouldPersistTaps="handled">
 
           {/* ── Vehicle Selector ─────────────────────────────────────────── */}
           <Text style={styles.sectionTitle}>Vehicle</Text>

@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, SPACING } from './theme';
+import { COLORS, GRADIENTS } from './theme';
 import { NotifBadge } from './Badge';
-
-const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 44;
+import { haptics } from '../utils/haptics';
 
 // ─── Gradient Header ─────────────────────────────────────────────────────────
 // Props:
@@ -31,6 +32,8 @@ interface GradientHeaderProps {
   rightAction?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
+  /** Force-hide the back button even when the screen can go back. */
+  showBack?: boolean;
 }
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
   title,
@@ -45,10 +48,21 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   rightAction,
   style,
   compact,
-}) => (
+  showBack,
+}) => {
+  const insets = useSafeAreaInsets();
+  // Auto-derive a back handler from navigation so no screen can "forget" it.
+  // Always called (hook rules); headers always render inside a navigator.
+  const navigation = useNavigation<any>();
+  const canBack = typeof navigation?.canGoBack === 'function' ? navigation.canGoBack() : false;
+  const handleBack = onBack || (canBack ? () => navigation.goBack() : undefined);
+  const showBackBtn = showBack !== false && !!handleBack;
+  const onBackPress = () => { haptics.impact(); handleBack?.(); };
+
+  return (
   <LinearGradient
     colors={(colors || GRADIENTS.primary) as any}
-    style={[styles.header, compact && styles.headerCompact, style]}
+    style={[styles.header, { paddingTop: insets.top + 16 }, compact && styles.headerCompact, style]}
   >
     {/* Decorative circles */}
     <View style={styles.circle1} />
@@ -56,8 +70,8 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
 
     {/* Top row: back + title area + right action */}
     <View style={styles.topRow}>
-      {onBack ? (
-        <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.8}>
+      {showBackBtn ? (
+        <TouchableOpacity onPress={onBackPress} style={styles.backBtn} activeOpacity={0.8} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
       ) : (
@@ -87,27 +101,11 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
 
     {children}
   </LinearGradient>
-);
-
-// ─── Simple Back Header (non-gradient) ───────────────────────────────────────
-interface BackHeaderProps {
-  title?: string;
-  onBack: () => void;
-  style?: StyleProp<ViewStyle>;
-}
-export const BackHeader: React.FC<BackHeaderProps> = ({ title, onBack, style }) => (
-  <View style={[styles.simpleHeader, style]}>
-    <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.8}>
-      <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
-    </TouchableOpacity>
-    <Text style={styles.simpleTitle}>{title}</Text>
-    <View style={styles.backPlaceholder} />
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   header: {
-    paddingTop: STATUS_BAR_HEIGHT + 16,
     paddingBottom: 24,
     paddingHorizontal: 20,
     overflow: 'hidden',
@@ -161,16 +159,4 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   rightBtnSmall: { marginLeft: 8 },
-
-  simpleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: STATUS_BAR_HEIGHT + 12,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  simpleTitle: { flex: 1, fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
 });

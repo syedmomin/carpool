@@ -115,7 +115,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bg },
-    listContent: { padding: 20, paddingBottom: 40 },
+    listContent: { padding: 20, paddingBottom: 32 },
     card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f0f0f0' },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     routeCol: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },

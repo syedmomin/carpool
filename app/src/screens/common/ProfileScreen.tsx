@@ -111,7 +111,7 @@ export default function ProfileScreen({ navigation }) {
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <LinearGradient colors={headerColors as any} style={styles.header}>
         <View style={styles.bgCircle} />
@@ -213,7 +213,6 @@ export default function ProfileScreen({ navigation }) {
       </TouchableOpacity>
 
       <Text style={styles.versionText}>ChalParo v1.0.0 • Made in Pakistan 🇵🇰</Text>
-      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }

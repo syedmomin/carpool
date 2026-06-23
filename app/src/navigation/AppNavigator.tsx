@@ -54,6 +54,16 @@ import ChatScreen from '../screens/common/ChatScreen';
 const Stack = createNativeStackNavigator<any>();
 const Tab = createBottomTabNavigator<any>();
 
+// Shared options for every native-stack: headerless (we use custom headers) +
+// swipe-right-to-go-back gesture. fullScreenGestureEnabled makes the whole screen
+// draggable on iOS; on Android the system back gesture already triggers goBack.
+const STACK_SCREEN_OPTIONS = {
+  headerShown: false,
+  animation: 'slide_from_right',
+  gestureEnabled: true,
+  fullScreenGestureEnabled: true,
+} as const;
+
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
 const { width } = Dimensions.get('window');
@@ -252,7 +262,7 @@ const styles = StyleSheet.create({
 const UserDashboardStack = createNativeStackNavigator<any>();
 function DriverDashboardStack() {
   return (
-    <UserDashboardStack.Navigator id="UserDashboard" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserDashboardStack.Navigator id="UserDashboard" screenOptions={STACK_SCREEN_OPTIONS}>
       <UserDashboardStack.Screen name="DriverHome"   component={DriverHomeScreen} />
       <UserDashboardStack.Screen name="PostRide"     component={PostRideScreen} />
       <UserDashboardStack.Screen name="MyRides"      component={ActiveRidesScreen} />
@@ -271,7 +281,7 @@ function DriverDashboardStack() {
 const UserRidesStack = createNativeStackNavigator<any>();
 function DriverRidesStack() {
   return (
-    <UserRidesStack.Navigator id="DriverRides" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserRidesStack.Navigator id="DriverRides" screenOptions={STACK_SCREEN_OPTIONS}>
       <UserRidesStack.Screen name="ActiveRides"  component={ActiveRidesScreen} />
       <UserRidesStack.Screen name="MyRides"      component={ActiveRidesScreen} />
       <UserRidesStack.Screen name="PostRide"     component={PostRideScreen} />
@@ -285,7 +295,7 @@ function DriverRidesStack() {
 const UserVehiclesStack = createNativeStackNavigator<any>();
 function DriverVehiclesStack() {
   return (
-    <UserVehiclesStack.Navigator id="DriverVehicles" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserVehiclesStack.Navigator id="DriverVehicles" screenOptions={STACK_SCREEN_OPTIONS}>
       <UserVehiclesStack.Screen name="MyVehicles" component={MyVehiclesScreen} />
       <UserVehiclesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
     </UserVehiclesStack.Navigator>
@@ -295,7 +305,7 @@ function DriverVehiclesStack() {
 const UserProfileStack = createNativeStackNavigator<any>();
 function CommonProfileStack() {
   return (
-    <UserProfileStack.Navigator id="ProfileStack" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <UserProfileStack.Navigator id="ProfileStack" screenOptions={STACK_SCREEN_OPTIONS}>
       <UserProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
       <UserProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <UserProfileStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
@@ -318,7 +328,7 @@ function CommonProfileStack() {
 const PassengerActivityStack = createNativeStackNavigator<any>();
 function PassengerRidesStack() {
   return (
-    <PassengerActivityStack.Navigator id="PassengerActivity" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <PassengerActivityStack.Navigator id="PassengerActivity" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerActivityStack.Screen name="PassengerHomeMain" component={PassengerHomeScreen} />
       <PassengerActivityStack.Screen name="Notifications"     component={NotificationsScreen} />
       <PassengerActivityStack.Screen name="Search"            component={SearchScreen} />
@@ -332,7 +342,7 @@ function PassengerRidesStack() {
 const PassengerScheduleStack = createNativeStackNavigator<any>();
 function PassengerRequestsStack() {
   return (
-    <PassengerScheduleStack.Navigator id="PassengerRequests" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <PassengerScheduleStack.Navigator id="PassengerRequests" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerScheduleStack.Screen name="MyRequests"   component={MyRequestsScreen} />
       <PassengerScheduleStack.Screen name="PostRequest"  component={PostRequestScreen} />
       <PassengerScheduleStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
@@ -343,7 +353,7 @@ function PassengerRequestsStack() {
 const PassengerSearchActivityStack = createNativeStackNavigator<any>();
 function PassengerSearchStack() {
   return (
-    <PassengerSearchActivityStack.Navigator id="PassengerSearch" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <PassengerSearchActivityStack.Navigator id="PassengerSearch" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerSearchActivityStack.Screen name="SearchMain" component={SearchScreen} />
       <PassengerSearchActivityStack.Screen name="Notifications" component={NotificationsScreen} />
       <PassengerSearchActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
@@ -355,7 +365,7 @@ function PassengerSearchStack() {
 const PassengerBookingsStackNav = createNativeStackNavigator<any>();
 function PassengerBookingsStack() {
   return (
-    <PassengerBookingsStackNav.Navigator id="PassengerBookings" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <PassengerBookingsStackNav.Navigator id="PassengerBookings" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerBookingsStackNav.Screen name="BookingHistoryMain" component={BookingHistoryScreen} />
       <PassengerBookingsStackNav.Screen name="PastBookings"       component={PastBookingsScreen} />
       <PassengerBookingsStackNav.Screen name="RideDetail"         component={RideDetailScreen} />
@@ -374,7 +384,7 @@ const PASSENGER_TABS = [
 const DriverRequestsStackNav = createNativeStackNavigator<any>();
 function DriverOpenRequestsStack() {
   return (
-    <DriverRequestsStackNav.Navigator id="DriverRequests" screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <DriverRequestsStackNav.Navigator id="DriverRequests" screenOptions={STACK_SCREEN_OPTIONS}>
       <DriverRequestsStackNav.Screen name="OpenRequestsMain" component={OpenRequestsScreen} />
     </DriverRequestsStackNav.Navigator>
   );
@@ -486,7 +496,7 @@ export default function AppNavigator({ navigationRef }: any) {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         id="RootStack"
-        screenOptions={{ headerShown: false, animation: 'fade' }}
+        screenOptions={{ headerShown: false, animation: 'fade', gestureEnabled: true, fullScreenGestureEnabled: true }}
       >
         {/* Protected app stacks */}
         {currentUser ? (

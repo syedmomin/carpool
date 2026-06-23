@@ -439,7 +439,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
             colors={headerGradient as any}
             style={{ marginTop: 28 }}
           />
-          <View style={{ height: 32 }} />
         </ScrollView>
       </View>
 
@@ -509,7 +508,7 @@ const styles = StyleSheet.create({
   stepDotText:  { fontSize: 12, fontWeight: '700', color: COLORS.gray },
   stepLine:     { width: 60, height: 2, backgroundColor: COLORS.border, marginHorizontal: 4 },
   stepLineActive:{ backgroundColor: COLORS.primary },
-  body:         { padding: 20, paddingBottom: 40 },
+  body:         { padding: 20, paddingBottom: 32 },
   stepTitle:    { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 },
   stepSub:      { fontSize: 13, color: COLORS.gray, marginBottom: 20, lineHeight: 19 },
 

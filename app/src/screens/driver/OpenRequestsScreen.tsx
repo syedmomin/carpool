@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter:{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText:  { fontSize: 14, color: COLORS.gray },
-  listContent:  { padding: 16, paddingBottom: 100 },
+  listContent:  { padding: 16, paddingBottom: 32 },
 
   // InDrive-style city bar
   cityBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.primary + '30', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
