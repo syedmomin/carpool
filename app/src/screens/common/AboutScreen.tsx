@@ -69,7 +69,7 @@ export default function AboutScreen({ navigation }) {
         {/* Team */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Made with love in Pakistan</Text>
-          <Text style={styles.cardText}>ChalParo is built by a passionate team dedicated to solving Pakistan's intercity travel challenges.</Text>
+          <Text style={styles.cardText}>ChalParo is built by a small team that wants to make intercity travel across Pakistan easier and more affordable.</Text>
         </View>
 
         <Text style={styles.copyright}>© 2026 ChalParo. All rights reserved.</Text>

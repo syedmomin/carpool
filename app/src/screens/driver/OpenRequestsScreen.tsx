@@ -364,7 +364,7 @@ export default function OpenRequestsScreen({ navigation }) {
           ListEmptyComponent={
             <EmptyState
               icon="calendar-outline"
-              title={driverCity ? `No requests from ${driverCity}` : 'Select your city'}
+              title={driverCity ? `No Requests from ${driverCity}` : 'Select Your City'}
               subtitle={driverCity
                 ? 'No passengers have posted requests from your city yet.'
                 : 'Tap "Change" above to set your current city and see nearby requests.'

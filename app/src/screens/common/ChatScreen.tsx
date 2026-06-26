@@ -215,7 +215,7 @@ export default function ChatScreen({ route, navigation }) {
             <EmptyState
               icon="chatbubbles-outline"
               title="No Messages Yet"
-              subtitle={`Send a reach out to ${otherUser?.name || 'them'} to start the conversation.`}
+              subtitle={`Say hi to ${otherUser?.name || 'them'} to start the conversation.`}
               style={{ flex: 1, justifyContent: 'center' }}
             />
           }

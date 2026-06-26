@@ -420,7 +420,7 @@ export default function MyRequestsScreen({ navigation }) {
           <View style={styles.waitingRow}>
             <LiveDot />
             <View style={{ flex: 1 }}>
-              <Text style={styles.waitingText}>Listening for driver bids</Text>
+              <Text style={styles.waitingText}>Waiting for driver offers</Text>
               <Text style={styles.waitingSubText}>Drivers will see your request and place offers</Text>
             </View>
           </View>
@@ -499,7 +499,7 @@ export default function MyRequestsScreen({ navigation }) {
                 title={selectedTab === 'active' ? "No Requests Yet" : "No Past Requests"}
                 subtitle={selectedTab === 'active' 
                   ? "Post a schedule request and drivers will bid with their prices."
-                  : "Your expired, cancelled and completed requests will appear here."
+                  : "Your past and cancelled requests will appear here."
                 }
                 action={selectedTab === 'active' ? { label: 'Post a Request', onPress: () => navigation.navigate('PostRequest') } : undefined}
               />
