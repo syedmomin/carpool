@@ -164,7 +164,13 @@ export default function RideTrackingScreen({ route, navigation }) {
   }, [mapReady]);
 
   const fetchRide = async () => {
-    const { data, error } = await ridesApi.getById(rideId);
+    // Driver needs the ride WITH its bookings + passengers (getMineById), so the
+    // tracking screen can show confirmed passengers. The public getById omits
+    // bookings, which left the driver view showing "no passengers". Passengers
+    // don't own the ride, so they use the public endpoint.
+    const { data, error } = driver
+      ? await ridesApi.getMineById(rideId)
+      : await ridesApi.getById(rideId);
     if (!mountedRef.current) return;
     if (data) {
       setRide(data.data || data);
@@ -286,6 +292,8 @@ export default function RideTrackingScreen({ route, navigation }) {
   }
 
   const confirmedBookings = ride?.bookings?.filter((b: any) => b.status === 'CONFIRMED') || [];
+  // Seats filled = sum of each booking's seats (one booking can hold several seats).
+  const confirmedSeats    = confirmedBookings.reduce((sum: number, b: any) => sum + (b.seats || 1), 0);
   const myBooking         = !driver ? ride?.bookings?.find((b: any) => b.passengerId === currentUser?.id) : null;
   const driverRating      = ride?.driver?.rating ?? null;
 
@@ -379,8 +387,8 @@ export default function RideTrackingScreen({ route, navigation }) {
             <View style={s.statsRow}>
               <View style={s.statItem}>
                 <Ionicons name="people" size={16} color={COLORS.primary} style={{ marginBottom: 4 }} />
-                <Text style={s.statVal}>{confirmedBookings.length}/{ride?.totalSeats}</Text>
-                <Text style={s.statLabel}>Passengers</Text>
+                <Text style={s.statVal}>{confirmedSeats}/{ride?.totalSeats}</Text>
+                <Text style={s.statLabel}>Seats</Text>
               </View>
               <View style={s.statDivider} />
               <View style={s.statItem}>

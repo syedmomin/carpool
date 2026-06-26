@@ -273,7 +273,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const renderStep2 = () => (
     <View>
       {/* ── Vehicle Photos ───────────────────────────────────────────── */}
-      <Text style={styles.sectionLabel}>Photos (Optional)</Text>
+      <Text style={styles.sectionLabel}>Photos (add at least one)</Text>
       <View style={styles.photosRow}>
         {images.map((img, i) => (
           <View key={i} style={styles.photoWrapper}>

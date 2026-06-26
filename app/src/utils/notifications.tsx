@@ -15,6 +15,17 @@ if (Platform.OS === 'web') {
   }
 }
 
+// Required by RN Firebase so the OS can deliver notifications while the app is
+// backgrounded or quit. Notification-payload messages display automatically;
+// this also lets data-only messages be handled without crashing.
+if (messaging) {
+  try {
+    messaging().setBackgroundMessageHandler(async () => {});
+  } catch (e) {
+    // no-op
+  }
+}
+
 // ─── Register device + get FCM token ─────────────────────────────────────────
 export async function registerForPushNotifications() {
   if (!messaging) return null; // native build nahi hai
