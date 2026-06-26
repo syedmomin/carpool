@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING } from './theme';
 import { StarRating } from './StarRating';
+import { PressableScale } from './PressableScale';
 
 // ─── Ride Card ────────────────────────────────────────────────────────────────
 interface RideCardProps {
@@ -15,8 +16,10 @@ interface RideCardProps {
   exitCity?: string;
   segmentPrice?: number;
   isBestValue?: boolean;
+  /** List position — enables a staggered fade-in entrance. */
+  index?: number;
 }
-export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice, isBestValue }) => {
+export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPress, boardingCity, exitCity, segmentPrice, isBestValue, index }) => {
   const available = (ride.totalSeats || 0) - (ride.bookedSeats || 0);
   const isSegment = !!(boardingCity && exitCity);
   const displayFrom = isSegment ? boardingCity : ride.from;
@@ -24,7 +27,7 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
   const displayPrice = segmentPrice ?? ride.pricePerSeat;
 
   return (
-    <TouchableOpacity style={[styles.card, SHADOWS.md]} onPress={onPress} activeOpacity={0.9}>
+    <PressableScale style={[styles.card, SHADOWS.md]} onPress={onPress} index={index}>
       {isBestValue && (
         <View style={styles.bestValueBadge}>
           <Ionicons name="sparkles" size={12} color="#fff" />
@@ -67,14 +70,14 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
               <Text style={styles.cityName}>{displayTo}</Text>
               <View style={styles.timeWrapper}>
                 <Ionicons name="time-outline" size={12} color={COLORS.gray} />
-                <Text style={styles.timeText}>{ride.arrivalTime || '—'}</Text>
+                <Text style={styles.timeText}>{ride.arrivalTime || '-'}</Text>
               </View>
             </View>
           </View>
         </View>
         <View style={styles.priceSection}>
           <Text style={styles.priceLabel}>Per Seat</Text>
-          <Text style={styles.priceAmount}>Rs {displayPrice?.toLocaleString() || '—'}</Text>
+          <Text style={styles.priceAmount}>Rs {displayPrice?.toLocaleString() || '-'}</Text>
           {isSegment && segmentPrice && segmentPrice !== ride.pricePerSeat && (
             <Text style={styles.fullPriceNote}>Full: Rs {ride.pricePerSeat?.toLocaleString()}</Text>
           )}
@@ -102,7 +105,7 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
         </View>
       </View>
 
-    </TouchableOpacity>
+    </PressableScale>
   );
 };
 

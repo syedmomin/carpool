@@ -7,7 +7,7 @@ import { COLORS, GRADIENTS, GradientHeader } from '../../components';
 const FAQ = [
   { q: 'How do I book a ride?', a: 'Go to Home, search your route, choose a ride and tap Book.' },
   { q: 'How do I cancel a booking?', a: 'Go to My Bookings, find your booking and tap Cancel.' },
-  { q: 'How is payment made?', a: 'Payment is cash on board — you pay the driver directly.' },
+  { q: 'How is payment made?', a: 'Payment is cash on board. You pay the driver directly.' },
   { q: 'How do I become a driver?', a: 'Register, choose Driver role, add your vehicle and post rides.' },
   { q: 'Is my data safe?', a: 'Yes. We use industry-standard encryption to protect your data.' },
 ];

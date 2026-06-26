@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { secureStorage } from '../utils/secureStorage';
-import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, scheduleAlertsApi, setLogoutHandler } from '../services/api';
+import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, setLogoutHandler } from '../services/api';
 import { registerForPushNotifications } from '../utils/notifications';
 
 const USER_STORAGE_KEY = '@chalparo_user';
@@ -11,7 +11,6 @@ export interface AppContextState {
   userRole: string | null;
   isLoading: boolean;
   unreadCount: number;
-  scheduleAlerts: any[]; // Data array used in screens
 
   login: (phone: string, val: string) => Promise<{ user?: any, role?: string, error?: any }>;
   logout: () => Promise<void>;
@@ -33,10 +32,6 @@ export interface AppContextState {
   refreshUnreadCount: () => Promise<void>;
   incrementUnreadCount: () => void;
   resetAll?: () => void;
-  
-  addScheduleAlert: (alertData: any) => Promise<{ data?: any, error?: any }>;
-  removeScheduleAlert: (id: string) => Promise<void>;
-  loadScheduleAlerts: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextState | null>(null);
@@ -46,7 +41,6 @@ export const AppProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [scheduleAlertsList, setScheduleAlertsList] = useState<any[]>([]);
 
   // ─── Restore session on app start ────────────────────────────────────────
   useEffect(() => {
@@ -96,6 +90,7 @@ export const AppProvider = ({ children }) => {
   const login = async (phone, password) => {
     const { data, error } = await authApi.login(phone, password);
     if (error) return { error };
+    if (!data?.data?.accessToken || !data?.data?.user) return { error: 'Unexpected server response. Please try again.' };
     const { accessToken, refreshToken, user } = data.data;
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     await Promise.all([
@@ -127,6 +122,7 @@ export const AppProvider = ({ children }) => {
   const register = async (userData) => {
     const { data, error } = await authApi.register(userData);
     if (error) return { error };
+    if (!data?.data?.accessToken || !data?.data?.user) return { error: 'Unexpected server response. Please try again.' };
     const { accessToken, refreshToken, user } = data.data;
     const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
     await Promise.all([
@@ -248,25 +244,6 @@ export const AppProvider = ({ children }) => {
     });
   }, [currentUser?.id]);
 
-  // ─── Schedule Alerts ─────────────────────────────────────────────────────
-  const addScheduleAlert = async ({ date, from, to }) => {
-    const { data, error } = await scheduleAlertsApi.create({ date, fromCity: from, toCity: to });
-    if (error) return { error };
-    return { data: data.data };
-  };
-
-  const removeScheduleAlert = async (id) => {
-    await scheduleAlertsApi.delete(id);
-    setScheduleAlertsList(prev => prev.filter(x => x.id !== id));
-  };
-  
-  const loadScheduleAlerts = async () => {
-    const { data } = await scheduleAlertsApi.getAll();
-    if (data?.data) {
-      setScheduleAlertsList(data.data);
-    }
-  };
-
   return (
     <AppContext.Provider value={{
       currentUser, userRole, isLoading, unreadCount,
@@ -285,9 +262,6 @@ export const AppProvider = ({ children }) => {
 
       // Notifications
       markNotificationRead, markAllNotificationsRead, refreshUnreadCount, incrementUnreadCount,
-
-      // Schedule Alerts
-      addScheduleAlert, removeScheduleAlert, loadScheduleAlerts, scheduleAlerts: scheduleAlertsList,
     }}>
       {children}
     </AppContext.Provider>

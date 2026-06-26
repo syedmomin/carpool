@@ -114,6 +114,11 @@ export default function PostRideScreen({ navigation }) {
       showToast('Leaving From and Going To cities cannot be the same.', 'error');
       return;
     }
+    const price = Number(form.pricePerSeat);
+    if (!Number.isFinite(price) || price <= 0) {
+      showToast('Please enter a valid price per seat.', 'error');
+      return;
+    }
     if (isMultiStop) {
       if (stops.some(s => !s.city)) {
         showToast('Each intermediate stop must have a city selected.', 'error');

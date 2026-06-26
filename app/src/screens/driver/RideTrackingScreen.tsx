@@ -250,7 +250,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           showToast(error, 'error');
         } else {
           stopTracking();
-          showToast('Ride completed! 🏁', 'success');
+          showToast('Ride completed', 'success');
           if (confirmedBookings.length > 0) {
             setRatingIndex(0);
           } else {

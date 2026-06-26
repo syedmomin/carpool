@@ -448,11 +448,12 @@ export default function SearchScreen({ navigation, route }) {
         data={displayList}
         keyExtractor={item => item.id + (item.boardingCity || '')}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <RideCard
             ride={item}
             driver={item.driver}
             vehicle={item.vehicle}
+            index={index}
             boardingCity={item.boardingCity}
             exitCity={item.exitCity}
             segmentPrice={item.segmentPrice}

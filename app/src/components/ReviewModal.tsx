@@ -50,7 +50,7 @@ export default function ReviewModal({
     if (error) {
       showToast(parseApiError(error), 'error');
     } else {
-      showToast('Thank you for your feedback! ⭐', 'success');
+      showToast('Thanks for your feedback.', 'success');
       if (onSubmit) onSubmit(data?.id);
       onClose();
     }
@@ -95,7 +95,7 @@ export default function ReviewModal({
 
             <View style={styles.ratingLabel}>
               <Text style={styles.ratingLabelText}>
-                {rating === 5 ? '⭐ Excellent!' : rating === 4 ? '😊 Good' : rating === 3 ? '😐 Average' : rating === 2 ? '😕 Below Average' : '😞 Poor'}
+                {rating === 5 ? 'Excellent' : rating === 4 ? 'Good' : rating === 3 ? 'Average' : rating === 2 ? 'Below average' : 'Poor'}
               </Text>
             </View>
 

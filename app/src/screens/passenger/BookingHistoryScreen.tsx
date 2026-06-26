@@ -4,6 +4,7 @@ import {
     ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge, BookingCardSkeleton } from '../../components';
@@ -70,7 +71,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                         <StarPicker rating={rating} onChange={setRating} />
                         <View style={rStyles.ratingLabel}>
                             <Text style={rStyles.ratingLabelText}>
-                                {rating === 5 ? '⭐ Excellent!' : rating === 4 ? '😊 Good' : rating === 3 ? '😐 Average' : rating === 2 ? '😕 Below Average' : '😞 Poor'}
+                                {rating === 5 ? 'Excellent' : rating === 4 ? 'Good' : rating === 3 ? 'Average' : rating === 2 ? 'Below average' : 'Poor'}
                             </Text>
                         </View>
                         <TextInput style={rStyles.commentInput} placeholder="Write a comment (optional)..."
@@ -252,8 +253,18 @@ export default function BookingHistoryScreen({ navigation }) {
         const isCompleted   = item.status === 'COMPLETED';
         const canReview     = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id);
         const isCancelling  = cancellingId === item.id;
+        const canCancel     = isActive && !isInProgress;
+
+        // Swipe a cancellable booking left to reveal a quick Cancel action.
+        const renderRightActions = () => canCancel ? (
+            <TouchableOpacity style={styles.swipeCancel} onPress={() => confirmCancel(item)} activeOpacity={0.85}>
+                <Ionicons name="close-circle" size={26} color="#fff" />
+                <Text style={styles.swipeCancelText}>Cancel</Text>
+            </TouchableOpacity>
+        ) : null;
 
         return (
+          <Swipeable renderRightActions={renderRightActions} overshootRight={false} friction={2}>
             <View style={styles.card}>
                 {isInProgress && isActive && (
                     <LinearGradient colors={GRADIENTS.teal as any} style={styles.activeBanner}>
@@ -364,6 +375,7 @@ export default function BookingHistoryScreen({ navigation }) {
                     </View>
                 </View>
             </View>
+          </Swipeable>
         );
     };
 
@@ -415,6 +427,8 @@ const styles = StyleSheet.create({
     loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     loadingText: { fontSize: 14, color: COLORS.gray },
     listContent: { padding: 16, paddingBottom: 32 },
+    swipeCancel: { backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center', width: 96, borderRadius: 16, marginBottom: 16, gap: 2 },
+    swipeCancelText: { color: '#fff', fontWeight: '800', fontSize: 12 },
     card: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
     activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
     activeBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },

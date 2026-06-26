@@ -16,6 +16,8 @@ export { FormInput, SearchInput, OTPInput } from './Input';
 
 // ─── Cards ───────────────────────────────────────────────────────────────────
 export { RideCard, StatsCard, MenuCard, InfoItem } from './Card';
+export { PressableScale } from './PressableScale';
+export { AnimatedNumber } from './AnimatedNumber';
 
 // ─── Headers ─────────────────────────────────────────────────────────────────
 export { GradientHeader } from './Header';
@@ -41,8 +43,6 @@ export { ProgressBar } from './ProgressBar';
 // ─── Divider ─────────────────────────────────────────────────────────────────
 export { Divider, DividerText } from './Divider';
 
-// ─── Confirm Modal ───────────────────────────────────────────────────────────
-export { ConfirmModal } from './ConfirmModal';
 
 // ─── Date / Time Pickers ─────────────────────────────────────────────────────
 export { DatePickerInput, TimePickerInput } from './DateTimePicker';

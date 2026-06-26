@@ -1,46 +1,66 @@
 // ─── ChalParo API Service ─────────────────────────────────────────────────────
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { encryptValue, decryptValue } from '../utils/secureStorage';
+import * as SecureStore from 'expo-secure-store';
+import { decryptValue } from '../utils/secureStorage';
 import { API_BASE_URL } from '../config/network';
 
 export const BASE_URL = API_BASE_URL;
 
+// Legacy AsyncStorage keys (XOR-obfuscated) — migrated to SecureStore on first read.
 const TOKEN_KEY = '@chalparo_token';
 const REFRESH_TOKEN_KEY = '@chalparo_refresh_token';
+// SecureStore keys (alphanumeric/._- only — no '@').
+const SEC_TOKEN = 'chalparo_token';
+const SEC_REFRESH = 'chalparo_refresh_token';
 const DEFAULT_TIMEOUT = 12000;
 
-// ─── Token helpers (XOR-encrypted in AsyncStorage) ───────────────────────────
+// SecureStore isn't available on web; fall back to AsyncStorage there (dev only).
+const isWeb = Platform.OS === 'web';
+const secureGet = (k: string) => isWeb ? AsyncStorage.getItem(k) : SecureStore.getItemAsync(k);
+const secureSet = (k: string, v: string) => isWeb ? AsyncStorage.setItem(k, v) : SecureStore.setItemAsync(k, v);
+const secureDel = (k: string) => isWeb ? AsyncStorage.removeItem(k) : SecureStore.deleteItemAsync(k);
+const isJwt = (t: string | null) => !!t && t.split('.').length === 3;
+
+// ─── Token helpers (stored in the OS keychain/keystore via SecureStore) ───────
 export const tokenStorage = {
   get: async () => {
-    const raw = await AsyncStorage.getItem(TOKEN_KEY);
-    if (!raw) return null;
-    const token = decryptValue(raw);
-    if (!token) return null;
-    // JWT must have 3 parts — if decryption gives garbage, clear and re-login
-    if (token.split('.').length !== 3) {
-      await tokenStorage.remove();
-      return null;
+    let token = await secureGet(SEC_TOKEN);
+    if (!token) {
+      // One-time migration from the old XOR AsyncStorage store.
+      const raw = await AsyncStorage.getItem(TOKEN_KEY);
+      if (raw) {
+        token = decryptValue(raw);
+        if (isJwt(token)) await secureSet(SEC_TOKEN, token as string);
+        await AsyncStorage.removeItem(TOKEN_KEY);
+      }
     }
+    if (!isJwt(token)) { await tokenStorage.remove(); return null; }
     return token;
   },
-  set: async (token) => AsyncStorage.setItem(TOKEN_KEY, encryptValue(token)),
-  remove: async () => AsyncStorage.removeItem(TOKEN_KEY),
+  set: async (token) => secureSet(SEC_TOKEN, token),
+  remove: async () => { await secureDel(SEC_TOKEN); await AsyncStorage.removeItem(TOKEN_KEY); },
 
   getRefresh: async () => {
-    const raw = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-    if (!raw) return null;
-    return decryptValue(raw);
+    let token = await secureGet(SEC_REFRESH);
+    if (!token) {
+      const raw = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      if (raw) {
+        token = decryptValue(raw);
+        if (isJwt(token)) await secureSet(SEC_REFRESH, token as string);
+        await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+      }
+    }
+    // Reject garbage so we never POST junk to /auth/refresh.
+    return isJwt(token) ? token : null;
   },
-  setRefresh: async (token) => AsyncStorage.setItem(REFRESH_TOKEN_KEY, encryptValue(token)),
-  removeRefresh: async () => AsyncStorage.removeItem(REFRESH_TOKEN_KEY),
+  setRefresh: async (token) => secureSet(SEC_REFRESH, token),
+  removeRefresh: async () => { await secureDel(SEC_REFRESH); await AsyncStorage.removeItem(REFRESH_TOKEN_KEY); },
 
   clearAll: async () => {
-    await AsyncStorage.removeItem(TOKEN_KEY);
-    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
-    // These keys are matched with AppContext storage
-    await AsyncStorage.removeItem('@chalparo_user');
-    await AsyncStorage.removeItem('@chalparo_role');
+    await secureDel(SEC_TOKEN);
+    await secureDel(SEC_REFRESH);
+    await AsyncStorage.multiRemove([TOKEN_KEY, REFRESH_TOKEN_KEY, '@chalparo_user', '@chalparo_role']);
   }
 };
 
@@ -255,13 +275,6 @@ export const scheduleRequestsApi = {
   placeBid:      (requestId: string, data: { pricePerSeat: number; vehicleId: string; departureTime: string; note?: string }) =>
     request('POST', `/schedule-requests/${requestId}/bids`, data),
   withdrawBid:   (requestId: string, bidId: string) => request('DELETE', `/schedule-requests/${requestId}/bids/${bidId}`),
-};
-
-// ─── Schedule Alerts ─────────────────────────────────────────────────────────
-export const scheduleAlertsApi = {
-  getAll: () => request('GET', '/schedule-alerts'),
-  create: (alertData) => request('POST', '/schedule-alerts', alertData),
-  delete: (alertId) => request('DELETE', `/schedule-alerts/${alertId}`),
 };
 
 // ─── Earnings ────────────────────────────────────────────────────────────────

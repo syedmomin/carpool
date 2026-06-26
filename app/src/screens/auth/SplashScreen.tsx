@@ -131,7 +131,7 @@ export default function SplashScreen({ navigation, onDone }) {
         </View>
 
         <View style={styles.bottomFooter}>
-          <Text style={styles.footerText}>🇵🇰 Made in Pakistan 💚</Text>
+          <Text style={styles.footerText}>Made in Pakistan</Text>
         </View>
       </Animated.View>
     </ImageBackground>

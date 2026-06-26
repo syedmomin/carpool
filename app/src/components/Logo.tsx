@@ -1,8 +1,8 @@
 import React from 'react';
-import { Image, ImageStyle, StyleProp } from 'react-native';
+import { Image, ImageStyle, StyleProp, ImageResizeMode } from 'react-native';
 
-// ─── Logo variants ───────────────────────────────────────────────────────────
-// Add a future logo by dropping the file in /assets and adding one line here.
+// ─── Brand logo variants ──────────────────────────────────────────────────────
+// Real brand assets. Drop a new file in /assets and add one line here.
 const LOGO_VARIANTS = {
   auth:   require('../../assets/auth-logo.png'),    // colored logo + wordmark (light backgrounds)
   splash: require('../../assets/splash-logo.png'),  // logo for the dark splash background
@@ -11,34 +11,45 @@ const LOGO_VARIANTS = {
 export type LogoVariant = keyof typeof LOGO_VARIANTS;
 
 interface Props {
-  /** Which logo image to render. */
+  /** Which brand asset to render. */
   variant?: LogoVariant;
-  /** Width in px. Height matches width (square) unless `height` is given. */
+  /** Square shorthand: sets both width and height. Overridden by explicit width/height. */
   size?: number;
-  /** Optional explicit height; defaults to `size`. */
-  height?: number;
-  /** Optional tint color — only meaningful for single-color/monochrome variants. */
+  /** Explicit width (px or %). Falls back to `size`. */
+  width?: number | string;
+  /** Explicit height (px or %). Falls back to `size`. */
+  height?: number | string;
+  /** Tint color — only meaningful for single-color/monochrome assets. */
   color?: string;
   /** How the image scales within its box. */
-  resizeMode?: 'contain' | 'cover' | 'stretch' | 'center';
+  resizeMode?: ImageResizeMode;
   /** Extra style overrides. */
   style?: StyleProp<ImageStyle>;
 }
 
+/**
+ * Renders the real ChalParo brand logo asset. Everything (variant, width,
+ * height, resizeMode, tint) is configurable so the same component fits the
+ * splash, auth header, and anywhere else at any size.
+ */
 export default function Logo({
   variant = 'auth',
-  size = 220,
+  size = 160,
+  width,
   height,
   color,
   resizeMode = 'contain',
   style,
 }: Props) {
+  const w = width ?? size;
+  const h = height ?? size;
+
   return (
     <Image
       source={LOGO_VARIANTS[variant]}
       resizeMode={resizeMode}
       style={[
-        { width: size, height: height ?? size },
+        { width: w as any, height: h as any },
         color ? { tintColor: color } : null,
         style,
       ]}

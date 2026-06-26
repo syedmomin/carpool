@@ -1,11 +1,10 @@
 import * as TaskManager from 'expo-task-manager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { encryptValue, decryptValue } from '../utils/secureStorage';
+import { tokenStorage } from '../services/api';
 import { API_BASE_URL } from '../config/network';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 const TRACKING_RIDE_ID_KEY = '@tracking_ride_id';
-const TOKEN_KEY = '@chalparo_token';
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
@@ -21,10 +20,9 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
         const rideId = await AsyncStorage.getItem(TRACKING_RIDE_ID_KEY);
         if (!rideId) return;
 
-        // 2. Get Token (Encrypted in ChalParo)
-        const rawToken = await AsyncStorage.getItem(TOKEN_KEY);
-        if (!rawToken) return;
-        const token = decryptValue(rawToken);
+        // 2. Get token from secure storage
+        const token = await tokenStorage.get();
+        if (!token) return;
 
         // 3. Post to API
         const { latitude, longitude, speed, heading } = location.coords;

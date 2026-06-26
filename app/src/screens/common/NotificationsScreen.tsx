@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,30 +13,44 @@ import { CardSkeleton } from '../../components/Skeleton';
 const PAGE_SIZE = 20;
 
 export default function NotificationsScreen({ navigation }) {
-  const { markNotificationRead, markAllNotificationsRead } = useApp();
+  const { markAllNotificationsRead } = useApp();
   const [notifications, setNotifications] = useState([]);
   const [page,          setPage]          = useState(1);
   const [hasMore,       setHasMore]       = useState(true);
   const [loading,       setLoading]       = useState(false);
   const [refreshing,    setRefreshing]    = useState(false);
+  // IDs that were unread when the screen was opened — kept highlighted for this
+  // session even after we mark everything read (so "new" stays visible).
+  const highlightIds = useRef<Set<string>>(new Set());
+  const [highlightCount, setHighlightCount] = useState(0);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const fetchNotifs = useCallback(async (pageNum, replace = false) => {
+  const fetchNotifs = useCallback(async (pageNum, replace = false, autoMark = false) => {
     pageNum === 1 ? setRefreshing(true) : setLoading(true);
     const { data } = await notificationsApi.getAll(pageNum, PAGE_SIZE);
     pageNum === 1 ? setRefreshing(false) : setLoading(false);
     if (!data?.data) return;
+    if (autoMark) {
+      // Snapshot newly-unread for highlighting, then mark all read so the
+      // home bell badge clears as soon as the user opens this window.
+      const freshUnread = data.data.filter(n => !n.read).map(n => n.id);
+      freshUnread.forEach(id => highlightIds.current.add(id));
+      setHighlightCount(highlightIds.current.size);
+      if (freshUnread.length) markAllNotificationsRead();
+    }
     setNotifications(prev => replace ? data.data : [...prev, ...data.data]);
     setHasMore(data.meta?.hasNext ?? false);
     setPage(pageNum);
-  }, []);
+  }, [markAllNotificationsRead]);
 
   useFocusEffect(useCallback(() => {
-    fetchNotifs(1, true);
+    // Reset highlight snapshot each time the screen is opened.
+    highlightIds.current = new Set();
+    setHighlightCount(0);
+    fetchNotifs(1, true, true);
 
-    // Refresh list whenever any notification-creating event fires
-    const onAnyNotif = () => fetchNotifs(1, true);
+    // Refresh + auto-mark whenever any notification-creating event fires while open
+    const onAnyNotif = () => fetchNotifs(1, true, true);
+    socketService.on('NOTIFICATION_NEW',   onAnyNotif);
     socketService.on('BOOKING_REQUESTED',  onAnyNotif);
     socketService.on('BOOKING_ACCEPTED',   onAnyNotif);
     socketService.on('BOOKING_REJECTED',   onAnyNotif);
@@ -45,6 +59,7 @@ export default function NotificationsScreen({ navigation }) {
     socketService.on('RIDE_COMPLETED',     onAnyNotif);
 
     return () => {
+      socketService.off('NOTIFICATION_NEW',   onAnyNotif);
       socketService.off('BOOKING_REQUESTED',  onAnyNotif);
       socketService.off('BOOKING_ACCEPTED',   onAnyNotif);
       socketService.off('BOOKING_REJECTED',   onAnyNotif);
@@ -54,22 +69,18 @@ export default function NotificationsScreen({ navigation }) {
     };
   }, [fetchNotifs]));
 
-  const handleNotifPress = async (item) => {
-    if (!item.read) {
-      await markNotificationRead(item.id);
-      setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, read: true } : n));
+  // Opening the screen already marks read; tapping just clears the highlight.
+  const handleNotifPress = (item) => {
+    if (highlightIds.current.has(item.id)) {
+      highlightIds.current.delete(item.id);
+      setHighlightCount(highlightIds.current.size);
     }
   };
 
-  const handleViewRide = async (item) => {
-    await handleNotifPress(item);
+  const handleViewRide = (item) => {
+    handleNotifPress(item);
     const rideId = item.rideId || item.ride?.id;
     if (rideId) navigation.navigate('RideDetail', { rideId });
-  };
-
-  const handleMarkAll = async () => {
-    await markAllNotificationsRead();
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   return (
@@ -77,15 +88,8 @@ export default function NotificationsScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.primary as any}
         title="Notifications"
-        subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+        subtitle={highlightCount > 0 ? `${highlightCount} new` : 'All caught up!'}
         onBack={() => navigation.goBack()}
-        rightAction={
-          unreadCount > 0 && (
-            <TouchableOpacity onPress={handleMarkAll} style={styles.markAllBtn}>
-              <Text style={styles.markAllText}>Mark all read</Text>
-            </TouchableOpacity>
-          )
-        }
       />
 
       <FlatList
@@ -95,12 +99,13 @@ export default function NotificationsScreen({ navigation }) {
         onEndReached={() => { if (hasMore && !loading) fetchNotifs(page + 1); }}
         onEndReachedThreshold={0.3}
         refreshing={refreshing}
-        onRefresh={() => fetchNotifs(1, true)}
+        onRefresh={() => fetchNotifs(1, true, true)}
         ListFooterComponent={loading ? <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 16 }} /> : null}
         renderItem={({ item }) => {
           const config = getNotificationStyle(item.type);
           const isNewRide = item.type === 'NEW_RIDE' || item.type === 'BOOKING';
-          const isRead    = item.read ?? false;
+          // Highlight = was unread when the window opened (kept until tapped).
+          const isRead    = !highlightIds.current.has(item.id);
           const timeLabel = item.time ?? (item.createdAt ? new Date(item.createdAt).toLocaleString('en-PK', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '');
 
           return (

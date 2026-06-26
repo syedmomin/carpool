@@ -3,19 +3,24 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { COLORS, GRADIENTS, GradientHeader } from '../../components';
 
 const SECTIONS = [
-  { title: 'Information We Collect', body: 'We collect your name, phone number, email address, and location data to provide ride-sharing services.' },
-  { title: 'How We Use Your Data', body: 'Your data is used to match passengers with drivers, send notifications, and improve our services.' },
-  { title: 'Data Sharing', body: 'We never sell your data. We only share necessary information between matched drivers and passengers.' },
-  { title: 'Data Security', body: 'We use industry-standard encryption to protect your data. Your CNIC and personal documents are stored securely.' },
-  { title: 'Your Rights', body: 'You can request deletion of your account and all associated data at any time by contacting support.' },
-  { title: 'Location Data', body: 'Location data is used only during active rides and is not stored permanently.' },
-  { title: 'Contact', body: 'For privacy concerns, email us at privacy@chalparo.pk' },
+  { title: 'Information We Collect', body: 'Account details: your name, phone number, email, city, and profile photo. Verification documents: your CNIC and driving licence (for drivers). Trip data: routes, bookings, ride requests, bids, and reviews. Device data: your push-notification token and, during active rides, your live location.' },
+  { title: 'How We Use Your Data', body: 'We use your data to create your account, match passengers with drivers, show ride and driver details, enable in-app chat and live tracking, send ride and notification alerts, verify drivers, and keep the platform safe.' },
+  { title: 'Live Location', body: 'Location is collected only while you are in an active ride, so passengers and the driver can see the trip in progress. It is used for the live trip view and is not used to track you outside of an active ride.' },
+  { title: 'What Other Users See', body: 'When a booking is matched, the driver and passenger can see each other’s name, photo, rating, and contact number so they can coordinate the trip. Drivers also display vehicle details. Your CNIC and licence are never shown to other users.' },
+  { title: 'Service Providers', body: 'We use trusted third parties to run the app: Cloudinary (image hosting for photos and documents), Google Firebase (push notifications), and our cloud database and cache providers for secure storage. These providers process data only on our behalf.' },
+  { title: 'Payments', body: 'ChalParo does not collect or store any payment or card information. All fares are paid in cash directly between passengers and drivers.' },
+  { title: 'Data Sharing', body: 'We never sell your personal data. We share information only as needed to provide the service, comply with the law, or respond to a lawful request from authorities.' },
+  { title: 'Data Security', body: 'We protect your data with encrypted connections and access controls. Verification documents are stored securely and used only for review. No system is perfectly secure, so please keep your account credentials private.' },
+  { title: 'Data Retention', body: 'We keep your data while your account is active. When you delete your account, we remove or anonymise your personal data, except where we must keep limited records to meet legal obligations.' },
+  { title: 'Your Rights', body: 'You can view and edit your profile in the app, and request deletion of your account and associated data at any time by contacting support.' },
+  { title: 'Children', body: 'ChalParo is intended for users aged 18 and over. We do not knowingly collect data from anyone under 18.' },
+  { title: 'Contact', body: 'For any privacy question or a data deletion request, email us at privacy@chalparo.pk.' },
 ];
 
 export default function PrivacyScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.teal as any} title="Privacy Policy" subtitle="Last updated: March 2026" onBack={() => navigation.goBack()} />
+      <GradientHeader colors={GRADIENTS.teal as any} title="Privacy Policy" subtitle="Last updated: June 2026" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         <Text style={styles.intro}>Your privacy is important to us. This policy explains how we handle your data.</Text>
         {SECTIONS.map((s, i) => (

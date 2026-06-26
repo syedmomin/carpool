@@ -21,7 +21,7 @@ import ReviewModal from './ReviewModal';
  * listener is silently dropped by the guard in socket.service.tsx.
  */
 export default function SocketListener({ navigationRef }: { navigationRef: any }) {
-  const { currentUser, incrementUnreadCount } = useApp() as any;
+  const { currentUser, incrementUnreadCount, refreshUnreadCount } = useApp() as any;
   const socketData = useSocketData();
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
@@ -69,7 +69,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           
           showModal({
             type: 'confirm',
-            title: 'New Ride Request! 🚗',
+            title: 'New ride request',
             message: `${data.booking?.passenger?.name || 'A passenger'} wants to join your ride to ${data.booking?.exitCity}.\nSeats: ${data.seats}`,
             confirmText: 'Accept',
             cancelText: 'Decline',
@@ -94,7 +94,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           if (data.rideId) socketService.joinRide(data.rideId, 'rider');
           showModal({
             type: 'success',
-            title: 'Booking Confirmed! 🎉',
+            title: 'Booking confirmed',
             message: 'Your seat has been confirmed by the driver. You can view details in My Bookings.',
             confirmText: 'View Bookings',
             onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
@@ -110,7 +110,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'PASSENGER') {
           socketData.removeBooking(data.bookingId);
           showBanner({
-            title: 'Booking Not Accepted ❌',
+            title: 'Request not accepted',
             message: `Your request${routeOf(data) ? ` for ${routeOf(data)}` : ''} was not accepted. Try another ride.`,
             kind: 'BOOKING', rideId: data.rideId,
             onPress: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
@@ -145,8 +145,8 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRideInBookings(data.rideId, { status: 'IN_PROGRESS' });
           showBanner({
-            title: 'Your Ride Has Started! 🚗',
-            message: `${routeOf(data) || 'Your trip'} — your driver is on the way.`,
+            title: 'Your ride has started',
+            message: `${routeOf(data) || 'Your trip'}. Your driver is on the way.`,
             kind: 'RIDE_STARTED', rideId: data.rideId,
             onPress: () => navigationRef.current?.navigate('RideTracking', { rideId: data.rideId }),
           });
@@ -168,7 +168,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'DRIVER') {
           socketData.patchRide(data.rideId, { status: 'COMPLETED' });
           showBanner({
-            title: 'Ride Completed! 🏁',
+            title: 'Ride completed',
             message: `${routeOf(data) || 'Your ride'} is done. Check your earnings.`,
             kind: 'RIDE_COMPLETED', rideId: data.rideId,
             onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'DriverHomeTab', params: { screen: 'Earnings' } }),
@@ -182,7 +182,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           socketData.patchRideInBookings(data.rideId, { status: 'CANCELLED' });
           showModal({
             type: 'danger',
-            title: 'Ride Cancelled ❌',
+            title: 'Ride cancelled',
             message: `The ${data.fromCity} → ${data.toCity} ride on ${data.date} has been cancelled by the driver.`,
             confirmText: 'Find Another Ride',
             onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
@@ -198,7 +198,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'DRIVER') {
           socketData.patchRide(data.rideId, { status: 'EXPIRED' });
           showBanner({
-            title: 'Ride Expired ⏰',
+            title: 'Ride expired',
             message: `${routeOf(data) || 'Your ride'} expired with no bookings.`,
             kind: 'RIDE_EXPIRED', rideId: data.rideId,
             onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
@@ -223,8 +223,8 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'DRIVER') {
           socketData.addOpenRequest({ ...data, bids: [] });
           showBanner({
-            title: 'New Ride Request 📋',
-            message: `${routeOf(data)} — place your bid to win this trip.`,
+            title: 'New ride request',
+            message: `${routeOf(data)}. Place your bid to win this trip.`,
             kind: 'SCHEDULE_REQUEST',
             onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'DriverRequestsTab' }),
           });
@@ -239,7 +239,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           // InDrive-style Bid Popup for Passenger
           showModal({
             type: 'success',
-            title: 'New Bid Received! 💰',
+            title: 'New bid received',
             message: `Driver ${data.bid?.driver?.name} offered Rs ${data.bid?.pricePerSeat} for your ${data.fromCity} → ${data.toCity} trip.`,
             confirmText: 'View Bids',
             onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestDetail', params: { requestId: data.scheduleRequestId } }),
@@ -260,7 +260,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           socketData.loadMyRides(true);
           showModal({
             type: 'success',
-            title: 'Bid Accepted! 🎉',
+            title: 'Bid accepted',
             message: `Your bid for ${data.fromCity} → ${data.toCity} on ${data.date} was accepted. A ride has been created for you.`,
             confirmText: 'View My Rides',
             onConfirm: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
@@ -294,7 +294,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           if (data.rideId) socketService.joinRide(data.rideId, 'rider');
           showModal({
             type: 'success',
-            title: 'Ride Booked! 🚗',
+            title: 'Ride booked',
             message: 'The driver accepted your request and your seat is confirmed. You can chat, track, and manage your ride from My Bookings.',
             confirmText: 'View Booking',
             onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
@@ -311,7 +311,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRequest(data.scheduleRequestId, { status: 'EXPIRED' });
           showBanner({
-            title: 'Request Expired 📋',
+            title: 'Request expired',
             message: `Your request${routeOf(data) ? ` from ${routeOf(data)}` : ''} expired with no accepted bids.`,
             kind: 'RIDE_EXPIRED',
             onPress: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestsTab' }),
@@ -320,6 +320,11 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       },
 
       onReviewReceived: () => incrementUnreadCount(),
+
+      // Authoritative badge sync: fired by the server for EVERY notification it
+      // creates, so the bell badge stays correct for all types (reminders, new
+      // requests, etc.) even if no type-specific handler bumps it.
+      onNotificationNew: () => refreshUnreadCount(),
     };
 
     // ── Connect first, THEN register listeners ────────────────────────────────
@@ -333,6 +338,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('NEW_RIDE',           handlers.onNewRide);
       socketService.on('RIDE_UPDATED',       handlers.onRideUpdated);
       socketService.on('REVIEW_RECEIVED',    handlers.onReviewReceived);
+      socketService.on('NOTIFICATION_NEW',   handlers.onNotificationNew);
       socketService.on('BOOKING_REQUESTED',  handlers.onBookingRequested);
       socketService.on('BOOKING_ACCEPTED',   handlers.onBookingAccepted);
       socketService.on('BOOKING_REJECTED',   handlers.onBookingRejected);
@@ -358,6 +364,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('NEW_RIDE',           handlers.onNewRide);
       socketService.off('RIDE_UPDATED',       handlers.onRideUpdated);
       socketService.off('REVIEW_RECEIVED',    handlers.onReviewReceived);
+      socketService.off('NOTIFICATION_NEW',   handlers.onNotificationNew);
       socketService.off('BOOKING_REQUESTED',  handlers.onBookingRequested);
       socketService.off('BOOKING_ACCEPTED',   handlers.onBookingAccepted);
       socketService.off('BOOKING_REJECTED',   handlers.onBookingRejected);

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState, RideCardSkeleton, Skeleton } from '../../components';
+import { COLORS, GRADIENTS, GradientHeader, EmptyState, RideCardSkeleton, Skeleton, AnimatedNumber } from '../../components';
 import { ridesApi } from '../../services/api';
 
 const TABS = ['All Time', 'This Month', 'This Week'];
@@ -159,7 +159,7 @@ export default function EarningsScreen({ navigation }) {
           <Text style={styles.totalLabel}>
             {tab === 0 ? 'Total Earned' : tab === 1 ? 'This Month' : 'This Week'}
           </Text>
-          <Text style={styles.totalAmount}>Rs {total.toLocaleString()}</Text>
+          <AnimatedNumber value={total} prefix="Rs " style={styles.totalAmount} />
         </View>
         
         {/* Weekly Goal */}

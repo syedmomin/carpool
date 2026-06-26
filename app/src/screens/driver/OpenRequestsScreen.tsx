@@ -282,7 +282,7 @@ export default function OpenRequestsScreen({ navigation }) {
               : styles.bidDotPending
             ]} />
             <Text style={[styles.bidStatusText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
-              {myBid.status === 'ACCEPTED' ? 'Accepted!' : myBid.status === 'REJECTED' ? 'Declined — bid again?' : 'Pending'}
+              {myBid.status === 'ACCEPTED' ? 'Accepted' : myBid.status === 'REJECTED' ? 'Declined, bid again?' : 'Pending'}
             </Text>
           </View>
         )}

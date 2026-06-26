@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-// ─── SafariShare Brand Palette ───────────────────────────────────────────────
+// ─── ChalParo Brand Palette ───────────────────────────────────────────────
 // Rule: passenger UI = primary blue | driver UI = teal (unified to brand blue)
 // Never use purple — was replaced with blue
 export const COLORS = {
@@ -141,7 +141,7 @@ export const STATUS_COLORS: Record<string, StatusToken> = {
   completed:           { text: '#0369a1',         bg: '#f0f9ff',  label: 'Completed' },
   cancelled:           { text: COLORS.danger,     bg: '#fef2f2',  label: 'Cancelled' },
   expired:             { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired' },
-  expired_no_bookings: { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired – No Bookings' },
+  expired_no_bookings: { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired, no bookings' },
   // Booking statuses
   confirmed:           { text: COLORS.secondary, bg: '#e8f5e9',  label: 'Confirmed' },
   rejected:            { text: COLORS.danger,     bg: '#fef2f2',  label: 'Rejected' },

@@ -147,7 +147,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue} numberOfLines={1}>{currentUser?.city || '—'}</Text>
+            <Text style={styles.statValue} numberOfLines={1}>{currentUser?.city || '-'}</Text>
             <Text style={styles.statLabel}>City</Text>
           </View>
           <View style={styles.statDivider} />
@@ -160,7 +160,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Text style={styles.statValue}>
-              {currentUser?.createdAt ? new Date(currentUser.createdAt).getFullYear() : '—'}
+              {currentUser?.createdAt ? new Date(currentUser.createdAt).getFullYear() : '-'}
             </Text>
             <Text style={styles.statLabel}>Member</Text>
           </View>
@@ -212,7 +212,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
 
-      <Text style={styles.versionText}>ChalParo v1.0.0 • Made in Pakistan 🇵🇰</Text>
+      <Text style={styles.versionText}>ChalParo v1.0.0 · Made in Pakistan</Text>
     </ScrollView>
   );
 }

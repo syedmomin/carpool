@@ -120,7 +120,7 @@ export default function ActiveRidesScreen({ navigation }) {
             }
             label={
               isInProgress ? 'In Progress' :
-                isExpiredNoBook ? 'Expired – No Bookings' :
+                isExpiredNoBook ? 'Expired, no bookings' :
                   !hasAnyBooking ? 'No Requests Yet' :
                     available > 0 ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'
             }
