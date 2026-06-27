@@ -100,7 +100,7 @@ function navigateTo(navigation, data) {
   // destination from type when `screen` isn't explicitly provided.
   const screen = data.screen || targetForKind(data.type, data.role)?.screen;
   switch (screen) {
-    case 'BookingHistory': navigation.navigate('BookingHistory');                        break;
+    case 'BookingHistory': navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' }); break;
     case 'RideDetail':     navigation.navigate('RideDetail', { rideId: data.rideId });  break;
     case 'MyRides':
         navigation.navigate('DriverApp', { screen: 'MyRidesTab' });

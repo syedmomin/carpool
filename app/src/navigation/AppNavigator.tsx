@@ -122,8 +122,12 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
             if (isFocused) {
               try {
                 const routeState = route.state as any;
-                if (routeState && routeState.index > 0) {
-                  descriptors[route.key].navigation.dispatch(StackActions.popToTop());
+                // Re-tapping the active tab resets its stack to the root. Target
+                // the nested stack explicitly (via its state key) so the action
+                // is always handled — dispatching untargeted can bubble to the
+                // root and log "POP_TO_TOP was not handled by any navigator".
+                if (routeState && routeState.index > 0 && routeState.key) {
+                  navigation.dispatch({ ...StackActions.popToTop(), target: routeState.key });
                 }
               } catch (e) {
                 // Ignore if popToTop is not supported or fails

@@ -43,7 +43,7 @@ export default function ActiveRidesScreen({ navigation }) {
         type: 'danger', title: 'Vehicle Required',
         message: 'Register and activate a vehicle before starting a ride.',
         confirmText: 'Set Up Vehicle', cancelText: 'Cancel', icon: 'car-outline',
-        onConfirm: () => navigation.navigate('MyVehicles'),
+        onConfirm: () => navigation.navigate('MyVehiclesTab'),
       });
       return;
     }

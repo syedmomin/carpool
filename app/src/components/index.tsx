@@ -18,6 +18,7 @@ export { FormInput, SearchInput, OTPInput } from './Input';
 export { RideCard, StatsCard, MenuCard, InfoItem } from './Card';
 export { PressableScale } from './PressableScale';
 export { AnimatedNumber } from './AnimatedNumber';
+export { PulseBadge } from './PulseBadge';
 
 // ─── Headers ─────────────────────────────────────────────────────────────────
 export { GradientHeader } from './Header';

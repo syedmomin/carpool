@@ -182,7 +182,7 @@ export default function PostRideScreen({ navigation }) {
         showToast('Ride posted successfully!', 'success');
         // Reset form
         setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
-        navigation.navigate('MyRides');
+        navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
       }
     } catch (err) {
       showToast('An unexpected error occurred. Please try again.', 'error');
@@ -257,9 +257,9 @@ export default function PostRideScreen({ navigation }) {
           {matchCount > 0 && (
             <TouchableOpacity 
               style={styles.matchBanner} 
-              onPress={() => navigation.navigate('DriverApp', { 
-                screen: 'OpenRequests', 
-                params: { city: form.from, to: form.to } 
+              onPress={() => navigation.navigate('DriverApp', {
+                screen: 'DriverRequestsTab',
+                params: { screen: 'OpenRequestsMain', params: { city: form.from, to: form.to } }
               })}
             >
               <LinearGradient colors={['#f0fdf4', '#dcfce7']} style={styles.matchGrad}>

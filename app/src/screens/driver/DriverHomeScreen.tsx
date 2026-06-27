@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from '
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar } from '../../components';
+import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar, PulseBadge } from '../../components';
 import { Skeleton, CardSkeleton, RideCardSkeleton } from '../../components/Skeleton';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -41,8 +41,8 @@ export default function DriverHomeScreen({ navigation }) {
   const QUICK_ACTIONS = [
     { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
     { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRidesTab', desc: 'Manage bookings' },
-    { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehicles', desc: 'Vehicle details' },
-    { icon: 'wallet', label: 'Earnings', gradient: GRADIENTS.secondary, screen: 'Earnings', desc: 'View income' },
+    { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehiclesTab', desc: 'Vehicle details' },
+    { icon: 'list', label: 'Ride Requests', gradient: GRADIENTS.secondary, screen: 'DriverRequestsTab', desc: 'Bid on requests' },
   ];
 
   return (
@@ -60,31 +60,53 @@ export default function DriverHomeScreen({ navigation }) {
               <Text style={styles.userName}>{currentUser?.name}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
+          <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')} activeOpacity={0.85}>
             <View style={styles.notifIcon}>
-              <Ionicons name="notifications-outline" size={22} color={COLORS.teal} />
-              {unreadCount > 0 && (
-                <View style={styles.notifDot}>
-                  <Text style={styles.notifDotText}>{unreadCount}</Text>
-                </View>
-              )}
+              <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={23} color={COLORS.primary} />
+              <PulseBadge count={unreadCount} />
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsGrid}>
-          {[
-            { icon: 'car-sport-outline', value: todayRides.length, label: "Today's Rides" },
-            { icon: 'people-outline', value: totalPassengers, label: "Today's Passengers" },
-            { icon: 'wallet-outline', value: `Rs ${totalEarned > 0 ? (totalEarned / 1000).toFixed(1) + 'k' : '0'}`, label: "Today's Earnings", accent: true },
-          ].map((s, i) => (
-            <View key={i} style={styles.statCard}>
-              <Ionicons name={(s.icon) as any} size={18} color={s.accent ? COLORS.accent : 'rgba(255,255,255,0.9)'} />
-              <Text style={[styles.statVal, s.accent && { color: COLORS.accent }]}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
+        {/* Stats — hero earnings + two supporting metrics */}
+        <View style={styles.statsWrap}>
+          <TouchableOpacity
+            style={styles.heroCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Earnings')}
+          >
+            <View style={styles.heroIconChip}>
+              <Ionicons name="wallet" size={24} color={COLORS.accent} />
             </View>
-          ))}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroLabel}>Today's Earnings</Text>
+              <Text style={styles.heroVal}>Rs {totalEarned > 0 ? totalEarned.toLocaleString() : '0'}</Text>
+            </View>
+            <View style={styles.heroArrow}>
+              <Ionicons name="arrow-forward" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconChip}>
+                <Ionicons name="car-sport-outline" size={20} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.statVal}>{todayRides.length}</Text>
+                <Text style={styles.statLabel}>Today's Rides</Text>
+              </View>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIconChip}>
+                <Ionicons name="people-outline" size={20} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.statVal}>{totalPassengers}</Text>
+                <Text style={styles.statLabel}>Passengers</Text>
+              </View>
+            </View>
+          </View>
         </View>
       </LinearGradient>
 
@@ -109,11 +131,11 @@ export default function DriverHomeScreen({ navigation }) {
         </View>
 
         {/* Active Vehicle */}
-        <SectionHeader title="Active Vehicle" onSeeAll={() => navigation.navigate('MyVehicles')} />
+        <SectionHeader title="Active Vehicle" onSeeAll={() => navigation.navigate('MyVehiclesTab')} />
         {loadingVehicles ? (
            <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 24 }} />
         ) : myVehicle ? (
-          <TouchableOpacity style={styles.vehicleCard} onPress={() => navigation.navigate('MyVehicles')}>
+          <TouchableOpacity style={styles.vehicleCard} onPress={() => navigation.navigate('MyVehiclesTab')}>
             <View style={styles.vehicleInner}>
               <View style={styles.vehicleIconBox}>
                 <Ionicons name="car-sport" size={28} color={COLORS.primary} />
@@ -137,7 +159,7 @@ export default function DriverHomeScreen({ navigation }) {
             </View>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.addVehicleCard} onPress={() => navigation.navigate('MyVehicles')}>
+          <TouchableOpacity style={styles.addVehicleCard} onPress={() => navigation.navigate('MyVehiclesTab')}>
             <Ionicons name="add-circle-outline" size={36} color={COLORS.primary} />
             <Text style={styles.addVehicleTitle}>Add Your Vehicle</Text>
             <Text style={styles.addVehicleSub}>Register your car, bus, or coaster to start posting rides</Text>
@@ -198,19 +220,34 @@ const styles = StyleSheet.create({
   notifIcon: { width: 44, height: 44, backgroundColor: '#fff', borderRadius: 14, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.danger },
   notifDotText: { fontSize: 8, color: '#fff', fontWeight: '700' },
-  statsGrid: { flexDirection: 'row', gap: 10 },
-  statCard: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16, padding: 14, alignItems: 'center', gap: 4 },
-  statVal: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.75)', textAlign: 'center' },
+  statsWrap: { gap: 12 },
+  heroCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 20, padding: 16,
+  },
+  heroIconChip: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center' },
+  heroLabel: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginBottom: 3 },
+  heroVal: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
+  heroArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  statsGrid: { flexDirection: 'row', gap: 12 },
+  statCard: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
+    borderRadius: 16, padding: 14,
+  },
+  statIconChip: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.28)', alignItems: 'center', justifyContent: 'center' },
+  statVal: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  statLabel: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
   body: { padding: 20 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
   actionCard: { width: '47%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5 },
-  actionGrad: { padding: 18, minHeight: 130, justifyContent: 'space-between' },
+  actionGrad: { padding: 18, minHeight: 120, justifyContent: 'flex-start' },
   actionIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   actionLabel: { fontSize: 14, fontWeight: '800', color: '#fff' },
   actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  actionArrow: { alignSelf: 'flex-end', width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  actionArrow: { position: 'absolute', top: 14, right: 14, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   vehicleCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: COLORS.border },
   vehicleInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   vehicleIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },

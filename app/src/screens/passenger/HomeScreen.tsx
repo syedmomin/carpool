@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from '../../components';
+import { COLORS, GRADIENTS, PulseBadge } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
@@ -79,12 +79,8 @@ export default function PassengerHomeScreen({ navigation }) {
         </View>
         <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
           <View style={styles.notifIconContainer}>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {unreadCount > 0 && (
-              <View style={styles.notifBadgeMini}>
-                <Text style={styles.notifBadgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
-              </View>
-            )}
+            <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={24} color="#fff" />
+            <PulseBadge count={unreadCount} />
           </View>
         </TouchableOpacity>
       </View>
