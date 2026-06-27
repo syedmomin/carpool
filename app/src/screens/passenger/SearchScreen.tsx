@@ -242,7 +242,7 @@ export default function SearchScreen({ navigation, route }) {
 
       if (newMatches.length > 0) {
         setSearchResults(prev => [...(newMatches as any), ...(prev || [])]);
-        showToast(`Found ${newMatches.length} new ride(s) matching your search!`, 'info');
+        showToast(`Found ${newMatches.length} new ride(s) matching your search`, 'info');
       } else if (changed) {
         setSearchResults(updatedResults);
       }
@@ -477,7 +477,7 @@ export default function SearchScreen({ navigation, route }) {
               title={searchResults !== null ? 'No Rides Found' : 'No Rides Available'}
               subtitle={searchResults !== null
                 ? 'No rides on this route. Try different cities or check back later.'
-                : 'No active rides right now. Check back soon!'}
+                : 'No active rides right now. Check back soon.'}
             />
           )
         }

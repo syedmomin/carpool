@@ -48,7 +48,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
         });
         setSubmitting(false);
         if (error) showToast(parseApiError(error), 'error');
-        else { showToast('Thank you for your review!', 'success'); onSubmit(booking.id); }
+        else { showToast('Thanks for your review', 'success'); onSubmit(booking.id); }
     };
 
     return (

@@ -76,7 +76,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
             onConfirm: async () => {
               const { error } = await bookingsApi.accept(data.booking.id);
               if (error) showToast(error, 'error');
-              else showToast('Booking Accepted!', 'success');
+              else showToast('Booking accepted', 'success');
             },
             onCancel: async () => {
               const { error } = await bookingsApi.reject(data.booking.id);

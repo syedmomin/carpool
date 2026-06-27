@@ -226,7 +226,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
       setLoading(false);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       haptics.success();
-      showToast('Vehicle updated successfully!', 'success');
+      showToast('Vehicle updated successfully', 'success');
       navigation.goBack();
     } else {
       const { error } = await vehiclesApi.register(formData);

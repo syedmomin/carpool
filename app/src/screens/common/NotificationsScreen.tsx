@@ -88,7 +88,7 @@ export default function NotificationsScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.primary as any}
         title="Notifications"
-        subtitle={highlightCount > 0 ? `${highlightCount} new` : 'All caught up!'}
+        subtitle={highlightCount > 0 ? `${highlightCount} new` : 'All caught up'}
         onBack={() => navigation.goBack()}
       />
 
@@ -147,7 +147,7 @@ export default function NotificationsScreen({ navigation }) {
               {Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
             </View>
           ) : (
-            <EmptyState icon="notifications-off-outline" title="No Notifications" subtitle="You're all caught up!" />
+            <EmptyState icon="notifications-off-outline" title="No Notifications" subtitle="You're all caught up" />
           )
         }
       />

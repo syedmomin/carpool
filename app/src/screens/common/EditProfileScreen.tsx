@@ -72,7 +72,7 @@ export default function EditProfileScreen({ navigation }) {
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
     savedRef.current = true; // bypass the unsaved-changes guard
-    showToast('Profile updated successfully!', 'success');
+    showToast('Profile updated successfully', 'success');
     navigation.goBack();
   };
 

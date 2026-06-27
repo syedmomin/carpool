@@ -25,7 +25,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
     <View style={styles.container}>
       <GradientHeader
         colors={GRADIENTS.primary as any}
-        title="Booking Request Sent!"
+        title="Booking Request Sent"
         subtitle="Waiting for driver to accept your request"
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />

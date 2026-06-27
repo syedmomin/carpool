@@ -215,7 +215,7 @@ export default function EarningsScreen({ navigation }) {
             {[1, 2, 3].map(i => <RideCardSkeleton key={i} />)}
           </View>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="wallet-outline" title="No Earnings Yet" subtitle={tab === 0 ? 'Post your first ride to start earning!' : 'No completed rides in this period.'} />
+          <EmptyState icon="wallet-outline" title="No Earnings Yet" subtitle={tab === 0 ? 'Post your first ride to start earning.' : 'No completed rides in this period.'} />
         ) : (
           filtered.map(ride => {
             const seats  = confirmedSeats(ride);

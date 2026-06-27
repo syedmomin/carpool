@@ -179,7 +179,7 @@ export default function PostRideScreen({ navigation }) {
         showToast(parseApiError(error), 'error');
       } else {
         haptics.success();
-        showToast('Ride posted successfully!', 'success');
+        showToast('Ride posted successfully', 'success');
         // Reset form
         setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
         navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });

@@ -31,7 +31,7 @@ export default function ChangePasswordScreen({ navigation }) {
     if (error) { showToast(parseApiError(error), 'error'); return; }
     // Reset form
     setForm({ current: '', newPass: '', confirm: '' });
-    showToast('Password changed successfully!', 'success');
+    showToast('Password changed successfully', 'success');
     navigation.goBack();
   };
 

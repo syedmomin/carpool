@@ -141,7 +141,7 @@ export default function ReviewsScreen({ navigation }) {
           <EmptyState 
             icon="star-outline" 
             title="No Reviews Yet" 
-            subtitle="Complete more rides to see what others think of you!" 
+            subtitle="Complete more rides to see what others think of you."
           />
         }
       />

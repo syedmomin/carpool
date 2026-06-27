@@ -253,7 +253,7 @@ export default function ActiveRidesScreen({ navigation }) {
           !refreshing ? (
             tab === 'current'
               ? <EmptyState icon="car-sport-outline" title="No Active Rides"
-                subtitle="You have no active rides. Post a new ride!"
+                subtitle="You have no active rides. Post a new ride to get started."
                 action={{ label: 'Post a Ride', onPress: () => navigation.navigate('PostRide') }} />
               : <EmptyState icon="time-outline" title="No Ride History"
                 subtitle="Your completed and cancelled rides will appear here." />

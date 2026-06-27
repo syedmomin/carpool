@@ -65,7 +65,7 @@ export default function RideBookingsScreen({ navigation, route }) {
         setActionLoading(null);
         if (error) showToast(error, 'error');
         else {
-          showToast('Booking accepted!', 'success');
+          showToast('Booking accepted', 'success');
           fetchRide();
         }
       },
