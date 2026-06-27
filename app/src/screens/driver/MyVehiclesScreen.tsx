@@ -42,7 +42,8 @@ export default function MyVehiclesScreen({ navigation }) {
   }, []));
 
   const handleSetActive = async (vehicleId) => {
-    await setActiveVehicle(vehicleId);
+    const { error } = await setActiveVehicle(vehicleId);
+    if (error) { showToast(parseApiError(error), 'error'); return; }
     setMyVehicles(prev => prev.map(v => ({ ...v, isActive: v.id === vehicleId })));
   };
 

@@ -22,6 +22,20 @@ class SocketService {
   private _rideRooms: Map<string, 'driver' | 'rider'> = new Map();
   private _appState: AppStateStatus = AppState.currentState;
   private _queuedEvents: { event: string; data: any }[] = [];
+  private _connListeners: Set<(connected: boolean) => void> = new Set();
+
+  private _emitConn(connected: boolean) {
+    this._connListeners.forEach(cb => cb(connected));
+  }
+
+  /** Subscribe to connect/disconnect changes. Returns an unsubscribe fn. */
+  onConnectionChange(cb: (connected: boolean) => void): () => void {
+    this._connListeners.add(cb);
+    cb(!!this.socket?.connected);
+    return () => this._connListeners.delete(cb);
+  }
+
+  isConnected(): boolean { return !!this.socket?.connected; }
 
   constructor() {
     AppState.addEventListener('change', this._handleAppStateChange);
@@ -44,8 +58,9 @@ class SocketService {
       transports: ['websocket', 'polling'],
       auth: { token },
       reconnection: true,
-      reconnectionAttempts: 15,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
       timeout: 10000,
     });
 
@@ -64,6 +79,7 @@ class SocketService {
 
       // ── Flush Queued Events ──
       this._flushQueue();
+      this._emitConn(true);
     });
 
     this.socket.on('connect_error', (err) => {
@@ -73,6 +89,7 @@ class SocketService {
     this.socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
       this._stopHeartbeat();
+      this._emitConn(false);
     });
 
     this.socket.on('pong', () => {

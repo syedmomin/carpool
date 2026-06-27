@@ -150,7 +150,8 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
             kind: 'RIDE_STARTED', rideId: data.rideId,
             onPress: () => navigationRef.current?.navigate('RideTracking', { rideId: data.rideId }),
           });
-          navigationRef.current?.navigate('RideTracking', { rideId: data.rideId });
+          // Don't yank the user out of what they're doing — let them tap the
+          // banner to open live tracking.
         }
         if (currentUser.role === 'DRIVER') {
           socketData.patchRide(data.rideId, { status: 'IN_PROGRESS' });
@@ -319,6 +320,14 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         }
       },
 
+      onBookingUpdated: (data: any) => {
+        // Passenger added seats to a confirmed booking — keep driver views in sync.
+        if (currentUser.role === 'DRIVER' && data.rideId) {
+          if (data.booking) socketData.patchBookingInRide(data.rideId, data.booking.id, data.booking);
+          if (data.bookedSeats !== undefined) socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
+        }
+      },
+
       onReviewReceived: () => incrementUnreadCount(),
 
       // Authoritative badge sync: fired by the server for EVERY notification it
@@ -339,6 +348,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('RIDE_UPDATED',       handlers.onRideUpdated);
       socketService.on('REVIEW_RECEIVED',    handlers.onReviewReceived);
       socketService.on('NOTIFICATION_NEW',   handlers.onNotificationNew);
+      socketService.on('BOOKING_UPDATED',    handlers.onBookingUpdated);
       socketService.on('BOOKING_REQUESTED',  handlers.onBookingRequested);
       socketService.on('BOOKING_ACCEPTED',   handlers.onBookingAccepted);
       socketService.on('BOOKING_REJECTED',   handlers.onBookingRejected);
@@ -365,6 +375,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('RIDE_UPDATED',       handlers.onRideUpdated);
       socketService.off('REVIEW_RECEIVED',    handlers.onReviewReceived);
       socketService.off('NOTIFICATION_NEW',   handlers.onNotificationNew);
+      socketService.off('BOOKING_UPDATED',    handlers.onBookingUpdated);
       socketService.off('BOOKING_REQUESTED',  handlers.onBookingRequested);
       socketService.off('BOOKING_ACCEPTED',   handlers.onBookingAccepted);
       socketService.off('BOOKING_REJECTED',   handlers.onBookingRejected);

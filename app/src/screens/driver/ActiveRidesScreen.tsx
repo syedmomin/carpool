@@ -164,6 +164,16 @@ export default function ActiveRidesScreen({ navigation }) {
             </TouchableOpacity>
           )}
         </View>
+        {isActive && !isInProgress && !(item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday) && (
+          <View style={styles.startHint}>
+            <Ionicons name="information-circle-outline" size={14} color={COLORS.gray} />
+            <Text style={styles.startHintText}>
+              {!isToday
+                ? 'You can start this trip on its scheduled date.'
+                : 'Confirm at least one passenger to start the trip.'}
+            </Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -251,7 +261,11 @@ export default function ActiveRidesScreen({ navigation }) {
         onRefresh={onRefresh}
         ListEmptyComponent={
           !refreshing ? (
-            tab === 'current'
+            (tab === 'current' && myRidesState.error)
+              ? <EmptyState icon="car-sport-outline" title="Couldn't load your rides"
+                subtitle="Please check your connection and try again."
+                action={{ label: 'Try Again', onPress: () => loadMyRides(true) }} />
+            : tab === 'current'
               ? <EmptyState icon="car-sport-outline" title="No Active Rides"
                 subtitle="You have no active rides. Post a new ride to get started."
                 action={{ label: 'Post a Ride', onPress: () => navigation.navigate('PostRide') }} />
@@ -288,6 +302,8 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
   btnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  startHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingBottom: 14, marginTop: -2 },
+  startHintText: { fontSize: 11.5, color: COLORS.gray, flex: 1, lineHeight: 16 },
   startBtn: { paddingVertical: 0, paddingHorizontal: 0, borderWidth: 0, minWidth: 150 },
   startGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, gap: 8, width: '100%' },
   startText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },

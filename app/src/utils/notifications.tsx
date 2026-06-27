@@ -49,7 +49,7 @@ export async function registerForPushNotifications() {
 }
 
 // ─── Listen for notifications when app is open ───────────────────────────────
-export function setupNotificationListeners(navigation) {
+export function setupNotificationListeners(navRef) {
   if (!messaging) return () => {}; // native build nahi hai
 
   // App is in the foreground: FCM does NOT show a system notification, so we
@@ -64,7 +64,7 @@ export function setupNotificationListeners(navigation) {
       kind:    (data.type as string) || (data.screen as string),
       rideId:  data.rideId as string,
       bookingId: data.bookingId as string,
-      onPress: () => navigation && navigateTo(navigation, data),
+      onPress: () => navigateTo(navRef, data),
     });
   });
 
@@ -74,28 +74,38 @@ export function setupNotificationListeners(navigation) {
     profileApi.updateFcmToken(token).catch(() => {});
   });
 
+  // Tapped from background.
   const unsubBackground = messaging().onNotificationOpenedApp(remoteMessage => {
-    const data = remoteMessage?.data;
-    if (data?.screen && navigation) navigateTo(navigation, data);
+    if (remoteMessage?.data) navigateTo(navRef, remoteMessage.data);
   });
 
+  // Tapped from a fully-quit state — navigation may not be ready yet, so retry
+  // until the ref resolves (cold start: NavigationContainer mounts after splash).
+  let initialTick: ReturnType<typeof setInterval> | null = null;
   messaging()
     .getInitialNotification()
     .then(remoteMessage => {
-      if (remoteMessage?.data?.screen && navigation) {
-        setTimeout(() => navigateTo(navigation, remoteMessage.data), 500);
-      }
+      if (!remoteMessage?.data) return;
+      let tries = 0;
+      initialTick = setInterval(() => {
+        tries += 1;
+        if (navRef?.current) { navigateTo(navRef, remoteMessage.data); if (initialTick) clearInterval(initialTick); }
+        else if (tries > 20 && initialTick) clearInterval(initialTick); // ~10s give-up
+      }, 500);
     });
 
   return () => {
     unsubForeground();
     unsubBackground();
     unsubTokenRefresh();
+    if (initialTick) clearInterval(initialTick);
   };
 }
 
 // ─── Navigate based on notification data ─────────────────────────────────────
-function navigateTo(navigation, data) {
+function navigateTo(navRef, data) {
+  const navigation = navRef?.current;
+  if (!navigation || !data) return;
   // Server pushes send `type` (NotificationType), not `screen`. Derive the
   // destination from type when `screen` isn't explicitly provided.
   const screen = data.screen || targetForKind(data.type, data.role)?.screen;

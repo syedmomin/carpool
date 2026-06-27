@@ -15,6 +15,7 @@ const CACHE_KEY_FEED     = 'available_rides';
 interface LoadState {
   loading: boolean;
   loaded: boolean;
+  error?: boolean;
 }
 
 interface SocketDataState {
@@ -146,10 +147,10 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
         (b.status === 'CONFIRMED' && b.ride?.status === 'IN_PROGRESS')
       );
       setMyBookings(active);
-      setMyBookingsState({ loading: false, loaded: true });
+      setMyBookingsState({ loading: false, loaded: true, error: false });
       await cacheService.set(CACHE_KEY_BOOKINGS, active);
     } catch {
-      setMyBookingsState(s => ({ ...s, loading: false }));
+      setMyBookingsState(s => ({ ...s, loading: false, error: true }));
     } finally {
       loadingRef.current.bookings = false;
     }
@@ -169,10 +170,10 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       const { data } = await scheduleRequestsApi.getMine();
       const items = data?.data ?? [];
       setMyRequests(items);
-      setMyRequestsState({ loading: false, loaded: true });
+      setMyRequestsState({ loading: false, loaded: true, error: false });
       await cacheService.set(CACHE_KEY_REQUESTS, items);
     } catch (e) {
-      setMyRequestsState({ loading: false, loaded: true });
+      setMyRequestsState(s => ({ ...s, loading: false, error: true }));
     } finally {
       loadingRef.current.requests = false;
     }
@@ -191,10 +192,10 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       const { data } = await ridesApi.myRides(1, 50);
       const normalized = (data?.data ?? []).map(normalizeRide);
       setMyRides(normalized);
-      setMyRidesState({ loading: false, loaded: true });
+      setMyRidesState({ loading: false, loaded: true, error: false });
       await cacheService.set(CACHE_KEY_RIDES, normalized);
     } catch {
-      setMyRidesState(s => ({ ...s, loading: false }));
+      setMyRidesState(s => ({ ...s, loading: false, error: true }));
     } finally {
       loadingRef.current.rides = false;
     }
@@ -214,10 +215,10 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       const { data } = await scheduleRequestsApi.getOpen(selectedCity || undefined);
       const items = data?.data ?? [];
       setOpenRequests(items);
-      setOpenRequestsState({ loading: false, loaded: true });
+      setOpenRequestsState({ loading: false, loaded: true, error: false });
       await cacheService.set(CACHE_KEY_OPEN_REQ, items);
     } catch {
-      setOpenRequestsState(s => ({ ...s, loading: false }));
+      setOpenRequestsState(s => ({ ...s, loading: false, error: true }));
     } finally {
       loadingRef.current.openRequests = false;
     }

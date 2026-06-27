@@ -13,6 +13,7 @@ import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
+import { parseApiError } from '../../utils/errorMessages';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -194,7 +195,7 @@ const liveDotStyles = StyleSheet.create({
 export default function MyRequestsScreen({ navigation }) {
   const { showToast }  = useToast();
   const { showModal }  = useGlobalModal();
-  const { myRequests, myRequestsState, loadMyRequests, removeRequest, patchRequest } = useSocketData();
+  const { myRequests, myRequestsState, loadMyRequests, removeRequest, patchRequest, loadMyBookings } = useSocketData();
 
   const [selectedTab, setSelectedTab]       = useState<'active' | 'history'>('active');
   const [refreshing, setRefreshing]         = useState(false);
@@ -219,7 +220,7 @@ export default function MyRequestsScreen({ navigation }) {
       confirmText: 'Yes, Cancel', cancelText: 'No',
       onConfirm: async () => {
         const { error } = await scheduleRequestsApi.cancel(req.id);
-        if (error) { showToast(error, 'error'); return; }
+        if (error) { showToast(parseApiError(error), 'error'); return; }
         showToast('Request cancelled', 'info');
         removeRequest(req.id);
       },
@@ -233,22 +234,29 @@ export default function MyRequestsScreen({ navigation }) {
       confirmText: 'Accept & Book', cancelText: 'Not Now', icon: 'checkmark-circle-outline',
       onConfirm: async () => {
         const { data, error } = await scheduleRequestsApi.acceptBid(req.id, bid.id);
-        if (error) { showToast(error, 'error'); return; }
+        if (error) { showToast(parseApiError(error), 'error'); return; }
         haptics.success();
         removeRequest(req.id);
-        const rideData = {
-          ...(data?.data ?? {}),
-          from:     req.fromCity,
-          to:       req.toCity,
-          driver:   bid.driver,
-          vehicle:  bid.vehicle,
-          pricePerSeat: bid.pricePerSeat,
-        };
-        navigation.navigate('BookingConfirm', {
-          rideId:   rideData.id,
-          seats:    req.seats,
-          rideData,
-        });
+        // Pull the freshly-created booking into the list before navigating, so
+        // "My Bookings" is never empty after accepting.
+        await loadMyBookings(true);
+        const created = data?.data ?? {};
+        if (created.id) {
+          const rideData = {
+            ...created,
+            from: req.fromCity, to: req.toCity,
+            driver: bid.driver, vehicle: bid.vehicle,
+            pricePerSeat: bid.pricePerSeat,
+            date: created.date || req.date,
+            departureTime: created.departureTime || bid.departureTime,
+            totalSeats: created.totalSeats || req.seats,
+          };
+          navigation.navigate('BookingConfirm', { rideId: created.id, seats: req.seats, rideData });
+        } else {
+          // Ride shape unknown but accept succeeded — send them to their bookings.
+          showToast('Ride booked. Check My Bookings.', 'success');
+          navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' });
+        }
       },
     });
   };
@@ -257,7 +265,7 @@ export default function MyRequestsScreen({ navigation }) {
     setActionBidId(bid.id);
     const { error } = await scheduleRequestsApi.rejectBid(req.id, bid.id);
     setActionBidId(null);
-    if (error) { showToast(error, 'error'); return; }
+    if (error) { showToast(parseApiError(error), 'error'); return; }
     showToast('Bid rejected', 'info');
     // SocketListener will update context via BID_REJECTED; remove optimistically too
     patchRequest(req.id, {
@@ -494,15 +502,24 @@ export default function MyRequestsScreen({ navigation }) {
           renderItem={renderRequest}
           ListEmptyComponent={
             !refreshing ? (
+              myRequestsState.error ? (
+              <EmptyState
+                icon="calendar-outline"
+                title="Couldn't load your requests"
+                subtitle="Please check your connection and try again."
+                action={{ label: 'Try Again', onPress: () => loadMyRequests(true) }}
+              />
+              ) : (
               <EmptyState
                 icon={selectedTab === 'active' ? "calendar-outline" : "time-outline"}
                 title={selectedTab === 'active' ? "No Requests Yet" : "No Past Requests"}
-                subtitle={selectedTab === 'active' 
+                subtitle={selectedTab === 'active'
                   ? "Post a schedule request and drivers will bid with their prices."
                   : "Your past and cancelled requests will appear here."
                 }
                 action={selectedTab === 'active' ? { label: 'Post a Request', onPress: () => navigation.navigate('PostRequest') } : undefined}
               />
+              )
             ) : null
           }
         />

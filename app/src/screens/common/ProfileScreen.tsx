@@ -41,15 +41,12 @@ const getMenuItems = (userRole: string) => [
 
 // ─── Verification Progress Section ────────────────────────────────────────────
 function VerificationProgress({ user, onNavigate }) {
-  const emailVerified = !!user?.emailVerified;
-  const phoneVerified = !!user?.phoneVerified;
   const cnicUploaded = !!user?.cnicStatus && user.cnicStatus !== 'NONE';
   const cnicApproved = user?.cnicStatus === 'APPROVED';
-  const fullyVerified = emailVerified && phoneVerified && cnicApproved;
+  const fullyVerified = cnicApproved;
 
+  // Only show steps the user can actually act on (no in-app email/phone flow yet).
   const steps = [
-    { label: 'Email Address', done: emailVerified, icon: 'mail-outline', color: COLORS.primary },
-    { label: 'Phone Number', done: phoneVerified, icon: 'call-outline', color: COLORS.teal },
     { label: 'CNIC Submitted', done: cnicUploaded, icon: 'card-outline', color: COLORS.secondary, screen: 'CnicVerify' },
     { label: 'CNIC Approved', done: cnicApproved, icon: 'shield-checkmark-outline', color: COLORS.purple },
   ];

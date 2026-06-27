@@ -14,7 +14,7 @@ import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi, vehiclesApi } from '../../services/api';
 
 // ─── Bid Modal ────────────────────────────────────────────────────────────────
-function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
+function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle }) {
   const { showToast } = useToast();
   const [price, setPrice]             = useState('');
   const [selectedVehicle, setVehicle] = useState<any>(null);
@@ -87,6 +87,18 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
                 </Text>
               )}
 
+              {/* No vehicle — give a clear path instead of a dead-end */}
+              {vehicles.length === 0 && (
+                <View style={bm.noVehicleBox}>
+                  <Ionicons name="car-outline" size={22} color={COLORS.primary} />
+                  <Text style={bm.noVehicleText}>You need a registered vehicle before you can bid.</Text>
+                  <TouchableOpacity style={bm.addVehicleBtn} onPress={() => { onClose(); onAddVehicle?.(); }}>
+                    <Ionicons name="add-circle-outline" size={16} color="#fff" />
+                    <Text style={bm.addVehicleBtnText}>Add a Vehicle</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Vehicle picker */}
               {vehicles.length > 0 && (
                 <>
@@ -121,18 +133,20 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose }) {
                 maxLength={150}
               />
 
-              <TouchableOpacity
-                style={[bm.submitBtn, (!price || submitting) && { opacity: 0.6 }]}
-                onPress={handleSubmit}
-                disabled={!price || submitting}
-              >
-                <LinearGradient colors={GRADIENTS.primary as any} style={bm.submitGrad}>
-                  {submitting
-                    ? <ActivityIndicator color="#fff" size="small" />
-                    : <><Ionicons name="send-outline" size={16} color="#fff" /><Text style={bm.submitText}>Submit Bid</Text></>
-                  }
-                </LinearGradient>
-              </TouchableOpacity>
+              {vehicles.length > 0 && (
+                <TouchableOpacity
+                  style={[bm.submitBtn, (!price || submitting) && { opacity: 0.6 }]}
+                  onPress={handleSubmit}
+                  disabled={!price || submitting}
+                >
+                  <LinearGradient colors={GRADIENTS.primary as any} style={bm.submitGrad}>
+                    {submitting
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <><Ionicons name="send-outline" size={16} color="#fff" /><Text style={bm.submitText}>Submit Bid</Text></>
+                    }
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
         </ScrollView>
@@ -362,14 +376,23 @@ export default function OpenRequestsScreen({ navigation }) {
           onRefresh={onRefresh}
           renderItem={renderItem}
           ListEmptyComponent={
-            <EmptyState
-              icon="calendar-outline"
-              title={driverCity ? `No Requests from ${driverCity}` : 'Select Your City'}
-              subtitle={driverCity
-                ? 'No passengers have posted requests from your city yet.'
-                : 'Tap "Change" above to set your current city and see nearby requests.'
-              }
-            />
+            openRequestsState.error ? (
+              <EmptyState
+                icon="calendar-outline"
+                title="Couldn't load requests"
+                subtitle="Please check your connection and try again."
+                action={{ label: 'Try Again', onPress: () => loadOpenRequests(true) }}
+              />
+            ) : (
+              <EmptyState
+                icon="calendar-outline"
+                title={driverCity ? `No Requests from ${driverCity}` : 'Select Your City'}
+                subtitle={driverCity
+                  ? 'No passengers have posted requests from your city yet.'
+                  : 'Tap "Change" above to set your current city and see nearby requests.'
+                }
+              />
+            )
           }
         />
       )}
@@ -380,6 +403,7 @@ export default function OpenRequestsScreen({ navigation }) {
         vehicles={vehicles}
         onSubmit={handlePlaceBid}
         onClose={() => setBidTarget(null)}
+        onAddVehicle={() => navigation.navigate('MyVehiclesTab', { screen: 'VehicleSetup' })}
       />
 
       <CitySearchModal
@@ -467,6 +491,10 @@ const bm = StyleSheet.create({
   vehicleChipActive:{ backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   vehicleChipText:  { fontSize: 13, fontWeight: '600', color: COLORS.primary },
   noteInput:  { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, padding: 12, fontSize: 14, color: COLORS.textPrimary, textAlignVertical: 'top', minHeight: 60, marginBottom: 16 },
+  noVehicleBox: { alignItems: 'center', gap: 10, backgroundColor: COLORS.primary + '0d', borderRadius: 14, padding: 18, marginVertical: 14 },
+  noVehicleText: { fontSize: 13, color: COLORS.textPrimary, textAlign: 'center', lineHeight: 19 },
+  addVehicleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
+  addVehicleBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   submitBtn:  { borderRadius: 14, overflow: 'hidden' },
   submitGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
   submitText: { fontSize: 16, fontWeight: '800', color: '#fff' },

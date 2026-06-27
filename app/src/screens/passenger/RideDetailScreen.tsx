@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +25,21 @@ export default function RideDetailScreen({ navigation, route }) {
   const [selectedSeats, setSelectedSeats] = useState(1);
   const [booking, setBooking] = useState(false);
   const [ride, setRide] = useState(() => rideData || null);
-  const [loadingRide, setLoadingRide] = useState(false);
+  // Start in loading when we'll need to fetch, so the error view never flashes
+  // for a frame before the fetch begins.
+  const [loadingRide, setLoadingRide] = useState(() => !!rideId && !rideData);
+  const [loadError, setLoadError] = useState(false);
+
+  const fetchRide = useCallback(() => {
+    if (!rideId) return;
+    setLoadingRide(true);
+    setLoadError(false);
+    ridesApi.getById(rideId).then(({ data }) => {
+      if (data?.data) setRide(data.data);
+      else setLoadError(true);
+      setLoadingRide(false);
+    }).catch(() => { setLoadError(true); setLoadingRide(false); });
+  }, [rideId]);
 
   useEffect(() => {
     if (!rideId) {
@@ -33,13 +47,7 @@ export default function RideDetailScreen({ navigation, route }) {
       navigation.goBack();
       return;
     }
-    if (!ride) {
-      setLoadingRide(true);
-      ridesApi.getById(rideId).then(({ data }) => {
-        if (data?.data) setRide(data.data);
-        setLoadingRide(false);
-      }).catch(() => setLoadingRide(false));
-    }
+    if (!ride) fetchRide();
   }, [rideId]);
 
   const driver = ride?.driver;
@@ -55,7 +63,22 @@ export default function RideDetailScreen({ navigation, route }) {
     );
   }
 
-  if (!ride) return null;
+  if (!ride) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg, padding: 28 }}>
+        <Ionicons name="cloud-offline-outline" size={56} color={COLORS.gray} />
+        <Text style={{ fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginTop: 16 }}>Couldn't load this ride</Text>
+        <Text style={{ fontSize: 13, color: COLORS.gray, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
+          Please check your connection and try again.
+        </Text>
+        <View style={{ height: 20 }} />
+        <PrimaryButton title="Try Again" onPress={fetchRide} icon="refresh-outline" style={{ alignSelf: 'stretch' }} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 14 }}>
+          <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const handleBook = () => {
     const priceLabel = isSegment

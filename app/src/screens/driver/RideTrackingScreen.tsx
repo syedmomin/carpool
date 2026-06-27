@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Platform,
-  Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar,
+  Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar, Alert,
 } from 'react-native';
 import { MapView, Marker } from '../../components/Map';
 import * as Location from 'expo-location';
@@ -96,7 +96,17 @@ export default function RideTrackingScreen({ route, navigation }) {
   const [ride, setRide]                       = useState<any>(null);
   const [loading, setLoading]                 = useState(true);
   const [driverLocation, setDriverLocation]   = useState<any>(null);
+  const [locTimedOut, setLocTimedOut]         = useState(false);
   const [currentSpeed, setCurrentSpeed]       = useState(0);
+
+  // Passenger: surface a fallback if the driver's location never arrives, rather
+  // than an indefinite "Waiting for driver location...".
+  useEffect(() => {
+    if (driver) return;
+    if (driverLocation) { setLocTimedOut(false); return; }
+    const t = setTimeout(() => setLocTimedOut(true), 25000);
+    return () => clearTimeout(t);
+  }, [driver, driverLocation]);
   const [isFinishing, setIsFinishing]         = useState(false);
   const [ratingIndex, setRatingIndex]         = useState(-1);
   const [mapReady, setMapReady]               = useState(false);
@@ -184,7 +194,16 @@ export default function RideTrackingScreen({ route, navigation }) {
   const startTracking = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      showToast('Location permission denied. Please enable in Settings.', 'error');
+      // Tracking is useless without location — guide the driver to settings and
+      // leave the screen rather than sitting on a map that broadcasts nothing.
+      Alert.alert(
+        'Location needed',
+        'ChalParo needs location access to share your live trip with passengers. Please enable it in Settings.',
+        [
+          { text: 'Go Back', style: 'cancel', onPress: () => navigation.goBack() },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ],
+      );
       return;
     }
 
@@ -508,7 +527,11 @@ export default function RideTrackingScreen({ route, navigation }) {
             <View style={s.liveStatus}>
               <LiveDot active={!!driverLocation} />
               <Text style={s.liveStatusText}>
-                {driverLocation ? 'Driver location live on map' : 'Waiting for driver location...'}
+                {driverLocation
+                  ? 'Driver location live on map'
+                  : locTimedOut
+                    ? 'Location unavailable right now. Call the driver to coordinate.'
+                    : 'Waiting for driver location...'}
               </Text>
             </View>
 

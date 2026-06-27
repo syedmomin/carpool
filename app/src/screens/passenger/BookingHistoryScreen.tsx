@@ -13,7 +13,7 @@ import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
-import { reviewsApi } from '../../services/api';
+import { reviewsApi, bookingsApi } from '../../services/api';
 
 // ─── Star picker ─────────────────────────────────────────────────────────────
 function StarPicker({ rating, onChange }) {
@@ -195,6 +195,22 @@ export default function BookingHistoryScreen({ navigation }) {
     const [cancelTarget, setCancelTarget]       = useState(null);
     const [cancellingId, setCancellingId]       = useState<string | null>(null);
     const [refreshing, setRefreshing]           = useState(false);
+    const [addTarget, setAddTarget]             = useState<any>(null);
+    const [addCount, setAddCount]               = useState(1);
+    const [addLoading, setAddLoading]           = useState(false);
+
+    const addAvailable = addTarget ? Math.max(0, (addTarget.ride?.totalSeats ?? 0) - (addTarget.ride?.bookedSeats ?? 0)) : 0;
+
+    const confirmAddSeats = async () => {
+        if (!addTarget) return;
+        setAddLoading(true);
+        const { error } = await bookingsApi.addSeats(addTarget.id, addCount);
+        setAddLoading(false);
+        if (error) { showToast(parseApiError(error), 'error'); return; }
+        showToast(`${addCount} seat(s) added`, 'success');
+        setAddTarget(null);
+        loadMyBookings(true);
+    };
 
     // Load once on first focus; subsequent updates come via socket
     useFocusEffect(useCallback(() => {
@@ -254,6 +270,7 @@ export default function BookingHistoryScreen({ navigation }) {
         const canReview     = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id);
         const isCancelling  = cancellingId === item.id;
         const canCancel     = isActive && !isInProgress;
+        const seatsLeft     = (ride?.totalSeats ?? 0) - (ride?.bookedSeats ?? 0);
 
         // Swipe a cancellable booking left to reveal a quick Cancel action.
         const renderRightActions = () => canCancel ? (
@@ -355,6 +372,12 @@ export default function BookingHistoryScreen({ navigation }) {
                                 }
                             </TouchableOpacity>
                         )}
+                        {isActive && !isInProgress && seatsLeft > 0 && (
+                            <TouchableOpacity style={styles.addSeatsBtn} onPress={() => { setAddCount(1); setAddTarget(item); }}>
+                                <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
+                                <Text style={styles.addSeatsText}>Add seats</Text>
+                            </TouchableOpacity>
+                        )}
                         {isActive && (
                             <TouchableOpacity style={styles.chatBtn}
                                 onPress={() => navigation.navigate('Chat', {
@@ -407,8 +430,14 @@ export default function BookingHistoryScreen({ navigation }) {
                 onRefresh={onRefresh}
                 ListEmptyComponent={
                     !refreshing ? (
-                        <EmptyState icon="receipt-outline" title="No Active Bookings"
-                            subtitle="You have no pending or confirmed bookings." />
+                        myBookingsState.error ? (
+                            <EmptyState icon="receipt-outline" title="Couldn't load your bookings"
+                                subtitle="Please check your connection and try again."
+                                action={{ label: 'Try Again', onPress: () => loadMyBookings(true) }} />
+                        ) : (
+                            <EmptyState icon="receipt-outline" title="No Active Bookings"
+                                subtitle="You have no pending or confirmed bookings." />
+                        )
                     ) : null
                 }
             />
@@ -417,6 +446,32 @@ export default function BookingHistoryScreen({ navigation }) {
             )}
             <CancelReasonModal visible={!!cancelTarget} onClose={() => setCancelTarget(null)} onSubmit={executeCancel} />
             <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />
+
+            <Modal visible={!!addTarget} transparent animationType="fade" onRequestClose={() => setAddTarget(null)}>
+                <View style={styles.addOverlay}>
+                    <View style={styles.addSheet}>
+                        <Text style={styles.addTitle}>Add seats</Text>
+                        <Text style={styles.addSub}>{addAvailable} more seat{addAvailable !== 1 ? 's' : ''} available on this ride</Text>
+                        <View style={styles.stepperRow}>
+                            <TouchableOpacity style={styles.stepBtn} onPress={() => setAddCount(c => Math.max(1, c - 1))}>
+                                <Ionicons name="remove" size={22} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <Text style={styles.stepVal}>{addCount}</Text>
+                            <TouchableOpacity style={styles.stepBtn} onPress={() => setAddCount(c => Math.min(addAvailable, c + 1))}>
+                                <Ionicons name="add" size={22} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.addActions}>
+                            <TouchableOpacity style={[styles.addBtn, styles.addCancel]} onPress={() => setAddTarget(null)}>
+                                <Text style={styles.addCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.addBtn, styles.addConfirm]} onPress={confirmAddSeats} disabled={addLoading || addAvailable < 1}>
+                                {addLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.addConfirmText}>Add {addCount}</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -429,6 +484,21 @@ const styles = StyleSheet.create({
     listContent: { padding: 16, paddingBottom: 32 },
     swipeCancel: { backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center', width: 96, borderRadius: 16, marginBottom: 16, gap: 2 },
     swipeCancelText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+    addSeatsBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.primary + '30', backgroundColor: COLORS.primary + '0d' },
+    addSeatsText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
+    addOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 28 },
+    addSheet: { width: '100%', backgroundColor: '#fff', borderRadius: 22, padding: 22 },
+    addTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center' },
+    addSub: { fontSize: 13, color: COLORS.gray, textAlign: 'center', marginTop: 6 },
+    stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28, marginVertical: 22 },
+    stepBtn: { width: 46, height: 46, borderRadius: 23, borderWidth: 1.5, borderColor: COLORS.primary + '30', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primary + '0d' },
+    stepVal: { fontSize: 28, fontWeight: '900', color: COLORS.textPrimary, minWidth: 44, textAlign: 'center' },
+    addActions: { flexDirection: 'row', gap: 12 },
+    addBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center' },
+    addCancel: { backgroundColor: COLORS.lightGray },
+    addCancelText: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 15 },
+    addConfirm: { backgroundColor: COLORS.primary },
+    addConfirmText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     card: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
     activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
     activeBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },

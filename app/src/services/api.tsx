@@ -212,6 +212,7 @@ export const bookingsApi = {
     }),
   cancel: (bookingId, reason) => request('DELETE', `/bookings/${bookingId}`, { reason }),
   accept: (bookingId) => request('POST', `/bookings/accept/${bookingId}`),
+  addSeats: (bookingId, seats) => request('PATCH', `/bookings/${bookingId}/add-seats`, { seats }),
   reject: (bookingId) => request('POST', `/bookings/reject/${bookingId}`),
   myBookings: (page = 1, limit = 10) => request('GET', `/bookings/mine?page=${page}&limit=${limit}`),
   getById: (bookingId) => request('GET', `/bookings/${bookingId}`),

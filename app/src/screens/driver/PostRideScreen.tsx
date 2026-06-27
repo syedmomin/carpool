@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Switch, Modal, FlatList,
+  KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,14 +30,19 @@ export default function PostRideScreen({ navigation }) {
 
   const [driverVehicles, setDriverVehicles] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
   useFocusEffect(useCallback(() => {
+    let active = true;
+    setVehiclesLoading(true);
     vehiclesApi.myVehicles().then(({ data }) => {
+      if (!active) return;
       if (data?.data) {
         setDriverVehicles(data.data);
         setSelectedVehicle(prev => prev || data.data.find(v => v.isActive) || data.data[0] || null);
       }
-    });
+    }).finally(() => { if (active) setVehiclesLoading(false); });
+    return () => { active = false; };
   }, []));
 
   const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false);
@@ -144,6 +149,10 @@ export default function PostRideScreen({ navigation }) {
       }
     }
 
+    if (vehiclesLoading) {
+      showToast('Loading your vehicles, please wait a moment.', 'info');
+      return;
+    }
     if (!selectedVehicle) {
       showModal({
         type: 'warning',
@@ -210,7 +219,12 @@ export default function PostRideScreen({ navigation }) {
 
           {/* ── Vehicle Selector ─────────────────────────────────────────── */}
           <Text style={styles.sectionTitle}>Vehicle</Text>
-          {driverVehicles.length === 0 ? (
+          {vehiclesLoading && driverVehicles.length === 0 ? (
+            <View style={styles.noVehicleCard}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.noVehicleText}>Loading your vehicles...</Text>
+            </View>
+          ) : driverVehicles.length === 0 ? (
             <TouchableOpacity style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <Ionicons name="warning-outline" size={20} color={COLORS.accent} />
               <Text style={styles.noVehicleText}>Register your vehicle first →</Text>

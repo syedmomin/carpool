@@ -178,63 +178,54 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }
 
     setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('type', selectedType);
+      formData.append('brand', form.brand.trim());
+      formData.append('model', form.model?.trim() || '');
+      formData.append('color', form.color?.trim() || '');
+      formData.append('plateNumber', form.plateNumber.trim().toUpperCase());
+      formData.append('totalSeats', form.totalSeats);
 
-    const formData = new FormData();
-    formData.append('type', selectedType);
-    formData.append('brand', form.brand.trim());
-    formData.append('model', form.model?.trim() || '');
-    formData.append('color', form.color?.trim() || '');
-    formData.append('plateNumber', form.plateNumber.trim().toUpperCase());
-    formData.append('totalSeats', form.totalSeats);
+      // Append feature booleans
+      Object.keys(features).forEach(key => {
+        formData.append(key, features[key] ? 'true' : 'false');
+      });
 
-    // Append feature booleans
-    Object.keys(features).forEach(key => {
-      formData.append(key, features[key] ? 'true' : 'false');
-    });
+      // Handle images
+      const localUris = images.filter(i => !i.startsWith('http'));
+      const existingUrls = images.filter(i => i.startsWith('http'));
 
-    // Handle images
-    const localUris = images.filter(i => !i.startsWith('http'));
-    const existingUrls = images.filter(i => i.startsWith('http'));
+      // Append existing URLs to body
+      existingUrls.forEach(url => formData.append('existingImages', url));
 
-    // Append existing URLs to body
-    existingUrls.forEach(url => formData.append('existingImages', url));
+      // Append new local files
+      await Promise.all(localUris.map(async (uri, index) => {
+        const filename = uri.split('/').pop() || `image_${index}.jpg`;
+        const match = /\.(\w+)$/.exec(filename);
+        const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
+        const cleanUri = Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
 
-    // Append new local files
-    await Promise.all(localUris.map(async (uri, index) => {
-      const filename = uri.split('/').pop() || `image_${index}.jpg`;
-      const match = /\.(\w+)$/.exec(filename);
-      const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
-      const cleanUri = Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
+        if (Platform.OS === 'web') {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          formData.append('images', blob, filename);
+        } else {
+          formData.append('images', { uri: cleanUri, name: filename, type: mimeType } as any);
+        }
+      }));
 
-      if (Platform.OS === 'web') {
-        // Web: fetch and append as Blob
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        formData.append('images', blob, filename);
-      } else {
-        // Mobile: append as {uri, name, type}
-        formData.append('images', {
-          uri: cleanUri,
-          name: filename,
-          type: mimeType,
-        } as any);
-      }
-    }));
-
-    if (existing) {
-      const { error } = await vehiclesApi.update(vehicleId, formData);
-      setLoading(false);
+      const { error } = existing
+        ? await vehiclesApi.update(vehicleId, formData)
+        : await vehiclesApi.register(formData);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       haptics.success();
-      showToast('Vehicle updated successfully', 'success');
+      showToast(existing ? 'Vehicle updated successfully' : 'Vehicle registered. You can now post rides.', 'success');
       navigation.goBack();
-    } else {
-      const { error } = await vehiclesApi.register(formData);
+    } catch (e) {
+      showToast('Could not save the vehicle. Please try again.', 'error');
+    } finally {
       setLoading(false);
-      if (error) { showToast(parseApiError(error), 'error'); return; }
-      haptics.success();
-      showToast('Vehicle registered! You can now post rides.', 'success');
-      navigation.goBack();
     }
   };
 

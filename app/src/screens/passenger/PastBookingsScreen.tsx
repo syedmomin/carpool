@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, ActivityIndicator,
+    View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity,
     RefreshControl
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import ReviewModal from '../../components/ReviewModal';
 import { bookingsApi } from '../../services/api';
 
 export default function PastBookingsScreen({ navigation }) {
@@ -13,6 +15,8 @@ export default function PastBookingsScreen({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [reviewBooking, setReviewBooking] = useState<any>(null);
+    const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
     const isFetching = useRef(false);
 
     const fetchBookings = useCallback(async (pageNum = 1, replace = false) => {
@@ -29,7 +33,10 @@ export default function PastBookingsScreen({ navigation }) {
                 ...b,
                 ride: b.ride ? { ...b.ride, from: b.ride.fromCity || b.ride.from, to: b.ride.toCity || b.ride.to } : null,
             });
-            const items = bookingsArray.map(normalize);
+            // Only past/terminal bookings belong in history (active ones live in
+            // the Bookings tab) — otherwise this list duplicates active bookings.
+            const TERMINAL = ['COMPLETED', 'CANCELLED', 'REJECTED', 'EXPIRED'];
+            const items = bookingsArray.map(normalize).filter((b: any) => TERMINAL.includes(b.status));
             
             setBookings(prev => replace ? items : [...prev, ...items]);
             setHasMore(apiData?.meta?.hasNext ?? (responseBody?.meta?.hasNext ?? false));
@@ -58,7 +65,11 @@ export default function PastBookingsScreen({ navigation }) {
     };
 
     const renderBooking = ({ item }) => (
-        <View style={styles.card}>
+        <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => item.ride && navigation.navigate('RideDetail', { rideId: item.rideId || item.ride?.id, rideData: item.ride })}
+        >
             <View style={styles.cardHeader}>
                 <View style={styles.routeCol}>
                     <Text style={styles.cityText}>{item.ride?.fromCity || 'Unknown'}</Text>
@@ -77,7 +88,13 @@ export default function PastBookingsScreen({ navigation }) {
                     <Text style={styles.priceValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
                 </View>
             </View>
-        </View>
+            {item.status === 'COMPLETED' && item.ride?.driver?.id && !reviewedIds.has(item.id) && (
+                <TouchableOpacity style={styles.rateBtn} onPress={() => setReviewBooking(item)} activeOpacity={0.85}>
+                    <Ionicons name="star-outline" size={16} color={COLORS.warning} />
+                    <Text style={styles.rateBtnText}>Rate Driver</Text>
+                </TouchableOpacity>
+            )}
+        </TouchableOpacity>
     );
 
     return (
@@ -107,11 +124,22 @@ export default function PastBookingsScreen({ navigation }) {
                 }
                 ListFooterComponent={loading && page > 1 ? <ActivityIndicator color={COLORS.primary} style={{ margin: 20 }} /> : null}
             />
+            {reviewBooking && (
+                <ReviewModal
+                    visible={!!reviewBooking}
+                    rideId={reviewBooking.rideId || reviewBooking.ride?.id}
+                    revieweeId={reviewBooking.ride?.driver?.id || ''}
+                    revieweeName={reviewBooking.ride?.driver?.name || 'your Driver'}
+                    targetRole="DRIVER"
+                    routeLabel={`${reviewBooking.ride?.fromCity || ''} → ${reviewBooking.ride?.toCity || ''}`}
+                    routeDate={reviewBooking.ride?.date}
+                    onClose={() => setReviewBooking(null)}
+                    onSubmit={() => { setReviewedIds(prev => new Set([...prev, reviewBooking.id])); setReviewBooking(null); }}
+                />
+            )}
         </View>
     );
 }
-
-import { Ionicons } from '@expo/vector-icons';
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bg },
@@ -126,4 +154,6 @@ const styles = StyleSheet.create({
     priceCol: { alignItems: 'flex-end' },
     priceLabel: { fontSize: 9, color: COLORS.gray, textTransform: 'uppercase' },
     priceValue: { fontSize: 16, fontWeight: '800', color: COLORS.primary },
+    rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.warning + '40', backgroundColor: COLORS.warning + '10' },
+    rateBtnText: { color: COLORS.warning, fontWeight: '700', fontSize: 13 },
 });

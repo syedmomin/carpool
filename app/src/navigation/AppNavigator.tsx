@@ -311,6 +311,7 @@ function CommonProfileStack() {
   return (
     <UserProfileStack.Navigator id="ProfileStack" screenOptions={STACK_SCREEN_OPTIONS}>
       <UserProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+      <UserProfileStack.Screen name="RideDetail" component={RideDetailScreen} />
       <UserProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <UserProfileStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
       <UserProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
@@ -466,6 +467,12 @@ export default function AppNavigator({ navigationRef }: any) {
   const { currentUser, userRole, isLoading } = useApp();
   const [splashVisible, setSplashVisible] = useState(true);
   const [activeSessionChecked, setActiveSessionChecked] = useState(false);
+
+  // Re-arm the active-session check whenever the logged-in user changes, so a
+  // logout→login (AppNavigator never unmounts) still resumes an in-progress ride.
+  useEffect(() => {
+    setActiveSessionChecked(false);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const checkActiveSession = async () => {

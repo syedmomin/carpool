@@ -173,6 +173,7 @@ export default function SearchScreen({ navigation, route }) {
   const [date, setDate] = useState(route.params?.date || '');
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [sort, setSort] = useState(null);
   const [showSortModal, setShowSortModal] = useState(false);
   const [filterAC, setFilterAC] = useState(false);
@@ -268,6 +269,7 @@ export default function SearchScreen({ navigation, route }) {
     setLoading(true);
     const { data, error } = await searchRides(sFrom, sTo, date);
     setLoading(false);
+    setSearchError(!!error);
     setSearchResults(error || !data ? [] : data);
     
     if (sFrom && sTo && !error && data && data.length > 0) {
@@ -471,6 +473,13 @@ export default function SearchScreen({ navigation, route }) {
             <View style={{ paddingTop: 10 }}>
               {[1, 2, 3].map(i => <RideCardSkeleton key={i} />)}
             </View>
+          ) : searchError ? (
+            <EmptyState
+              icon="car-outline"
+              title="Couldn't load rides"
+              subtitle="Please check your connection and try again."
+              action={{ label: 'Try Again', onPress: () => doSearch() }}
+            />
           ) : (
             <EmptyState
               icon="car-outline"

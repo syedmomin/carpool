@@ -9,6 +9,7 @@ import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { scheduleRequestsApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
+import { parseApiError } from '../../utils/errorMessages';
 
 // ─── Calendar helpers ──────────────────────────────────────────────────────────
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -99,7 +100,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
     setPosting(false);
 
     if (error) {
-      showToast(error, 'error');
+      showToast(parseApiError(error), 'error');
     } else {
       haptics.success();
       showToast('Request posted! Drivers will bid soon.', 'success', 4000);

@@ -7,6 +7,7 @@ import { ToastProvider } from "./src/context/ToastContext";
 import { GlobalModalProvider } from "./src/context/GlobalModalContext";
 import { BannerProvider } from "./src/context/BannerContext";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
+import OfflineBanner from "./src/components/OfflineBanner";
 import AppNavigator from "./src/navigation/AppNavigator";
 import SocketListener from "./src/components/SocketListener";
 import { SocketDataProvider } from "./src/context/SocketDataContext";
@@ -17,7 +18,7 @@ export default function App() {
 
   useEffect(() => {
     // Wire notification tap navigation once navigation is ready
-    const cleanup = setupNotificationListeners(navigationRef.current);
+    const cleanup = setupNotificationListeners(navigationRef);
     return cleanup;
   }, []);
 
@@ -34,6 +35,7 @@ export default function App() {
                   <ErrorBoundary>
                     <AppNavigator navigationRef={navigationRef} />
                   </ErrorBoundary>
+                  <OfflineBanner />
                 </BannerProvider>
               </ToastProvider>
             </GlobalModalProvider>

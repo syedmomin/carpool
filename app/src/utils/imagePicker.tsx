@@ -1,6 +1,15 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { uploadApi } from '../services/api';
+
+// Permission denials (especially "Don't allow again") can't be re-requested in
+// app — guide the user to the OS settings so they're never stuck.
+function permissionAlert(message: string) {
+  Alert.alert('Permission needed', message, [
+    { text: 'Not now', style: 'cancel' },
+    { text: 'Open Settings', onPress: () => Linking.openSettings() },
+  ]);
+}
 
 interface PickerOptions {
   aspect?: [number, number];
@@ -16,7 +25,7 @@ async function uploadToServer(uri, type = 'profile') {
 export async function pickImageFromLibrary(options: PickerOptions = {}, type = 'profile') {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Please allow access to your photo library.');
+    permissionAlert('Please allow photo library access to upload images.');
     return { error: 'Permission denied' };
   }
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -32,7 +41,7 @@ export async function pickImageFromLibrary(options: PickerOptions = {}, type = '
 export async function pickImageFromCamera(options: PickerOptions = {}, type = 'profile') {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Please allow camera access.');
+    permissionAlert('Please allow camera access to take a photo.');
     return { error: 'Permission denied' };
   }
   const result = await ImagePicker.launchCameraAsync({
@@ -48,7 +57,7 @@ export async function pickImageFromCamera(options: PickerOptions = {}, type = 'p
 export async function pickMultipleImagesLocal() {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Please allow access to your photo library.');
+    permissionAlert('Please allow photo library access to upload images.');
     return { uris: [], error: 'Permission denied' };
   }
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -65,7 +74,7 @@ export async function pickMultipleImagesLocal() {
 export async function pickImageFromCameraLocal(options: PickerOptions = {}) {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Please allow camera access.');
+    permissionAlert('Please allow camera access to take a photo.');
     return { error: 'Permission denied' };
   }
   const result = await ImagePicker.launchCameraAsync({
