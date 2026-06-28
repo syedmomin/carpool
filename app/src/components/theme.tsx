@@ -47,6 +47,22 @@ export const GRADIENTS = {
   purple:    [COLORS.primary,   COLORS.primaryDark],  // legacy → blue
   accent:    ['#f59e0b',        '#d97706'],
   warning:   ['#f59e0b',        '#d97706'],
+  // Deep-navy auth hero — drives every unauthenticated screen.
+  authNavy:  ['#0A1B3D', '#0F2C63', '#1a4ba8'],
+};
+
+// ─── GLASS (frosted card system, used on the navy auth gradient) ──────────────
+// expo-blur isn't installed, so "frost" is a translucent white fill + hairline
+// border + soft shadow. Reads as glass against the dark gradient.
+export const GLASS = {
+  fill:        'rgba(255,255,255,0.10)',
+  fillStrong:  'rgba(255,255,255,0.16)',
+  border:      'rgba(255,255,255,0.22)',
+  borderFocus: 'rgba(255,255,255,0.55)',
+  inputFill:   'rgba(255,255,255,0.08)',
+  textOnDark:  '#ffffff',
+  subOnDark:   'rgba(255,255,255,0.62)',
+  faintOnDark: 'rgba(255,255,255,0.38)',
 };
 
 // ─── SPACING ────────────────────────────────────────────────────────────────

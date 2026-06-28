@@ -1,30 +1,37 @@
 import React, { useState } from 'react';
 import {
-    View, Text, TextInput, StyleSheet, TouchableOpacity,
-    ScrollView, KeyboardAvoidingView, Platform,
+    View, Text, StyleSheet, Pressable,
+    ScrollView, KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, AuthHeader, CitySearchModal } from '../../components';
+import { AuthBackground, AuthInput, Logo, CitySearchModal, GLASS, COLORS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
+
+const { width: W } = Dimensions.get('window');
+// Match the splash screen logo sizing exactly.
+const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const isValidPhone = (v) => /^\d{10}$/.test(v.replace(/[\s\-]/g, ''));
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const isValidPassword = (v) => v.length >= 6;
 
-const ROLES = [
-    { value: 'passenger', label: 'Passenger', icon: 'person' },
-    { value: 'driver', label: 'Driver', icon: 'car-sport' },
-];
+const ROLE_META: Record<'passenger' | 'driver', { label: string; icon: keyof typeof Ionicons.glyphMap; sub: string }> = {
+    passenger: { label: 'Passenger', icon: 'people', sub: 'Find affordable rides' },
+    driver: { label: 'Driver', icon: 'car-sport', sub: 'Offer rides & earn' },
+};
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ navigation, route }) {
     const { register } = useApp();
     const { showToast } = useToast();
-    const [role, setRole] = useState('passenger');
+    // Role is chosen on the RoleSelect screen and passed in — not switchable here.
+    const role: 'passenger' | 'driver' = route?.params?.intendedRole === 'driver' ? 'driver' : 'passenger';
+    const roleMeta = ROLE_META[role];
     const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', city: '' });
-    const [showPass, setShowPass] = useState(false);
     const [errors, setErrors] = useState<any>({});
     const [loading, setLoading] = useState(false);
     const [cityModal, setCityModal] = useState(false);
@@ -72,326 +79,161 @@ export default function RegisterScreen({ navigation }) {
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <AuthBackground>
+            <SafeAreaView style={styles.safe}>
+                <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-                {/* Shared curved header + logo */}
-                <AuthHeader />
+                        <Pressable style={styles.back} onPress={() => navigation.goBack()} hitSlop={10}>
+                            <Ionicons name="chevron-back" size={24} color="#fff" />
+                        </Pressable>
 
-                {/* Form Section */}
-                <View style={styles.formContainer}>
-                    <Text style={styles.title}>Create Account</Text>
-                    <Text style={styles.subtitle}>Sign up to start your journey</Text>
+                        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
+                            <Logo variant="splash" size={LOGO_SIZE} />
+                            <Text style={styles.title}>Create Account</Text>
+                            <Text style={styles.subtitle}>Sign up to start your journey</Text>
+                        </Animated.View>
 
-                    {/* Role Selection — same button language as the reference */}
-                    <Text style={styles.fieldLabel}>I want to join as</Text>
-                    <View style={styles.roleRow}>
-                        {ROLES.map(r => {
-                            const active = role === r.value;
-                            return (
-                                <TouchableOpacity
-                                    key={r.value}
-                                    style={[styles.roleBtn, active ? styles.roleBtnActive : styles.roleBtnInactive]}
-                                    onPress={() => setRole(r.value)}
-                                    activeOpacity={0.85}
-                                >
-                                    <Ionicons
-                                        name={(active ? r.icon : `${r.icon}-outline`) as any}
-                                        size={18}
-                                        color={active ? '#fff' : '#1a73e8'}
-                                        style={{ marginRight: 8 }}
-                                    />
-                                    <Text style={[styles.roleBtnText, active && styles.roleBtnTextActive]}>{r.label}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
+                        <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
+                            <Text style={styles.fieldLabel}>Joining as</Text>
+                            <View style={styles.roleBadge}>
+                                <View style={styles.roleBadgeIcon}>
+                                    <Ionicons name={roleMeta.icon} size={18} color="#fff" />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.roleBadgeLabel}>{roleMeta.label}</Text>
+                                    <Text style={styles.roleBadgeSub}>{roleMeta.sub}</Text>
+                                </View>
+                                <Pressable onPress={() => navigation.navigate('RoleSelect')} hitSlop={8}>
+                                    <Text style={styles.roleChange}>Change</Text>
+                                </Pressable>
+                            </View>
 
-                    {/* Full Name */}
-                    <View style={[styles.inputContainer, { marginTop: 20 }, errors.name && styles.inputError]}>
-                        <View style={styles.iconBox}>
-                            <Ionicons name="person-outline" size={20} color="#666" />
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your full name"
-                            placeholderTextColor="#999"
-                            value={form.name}
-                            onChangeText={v => set('name', v)}
-                        />
-                    </View>
-                    {!!errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+                            <AuthInput
+                                icon="person-outline"
+                                placeholder="Full name"
+                                value={form.name}
+                                onChangeText={v => set('name', v)}
+                                error={errors.name}
+                            />
+                            <AuthInput
+                                leftLabel="PK +92"
+                                placeholder="Mobile number"
+                                value={form.phone}
+                                onChangeText={v => set('phone', v.replace(/[^0-9]/g, '').slice(0, 10))}
+                                keyboardType="phone-pad"
+                                maxLength={10}
+                                error={errors.phone}
+                            />
+                            <AuthInput
+                                icon="mail-outline"
+                                placeholder="Email address"
+                                value={form.email}
+                                onChangeText={v => set('email', v)}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                error={errors.email}
+                            />
+                            <AuthInput
+                                icon="lock-closed-outline"
+                                placeholder="Create a password (min 6 chars)"
+                                value={form.password}
+                                onChangeText={v => set('password', v)}
+                                password
+                                error={errors.password}
+                            />
+                            <AuthInput
+                                asButton
+                                icon="location-outline"
+                                placeholder="Select your city"
+                                value={form.city}
+                                onPress={() => setCityModal(true)}
+                                error={errors.city}
+                            />
 
-                    {/* Phone */}
-                    <View style={[styles.inputContainer, { marginTop: 16 }, errors.phone && styles.inputError]}>
-                        <View style={styles.countryCodeBox}>
-                            <Text style={styles.countryCodeText}>PK +92</Text>
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your mobile number"
-                            placeholderTextColor="#999"
-                            value={form.phone}
-                            onChangeText={v => set('phone', v.replace(/[^0-9]/g, '').slice(0, 10))}
-                            keyboardType="phone-pad"
-                            maxLength={10}
-                        />
-                    </View>
-                    {!!errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+                            <Pressable
+                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                onPress={handleRegister}
+                                disabled={loading}
+                            >
+                                <Text style={styles.primaryText}>{loading ? 'Creating Account…' : 'Create Account'}</Text>
+                            </Pressable>
+                        </Animated.View>
 
-                    {/* Email */}
-                    <View style={[styles.inputContainer, { marginTop: 16 }, errors.email && styles.inputError]}>
-                        <View style={styles.iconBox}>
-                            <Ionicons name="mail-outline" size={20} color="#666" />
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your email"
-                            placeholderTextColor="#999"
-                            value={form.email}
-                            onChangeText={v => set('email', v)}
-                            keyboardType="email-address"
-                            autoCapitalize={'none' as any}
-                        />
-                    </View>
-                    {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                        <Pressable style={styles.bottomRow} onPress={() => navigation.navigate('Login', { intendedRole: role })}>
+                            <Text style={styles.bottomMuted}>Already have an account? </Text>
+                            <Text style={styles.bottomLink}>Sign In</Text>
+                        </Pressable>
 
-                    {/* Password */}
-                    <View style={[styles.inputContainer, { marginTop: 16 }, errors.password && styles.inputError]}>
-                        <View style={styles.iconBox}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#666" />
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Create a password (min 6 chars)"
-                            placeholderTextColor="#999"
-                            value={form.password}
-                            onChangeText={v => set('password', v)}
-                            secureTextEntry={!showPass}
-                        />
-                        <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.iconBoxRight}>
-                            <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color="#666" />
-                        </TouchableOpacity>
-                    </View>
-                    {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
 
-                    {/* City Selector */}
-                    <TouchableOpacity
-                        style={[styles.inputContainer, { marginTop: 16 }, errors.city && styles.inputError]}
-                        onPress={() => setCityModal(true)}
-                        activeOpacity={0.8}
-                    >
-                        <View style={styles.iconBox}>
-                            <Ionicons name="location-outline" size={20} color="#666" />
-                        </View>
-                        <Text style={[styles.selectorText, !form.city && styles.selectorPlaceholder]}>
-                            {form.city || 'Select your city'}
-                        </Text>
-                        <View style={styles.iconBoxRight}>
-                            <Ionicons name="chevron-down" size={18} color="#666" />
-                        </View>
-                    </TouchableOpacity>
-                    {!!errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-
-                    {/* Create Account Button */}
-                    <TouchableOpacity style={[styles.signInBtn, { marginTop: 24 }]} onPress={handleRegister} disabled={loading}>
-                        <Text style={styles.signInText}>{loading ? 'Creating Account...' : 'Create Account'}</Text>
-                    </TouchableOpacity>
-
-                    {/* Divider */}
-                    <View style={styles.dividerContainer}>
-                        <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>OR</Text>
-                        <View style={styles.dividerLine} />
-                    </View>
-
-                    {/* Sign In Button */}
-                    <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('Login')}>
-                        <Ionicons name="log-in-outline" size={18} color="#1a73e8" style={{ marginRight: 8 }} />
-                        <Text style={styles.createText}>Sign In Instead</Text>
-                    </TouchableOpacity>
-
-                </View>
-            </ScrollView>
-
-            {/* City Picker Modal */}
             <CitySearchModal
                 visible={cityModal}
                 title="Select City"
                 onSelect={(c) => set('city', c)}
                 onClose={() => setCityModal(false)}
             />
-        </KeyboardAvoidingView>
+        </AuthBackground>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
+    safe: { flex: 1 },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28 },
+    back: { marginTop: 4, width: 40, height: 40, justifyContent: 'center' },
+    header: { alignItems: 'center', marginTop: 4, marginBottom: 22 },
+    title: { color: GLASS.textOnDark, fontSize: 24, fontWeight: '800', letterSpacing: -0.4, marginTop: 14 },
+    subtitle: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500', marginTop: 5 },
+    card: {
+        backgroundColor: GLASS.fill,
+        borderWidth: 1,
+        borderColor: GLASS.border,
+        borderRadius: 24,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 24,
     },
-    scrollContent: {
-        flexGrow: 1,
-        backgroundColor: '#fff',
-        paddingBottom: 32,
-    },
-    formContainer: {
-        paddingTop: 14,
-        paddingHorizontal: 22,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 4,
-    },
-    subtitle: {
-        fontSize: 13,
-        color: '#666',
-        marginBottom: 18,
-    },
-    fieldLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#666',
-        marginBottom: 8,
-    },
-    // Role buttons — reuse the reference's blue/outlined button language
-    roleRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    roleBtn: {
-        flex: 1,
+    fieldLabel: { color: GLASS.subOnDark, fontSize: 12, fontWeight: '700', letterSpacing: 0.4, marginBottom: 10 },
+    // Read-only role badge (role is picked on RoleSelect)
+    roleBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        height: 44,
-        borderRadius: 10,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: 'rgba(89,150,255,0.16)',
         borderWidth: 1,
-    },
-    roleBtnActive: {
-        backgroundColor: '#1a73e8',
-        borderColor: '#1a73e8',
-    },
-    roleBtnInactive: {
-        backgroundColor: '#fff',
-        borderColor: '#1a73e8',
-    },
-    roleBtnText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#1a73e8',
-    },
-    roleBtnTextActive: {
-        color: '#fff',
-    },
-    // Inputs (identical to LoginScreen)
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        borderRadius: 10,
-        height: 46,
-        overflow: 'hidden',
-    },
-    inputError: {
-        borderColor: '#d32f2f',
-    },
-    countryCodeBox: {
-        backgroundColor: '#f5f5f5',
-        paddingHorizontal: 16,
-        height: '100%',
-        justifyContent: 'center',
-        borderRightWidth: 1,
-        borderRightColor: '#e0e0e0',
-    },
-    countryCodeText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-    },
-    input: {
-        flex: 1,
-        fontSize: 14,
-        color: '#333',
-        paddingHorizontal: 14,
-        height: '100%',
-    },
-    selectorText: {
-        flex: 1,
-        fontSize: 14,
-        color: '#333',
+        borderColor: '#7fb0ff',
         paddingHorizontal: 14,
     },
-    selectorPlaceholder: {
-        color: '#999',
+    roleBadgeIcon: {
+        width: 36, height: 36, borderRadius: 11,
+        backgroundColor: COLORS.primary,
+        alignItems: 'center', justifyContent: 'center',
+        marginRight: 12,
     },
-    iconBox: {
-        paddingLeft: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iconBoxRight: {
-        paddingHorizontal: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100%',
-    },
-    errorText: {
-        fontSize: 12,
-        color: '#d32f2f',
-        marginTop: 4,
-        marginLeft: 4,
-    },
-    // Primary button (identical to LoginScreen)
-    signInBtn: {
-        backgroundColor: '#1a73e8',
-        borderRadius: 10,
-        height: 46,
-        flexDirection: 'row',
+    roleBadgeLabel: { color: GLASS.textOnDark, fontSize: 15, fontWeight: '800' },
+    roleBadgeSub: { color: GLASS.subOnDark, fontSize: 12, fontWeight: '500', marginTop: 1 },
+    roleChange: { color: '#9ec5ff', fontSize: 13, fontWeight: '800' },
+    // Primary button
+    primaryBtn: {
+        marginTop: 22,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: COLORS.primary,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.5,
+        shadowRadius: 16,
+        elevation: 6,
     },
-    signInText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    // Divider (identical to LoginScreen)
-    dividerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 20,
-    },
-    dividerLine: {
-        flex: 1,
-        height: 1,
-        backgroundColor: '#e0e0e0',
-    },
-    dividerText: {
-        marginHorizontal: 14,
-        color: '#999',
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 0.5,
-    },
-    // Secondary button (identical to LoginScreen)
-    createBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 46,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#1a73e8',
-        backgroundColor: '#fff',
-    },
-    createText: {
-        color: '#1a73e8',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
+    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+    bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
+    bottomMuted: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500' },
+    bottomLink: { color: '#9ec5ff', fontSize: 14, fontWeight: '800' },
 });

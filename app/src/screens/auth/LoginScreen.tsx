@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import {
-    View, Text, TextInput, StyleSheet, TouchableOpacity,
-    ScrollView, KeyboardAvoidingView, Platform
+    View, Text, StyleSheet, Pressable,
+    ScrollView, KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS, AuthHeader } from '../../components';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { AuthBackground, AuthInput, Logo, GLASS, COLORS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
+
+const { width: W } = Dimensions.get('window');
+// Match the splash screen logo sizing exactly.
+const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
 
 // phone: exactly 10 digits after +92 prefix
 const isValidPhone = (v) => /^\d{10}$/.test(v.replace(/[\s\-]/g, ''));
@@ -18,7 +23,6 @@ export default function LoginScreen({ navigation }) {
     const { showToast } = useToast();
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [showPass, setShowPass] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<any>({});
 
@@ -43,209 +47,113 @@ export default function LoginScreen({ navigation }) {
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-                
-                {/* Shared curved header + logo */}
-                <AuthHeader />
+        <AuthBackground>
+            <SafeAreaView style={styles.safe}>
+                <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-                {/* Form Section */}
-                <View style={styles.formContainer}>
-                    <Text style={styles.title}>Welcome Back!</Text>
-                    <Text style={styles.subtitle}>Login to continue your journey</Text>
+                        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
+                            <Logo variant="splash" size={LOGO_SIZE} />
+                            <Text style={styles.title}>Welcome Back</Text>
+                            <Text style={styles.subtitle}>Login to continue your journey</Text>
+                        </Animated.View>
 
-                    {/* Phone Input */}
-                    <View style={[styles.inputContainer, errors.phone && styles.inputError]}>
-                        <View style={styles.countryCodeBox}>
-                            <Text style={styles.countryCodeText}>PK +92</Text>
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your mobile number"
-                            placeholderTextColor="#999"
-                            value={phone}
-                            onChangeText={(v) => { setPhone(v.replace(/[^0-9]/g, '').slice(0, 10)); setErrors(p => ({ ...p, phone: '' })); }}
-                            keyboardType="phone-pad"
-                            maxLength={10}
-                        />
-                    </View>
-                    {!!errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+                        <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
+                            <AuthInput
+                                leftLabel="PK +92"
+                                placeholder="Mobile number"
+                                value={phone}
+                                onChangeText={(v) => { setPhone(v.replace(/[^0-9]/g, '').slice(0, 10)); setErrors(p => ({ ...p, phone: '' })); }}
+                                keyboardType="phone-pad"
+                                maxLength={10}
+                                error={errors.phone}
+                            />
+                            <AuthInput
+                                icon="lock-closed-outline"
+                                placeholder="Password"
+                                value={password}
+                                onChangeText={(v) => { setPassword(v); setErrors(p => ({ ...p, password: '' })); }}
+                                password
+                                error={errors.password}
+                            />
 
-                    {/* Password Input */}
-                    <View style={[styles.inputContainer, { marginTop: 16 }, errors.password && styles.inputError]}>
-                        <View style={styles.iconBox}>
-                            <Ionicons name="lock-closed-outline" size={20} color="#666" />
-                        </View>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your password"
-                            placeholderTextColor="#999"
-                            value={password}
-                            onChangeText={(v) => { setPassword(v); setErrors(p => ({ ...p, password: '' })); }}
-                            secureTextEntry={!showPass}
-                        />
-                        <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.iconBoxRight}>
-                            <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={20} color="#666" />
-                        </TouchableOpacity>
-                    </View>
-                    {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                            <Pressable style={styles.forgot} hitSlop={6}>
+                                <Text style={styles.forgotText}>Forgot Password?</Text>
+                            </Pressable>
 
-                    <TouchableOpacity style={styles.forgotBtn}>
-                        <Text style={styles.forgotText}>Forgot Password?</Text>
-                    </TouchableOpacity>
+                            <Pressable
+                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                onPress={handleLogin}
+                                disabled={loading}
+                            >
+                                <Text style={styles.primaryText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
+                            </Pressable>
 
-                    {/* Sign In Button */}
-                    <TouchableOpacity style={styles.signInBtn} onPress={handleLogin} disabled={loading}>
-                        <Text style={styles.signInText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
-                    </TouchableOpacity>
+                            <View style={styles.dividerRow}>
+                                <View style={styles.dividerLine} />
+                                <Text style={styles.dividerText}>OR</Text>
+                                <View style={styles.dividerLine} />
+                            </View>
 
-                    {/* Divider */}
-                    <View style={styles.dividerContainer}>
-                        <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>OR</Text>
-                        <View style={styles.dividerLine} />
-                    </View>
+                            <Pressable
+                                style={styles.ghostBtn}
+                                onPress={() => navigation.navigate('RoleSelect')}
+                            >
+                                <Text style={styles.ghostText}>Create New Account</Text>
+                            </Pressable>
+                        </Animated.View>
 
-                    {/* Create Account Button */}
-                    <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('Register')}>
-                        <Ionicons name="person-outline" size={18} color="#1a73e8" style={{ marginRight: 8 }} />
-                        <Text style={styles.createText}>Create New Account</Text>
-                    </TouchableOpacity>
-
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </AuthBackground>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    scrollContent: {
-        flexGrow: 1,
-        backgroundColor: '#fff',
-        paddingBottom: 32,
-    },
-    formContainer: {
-        paddingTop: 14,
-        paddingHorizontal: 22,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 4,
-    },
-    subtitle: {
-        fontSize: 13,
-        color: '#666',
-        marginBottom: 22,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
+    safe: { flex: 1 },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28, justifyContent: 'center' },
+    header: { alignItems: 'center', marginBottom: 26 },
+    title: { color: GLASS.textOnDark, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, marginTop: 16 },
+    subtitle: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500', marginTop: 5 },
+    card: {
+        backgroundColor: GLASS.fill,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
-        borderRadius: 10,
-        height: 46,
-        overflow: 'hidden',
+        borderColor: GLASS.border,
+        borderRadius: 24,
+        padding: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 24,
     },
-    inputError: {
-        borderColor: '#d32f2f',
-    },
-    countryCodeBox: {
-        backgroundColor: '#f5f5f5',
-        paddingHorizontal: 16,
-        height: '100%',
-        justifyContent: 'center',
-        borderRightWidth: 1,
-        borderRightColor: '#e0e0e0',
-    },
-    countryCodeText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-    },
-    input: {
-        flex: 1,
-        fontSize: 14,
-        color: '#333',
-        paddingHorizontal: 14,
-        height: '100%',
-    },
-    iconBox: {
-        paddingLeft: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iconBoxRight: {
-        paddingHorizontal: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100%',
-    },
-    errorText: {
-        fontSize: 12,
-        color: '#d32f2f',
-        marginTop: 4,
-        marginLeft: 4,
-    },
-    forgotBtn: {
-        alignSelf: 'flex-end',
-        marginTop: 10,
-        marginBottom: 20,
-    },
-    forgotText: {
-        fontSize: 13,
-        color: '#1a73e8',
-        fontWeight: '600',
-    },
-    signInBtn: {
-        backgroundColor: '#1a73e8',
-        borderRadius: 10,
-        height: 46,
-        flexDirection: 'row',
+    forgot: { alignSelf: 'flex-end', marginTop: 12 },
+    forgotText: { color: '#9ec5ff', fontSize: 13, fontWeight: '700' },
+    primaryBtn: {
+        marginTop: 18,
+        height: 48,
+        borderRadius: 16,
+        backgroundColor: COLORS.primary,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.5,
+        shadowRadius: 16,
+        elevation: 6,
     },
-    signInText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    dividerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: 20,
-    },
-    dividerLine: {
-        flex: 1,
-        height: 1,
-        backgroundColor: '#e0e0e0',
-    },
-    dividerText: {
-        marginHorizontal: 14,
-        color: '#999',
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 0.5,
-    },
-    createBtn: {
-        flexDirection: 'row',
+    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+    dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: GLASS.border },
+    dividerText: { marginHorizontal: 14, color: GLASS.faintOnDark, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+    ghostBtn: {
+        height: 48,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: GLASS.borderFocus,
         alignItems: 'center',
         justifyContent: 'center',
-        height: 46,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#1a73e8',
-        backgroundColor: '#fff',
+        backgroundColor: 'rgba(255,255,255,0.06)',
     },
-    createText: {
-        color: '#1a73e8',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
+    ghostText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
 });

@@ -1,6 +1,6 @@
 // ─── Theme ───────────────────────────────────────────────────────────────────
 export {
-  COLORS, GRADIENTS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS,
+  COLORS, GRADIENTS, GLASS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS,
   OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, AMENITY_DISPLAY_CONFIG, TRUST_BADGE_CONFIG,
 } from './theme';
 export type { StatusToken, AmenityToken, TrustToken } from './theme';
@@ -54,8 +54,9 @@ export { default as Toast } from './Toast';
 // ─── City Search Modal (shared) ───────────────────────────────────────────────
 export { default as CitySearchModal } from './CitySearchModal';
 
-// ─── Auth Header (shared curved blue header + logo) ───────────────────────────
-export { default as AuthHeader } from './AuthHeader';
+// ─── Auth background + inputs (navy gradient hero system) ──────────────────────
+export { default as AuthBackground } from './AuthBackground';
+export { default as AuthInput } from './AuthInput';
 
 // ─── Logo (centralized, variant-based) ────────────────────────────────────────
 export { default as Logo } from './Logo';
