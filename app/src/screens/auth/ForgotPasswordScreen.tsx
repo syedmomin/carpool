@@ -7,34 +7,65 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthBackground, AuthInput, Logo, GLASS, COLORS } from '../../components';
+import { authApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { parseApiError } from '../../utils/errorMessages';
 
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
 const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
 
-const isValidPhone = (v) => /^\d{10}$/.test(v.replace(/[\s\-]/g, ''));
+const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+type Step = 'request' | 'reset';
 
 export default function ForgotPasswordScreen({ navigation }) {
     const { showToast } = useToast();
-    const [phone, setPhone] = useState('');
-    const [error, setError] = useState('');
+    const [step, setStep] = useState<Step>('request');
+    const [email, setEmail] = useState('');
+    const [code, setCode] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [sent, setSent] = useState(false);
+    const [errors, setErrors] = useState<any>({});
 
-    const handleSubmit = async () => {
-        if (!phone.trim()) { setError('Phone number is required'); return; }
-        if (!isValidPhone(phone)) { setError('Enter exactly 10 digits after +92'); return; }
+    const setErr = (k: string, v: string) => setErrors((p: any) => ({ ...p, [k]: v }));
+
+    // ── Step 1: request a reset code ──────────────────────────────────────────
+    const handleRequest = async () => {
+        if (!email.trim()) return setErr('email', 'Email is required');
+        if (!isValidEmail(email)) return setErr('email', 'Enter a valid email address');
 
         setLoading(true);
-        // TODO: wire to a real reset endpoint once the backend exposes one
-        // (e.g. authApi.forgotPassword('92' + phone)). For now we confirm
-        // optimistically without leaking whether the number is registered.
-        setTimeout(() => {
-            setLoading(false);
-            setSent(true);
-            showToast('If this number is registered, a reset code is on its way.', 'success');
-        }, 700);
+        const { error } = await authApi.forgotPassword(email.trim().toLowerCase());
+        setLoading(false);
+        if (error) { showToast(parseApiError(error), 'error'); return; }
+        showToast('If that email is registered, a reset code has been sent.', 'success');
+        setStep('reset');
+    };
+
+    // ── Step 2: verify code + set new password ────────────────────────────────
+    const handleReset = async () => {
+        const e: any = {};
+        if (!code.trim()) e.code = 'Enter the 6-digit code';
+        else if (!/^\d{6}$/.test(code)) e.code = 'Code must be 6 digits';
+        if (!password) e.password = 'New password is required';
+        else if (password.length < 6) e.password = 'Password must be at least 6 characters';
+        setErrors(e);
+        if (Object.keys(e).length) return;
+
+        setLoading(true);
+        const { error } = await authApi.resetPassword(email.trim().toLowerCase(), code, password);
+        setLoading(false);
+        if (error) { showToast(parseApiError(error), 'error'); return; }
+        showToast('Password reset successfully. Please sign in.', 'success');
+        navigation.navigate('Login');
+    };
+
+    const handleResend = async () => {
+        setLoading(true);
+        const { error } = await authApi.forgotPassword(email.trim().toLowerCase());
+        setLoading(false);
+        showToast(error ? parseApiError(error) : 'A new code has been sent.', error ? 'error' : 'success');
     };
 
     return (
@@ -43,7 +74,11 @@ export default function ForgotPasswordScreen({ navigation }) {
                 <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-                        <Pressable style={styles.back} onPress={() => navigation.goBack()} hitSlop={10}>
+                        <Pressable
+                            style={styles.back}
+                            hitSlop={10}
+                            onPress={() => step === 'reset' ? setStep('request') : navigation.goBack()}
+                        >
                             <Ionicons name="chevron-back" size={24} color="#fff" />
                         </Pressable>
 
@@ -51,44 +86,59 @@ export default function ForgotPasswordScreen({ navigation }) {
                             <Logo variant="splash" size={LOGO_SIZE} />
                             <Text style={styles.title}>Forgot Password?</Text>
                             <Text style={styles.subtitle}>
-                                Enter your registered mobile number and we'll send you a code to reset your password.
+                                {step === 'request'
+                                    ? 'Enter your registered email and we’ll send you a reset code.'
+                                    : `Enter the 6-digit code sent to ${email} and choose a new password.`}
                             </Text>
                         </Animated.View>
 
-                        {sent ? (
-                            <Animated.View entering={FadeIn.duration(400)} style={styles.card}>
-                                <View style={styles.successIcon}>
-                                    <Ionicons name="checkmark-circle" size={56} color="#9ec5ff" />
-                                </View>
-                                <Text style={styles.successTitle}>Check your phone</Text>
-                                <Text style={styles.successSub}>
-                                    If <Text style={styles.phoneHi}>+92 {phone}</Text> is registered, you'll receive a
-                                    reset code shortly. Follow the instructions to set a new password.
-                                </Text>
-                                <Pressable style={styles.primaryBtn} onPress={() => navigation.navigate('Login')}>
-                                    <Text style={styles.primaryText}>Back to Sign In</Text>
-                                </Pressable>
-                                <Pressable style={styles.resend} onPress={() => setSent(false)} hitSlop={6}>
-                                    <Text style={styles.resendText}>Use a different number</Text>
-                                </Pressable>
-                            </Animated.View>
-                        ) : (
-                            <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
+                        {step === 'request' ? (
+                            <Animated.View entering={FadeIn.duration(350)} style={styles.card}>
                                 <AuthInput
-                                    leftLabel="PK +92"
-                                    placeholder="Mobile number"
-                                    value={phone}
-                                    onChangeText={(v) => { setPhone(v.replace(/[^0-9]/g, '').slice(0, 10)); setError(''); }}
-                                    keyboardType="phone-pad"
-                                    maxLength={10}
-                                    error={error}
+                                    icon="mail-outline"
+                                    placeholder="Email address"
+                                    value={email}
+                                    onChangeText={(v) => { setEmail(v); setErr('email', ''); }}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    error={errors.email}
                                 />
                                 <Pressable
                                     style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
-                                    onPress={handleSubmit}
+                                    onPress={handleRequest}
                                     disabled={loading}
                                 >
                                     <Text style={styles.primaryText}>{loading ? 'Sending…' : 'Send Reset Code'}</Text>
+                                </Pressable>
+                            </Animated.View>
+                        ) : (
+                            <Animated.View entering={FadeIn.duration(350)} style={styles.card}>
+                                <AuthInput
+                                    icon="keypad-outline"
+                                    placeholder="6-digit code"
+                                    value={code}
+                                    onChangeText={(v) => { setCode(v.replace(/[^0-9]/g, '').slice(0, 6)); setErr('code', ''); }}
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                    error={errors.code}
+                                />
+                                <AuthInput
+                                    icon="lock-closed-outline"
+                                    placeholder="New password (min 6 chars)"
+                                    value={password}
+                                    onChangeText={(v) => { setPassword(v); setErr('password', ''); }}
+                                    password
+                                    error={errors.password}
+                                />
+                                <Pressable
+                                    style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                    onPress={handleReset}
+                                    disabled={loading}
+                                >
+                                    <Text style={styles.primaryText}>{loading ? 'Resetting…' : 'Reset Password'}</Text>
+                                </Pressable>
+                                <Pressable style={styles.resend} onPress={handleResend} hitSlop={6} disabled={loading}>
+                                    <Text style={styles.resendText}>Didn’t get a code? Resend</Text>
                                 </Pressable>
                             </Animated.View>
                         )}
@@ -140,14 +190,6 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
-    // success state
-    successIcon: { alignItems: 'center', marginBottom: 10 },
-    successTitle: { color: GLASS.textOnDark, fontSize: 19, fontWeight: '800', textAlign: 'center' },
-    successSub: {
-        color: GLASS.subOnDark, fontSize: 14, fontWeight: '500',
-        textAlign: 'center', lineHeight: 21, marginTop: 8,
-    },
-    phoneHi: { color: '#fff', fontWeight: '800' },
     resend: { alignSelf: 'center', marginTop: 16, paddingVertical: 4 },
     resendText: { color: '#9ec5ff', fontSize: 13, fontWeight: '700' },
     bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
