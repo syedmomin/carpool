@@ -14,6 +14,7 @@ import SplashScreen from '../screens/auth/SplashScreen';
 import RoleSelectScreen from '../screens/auth/RoleSelectScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
 // Passenger
 import PassengerHomeScreen from '../screens/passenger/HomeScreen';
@@ -526,6 +527,7 @@ export default function AppNavigator({ navigationRef }: any) {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           </>
         )}
       </Stack.Navigator>
