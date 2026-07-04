@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Animated, ImageBackground, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, Dimensions } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Logo, RouteLoader } from '../../components';
 import { useApp } from '../../context/AppContext';
@@ -18,7 +19,8 @@ export default function SplashScreen({ navigation, onDone }) {
   const { isLoading } = useApp();
 
   // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeOpacity = useSharedValue(0);
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: fadeOpacity.value }));
   const navigated = useRef(false);
 
   // Dynamic readiness signals (no hardcoded navigation delay)
@@ -27,11 +29,7 @@ export default function SplashScreen({ navigation, onDone }) {
   const [connecting, setConnecting] = useState(false); // shown only if it takes a while
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
+    fadeOpacity.value = withTiming(1, { duration: 800 });
   }, []);
 
   // Minimum on-screen time floor
@@ -84,7 +82,7 @@ export default function SplashScreen({ navigation, onDone }) {
       {/* Dark overlay for better text readability */}
       <View style={styles.overlay} />
 
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.content, fadeStyle]}>
         <View style={styles.logoContainer}>
           <Logo variant="splash" size={LOGO_SIZE} />
         </View>
@@ -101,33 +99,22 @@ export default function SplashScreen({ navigation, onDone }) {
         </View>
 
         <View style={styles.featuresContainer}>
-          <View style={styles.featureItem}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="shield-checkmark" size={18} color="#fff" />
-            </View>
-            <Text style={styles.featureTitle}>Verified Drivers</Text>
-            <Text style={styles.featureSub}>Safe & Trusted</Text>
-          </View>
-
-          <View style={styles.featureDivider} />
-
-          <View style={styles.featureItem}>
-            <View style={styles.iconCircleGreen}>
-              <Ionicons name="people" size={18} color="#fff" />
-            </View>
-            <Text style={styles.featureTitle}>Save Together</Text>
-            <Text style={styles.featureSub}>Lower Travel Cost</Text>
-          </View>
-
-          <View style={styles.featureDivider} />
-
-          <View style={styles.featureItem}>
-            <View style={styles.iconCircleBlue}>
-              <Ionicons name="location" size={18} color="#fff" />
-            </View>
-            <Text style={styles.featureTitle}>Live Tracking</Text>
-            <Text style={styles.featureSub}>Real-time Updates</Text>
-          </View>
+          {[
+            { icon: 'shield-checkmark', title: 'Verified Drivers', sub: 'Safe & Trusted', color: '#1a73e8' },
+            { icon: 'people', title: 'Save Together', sub: 'Lower Travel Cost', color: '#2e7d32' },
+            { icon: 'location', title: 'Live Tracking', sub: 'Real-time Updates', color: '#0277bd' },
+          ].map((f, i) => (
+            <React.Fragment key={f.title}>
+              {i > 0 ? <View style={styles.featureDivider} /> : null}
+              <View style={styles.featureItem}>
+                <View style={[styles.iconCircle, { backgroundColor: f.color }]}>
+                  <Ionicons name={f.icon as any} size={18} color="#fff" />
+                </View>
+                <Text style={styles.featureTitle}>{f.title}</Text>
+                <Text style={styles.featureSub}>{f.sub}</Text>
+              </View>
+            </React.Fragment>
+          ))}
         </View>
 
         <View style={styles.bottomFooter}>
@@ -215,28 +202,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  iconCircleGreen: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#2e7d32',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  iconCircleBlue: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#0277bd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
   featureTitle: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: 'bold',
+    fontWeight: '800',
     textAlign: 'center',
   },
   featureSub: {

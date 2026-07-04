@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, TrustBadgesRow } from '../../components';
+import { COLORS, GRADIENTS, CURVE, TrustBadgesRow, PressableScale } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
@@ -16,11 +16,11 @@ const getMenuItems = (userRole: string) => [
   },
   {
     section: 'Activity', items: [
-      { 
-        icon: 'receipt-outline', 
-        label: userRole === 'driver' ? 'Ride History' : 'Booking History', 
-        screen: userRole === 'driver' ? 'RideHistory' : 'PastBookings', 
-        color: COLORS.primary 
+      {
+        icon: 'receipt-outline',
+        label: userRole === 'driver' ? 'Ride History' : 'Booking History',
+        screen: userRole === 'driver' ? 'RideHistory' : 'PastBookings',
+        color: COLORS.primary
       },
 
       { icon: 'star-outline', label: 'My Reviews', screen: 'Reviews', color: COLORS.accent },
@@ -40,22 +40,29 @@ const getMenuItems = (userRole: string) => [
 
 
 // ─── Verification Progress Section ────────────────────────────────────────────
-function VerificationProgress({ user, onNavigate }) {
+function VerificationProgress({ user, userRole, onNavigate }) {
+  const isDriver = userRole === 'driver';
   const cnicUploaded = !!user?.cnicStatus && user.cnicStatus !== 'NONE';
   const cnicApproved = user?.cnicStatus === 'APPROVED';
-  const fullyVerified = cnicApproved;
+  const licenceStatus = user?.licenceStatus ?? user?.verification?.licenceStatus;
+  const licenceUploaded = !!licenceStatus && licenceStatus !== 'NONE';
+  const licenceApproved = licenceStatus === 'APPROVED';
+  const fullyVerified = isDriver ? (cnicApproved && licenceApproved) : cnicApproved;
 
-  // Only show steps the user can actually act on (no in-app email/phone flow yet).
   const steps = [
-    { label: 'CNIC Submitted', done: cnicUploaded, icon: 'card-outline', color: COLORS.secondary, screen: 'CnicVerify' },
-    { label: 'CNIC Approved', done: cnicApproved, icon: 'shield-checkmark-outline', color: COLORS.purple },
+    { label: 'CNIC Submitted',   done: cnicUploaded,    icon: 'card-outline',            color: COLORS.secondary, screen: 'CnicVerify' },
+    { label: 'CNIC Approved',    done: cnicApproved,    icon: 'shield-checkmark-outline', color: COLORS.purple },
+    ...(isDriver ? [
+      { label: 'Licence Submitted', done: licenceUploaded, icon: 'document-text-outline', color: COLORS.primary,   screen: 'CnicVerify' },
+      { label: 'Licence Approved',  done: licenceApproved, icon: 'car-sport-outline',      color: COLORS.teal },
+    ] : []),
   ];
 
   const doneCount = steps.filter(s => s.done).length;
   const progress = doneCount / steps.length;
 
   return (
-    <View style={vStyles.card}>
+    <View style={[vStyles.card, CURVE]}>
       <View style={vStyles.header}>
         <View style={vStyles.headerLeft}>
           <Ionicons name={(fullyVerified ? 'shield-checkmark' : 'shield-outline') as any} size={22} color={fullyVerified ? COLORS.secondary : COLORS.warning} />
@@ -112,7 +119,7 @@ export default function ProfileScreen({ navigation }) {
       <LinearGradient colors={headerColors as any} style={styles.header}>
         <View style={styles.bgCircle} />
 
-        {/* Avatar + Info row */}
+        {/* Avatar left, text right — single row */}
         <View style={styles.headerRow}>
           <Pressable style={styles.avatarWrap} onPress={() => navigation.navigate('EditProfile')}>
             {currentUser?.avatar ? (
@@ -127,7 +134,7 @@ export default function ProfileScreen({ navigation }) {
             </View>
           </Pressable>
 
-          <View style={styles.headerInfo}>
+          <View style={styles.headerTextCol}>
             <Text style={styles.userName} numberOfLines={1}>{currentUser?.name}</Text>
             <Text style={styles.userPhone}>{currentUser?.phone}</Text>
             <View style={styles.profileBadges}>
@@ -136,36 +143,36 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.badgeText}>{userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
               </View>
             </View>
-            <TrustBadgesRow user={currentUser} style={{ marginTop: 8 }} />
-          </View>
-        </View>
-
-        {/* Stats row */}
-        <View style={styles.statsRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue} numberOfLines={1}>{currentUser?.city || '-'}</Text>
-            <Text style={styles.statLabel}>City</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {currentUser?.rating ? `${Number(currentUser.rating).toFixed(1)} ★` : 'New'}
-            </Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {currentUser?.createdAt ? new Date(currentUser.createdAt).getFullYear() : '-'}
-            </Text>
-            <Text style={styles.statLabel}>Member</Text>
+            <TrustBadgesRow user={currentUser} style={{ marginTop: 6 }} />
           </View>
         </View>
       </LinearGradient>
 
+      {/* Floating Stats Card — overlaps gradient */}
+      <View style={styles.statsCard}>
+        <View style={styles.stat}>
+          <Text style={styles.statValue} numberOfLines={1}>{currentUser?.city || '-'}</Text>
+          <Text style={styles.statLabel}>City</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>
+            {currentUser?.rating ? `${Number(currentUser.rating).toFixed(1)} ★` : 'New'}
+          </Text>
+          <Text style={styles.statLabel}>Rating</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>
+            {currentUser?.createdAt ? new Date(currentUser.createdAt).getFullYear() : '-'}
+          </Text>
+          <Text style={styles.statLabel}>Member</Text>
+        </View>
+      </View>
+
       {/* Verification Progress */}
       <View style={styles.section}>
-        <VerificationProgress user={currentUser} onNavigate={screen => navigation.navigate(screen)} />
+        <VerificationProgress user={currentUser} userRole={userRole} onNavigate={screen => navigation.navigate(screen)} />
       </View>
 
       {/* Menu */}
@@ -173,18 +180,18 @@ export default function ProfileScreen({ navigation }) {
 
         <View key={si} style={styles.menuSection}>
           <Text style={styles.menuSectionTitle}>{section.section}</Text>
-          <View style={styles.menuGroup}>
+          <View style={[styles.menuGroup, CURVE]}>
             {section.items.map((item, ii) => (
               <Pressable
                 key={ii}
-                style={[styles.menuItem, ii > 0 && styles.menuItemBorder]}
+                style={({ pressed }) => [styles.menuItem, CURVE, ii > 0 && styles.menuItemBorder, pressed && { backgroundColor: COLORS.lightGray }]}
                 onPress={() => item.screen ? navigation.navigate(item.screen) : null}
               >
                 <View style={[styles.menuItemIcon, { backgroundColor: item.color + '15' }]}>
                   <Ionicons name={(item.icon) as any} size={18} color={item.color} />
                 </View>
                 <Text style={styles.menuItemLabel}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
+                <Ionicons name="chevron-forward" size={16} color={COLORS.border} />
               </Pressable>
             ))}
           </View>
@@ -192,8 +199,8 @@ export default function ProfileScreen({ navigation }) {
       ))}
 
       {/* Logout */}
-      <Pressable
-        style={styles.logoutBtn}
+      <PressableScale
+        style={[styles.logoutBtn, CURVE]}
         onPress={() => showModal({
           type: 'danger',
           title: 'Logout?',
@@ -206,7 +213,7 @@ export default function ProfileScreen({ navigation }) {
       >
         <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
         <Text style={styles.logoutText}>Logout</Text>
-      </Pressable>
+      </PressableScale>
 
       <Text style={styles.versionText}>ChalParo v1.0.0 · Made in Pakistan</Text>
     </ScrollView>
@@ -233,37 +240,54 @@ const vStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: 52, paddingBottom: 16, paddingHorizontal: 20, position: 'relative', overflow: 'hidden' },
+  header: { paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20, position: 'relative', overflow: 'hidden' },
   bgCircle: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -50, right: -30 },
-  // Horizontal row: avatar left, info right
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 16 },
-  avatarWrap: { position: 'relative', flexShrink: 0 },
-  avatarImg: { width: 72, height: 72, borderRadius: 22, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
-  avatarInitBox: { width: 72, height: 72, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
-  avatarInitials: { fontSize: 24, fontWeight: '900', color: '#fff' },
-  editBadge: { position: 'absolute', bottom: -3, right: -3, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
-  headerInfo: { flex: 1 },
-  userName: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  userPhone: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginBottom: 8 },
+
+  // Avatar left, text right layout
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  headerTextCol: { flex: 1, gap: 3 },
+  avatarWrap: { position: 'relative' },
+  avatarImg: { width: 76, height: 76, borderRadius: 38, borderWidth: 2.5, borderColor: '#fff' },
+  avatarInitBox: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: '#fff' },
+  avatarInitials: { fontSize: 26, fontWeight: '900', color: '#fff' },
+  editBadge: { position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+
+  userName: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  userPhone: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
   profileBadges: { flexDirection: 'row', gap: 6 },
   badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, gap: 4 },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  statsRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 8 },
+
+  // Floating stats card — overlaps gradient with negative marginTop
+  statsCard: {
+    flexDirection: 'row',
+    marginTop: -24,
+    marginHorizontal: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
   stat: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 17, fontWeight: '800', color: '#fff' },
-  statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginVertical: 4 },
-  ratingCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', marginHorizontal: 20, marginTop: -12, borderRadius: 14, padding: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3, gap: 10 },
-  ratingNote: { fontSize: 12, color: COLORS.gray },
+  statValue: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
+  statLabel: { fontSize: 10, color: COLORS.gray, marginTop: 2 },
+  statDivider: { width: 1, backgroundColor: COLORS.border, marginVertical: 4 },
+
   section: { paddingHorizontal: 20, marginTop: 12 },
   menuSection: { paddingHorizontal: 20, marginTop: 20 },
   menuSectionTitle: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
   menuGroup: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
   menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
   menuItemBorder: { borderTopWidth: 1, borderTopColor: COLORS.border },
-  menuItemIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  menuItemIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   menuItemLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 20, marginTop: 24, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: COLORS.danger + '40', gap: 8 },
-  logoutText: { fontSize: 16, fontWeight: '700', color: COLORS.danger },
+
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 20, marginTop: 24, backgroundColor: '#fff', borderRadius: 16, paddingVertical: 14, borderWidth: 1.5, borderColor: COLORS.danger + '30', gap: 8 },
+  logoutText: { fontSize: 15, fontWeight: '700', color: COLORS.danger },
+
   versionText: { textAlign: 'center', fontSize: 12, color: COLORS.gray, marginTop: 4 },
 });

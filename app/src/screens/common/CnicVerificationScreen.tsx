@@ -33,7 +33,7 @@ function UploadBox({ label, required, image, uploading, onPress }) {
 }
 
 export default function CnicVerificationScreen({ navigation }) {
-  const { userRole } = useApp();
+  const { userRole, refreshUser } = useApp();
   const { showToast } = useToast();
   const isDriver = userRole === 'driver';
 
@@ -119,6 +119,9 @@ export default function CnicVerificationScreen({ navigation }) {
       navigation.goBack();
       return;
     }
+
+    // Refresh user so ProfileScreen VerificationProgress reflects the new status
+    await refreshUser();
 
     showToast(
       isDriver

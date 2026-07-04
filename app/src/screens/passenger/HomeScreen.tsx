@@ -66,6 +66,8 @@ export default function PassengerHomeScreen({ navigation }) {
     ? UPCOMING_DATES.find(d => d.value === selectedDate)?.label || selectedDate
     : 'Today';
 
+  const firstName = currentUser?.name?.split(' ')[0] || 'there';
+
   return (
     <View style={styles.container}>
       <MapBackground style={styles.mapSection} />
@@ -88,14 +90,19 @@ export default function PassengerHomeScreen({ navigation }) {
       {/* Bottom Sheet */}
       <View style={styles.bottomSheet}>
         <View style={styles.sheetHandle} />
-        <Text style={styles.sheetTitle}>Find a Ride</Text>
+
+        {/* Greeting */}
+        <View style={styles.greetRow}>
+          <Text style={styles.greetName}>Hello, {firstName} 👋</Text>
+          <Text style={styles.greetSub}>Where are you heading today?</Text>
+        </View>
 
         {/* From / To */}
         <View style={styles.routeCard}>
           <View style={styles.routeLeft}>
-            <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
+            <View style={[styles.routeDot, styles.routeDotOrigin]} />
             <View style={styles.routeVertLine} />
-            <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
+            <View style={[styles.routeDot, styles.routeDotDest]} />
           </View>
           <View style={styles.routeInputs}>
             <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
@@ -135,10 +142,10 @@ export default function PassengerHomeScreen({ navigation }) {
         </View>
 
         {/* Find Rides Button */}
-        <Pressable onPress={handleFindRide}>
+        <Pressable onPress={handleFindRide} style={styles.findBtnShadow}>
           <LinearGradient colors={GRADIENTS.primary as any} style={styles.findBtn}>
             <Text style={styles.findBtnText}>Find Ride</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <Ionicons name="arrow-forward" size={20} color="#fff" />
           </LinearGradient>
         </Pressable>
       </View>
@@ -235,24 +242,73 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 24, elevation: 20,
   },
   sheetHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+
+  // Greeting
+  greetRow: { marginBottom: 14 },
+  greetName: { fontSize: 22, fontWeight: '900', color: COLORS.textPrimary },
+  greetSub: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
+
   sheetTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
-  routeCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 14, marginBottom: 12, gap: 12, ...CURVE },
+
+  // Route card — white bg, subtle shadow
+  routeCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    ...CURVE,
+  },
   routeLeft: { alignItems: 'center', gap: 3 },
-  routeDot: { width: 10, height: 10, borderRadius: 5 },
+  routeDot: { width: 8, height: 8, borderRadius: 4 },
+  routeDotOrigin: { backgroundColor: COLORS.primary },
+  routeDotDest: { backgroundColor: COLORS.secondary },
   routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
   routeInputs: { flex: 1 },
   routeInputTouch: { paddingVertical: 6 },
-  routeInput: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
-  routeInputPlaceholder: { color: COLORS.gray },
-  routeInputDivider: { height: 1, backgroundColor: COLORS.border },
-  swapBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...CURVE },
+  routeInput: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
+  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
+
+  // Swap button — circular, white, primary icon, subtle shadow
+  swapBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
+    ...CURVE,
+  },
+
+  // Date pills — more pill-like
   dateRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  datePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border },
+  datePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: 24, borderWidth: 1.5, borderColor: COLORS.border,
+    backgroundColor: '#fff',
+    ...CURVE,
+  },
   datePillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   datePillText: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
   datePillActiveText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  findBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, gap: 8, marginBottom: 16, ...CURVE },
-  findBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  // Find Ride button — taller, full-width, shadow on wrapper
+  findBtnShadow: {
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+    ...CURVE,
+  },
+  findBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    height: 52,
+    borderRadius: 16, gap: 8,
+    ...CURVE,
+  },
+  findBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+
+  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },
   modalHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },

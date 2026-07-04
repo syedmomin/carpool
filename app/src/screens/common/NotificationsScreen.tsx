@@ -118,7 +118,7 @@ export default function NotificationsScreen({ navigation }) {
               </View>
               <View style={styles.content}>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.title, !isRead && { fontWeight: '800' }]}>{item.title}</Text>
+                  <Text style={[styles.title, !isRead && { fontWeight: '800', letterSpacing: -0.1 }]}>{item.title}</Text>
                   {!isRead && <View style={styles.unreadDot} />}
                 </View>
                 <Text style={styles.message}>{item.message}</Text>
@@ -160,19 +160,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fff',
     borderRadius: 16, padding: 14, marginBottom: 10,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    ...CURVE,
   },
   markAllBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   markAllText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary },
+  cardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary, backgroundColor: COLORS.primary + '05' },
   cardNewRide: { borderLeftWidth: 3, borderLeftColor: COLORS.teal },
-  iconBox: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
+  iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0, ...CURVE },
   content: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  title: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
-  message: { fontSize: 13, color: COLORS.gray, lineHeight: 18, marginBottom: 6 },
+  title: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
+  message: { fontSize: 13, color: COLORS.gray, lineHeight: 19, marginBottom: 6 },
   time: { fontSize: 11, color: COLORS.gray },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, flexShrink: 0 },
-  interestedBtn: { marginTop: 10, alignSelf: 'flex-start', borderRadius: 10, overflow: 'hidden' },
-  interestedGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
+  interestedBtn: { marginTop: 10, alignSelf: 'flex-start', borderRadius: 12, overflow: 'hidden', ...CURVE },
+  interestedGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9 },
   interestedText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 });

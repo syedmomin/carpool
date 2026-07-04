@@ -1,133 +1,384 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, PrimaryButton, GhostButton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, GhostButton } from '../../components';
 import { haptics } from '../../utils/haptics';
 
 export default function BookingConfirmScreen({ navigation, route }) {
   useEffect(() => {
     haptics.success();
   }, []);
+
   const { rideId, seats, rideData } = route.params;
   const ride   = rideData || null;
   const driver = ride?.driver;
 
+  const bookingId = '#BK' + Date.now().toString().slice(-6);
+
+  const checkScale = useSharedValue(0);
+  useEffect(() => {
+    checkScale.value = withSpring(1, { damping: 12, stiffness: 120 });
+  }, []);
+
+  const animatedCheckStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: checkScale.value }],
+  }));
+
   const TICKET_ROWS = [
-    { label: 'Date',         value: ride?.date,                                              icon: 'calendar-outline' },
-    { label: 'Seats',        value: `${seats} seat(s)`,                                     icon: 'people-outline' },
-    { label: 'Driver',       value: driver?.name || 'N/A',                                  icon: 'person-outline' },
+    { label: 'Date',         value: ride?.date ?? 'N/A',                                                           icon: 'calendar-outline' },
+    { label: 'Seats',        value: `${seats} seat(s)`,                                                            icon: 'people-outline' },
+    { label: 'Driver',       value: driver?.name ?? 'N/A',                                                         icon: 'person-outline' },
     { label: 'Vehicle',      value: ride?.vehicle ? `${ride.vehicle.brand} • ${ride.vehicle.plateNumber}` : 'N/A', icon: 'car-outline' },
-    { label: 'Total Amount', value: `Rs ${(seats * ride?.pricePerSeat)?.toLocaleString()}`,  icon: 'wallet-outline', highlight: true },
-    { label: 'Payment',      value: 'Cash on Board',                                        icon: 'cash-outline' },
+    { label: 'Total Amount', value: `Rs ${(seats * ride?.pricePerSeat)?.toLocaleString()}`,                         icon: 'wallet-outline', highlight: true },
+    { label: 'Payment',      value: 'Cash on Board',                                                               icon: 'cash-outline' },
   ];
 
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.primary as any}
-        title="Booking Request Sent"
-        subtitle="Waiting for driver to accept your request"
-        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
-      />
-
-      <ScrollView contentContainerStyle={styles.body}>
-        <View style={styles.ticketCard}>
-          {/* Ticket Header */}
-          <View style={styles.ticketHeader}>
-            <Ionicons name="ticket-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.ticketTitle}>Booking Request Ticket</Text>
-            <Text style={styles.bookingId}>#BK{Date.now().toString().slice(-6)}</Text>
+      {/* Hero gradient header */}
+      <LinearGradient colors={GRADIENTS.primary as any} style={styles.heroGradient}>
+        <Animated.View style={[styles.checkOuter, animatedCheckStyle]}>
+          <View style={styles.checkInner}>
+            <Ionicons name={'checkmark-circle' as any} size={40} color={COLORS.primary} />
           </View>
+        </Animated.View>
 
-          <View style={styles.divider} />
+        <Text style={styles.heroTitle}>Booking Sent! 🎉</Text>
+        <Text style={styles.heroSubtitle}>Driver will confirm your request soon</Text>
 
-          {/* Route */}
-          <View style={styles.ticketRoute}>
+        <View style={styles.pendingBadge}>
+          <Ionicons name={'time-outline' as any} size={12} color="#fff" />
+          <Text style={styles.pendingBadgeText}>Awaiting Confirmation</Text>
+        </View>
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Floating ticket card */}
+        <View style={[styles.ticketCard, CURVE]}>
+          {/* Route block */}
+          <View style={styles.routeBlock}>
             <View style={styles.routeLeft}>
               <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
               <View style={styles.routeLine} />
-              <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
+              <View style={[styles.dot, { backgroundColor: '#22c55e' }]} />
             </View>
             <View style={styles.routeInfo}>
               <View style={styles.routeRow}>
-                <Text style={styles.ticketCity}>{ride?.from}</Text>
-                <Text style={styles.ticketTime}>{ride?.departureTime}</Text>
+                <Text style={styles.cityName}>{ride?.from ?? '—'}</Text>
+                <Text style={styles.timeLabel}>{ride?.departureTime ?? ''}</Text>
               </View>
+              <View style={styles.routeSpacer} />
               <View style={styles.routeRow}>
-                <Text style={styles.ticketCity}>{ride?.to}</Text>
-                <Text style={styles.ticketTime}>{ride?.arrivalTime}</Text>
+                <Text style={styles.cityName}>{ride?.to ?? '—'}</Text>
+                <Text style={styles.timeLabel}>{ride?.arrivalTime ?? ''}</Text>
               </View>
             </View>
+            {ride?.date ? (
+              <View style={styles.datePill}>
+                <Text style={styles.datePillText}>{ride.date}</Text>
+              </View>
+            ) : null}
           </View>
 
-          <View style={styles.divider} />
+          {/* Dashed tear-line */}
+          <View style={styles.dashedDivider} />
 
-          {/* Info Rows */}
+          {/* Info rows */}
           {TICKET_ROWS.map((item, i) => (
-            <View key={i} style={styles.ticketInfoRow}>
-              <View style={styles.ticketInfoLeft}>
-                <Ionicons name={(item.icon) as any} size={16} color={COLORS.gray} />
-                <Text style={styles.ticketInfoLabel}>{item.label}</Text>
+            <View key={i} style={styles.infoRow}>
+              <View style={styles.infoLeft}>
+                <Ionicons name={item.icon as any} size={16} color={COLORS.gray} />
+                <Text style={styles.infoLabel}>{item.label}</Text>
               </View>
-              <Text style={[styles.ticketInfoValue, item.highlight && { color: COLORS.primary, fontWeight: '800', fontSize: 16 }]}>
+              <Text style={[styles.infoValue, item.highlight ? styles.infoValueHighlight : null]}>
                 {item.value}
               </Text>
             </View>
           ))}
 
-          {/* Barcode */}
-          <View style={styles.divider} />
+          {/* Barcode section */}
+          <View style={styles.dashedDivider} />
           <View style={styles.barcodeRow}>
             {Array(30).fill(0).map((_, i) => (
-              <View key={i} style={[styles.barcodeLine, { height: i % 3 === 0 ? 32 : i % 2 === 0 ? 24 : 20 }]} />
+              <View
+                key={i}
+                style={[
+                  styles.barcodeLine,
+                  { height: i % 3 === 0 ? 28 : i % 2 === 0 ? 20 : 16 },
+                ]}
+              />
             ))}
           </View>
+          <Text style={styles.bookingId}>{bookingId}</Text>
         </View>
 
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.infoText}>Your request has been sent to the driver. You will receive a notification once the driver accepts or rejects your booking.</Text>
+        {/* Info notice */}
+        <View style={[styles.noticeBox, CURVE]}>
+          <Ionicons name={'information-circle' as any} size={18} color="#d97706" style={{ marginTop: 1 }} />
+          <Text style={styles.noticeText}>
+            Driver will confirm within a few hours. You'll get notified when they respond.
+          </Text>
         </View>
 
-        <PrimaryButton
-          title="View My Bookings"
-          onPress={() => navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' })}
-          icon="receipt-outline"
-          style={{ marginBottom: 12 }}
-        />
+        {/* Primary gradient button */}
+        <LinearGradient
+          colors={GRADIENTS.primary as any}
+          style={[styles.primaryBtn, CURVE]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Ionicons name={'receipt-outline' as any} size={20} color="#fff" />
+          <Text
+            style={styles.primaryBtnText}
+            onPress={() => navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' })}
+          >
+            View My Bookings
+          </Text>
+        </LinearGradient>
+
         <GhostButton
-          title="Go to Home"
+          title="Back to Home"
           onPress={() => navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab' })}
         />
-        <View style={{ height: 24 }} />
+
+        <View style={{ height: 32 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  body: { padding: 20, marginTop: -20 },
-  ticketCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5, marginBottom: 16 },
-  ticketHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  ticketTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
-  bookingId: { fontSize: 12, color: COLORS.gray, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
-  ticketRoute: { flexDirection: 'row', alignItems: 'stretch' },
-  routeLeft: { alignItems: 'center', marginRight: 12, paddingVertical: 2 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  routeLine: { width: 2, flex: 1, backgroundColor: COLORS.border, marginVertical: 3 },
-  routeInfo: { flex: 1, justifyContent: 'space-between', paddingVertical: 2 },
-  routeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  ticketCity: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  ticketTime: { fontSize: 13, color: COLORS.gray },
-  ticketInfoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6 },
-  ticketInfoLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  ticketInfoLabel: { fontSize: 13, color: COLORS.gray },
-  ticketInfoValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
-  barcodeRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 2, paddingTop: 4 },
-  barcodeLine: { width: 3, backgroundColor: COLORS.textPrimary, borderRadius: 1 },
-  infoBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#eff6ff', borderRadius: 12, padding: 14, marginBottom: 20, gap: 10 },
-  infoText: { flex: 1, fontSize: 13, color: COLORS.primary, lineHeight: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f7fa',
+  },
+
+  /* Hero */
+  heroGradient: {
+    paddingTop: 60,
+    paddingBottom: 80,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  checkOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#fff',
+    marginTop: 16,
+    letterSpacing: 0.2,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 6,
+  },
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginTop: 14,
+  },
+  pendingBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  /* Scroll body */
+  body: {
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 12,
+  },
+
+  /* Ticket card */
+  ticketCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    marginTop: -40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+
+  /* Route block */
+  routeBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 14,
+  },
+  routeLeft: {
+    alignItems: 'center',
+    width: 16,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  routeLine: {
+    width: 2,
+    height: 32,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 4,
+  },
+  routeInfo: {
+    flex: 1,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  routeSpacer: {
+    height: 20,
+  },
+  cityName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  timeLabel: {
+    fontSize: 13,
+    color: COLORS.gray,
+    fontWeight: '500',
+  },
+  datePill: {
+    backgroundColor: COLORS.primary + '12',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: 'center',
+  },
+  datePillText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+
+  /* Dashed divider */
+  dashedDivider: {
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    borderStyle: 'dashed',
+  },
+
+  /* Info rows */
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  infoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: COLORS.gray,
+    fontWeight: '500',
+  },
+  infoValue: {
+    fontSize: 13,
+    color: '#111827',
+    fontWeight: '600',
+    maxWidth: '55%',
+    textAlign: 'right',
+  },
+  infoValueHighlight: {
+    color: COLORS.primary,
+    fontWeight: '800',
+    fontSize: 16,
+  },
+
+  /* Barcode */
+  barcodeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: 3,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  barcodeLine: {
+    width: 3,
+    backgroundColor: '#cbd5e1',
+    borderRadius: 1.5,
+  },
+  bookingId: {
+    textAlign: 'center',
+    fontSize: 13,
+    letterSpacing: 2,
+    color: COLORS.gray,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    paddingBottom: 16,
+    paddingTop: 8,
+  },
+
+  /* Notice box */
+  noticeBox: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 16,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#92400e',
+    lineHeight: 19,
+  },
+
+  /* Primary button */
+  primaryBtn: {
+    height: 52,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  primaryBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
 });

@@ -5,16 +5,23 @@ import { COLORS, SPACING } from './theme';
 interface SectionHeaderProps {
   title: string;
   onSeeAll?: () => void;
+  subtitle?: string;
   style?: StyleProp<ViewStyle>;
 }
-export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, onSeeAll, style }) => (
+export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, onSeeAll, subtitle, style }) => (
   <View style={[styles.row, style]}>
-    <Text style={styles.title}>{title}</Text>
-    {onSeeAll && (
-      <Pressable onPress={onSeeAll}>
+    <View style={styles.titleGroup}>
+      <Text style={styles.title}>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+    </View>
+    {onSeeAll ? (
+      <Pressable
+        onPress={onSeeAll}
+        style={({ pressed }) => [styles.seeAllBtn, pressed && { opacity: 0.65 }]}
+      >
         <Text style={styles.seeAll}>See All</Text>
       </Pressable>
-    )}
+    ) : null}
   </View>
 );
 
@@ -26,6 +33,9 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     marginTop: SPACING.xs,
   },
-  title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  seeAll: { fontSize: 14, color: COLORS.primary, fontWeight: '600' },
+  titleGroup: { flex: 1 },
+  title: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.2 },
+  subtitle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  seeAllBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  seeAll: { fontSize: 13, color: COLORS.primary, fontWeight: '700' },
 });

@@ -148,6 +148,7 @@ export default function DriverHomeScreen({ navigation }) {
         ) : myVehicle ? (
           <PressableScale style={styles.vehicleCard} onPress={() => navigation.navigate('MyVehiclesTab')} scaleTo={0.98}>
             <View style={styles.vehicleInner}>
+              <View style={styles.vehicleAccentBar} />
               <View style={styles.vehicleIconBox}>
                 <Ionicons name="car-sport" size={28} color={COLORS.primary} />
               </View>
@@ -251,16 +252,17 @@ const styles = StyleSheet.create({
   statVal: { fontSize: 20, fontWeight: '900', color: '#fff' },
   statLabel: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
   body: { padding: 20 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 14 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
   actionCard: { width: '47%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, ...CURVE },
-  actionGrad: { padding: 18, minHeight: 120, justifyContent: 'flex-start' },
-  actionIconBox: { width: 46, height: 46, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionGrad: { padding: 16, minHeight: 120, justifyContent: 'flex-start' },
+  actionIconBox: { width: 52, height: 52, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   actionLabel: { fontSize: 14, fontWeight: '800', color: '#fff' },
   actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   actionArrow: { position: 'absolute', top: 14, right: 14, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   vehicleCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   vehicleInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  vehicleAccentBar: { width: 4, borderRadius: 2, height: '80%', backgroundColor: COLORS.primary, marginRight: 0 },
   vehicleIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   vehicleInfo: { flex: 1 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },

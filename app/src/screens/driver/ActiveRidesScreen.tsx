@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from '
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge, ProgressBar, RideCardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge, ProgressBar, RideCardSkeleton } from '../../components';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -282,31 +282,31 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingText: { fontSize: 14, color: COLORS.gray },
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
+  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingHorizontal: 16, paddingTop: 8 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, ...CURVE },
   tabActive: { borderBottomWidth: 2.5, borderBottomColor: COLORS.primary },
-  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
-  tabTextActive: { color: COLORS.primary, fontWeight: '800' },
+  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.gray, letterSpacing: 0.1 },
+  tabTextActive: { color: COLORS.primary, fontWeight: '800', letterSpacing: 0.1 },
   list: { padding: 16, paddingBottom: 32 },
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, ...CURVE },
   historyCard: { opacity: 0.9 },
   inProgressBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
   inProgressText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
-  route: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
+  route: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.2 },
   date: { fontSize: 12, color: COLORS.gray, marginTop: 3 },
   progress: { marginHorizontal: 16, marginBottom: 12 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 12, padding: 12, marginBottom: 12 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 14, padding: 12, marginBottom: 12, ...CURVE },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 6, minWidth: 100 },
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, gap: 6, minWidth: 100, ...CURVE },
   btnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
   startHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingBottom: 14, marginTop: -2 },
   startHintText: { fontSize: 11.5, color: COLORS.gray, flex: 1, lineHeight: 16 },
   startBtn: { paddingVertical: 0, paddingHorizontal: 0, borderWidth: 0, minWidth: 150 },
-  startGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, gap: 8, width: '100%' },
+  startGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, paddingHorizontal: 16, borderRadius: 12, gap: 8, width: '100%', ...CURVE },
   startText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  historyBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  historyBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, ...CURVE },
   historyBadgeText: { fontSize: 11, fontWeight: '700' },
 });

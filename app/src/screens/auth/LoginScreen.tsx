@@ -5,7 +5,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { AuthBackground, AuthInput, Logo, GLASS, COLORS } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { AuthBackground, AuthInput, Logo, GLASS, COLORS, CURVE } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -82,11 +84,20 @@ export default function LoginScreen({ navigation }) {
                             </Pressable>
 
                             <Pressable
-                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
                                 onPress={handleLogin}
                                 disabled={loading}
                             >
-                                <Text style={styles.primaryText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
+                                <LinearGradient colors={['#2196f3', '#1a73e8', '#1557b0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
+                                    {loading ? (
+                                        <Text style={styles.primaryText}>Signing In…</Text>
+                                    ) : (
+                                        <>
+                                            <Text style={styles.primaryText}>Sign In</Text>
+                                            <Ionicons name="arrow-forward" size={18} color="#fff" />
+                                        </>
+                                    )}
+                                </LinearGradient>
                             </Pressable>
 
                             <View style={styles.dividerRow}>
@@ -129,31 +140,38 @@ const styles = StyleSheet.create({
     },
     forgot: { alignSelf: 'flex-end', marginTop: 12 },
     forgotText: { color: '#9ec5ff', fontSize: 13, fontWeight: '700' },
-    primaryBtn: {
+    primaryBtnWrap: {
         marginTop: 18,
-        height: 48,
         borderRadius: 16,
-        backgroundColor: COLORS.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
         shadowColor: COLORS.primary,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.45,
         shadowRadius: 16,
         elevation: 6,
+        ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+    primaryBtn: {
+        height: 52,
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        ...CURVE,
+    },
+    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
     dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
     dividerLine: { flex: 1, height: 1, backgroundColor: GLASS.border },
     dividerText: { marginHorizontal: 14, color: GLASS.faintOnDark, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
     ghostBtn: {
-        height: 48,
+        height: 52,
         borderRadius: 16,
         borderWidth: 1.5,
         borderColor: GLASS.borderFocus,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        ...CURVE,
     },
     ghostText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
 });

@@ -65,15 +65,6 @@ export type { LogoVariant } from './Logo';
 // ─── Route Loader (animated curved path) ──────────────────────────────────────
 export { default as RouteLoader } from './RouteLoader';
 
-// ─── Illustrations ────────────────────────────────────────────────────────────
-export {
-  SplashIllustration,
-  EmptyRidesIllustration,
-  EmptyBookingsIllustration,
-  EmptyNotificationsIllustration,
-  EmptyGeneralIllustration,
-} from './Illustrations';
-
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 export {
   Skeleton,

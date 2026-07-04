@@ -16,6 +16,7 @@ export interface AppContextState {
   logout: () => Promise<void>;
   register: (userData: any) => Promise<{ user?: any, role?: string, error?: any }>;
   updateProfile: (updates: any) => Promise<{ error?: any }>;
+  refreshUser: () => Promise<void>;
   
   postRide: (rideData: any) => Promise<{ data?: any, error?: any }>;
   searchRides: (from: string, to: string, date: string) => Promise<{ data: any[], error?: any }>;
@@ -136,6 +137,22 @@ export const AppProvider = ({ children }) => {
     return { user, role };
   };
 
+  const refreshUser = async () => {
+    try {
+      const { data } = await authApi.me();
+      if (data?.data) {
+        const user = data.data;
+        const role = user.role === 'DRIVER' ? 'driver' : 'passenger';
+        setCurrentUser(user);
+        setUserRole(role);
+        await Promise.all([
+          secureStorage.setObject(USER_STORAGE_KEY, user),
+          secureStorage.setItem(ROLE_STORAGE_KEY, role),
+        ]);
+      }
+    } catch (_) {}
+  };
+
   const updateProfile = async (updates) => {
     // Save previous state so we can roll back on failure
     const previousUser = currentUser;
@@ -249,7 +266,7 @@ export const AppProvider = ({ children }) => {
       currentUser, userRole, isLoading, unreadCount,
 
       // Auth
-      login, logout, register, updateProfile,
+      login, logout, register, updateProfile, refreshUser,
 
       // Rides
       postRide, searchRides,

@@ -5,7 +5,7 @@ import {
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, RideCard, EmptyState, Chip, GradientHeader, RideCardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, RideCard, EmptyState, Chip, GradientHeader, RideCardSkeleton } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { ridesApi } from '../../services/api';
@@ -106,7 +106,7 @@ function TimeModal({ visible, selected, onSelect, onClose }) {
                   <Text style={styles.timeSlotSub}>{slot.from} – {slot.to}</Text>
                 </View>
               </View>
-              {selected === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+              {selected === i && <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />}
             </Pressable>
           ))}
         </View>
@@ -221,7 +221,7 @@ export default function SearchScreen({ navigation, route }) {
   useEffect(() => {
     if (searchResults !== null && availableRides.length > 0) {
       console.log('[SearchScreen] Global Ride Feed Update. Current Results:', searchResults.length, 'Available:', availableRides.length);
-      
+
       let changed = false;
       const updatedResults = searchResults.map((sr: any) => {
         const matchingGlobal = availableRides.find(r => r.id === sr.id);
@@ -264,19 +264,19 @@ export default function SearchScreen({ navigation, route }) {
   const doSearch = useCallback(async (forcedFrom?: string, forcedTo?: string) => {
     const sFrom = forcedFrom !== undefined ? forcedFrom : from;
     const sTo = forcedTo !== undefined ? forcedTo : to;
-    
+
     if (!sFrom && !sTo) { setSearchResults(null); return; }
     setLoading(true);
     const { data, error } = await searchRides(sFrom, sTo, date);
     setLoading(false);
     setSearchError(!!error);
     setSearchResults(error || !data ? [] : data);
-    
+
     if (sFrom && sTo && !error && data && data.length > 0) {
       searchHistory.save(sFrom, sTo).then(setRecentSearches);
     }
   }, [from, to, date, searchRides]);
-  
+
   const handleRecentPress = (entry: SearchEntry) => {
     setFrom(entry.from);
     setTo(entry.to);
@@ -303,13 +303,16 @@ export default function SearchScreen({ navigation, route }) {
     filterMaxPrice && `Max Rs ${filterMaxPrice}`,
   ].filter(Boolean);
 
+  const fromCity = from || '';
+  const toCity = to || '';
+
   return (
     <View style={styles.container}>
       {/* ── Gradient Header ─────────────────────────────────────────── */}
       <GradientHeader
         colors={GRADIENTS.primary as any}
-        title="Find a Ride"
-        subtitle={from && to ? `${from} to ${to}` : "Search for your next journey"}
+        title={fromCity && toCity ? `${fromCity} → ${toCity}` : 'Find a Ride'}
+        subtitle={fromCity && toCity ? `${fromCity} to ${toCity}` : 'Search for your next journey'}
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
 
@@ -363,7 +366,12 @@ export default function SearchScreen({ navigation, route }) {
           </Pressable>
 
           {/* Quick Filters */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filtersScroll}
+            contentContainerStyle={styles.filtersScrollContent}
+          >
             <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
             <Chip label="Female Only" icon="woman-outline" active={filterFemale} onPress={() => setFilterFemale(!filterFemale)} style={styles.filterChip} />
 
@@ -437,12 +445,13 @@ export default function SearchScreen({ navigation, route }) {
       {!loading && (
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
-            {displayList.length} ride{displayList.length !== 1 ? 's' : ''}
-            {searchResults !== null && (from || to)
-              ? ` · ${from}${from && to ? ' → ' : ''}${to}`
-              : ' available'}
+            {displayList.length} ride{displayList.length !== 1 ? 's' : ''} found
           </Text>
-          {sort !== null && <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>}
+          {fromCity && toCity ? (
+            <Text style={styles.resultsRoute}>{fromCity} → {toCity}</Text>
+          ) : (
+            sort !== null && <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>
+          )}
         </View>
       )}
 
@@ -481,13 +490,13 @@ export default function SearchScreen({ navigation, route }) {
               action={{ label: 'Try Again', onPress: () => doSearch() }}
             />
           ) : (
-            <EmptyState
-              icon="car-outline"
-              title={searchResults !== null ? 'No Rides Found' : 'No Rides Available'}
-              subtitle={searchResults !== null
-                ? 'No rides on this route. Try different cities or check back later.'
-                : 'No active rides right now. Check back soon.'}
-            />
+            <View style={styles.emptyStateWrapper}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="search-outline" size={64} color={COLORS.primary} />
+              </View>
+              <Text style={styles.emptyTitle}>No rides found</Text>
+              <Text style={styles.emptySubtitle}>Try different dates or cities</Text>
+            </View>
           )
         }
       />
@@ -531,14 +540,21 @@ export default function SearchScreen({ navigation, route }) {
         <Pressable style={styles.sortOverlay} onPress={() => setShowSortModal(false)}>
           <View style={styles.sortSheet}>
             <Text style={styles.sortTitle}>Sort By</Text>
-            <Pressable style={styles.sortOption} onPress={() => { setSort(null); setShowSortModal(false); }}>
+            <Pressable
+              style={[styles.sortOption, sort === null && styles.sortOptionActive]}
+              onPress={() => { setSort(null); setShowSortModal(false); }}
+            >
               <Text style={[styles.sortOptionText, sort === null && { color: COLORS.primary, fontWeight: '700' }]}>Default (No Sort)</Text>
-              {sort === null && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+              {sort === null && <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />}
             </Pressable>
             {SORT_OPTIONS.map((opt, i) => (
-              <Pressable key={i} style={styles.sortOption} onPress={() => { setSort(i); setShowSortModal(false); }}>
+              <Pressable
+                key={i}
+                style={[styles.sortOption, sort === i && styles.sortOptionActive]}
+                onPress={() => { setSort(i); setShowSortModal(false); }}
+              >
                 <Text style={[styles.sortOptionText, sort === i && { color: COLORS.primary, fontWeight: '700' }]}>{opt}</Text>
-                {sort === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+                {sort === i && <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />}
               </Pressable>
             ))}
           </View>
@@ -562,23 +578,41 @@ const styles = StyleSheet.create({
   searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 16 },
   searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   filtersScroll: { flexDirection: 'row' },
-  filterChip: { marginRight: 8 },
-  activeFiltersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  filtersScrollContent: { paddingHorizontal: 0, paddingBottom: 12 },
+  filterChip: {
+    marginRight: 8,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontWeight: '700',
+    ...CURVE,
+  },
+  activeFiltersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, paddingHorizontal: 16 },
   activePill: { backgroundColor: COLORS.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   activePillText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
   clearAllBtn: { paddingHorizontal: 10, paddingVertical: 4 },
   clearAllText: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
   resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  resultsCount: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  resultsCount: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
+  resultsRoute: { fontSize: 13, color: COLORS.gray },
   sortLabel: { fontSize: 12, color: COLORS.gray },
   listContent: { paddingHorizontal: 20, paddingBottom: 24 },
   sortOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sortSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   sheetHandleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sortTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  sortOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  sortOptionActive: { backgroundColor: COLORS.primary + '08' },
-  sortOptionText: { fontSize: 15, color: COLORS.textPrimary },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    ...CURVE,
+  },
+  sortOptionActive: { backgroundColor: COLORS.primary + '10', borderRadius: 12 },
+  sortOptionText: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
   timeSlotRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   timeSlotSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   sheetCloseBtn: { marginTop: 16, alignItems: 'center', paddingVertical: 13, borderRadius: 14, backgroundColor: COLORS.primary },
@@ -604,5 +638,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gray,
     fontWeight: '500',
+  },
+  emptyStateWrapper: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  emptyIconCircle: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    backgroundColor: COLORS.primary + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

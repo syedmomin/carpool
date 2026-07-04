@@ -6,7 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, CitySearchModal, GLASS, COLORS } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AuthBackground, AuthInput, Logo, CitySearchModal, GLASS, COLORS, CURVE } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -152,11 +153,20 @@ export default function RegisterScreen({ navigation, route }) {
                             />
 
                             <Pressable
-                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
                                 onPress={handleRegister}
                                 disabled={loading}
                             >
-                                <Text style={styles.primaryText}>{loading ? 'Creating Account…' : 'Create Account'}</Text>
+                                <LinearGradient colors={['#2196f3', '#1a73e8', '#1557b0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
+                                    {loading ? (
+                                        <Text style={styles.primaryText}>Creating Account…</Text>
+                                    ) : (
+                                        <>
+                                            <Text style={styles.primaryText}>Create Account</Text>
+                                            <Ionicons name="arrow-forward" size={18} color="#fff" />
+                                        </>
+                                    )}
+                                </LinearGradient>
                             </Pressable>
                         </Animated.View>
 
@@ -219,20 +229,26 @@ const styles = StyleSheet.create({
     roleBadgeSub: { color: GLASS.subOnDark, fontSize: 12, fontWeight: '500', marginTop: 1 },
     roleChange: { color: '#9ec5ff', fontSize: 13, fontWeight: '800' },
     // Primary button
-    primaryBtn: {
+    primaryBtnWrap: {
         marginTop: 22,
-        height: 48,
         borderRadius: 16,
-        backgroundColor: COLORS.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
         shadowColor: COLORS.primary,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.45,
         shadowRadius: 16,
         elevation: 6,
+        ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
+    primaryBtn: {
+        height: 52,
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        ...CURVE,
+    },
+    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
     bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
     bottomMuted: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500' },
     bottomLink: { color: '#9ec5ff', fontSize: 14, fontWeight: '800' },
