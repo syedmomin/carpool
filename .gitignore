@@ -5,9 +5,11 @@ node_modules/
 
 # Expo
 .expo/
+.agents/
 dist/
 web-build/
 expo-env.d.ts
+skills-lock.json
 
 # Native
 .kotlin/
