@@ -35,8 +35,19 @@ export default function DriverHomeScreen({ navigation }) {
   const todayStr = getTodayStr();
   const todayRides     = myRides.filter(r => r.date === todayStr);
   const activeRides    = myRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
-  const totalEarned    = todayRides.reduce((s, r) => s + (r.bookedSeats * r.pricePerSeat || 0), 0);
-  const totalPassengers= todayRides.reduce((s, r) => s + (r.bookedSeats || 0), 0);
+  // Use the confirmed/completed booking seats when the full bookings array is
+  // available (loaded via SocketDataContext), so pending-but-unaccepted seats
+  // don't inflate the dashboard earnings number.
+  const confirmedSeatsFor = (r: any) => {
+    if (r.bookings) {
+      return r.bookings
+        .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
+        .reduce((sum: number, b: any) => sum + (b.seats || 1), 0);
+    }
+    return r.bookedSeats || 0;
+  };
+  const totalEarned    = todayRides.reduce((s, r) => s + confirmedSeatsFor(r) * (r.pricePerSeat || 0), 0);
+  const totalPassengers= todayRides.reduce((s, r) => s + confirmedSeatsFor(r), 0);
 
   const QUICK_ACTIONS = [
     { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },

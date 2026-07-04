@@ -181,7 +181,7 @@ export default function RideBookingsScreen({ navigation, route }) {
       <GradientHeader
         colors={GRADIENTS.teal as any}
         title="Manage Bookings"
-        subtitle={ride ? `${ride.from} → ${ride.to}` : ''}
+        subtitle={ride ? `${ride.fromCity || ride.from} → ${ride.toCity || ride.to}` : ''}
         onBack={() => navigation.goBack()}
         compact
       />

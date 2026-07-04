@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { MapView, Marker } from '../../components/Map';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY } from '../../tasks/locationTask';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, Avatar } from '../../components';
@@ -220,7 +222,8 @@ export default function RideTrackingScreen({ route, navigation }) {
       socketService.emitLocation({ rideId, latitude, longitude, heading, speed });
     } catch (_) {}
 
-    // Watch position continuously
+    // Watch position continuously (foreground). Drives the map + socket while the
+    // app is open. Background delivery is handled by the OS-level task below.
     const sub = await Location.watchPositionAsync(
       {
         accuracy:         Location.Accuracy.BestForNavigation,
@@ -241,11 +244,54 @@ export default function RideTrackingScreen({ route, navigation }) {
       }
     );
     locationSub.current = sub;
+
+    // Keep broadcasting when the app is backgrounded / screen is locked. The OS
+    // task (src/tasks/locationTask.ts) reads the ride id from storage and POSTs
+    // to /tracking/update-location, which the server relays to the ride room.
+    startBackgroundTracking();
+  };
+
+  // Best-effort background tracking. Foreground tracking already works without
+  // it, so a denied permission or unsupported platform must never break the
+  // screen — we just log and carry on.
+  const startBackgroundTracking = async () => {
+    try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== 'granted') return; // foreground-only fallback
+      await AsyncStorage.setItem(TRACKING_RIDE_ID_KEY, String(rideId));
+      const alreadyRunning = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (alreadyRunning) return;
+      await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+        accuracy:         Location.Accuracy.High,
+        distanceInterval: 10,
+        timeInterval:     5000,
+        pausesUpdatesAutomatically: false,
+        showsBackgroundLocationIndicator: true,
+        foregroundService: {
+          notificationTitle: 'ChalParo — trip in progress',
+          notificationBody:  'Sharing your live location with passengers.',
+          notificationColor: '#0d1b4b',
+        },
+      });
+    } catch (err) {
+      console.warn('[RideTracking] background tracking unavailable:', err);
+    }
   };
 
   const stopTracking = () => {
     locationSub.current?.remove();
     locationSub.current = null;
+    stopBackgroundTracking();
+  };
+
+  const stopBackgroundTracking = async () => {
+    try {
+      await AsyncStorage.removeItem(TRACKING_RIDE_ID_KEY);
+      const running = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (running) await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+    } catch (err) {
+      console.warn('[RideTracking] failed to stop background tracking:', err);
+    }
   };
 
   const handleRecenter = () => {

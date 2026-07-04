@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f mailtemplate/forgot-password.ejs mailtemplate/welcome.ejs mailtemplate/new-offer.ejs mailtemplate/partials/layout.ejs)",
+      "Bash(rmdir mailtemplate/partials)",
+      "Bash(npx ts-node -r dotenv/config -e ' *)",
+      "Bash(fly auth *)",
+      "Bash(fly secrets *)",
+      "Bash(fly deploy *)",
+      "Bash(curl -s -o /dev/null -w \"wake: %{http_code}\\\\n\" https://app-server-t62hcw.fly.dev/api/v1/health)",
+      "Bash(fly ssh *)",
+      "Bash(fly logs *)"
+    ],
+    "additionalDirectories": [
+      "d:\\projects\\app-server\\mailtemplate",
+      "d:\\projects\\app-server\\src\\services"
+    ]
+  }
+}

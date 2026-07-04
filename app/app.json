@@ -32,12 +32,27 @@
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
+    "ios": {
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ]
+      }
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-image-picker",
-      "expo-location",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ChalParo uses your location to share your live trip with passengers while a ride is in progress.",
+          "locationAlwaysAndWhenInUsePermission": "ChalParo shares your live trip location with passengers even when the app is in the background, so they can track the ride until it ends.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
       "@react-native-community/datetimepicker",

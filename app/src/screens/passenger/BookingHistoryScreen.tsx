@@ -1,8 +1,9 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity,
     ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -189,8 +190,19 @@ export default function BookingHistoryScreen({ navigation }) {
     const { showModal } = useGlobalModal();
     const { showToast } = useToast();
 
+    const REVIEWED_KEY = '@reviewed_booking_ids';
     const [reviewBooking, setReviewBooking]     = useState(null);
-    const [reviewedIds, setReviewedIds]         = useState(new Set());
+    const [reviewedIds, setReviewedIds]         = useState<Set<string>>(new Set());
+
+    // Persist reviewed booking IDs so the "Rate Driver" button doesn't reappear
+    // after navigating away and returning to this screen.
+    useEffect(() => {
+        AsyncStorage.getItem(REVIEWED_KEY).then(raw => {
+            if (raw) {
+                try { setReviewedIds(new Set(JSON.parse(raw))); } catch (_) {}
+            }
+        });
+    }, []);
     const [sosVisible, setSosVisible]           = useState(false);
     const [cancelTarget, setCancelTarget]       = useState(null);
     const [cancellingId, setCancellingId]       = useState<string | null>(null);
@@ -250,8 +262,12 @@ export default function BookingHistoryScreen({ navigation }) {
         }
     };
 
-    const handleReviewSubmitted = (bookingId) => {
-        setReviewedIds(prev => new Set([...prev, bookingId]));
+    const handleReviewSubmitted = (bookingId: string) => {
+        setReviewedIds(prev => {
+            const next = new Set([...prev, bookingId]);
+            AsyncStorage.setItem(REVIEWED_KEY, JSON.stringify([...next])).catch(() => {});
+            return next;
+        });
         setReviewBooking(null);
     };
 
@@ -419,7 +435,7 @@ export default function BookingHistoryScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <GradientHeader colors={GRADIENTS.primary as any} title="My Bookings"
-                subtitle={`${myBookings.length} active booking${myBookings.length !== 1 ? 's' : ''}`}
+                subtitle={myBookings.length > 0 ? `${myBookings.length} booking${myBookings.length !== 1 ? 's' : ''}` : 'No current bookings'}
                 onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
             <FlatList
                 data={myBookings}
