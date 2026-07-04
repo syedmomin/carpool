@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, Modal, TouchableOpacity,
+  View, Text, StyleSheet, Modal, Pressable,
   TextInput, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -83,13 +83,13 @@ export default function ReviewModal({
 
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map(n => (
-                <TouchableOpacity key={n} onPress={() => setRating(n)}>
+                <Pressable key={n} onPress={() => setRating(n)}>
                   <Ionicons 
                     name={(n <= rating ? 'star' : 'star-outline') as any}
                     size={40}
                     color={n <= rating ? '#f59e0b' : COLORS.border}
                   />
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
 
@@ -111,19 +111,19 @@ export default function ReviewModal({
             />
 
             <View style={styles.btnRow}>
-              <TouchableOpacity style={styles.skipBtn} onPress={onClose} disabled={submitting}>
+              <Pressable style={styles.skipBtn} onPress={onClose} disabled={submitting}>
                 <Text style={styles.skipBtnText}>Skip</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.submitBtn, { backgroundColor: targetRole === 'DRIVER' ? COLORS.primary : COLORS.teal }]} 
-                onPress={handleRatingSubmit} 
+              </Pressable>
+              <Pressable
+                style={[styles.submitBtn, { backgroundColor: targetRole === 'DRIVER' ? COLORS.primary : COLORS.teal }]}
+                onPress={handleRatingSubmit}
                 disabled={submitting}
               >
                 {submitting
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Text style={styles.submitBtnText}>Submit Review</Text>
                 }
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>

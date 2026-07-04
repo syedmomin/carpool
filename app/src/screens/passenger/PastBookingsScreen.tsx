@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
+﻿import React, { useState, useCallback, useRef } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity,
+    View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable,
     RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge } from '../../components';
 import ReviewModal from '../../components/ReviewModal';
 import { bookingsApi } from '../../services/api';
 
@@ -34,7 +34,7 @@ export default function PastBookingsScreen({ navigation }) {
                 ride: b.ride ? { ...b.ride, from: b.ride.fromCity || b.ride.from, to: b.ride.toCity || b.ride.to } : null,
             });
             // Only past/terminal bookings belong in history (active ones live in
-            // the Bookings tab) — otherwise this list duplicates active bookings.
+            // the Bookings tab) â€” otherwise this list duplicates active bookings.
             const TERMINAL = ['COMPLETED', 'CANCELLED', 'REJECTED', 'EXPIRED'];
             const items = bookingsArray.map(normalize).filter((b: any) => TERMINAL.includes(b.status));
             
@@ -65,9 +65,8 @@ export default function PastBookingsScreen({ navigation }) {
     };
 
     const renderBooking = ({ item }) => (
-        <TouchableOpacity
+        <Pressable
             style={styles.card}
-            activeOpacity={0.85}
             onPress={() => item.ride && navigation.navigate('RideDetail', { rideId: item.rideId || item.ride?.id, rideData: item.ride })}
         >
             <View style={styles.cardHeader}>
@@ -89,12 +88,12 @@ export default function PastBookingsScreen({ navigation }) {
                 </View>
             </View>
             {item.status === 'COMPLETED' && item.ride?.driver?.id && !reviewedIds.has(item.id) && (
-                <TouchableOpacity style={styles.rateBtn} onPress={() => setReviewBooking(item)} activeOpacity={0.85}>
+                <Pressable style={styles.rateBtn} onPress={() => setReviewBooking(item)}>
                     <Ionicons name="star-outline" size={16} color={COLORS.warning} />
                     <Text style={styles.rateBtnText}>Rate Driver</Text>
-                </TouchableOpacity>
+                </Pressable>
             )}
-        </TouchableOpacity>
+        </Pressable>
     );
 
     return (
@@ -131,7 +130,7 @@ export default function PastBookingsScreen({ navigation }) {
                     revieweeId={reviewBooking.ride?.driver?.id || ''}
                     revieweeName={reviewBooking.ride?.driver?.name || 'your Driver'}
                     targetRole="DRIVER"
-                    routeLabel={`${reviewBooking.ride?.fromCity || ''} → ${reviewBooking.ride?.toCity || ''}`}
+                    routeLabel={`${reviewBooking.ride?.fromCity || ''} â†’ ${reviewBooking.ride?.toCity || ''}`}
                     routeDate={reviewBooking.ride?.date}
                     onClose={() => setReviewBooking(null)}
                     onSubmit={() => { setReviewedIds(prev => new Set([...prev, reviewBooking.id])); setReviewBooking(null); }}
@@ -157,3 +156,5 @@ const styles = StyleSheet.create({
     rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.warning + '40', backgroundColor: COLORS.warning + '10' },
     rateBtnText: { color: COLORS.warning, fontWeight: '700', fontSize: 13 },
 });
+
+

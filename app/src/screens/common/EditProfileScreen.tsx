@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, Pressable,
   Image, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
+import { COLORS, GRADIENTS, CURVE, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -91,7 +91,7 @@ export default function EditProfileScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            <TouchableOpacity style={styles.avatarWrap} onPress={handlePickImage} activeOpacity={0.85}>
+            <Pressable style={styles.avatarWrap} onPress={handlePickImage}>
               {uploading ? (
                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.avatarPlaceholder}>
                   <ActivityIndicator color="#fff" size="large" />
@@ -106,7 +106,7 @@ export default function EditProfileScreen({ navigation }) {
               <LinearGradient colors={GRADIENTS.primary as any} style={styles.cameraBtn}>
                 <Ionicons name="camera" size={15} color="#fff" />
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.avatarHint}>Tap to change profile photo</Text>
           </View>
 

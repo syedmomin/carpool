@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform, Pressable, Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { NavigationContainer, StackActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -142,11 +142,10 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
           const isNotifTab = route.name === 'PassengerHomeTab' || route.name === 'DriverHomeTab';
 
           return (
-            <TouchableOpacity
+            <Pressable
               key={route.key}
               onPress={onPress}
               style={styles.tabItem}
-              activeOpacity={1}
             >
               <View style={styles.iconContainer}>
                 <View style={[styles.iconWrapper, isFocused && styles.activeIconWrapper]}>
@@ -164,7 +163,7 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               <Text style={[styles.label, isFocused && styles.activeLabel]}>
                 {label}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>

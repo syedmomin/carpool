@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, CURVE, GradientHeader, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { notificationsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
@@ -109,10 +109,9 @@ export default function NotificationsScreen({ navigation }) {
           const timeLabel = item.time ?? (item.createdAt ? new Date(item.createdAt).toLocaleString('en-PK', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '');
 
           return (
-            <TouchableOpacity
+            <Pressable
               style={[styles.card, !isRead && styles.cardUnread, isNewRide && styles.cardNewRide]}
               onPress={() => handleNotifPress(item)}
-              activeOpacity={0.8}
             >
               <View style={[styles.iconBox, { backgroundColor: config.bg }]}>
                 <Ionicons name={(config.icon) as any} size={22} color={config.color} />
@@ -126,19 +125,18 @@ export default function NotificationsScreen({ navigation }) {
                 <Text style={styles.time}>{timeLabel}</Text>
 
                 {isNewRide && (item.rideId || item.ride?.id) && (
-                  <TouchableOpacity
+                  <Pressable
                     style={styles.interestedBtn}
                     onPress={() => handleViewRide(item)}
-                    activeOpacity={0.85}
                   >
                     <LinearGradient colors={GRADIENTS.teal as any} style={styles.interestedGrad}>
                       <Ionicons name="eye-outline" size={15} color="#fff" />
                       <Text style={styles.interestedText}>View Ride</Text>
                     </LinearGradient>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
               </View>
-            </TouchableOpacity>
+            </Pressable>
           );
         }}
         ListEmptyComponent={

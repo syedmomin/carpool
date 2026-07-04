@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING } from './theme';
+import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING, CURVE } from './theme';
 import { StarRating } from './StarRating';
 import { PressableScale } from './PressableScale';
 
@@ -138,16 +138,16 @@ interface MenuCardProps {
   style?: StyleProp<ViewStyle>;
 }
 export const MenuCard: React.FC<MenuCardProps> = ({ icon, label, subtitle, color, onPress, rightIcon = 'chevron-forward', style }) => (
-  <TouchableOpacity style={[styles.menuCard, SHADOWS.sm, style]} onPress={onPress} activeOpacity={0.7}>
-    <View style={[styles.menuIcon, { backgroundColor: color ? color + '20' : COLORS.lightGray }]}>
-      <Ionicons name={(icon) as any} size={20} color={color || COLORS.gray} />
+  <PressableScale style={[styles.menuCard, SHADOWS.sm, style]} onPress={onPress} scaleTo={0.98}>
+    <View style={[styles.menuIcon, { backgroundColor: color ? color + '18' : COLORS.lightGray }]}>
+      <Ionicons name={icon as any} size={20} color={color || COLORS.gray} />
     </View>
     <View style={styles.menuInfo}>
       <Text style={styles.menuLabel}>{label}</Text>
-      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+      {subtitle ? <Text style={styles.menuSubtitle}>{subtitle}</Text> : null}
     </View>
-    <Ionicons name={(rightIcon) as any} size={18} color={COLORS.gray} />
-  </TouchableOpacity>
+    <Ionicons name={rightIcon as any} size={18} color={COLORS.border} />
+  </PressableScale>
 );
 
 // ─── Info Grid Item ───────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ export const InfoItem: React.FC<InfoItemProps> = ({ icon, label, value, color, s
 
 const styles = StyleSheet.create({
   // Ride Card
-  card: { backgroundColor: COLORS.white, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.md },
+  card: { backgroundColor: COLORS.white, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.md, ...CURVE },
   rideHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   routeSection: { flexDirection: 'row', flex: 1 },
   routeLeft: { alignItems: 'center', marginRight: 10, paddingTop: 3 },
@@ -224,13 +224,13 @@ const styles = StyleSheet.create({
   amenitiesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 4 },
 
   // Stats Card
-  statsCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: RADIUS.md, padding: SPACING.md, alignItems: 'center' },
+  statsCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: RADIUS.md, padding: SPACING.md, alignItems: 'center', ...CURVE },
   statsIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   statsValue: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
   statsLabel: { fontSize: 11, color: COLORS.gray, marginTop: 2, textAlign: 'center' },
 
   // Menu Card
-  menuCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.sm },
+  menuCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.sm, ...CURVE },
   menuIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   menuInfo: { flex: 1 },
   menuLabel: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },

@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
+﻿import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader } from '../../components';
+import { COLORS, GRADIENTS, CURVE, GradientHeader } from '../../components';
 
 const FAQ = [
   { q: 'How do I book a ride?', a: 'Go to Home, search your route, choose a ride and tap Book.' },
@@ -29,7 +29,7 @@ export default function SupportScreen({ navigation }) {
         {/* Contact Options */}
         <Text style={styles.sectionTitle}>Contact Us</Text>
         {CONTACT.map((c, i) => (
-          <TouchableOpacity key={i} style={styles.contactCard} onPress={c.onPress}>
+          <Pressable key={i} style={styles.contactCard} onPress={c.onPress}>
             <View style={[styles.contactIcon, { backgroundColor: c.color + '15' }]}>
               <Ionicons name={(c.icon) as any} size={22} color={c.color} />
             </View>
@@ -38,19 +38,19 @@ export default function SupportScreen({ navigation }) {
               <Text style={styles.contactSub}>{c.sub}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
-          </TouchableOpacity>
+          </Pressable>
         ))}
 
         {/* FAQ */}
         <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
         {FAQ.map((item, i) => (
-          <TouchableOpacity key={i} style={styles.faqCard} onPress={() => setExpanded(expanded === i ? null : i)}>
+          <Pressable key={i} style={styles.faqCard} onPress={() => setExpanded(expanded === i ? null : i)}>
             <View style={styles.faqHeader}>
               <Text style={styles.faqQ}>{item.q}</Text>
               <Ionicons name={(expanded === i ? 'chevron-up' : 'chevron-down') as any} size={18} color={COLORS.gray} />
             </View>
             {expanded === i && <Text style={styles.faqA}>{item.a}</Text>}
-          </TouchableOpacity>
+          </Pressable>
         ))}
 
         {/* Other Links */}
@@ -60,11 +60,11 @@ export default function SupportScreen({ navigation }) {
           { icon: 'shield-outline',        label: 'Privacy Policy',     screen: 'Privacy' },
           { icon: 'information-circle-outline', label: 'About App',     screen: 'About' },
         ].map((item, i) => (
-          <TouchableOpacity key={i} style={styles.linkCard} onPress={() => navigation.navigate(item.screen)}>
+          <Pressable key={i} style={styles.linkCard} onPress={() => navigation.navigate(item.screen)}>
             <Ionicons name={(item.icon) as any} size={20} color={COLORS.primary} />
             <Text style={styles.linkLabel}>{item.label}</Text>
             <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
-          </TouchableOpacity>
+          </Pressable>
         ))}
 
         <View style={{ height: 24 }} />
@@ -89,3 +89,5 @@ const styles = StyleSheet.create({
   linkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 8, gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1 },
   linkLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
 });
+
+

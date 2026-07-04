@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+﻿import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge } from '../../components';
 import { RideCardSkeleton } from '../../components/Skeleton';
 import { ridesApi } from '../../services/api';
 
@@ -42,10 +42,9 @@ export default function RideHistoryScreen({ navigation }) {
     const earned = confirmedSeats * item.pricePerSeat;
 
     return (
-      <TouchableOpacity
+      <Pressable
         style={styles.card}
         onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}
-        activeOpacity={0.85}
       >
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
@@ -82,7 +81,7 @@ export default function RideHistoryScreen({ navigation }) {
             <Text style={styles.earningsValue}>Rs {earned.toLocaleString()}</Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -147,3 +146,5 @@ const styles = StyleSheet.create({
   earningsLabel:  { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', marginBottom: 2 },
   earningsValue:  { fontSize: 18, fontWeight: '900', color: COLORS.teal },
 });
+
+

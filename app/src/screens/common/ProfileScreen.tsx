@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, TrustBadgesRow } from '../../components';
+import { COLORS, GRADIENTS, CURVE, TrustBadgesRow } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
@@ -78,18 +78,17 @@ function VerificationProgress({ user, onNavigate }) {
       {/* Steps */}
       <View style={vStyles.stepsGrid}>
         {steps.map((s, i) => (
-          <TouchableOpacity
+          <Pressable
             key={i}
             style={[vStyles.stepChip, s.done && vStyles.stepChipDone]}
             onPress={() => s.screen && !s.done ? onNavigate(s.screen) : null}
-            activeOpacity={s.screen && !s.done ? 0.7 : 1}
           >
             <View style={[vStyles.stepIcon, { backgroundColor: s.done ? s.color + '20' : COLORS.lightGray }]}>
               <Ionicons name={(s.done ? 'checkmark-circle' : s.icon) as any} size={16} color={s.done ? s.color : COLORS.gray} />
             </View>
             <Text style={[vStyles.stepLabel, s.done && { color: s.color }]}>{s.label}</Text>
             {!s.done && s.screen && <Ionicons name="chevron-forward" size={12} color={COLORS.gray} />}
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
     </View>
@@ -115,7 +114,7 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Avatar + Info row */}
         <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.avatarWrap} onPress={() => navigation.navigate('EditProfile')}>
+          <Pressable style={styles.avatarWrap} onPress={() => navigation.navigate('EditProfile')}>
             {currentUser?.avatar ? (
               <Image source={{ uri: currentUser.avatar }} style={styles.avatarImg} />
             ) : (
@@ -126,7 +125,7 @@ export default function ProfileScreen({ navigation }) {
             <View style={styles.editBadge}>
               <Ionicons name="camera" size={10} color="#fff" />
             </View>
-          </TouchableOpacity>
+          </Pressable>
 
           <View style={styles.headerInfo}>
             <Text style={styles.userName} numberOfLines={1}>{currentUser?.name}</Text>
@@ -176,7 +175,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.menuSectionTitle}>{section.section}</Text>
           <View style={styles.menuGroup}>
             {section.items.map((item, ii) => (
-              <TouchableOpacity
+              <Pressable
                 key={ii}
                 style={[styles.menuItem, ii > 0 && styles.menuItemBorder]}
                 onPress={() => item.screen ? navigation.navigate(item.screen) : null}
@@ -186,14 +185,14 @@ export default function ProfileScreen({ navigation }) {
                 </View>
                 <Text style={styles.menuItemLabel}>{item.label}</Text>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.gray} />
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
       ))}
 
       {/* Logout */}
-      <TouchableOpacity
+      <Pressable
         style={styles.logoutBtn}
         onPress={() => showModal({
           type: 'danger',
@@ -207,7 +206,7 @@ export default function ProfileScreen({ navigation }) {
       >
         <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
         <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.versionText}>ChalParo v1.0.0 · Made in Pakistan</Text>
     </ScrollView>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -73,9 +73,9 @@ export default function RideDetailScreen({ navigation, route }) {
         </Text>
         <View style={{ height: 20 }} />
         <PrimaryButton title="Try Again" onPress={fetchRide} icon="refresh-outline" style={{ alignSelf: 'stretch' }} />
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 14 }}>
+        <Pressable onPress={() => navigation.goBack()} style={{ marginTop: 14 }}>
           <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Go Back</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -110,9 +110,9 @@ export default function RideDetailScreen({ navigation, route }) {
         {/* Header */}
         <LinearGradient colors={GRADIENTS.primary as any} style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
               <Ionicons name="arrow-back" size={20} color="#fff" />
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.headerLabel}>Ride Detail</Text>
             {isSegment && (
               <View style={styles.segmentBanner}>
@@ -196,14 +196,14 @@ export default function RideDetailScreen({ navigation, route }) {
                 </View>
               )}
             </View>
-            <TouchableOpacity
+            <Pressable
               style={styles.callBtn}
               onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Call ${driver?.name} at ${driver?.phone || 'N/A'}?`, confirmText: 'Call' })}
             >
               <LinearGradient colors={GRADIENTS.secondary as any} style={styles.callBtnGrad}>
                 <Ionicons name="call" size={18} color="#fff" />
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -319,19 +319,19 @@ export default function RideDetailScreen({ navigation, route }) {
         <View style={styles.bookingBar}>
           <View style={styles.seatsSelector}>
             <Text style={styles.seatsSelectorLabel}>Seats:</Text>
-            <TouchableOpacity style={styles.seatBtn} onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}>
+            <Pressable style={styles.seatBtn} onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}>
               <Ionicons name="remove" size={16} color={COLORS.primary} />
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.seatCount}>{selectedSeats}</Text>
-            <TouchableOpacity style={styles.seatBtn} onPress={() => setSelectedSeats(Math.min(available, selectedSeats + 1))}>
+            <Pressable style={styles.seatBtn} onPress={() => setSelectedSeats(Math.min(available, selectedSeats + 1))}>
               <Ionicons name="add" size={16} color={COLORS.primary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
-          <TouchableOpacity onPress={handleBook} style={styles.bookBtn} disabled={booking}>
+          <Pressable onPress={handleBook} style={styles.bookBtn} disabled={booking}>
             <LinearGradient colors={GRADIENTS.primary as any} style={styles.bookBtnGrad}>
               <Text style={styles.bookBtnText}>Book • Rs {(selectedSeats * ride.pricePerSeat)?.toLocaleString()}</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
     </View>

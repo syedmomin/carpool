@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+﻿import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState, RideCardSkeleton, Skeleton, AnimatedNumber } from '../../components';
+import { COLORS, GRADIENTS, CURVE, GradientHeader, EmptyState, RideCardSkeleton, Skeleton, AnimatedNumber } from '../../components';
 import { ridesApi } from '../../services/api';
 
 const TABS = ['All Time', 'This Month', 'This Week'];
@@ -16,7 +16,7 @@ function filterByTab(rides: any[], tab: number) {
     if (tab === 1) {
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
     }
-    // This week: Mon–Sun of current week
+    // This week: Monâ€“Sun of current week
     const day = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0
     const monday = new Date(now); monday.setDate(now.getDate() - day); monday.setHours(0, 0, 0, 0);
     const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23, 59, 59, 999);
@@ -45,7 +45,7 @@ function getWeeklyChartData(rides: any[]) {
   return chart;
 }
 
-// ─── Chart Component ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Chart Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EarningsChart({ data }: { data: any[] }) {
   const maxVal = Math.max(...data.map(d => d.value), 1000); // Floor of 1k for scale
   
@@ -195,9 +195,9 @@ export default function EarningsScreen({ navigation }) {
         {/* Tab Pills */}
         <View style={styles.tabRow}>
           {TABS.map((t, i) => (
-            <TouchableOpacity key={i} style={[styles.tab, tab === i && styles.tabActive]} onPress={() => setTab(i)}>
+            <Pressable key={i} style={[styles.tab, tab === i && styles.tabActive]} onPress={() => setTab(i)}>
               <Text style={[styles.tabText, tab === i && styles.tabTextActive]}>{t}</Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
@@ -227,8 +227,8 @@ export default function EarningsScreen({ navigation }) {
                     <Ionicons name="car-sport" size={18} color="#fff" />
                   </LinearGradient>
                   <View>
-                    <Text style={styles.rideRoute}>{ride.from} → {ride.to}</Text>
-                    <Text style={styles.rideDate}>{ride.date} • {ride.departureTime}</Text>
+                    <Text style={styles.rideRoute}>{ride.from} â†’ {ride.to}</Text>
+                    <Text style={styles.rideDate}>{ride.date} â€¢ {ride.departureTime}</Text>
                     <View style={styles.rideMeta}>
                       <Ionicons name="people-outline" size={12} color={COLORS.gray} />
                       <Text style={styles.rideMetaText}>{seats} confirmed passenger{seats !== 1 ? 's' : ''}</Text>
@@ -284,3 +284,5 @@ const styles = StyleSheet.create({
   rideEarned:  { fontSize: 16, fontWeight: '800', color: COLORS.secondary },
   ridePerSeat: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
 });
+
+

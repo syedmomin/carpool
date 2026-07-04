@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, StyleSheet, Pressable,
   Dimensions, Platform, Modal, FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PulseBadge } from '../../components';
+import { COLORS, GRADIENTS, PulseBadge, CURVE } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
@@ -77,12 +77,12 @@ export default function PassengerHomeScreen({ navigation }) {
           <Text style={styles.locationText}>Pakistan</Text>
           <Ionicons name="chevron-down" size={13} color={COLORS.gray} />
         </View>
-        <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
+        <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
           <View style={styles.notifIconContainer}>
             <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={24} color="#fff" />
             <PulseBadge count={unreadCount} />
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Bottom Sheet */}
@@ -98,32 +98,32 @@ export default function PassengerHomeScreen({ navigation }) {
             <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
           </View>
           <View style={styles.routeInputs}>
-            <TouchableOpacity style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
+            <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
               <Text style={[styles.routeInput, !fromCity && styles.routeInputPlaceholder]}>
                 {fromCity || 'Leaving From'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             <View style={styles.routeInputDivider} />
-            <TouchableOpacity style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
+            <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
               <Text style={[styles.routeInput, !toCity && styles.routeInputPlaceholder]}>
                 {toCity || 'Going To'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
-          <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
+          <Pressable onPress={swapCities} style={styles.swapBtn}>
             <Ionicons name="swap-vertical" size={20} color={COLORS.primary} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Date Row */}
         <View style={styles.dateRow}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.datePill, !selectedDate && styles.datePillActive]}
             onPress={() => setSelectedDate(null)}
           >
             <Text style={[styles.datePillText, !selectedDate && styles.datePillActiveText]}>Today</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[styles.datePill, !!selectedDate && styles.datePillActive]}
             onPress={() => setScheduleModal(true)}
           >
@@ -131,16 +131,16 @@ export default function PassengerHomeScreen({ navigation }) {
             <Text style={[styles.datePillText, !!selectedDate && styles.datePillActiveText]}>
               {selectedDate ? displayDate : 'Pick Date'}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Find Rides Button */}
-        <TouchableOpacity onPress={handleFindRide} activeOpacity={0.85}>
+        <Pressable onPress={handleFindRide}>
           <LinearGradient colors={GRADIENTS.primary as any} style={styles.findBtn}>
             <Text style={styles.findBtnText}>Find Ride</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </LinearGradient>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Shared City Search Modal */}
@@ -164,9 +164,9 @@ export default function PassengerHomeScreen({ navigation }) {
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Travel Date</Text>
-              <TouchableOpacity onPress={() => setScheduleModal(false)} style={styles.modalClose}>
+              <Pressable onPress={() => setScheduleModal(false)} style={styles.modalClose}>
                 <Ionicons name="close" size={22} color={COLORS.textPrimary} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             <FlatList
               data={UPCOMING_DATES}
@@ -175,10 +175,9 @@ export default function PassengerHomeScreen({ navigation }) {
               renderItem={({ item }) => {
                 const isSel = selectedDate === item.value;
                 return (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.dateItem, isSel && styles.dateItemActive]}
                     onPress={() => { setSelectedDate(item.value); setScheduleModal(false); }}
-                    activeOpacity={0.7}
                   >
                     <View style={[styles.dateIcon, isSel && styles.dateIconActive]}>
                       <Ionicons name="calendar" size={18} color={isSel ? '#fff' : COLORS.primary} />
@@ -190,7 +189,7 @@ export default function PassengerHomeScreen({ navigation }) {
                       <Text style={styles.dateValue}>{item.value}</Text>
                     </View>
                     {isSel && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
-                  </TouchableOpacity>
+                  </Pressable>
                 );
               }}
             />
@@ -213,7 +212,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fff', borderRadius: 20,
     paddingHorizontal: 12, paddingVertical: 8, gap: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+    ...CURVE,
   },
   locationText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   notifBtn: { position: 'relative' },
@@ -232,11 +232,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
     paddingHorizontal: 20, paddingTop: 12,
     paddingBottom: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 24, elevation: 20,
   },
   sheetHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
-  routeCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 14, marginBottom: 12, gap: 12 },
+  routeCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 16, padding: 14, marginBottom: 12, gap: 12, ...CURVE },
   routeLeft: { alignItems: 'center', gap: 3 },
   routeDot: { width: 10, height: 10, borderRadius: 5 },
   routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
@@ -245,13 +245,13 @@ const styles = StyleSheet.create({
   routeInput: { fontSize: 14, fontWeight: '500', color: COLORS.textPrimary },
   routeInputPlaceholder: { color: COLORS.gray },
   routeInputDivider: { height: 1, backgroundColor: COLORS.border },
-  swapBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  swapBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...CURVE },
   dateRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   datePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border },
   datePillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   datePillText: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
   datePillActiveText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  findBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 16, gap: 8, marginBottom: 16 },
+  findBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderRadius: 16, gap: 8, marginBottom: 16, ...CURVE },
   findBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },

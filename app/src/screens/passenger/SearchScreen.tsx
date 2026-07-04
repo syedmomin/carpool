@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, Modal,
+  View, Text, TextInput, StyleSheet, Pressable, FlatList, Modal,
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,20 +43,20 @@ const TIME_SLOTS = [
 function BrandModal({ visible, selected, onSelect, onClose }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.sortOverlay} onPress={onClose} activeOpacity={1}>
+      <Pressable style={styles.sortOverlay} onPress={onClose}>
         <View style={[styles.sortSheet, { maxHeight: '75%' }]}>
           <View style={styles.sheetHandleRow}>
             <Text style={styles.sortTitle}>Filter by Brand</Text>
             {selected ? (
-              <TouchableOpacity onPress={() => onSelect('')}>
+              <Pressable onPress={() => onSelect('')}>
                 <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.brandGrid}>
               {VEHICLE_BRANDS.map(brand => (
-                <TouchableOpacity
+                <Pressable
                   key={brand}
                   style={[styles.brandChip, selected === brand && styles.brandChipActive]}
                   onPress={() => onSelect(selected === brand ? '' : brand)}
@@ -64,15 +64,15 @@ function BrandModal({ visible, selected, onSelect, onClose }) {
                   <Text style={[styles.brandChipText, selected === brand && { color: '#fff' }]}>
                     {brand}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           </ScrollView>
-          <TouchableOpacity style={styles.sheetCloseBtn} onPress={onClose}>
+          <Pressable style={styles.sheetCloseBtn} onPress={onClose}>
             <Text style={styles.sheetCloseBtnText}>Done</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </Modal>
   );
 }
@@ -81,18 +81,18 @@ function BrandModal({ visible, selected, onSelect, onClose }) {
 function TimeModal({ visible, selected, onSelect, onClose }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.sortOverlay} onPress={onClose} activeOpacity={1}>
+      <Pressable style={styles.sortOverlay} onPress={onClose}>
         <View style={styles.sortSheet}>
           <View style={styles.sheetHandleRow}>
             <Text style={styles.sortTitle}>Departure Time</Text>
             {selected !== null ? (
-              <TouchableOpacity onPress={() => onSelect(null)}>
+              <Pressable onPress={() => onSelect(null)}>
                 <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
           </View>
           {TIME_SLOTS.map((slot, i) => (
-            <TouchableOpacity
+            <Pressable
               key={i}
               style={[styles.sortOption, selected === i && styles.sortOptionActive]}
               onPress={() => { onSelect(selected === i ? null : i); onClose(); }}
@@ -107,10 +107,10 @@ function TimeModal({ visible, selected, onSelect, onClose }) {
                 </View>
               </View>
               {selected === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </Modal>
   );
 }
@@ -121,14 +121,14 @@ function MaxPriceModal({ visible, value, onApply, onClose }) {
   useEffect(() => { if (visible) setInput(value); }, [visible]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.sortOverlay} onPress={onClose} activeOpacity={1}>
+      <Pressable style={styles.sortOverlay} onPress={onClose}>
         <View style={styles.sortSheet}>
           <View style={styles.sheetHandleRow}>
             <Text style={styles.sortTitle}>Max Price (Rs)</Text>
             {value ? (
-              <TouchableOpacity onPress={() => { onApply(''); onClose(); }}>
+              <Pressable onPress={() => { onApply(''); onClose(); }}>
                 <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
-              </TouchableOpacity>
+              </Pressable>
             ) : null}
           </View>
           <TextInput
@@ -141,14 +141,14 @@ function MaxPriceModal({ visible, value, onApply, onClose }) {
             autoFocus
             maxLength={6}
           />
-          <TouchableOpacity
+          <Pressable
             style={styles.sheetCloseBtn}
             onPress={() => { onApply(input); onClose(); }}
           >
             <Text style={styles.sheetCloseBtnText}>Apply</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </Modal>
   );
 }
@@ -317,41 +317,41 @@ export default function SearchScreen({ navigation, route }) {
       <View style={styles.searchContainer}>
         <View style={styles.searchCard}>
           <View style={styles.searchRow}>
-            <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('from')}>
+            <Pressable style={styles.cityInput} onPress={() => setCityModal('from')}>
               <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
               <Text style={[styles.cityInputText, !from && styles.placeholder]} numberOfLines={1}>
                 {from || 'Leaving from?'}
               </Text>
               {from ? (
-                <TouchableOpacity onPress={() => setFrom('')}>
+                <Pressable onPress={() => setFrom('')}>
                   <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-                </TouchableOpacity>
+                </Pressable>
               ) : (
                 <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
               )}
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity onPress={swapCities} style={styles.swapBtn}>
+            <Pressable onPress={swapCities} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity style={styles.cityInput} onPress={() => setCityModal('to')}>
+            <Pressable style={styles.cityInput} onPress={() => setCityModal('to')}>
               <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
               <Text style={[styles.cityInputText, !to && styles.placeholder]} numberOfLines={1}>
                 {to || 'Going to?'}
               </Text>
               {to ? (
-                <TouchableOpacity onPress={() => setTo('')}>
+                <Pressable onPress={() => setTo('')}>
                   <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-                </TouchableOpacity>
+                </Pressable>
               ) : (
                 <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Search Button */}
-          <TouchableOpacity style={styles.searchBtn} onPress={() => doSearch()} disabled={loading}>
+          <Pressable style={styles.searchBtn} onPress={() => doSearch()} disabled={loading}>
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
@@ -360,7 +360,7 @@ export default function SearchScreen({ navigation, route }) {
                 <Text style={styles.searchBtnText}>Search Rides</Text>
               </>
             )}
-          </TouchableOpacity>
+          </Pressable>
 
           {/* Quick Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
@@ -400,16 +400,16 @@ export default function SearchScreen({ navigation, route }) {
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
               <Text style={styles.recentTitle}>Recent Searches</Text>
-              <TouchableOpacity onPress={() => searchHistory.clear().then(() => setRecentSearches([]))}>
+              <Pressable onPress={() => searchHistory.clear().then(() => setRecentSearches([]))}>
                 <Text style={styles.clearHistory}>Clear</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
               {recentSearches.map((h, i) => (
-                <TouchableOpacity key={i} style={styles.recentCard} onPress={() => handleRecentPress(h)}>
+                <Pressable key={i} style={styles.recentCard} onPress={() => handleRecentPress(h)}>
                   <Ionicons name="time-outline" size={14} color={COLORS.gray} />
                   <Text style={styles.recentText}>{h.from} → {h.to}</Text>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </ScrollView>
           </View>
@@ -424,12 +424,12 @@ export default function SearchScreen({ navigation, route }) {
               <Text style={styles.activePillText}>{f}</Text>
             </View>
           ))}
-          <TouchableOpacity
+          <Pressable
             style={styles.clearAllBtn}
             onPress={() => { setFilterAC(false); setFilterFemale(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setFilterMaxPrice(''); setSort(null); }}
           >
             <Text style={styles.clearAllText}>Clear all</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -528,21 +528,21 @@ export default function SearchScreen({ navigation, route }) {
 
       {/* Sort Modal */}
       <Modal visible={showSortModal} transparent animationType="slide" onRequestClose={() => setShowSortModal(false)}>
-        <TouchableOpacity style={styles.sortOverlay} onPress={() => setShowSortModal(false)} activeOpacity={1}>
+        <Pressable style={styles.sortOverlay} onPress={() => setShowSortModal(false)}>
           <View style={styles.sortSheet}>
             <Text style={styles.sortTitle}>Sort By</Text>
-            <TouchableOpacity style={styles.sortOption} onPress={() => { setSort(null); setShowSortModal(false); }}>
+            <Pressable style={styles.sortOption} onPress={() => { setSort(null); setShowSortModal(false); }}>
               <Text style={[styles.sortOptionText, sort === null && { color: COLORS.primary, fontWeight: '700' }]}>Default (No Sort)</Text>
               {sort === null && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
-            </TouchableOpacity>
+            </Pressable>
             {SORT_OPTIONS.map((opt, i) => (
-              <TouchableOpacity key={i} style={styles.sortOption} onPress={() => { setSort(i); setShowSortModal(false); }}>
+              <Pressable key={i} style={styles.sortOption} onPress={() => { setSort(i); setShowSortModal(false); }}>
                 <Text style={[styles.sortOptionText, sort === i && { color: COLORS.primary, fontWeight: '700' }]}>{opt}</Text>
                 {sort === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Modal>
     </View>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, StyleProp, ViewStyle, KeyboardTypeOptions } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, StyleProp, ViewStyle, KeyboardTypeOptions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS, SPACING } from './theme';
 
@@ -61,9 +61,9 @@ export const FormInput: React.FC<FormInputProps> = ({
         maxLength={maxLength}
       />
       {rightIcon && (
-        <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>
+        <Pressable onPress={onRightIconPress} style={styles.rightIcon}>
           <Ionicons name={(rightIcon) as any} size={20} color={error ? COLORS.danger : COLORS.gray} />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
     {error && errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
@@ -89,9 +89,9 @@ export const SearchInput: React.FC<SearchInputProps> = ({ placeholder, value, on
       onChangeText={onChangeText}
     />
     {value?.length > 0 && (
-      <TouchableOpacity onPress={onClear}>
+      <Pressable onPress={onClear}>
         <Ionicons name="close-circle" size={18} color={COLORS.gray} />
-      </TouchableOpacity>
+      </Pressable>
     )}
   </View>
 );

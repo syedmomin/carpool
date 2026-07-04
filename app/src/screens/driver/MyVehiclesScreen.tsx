@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Platform } from 'react-native';
+﻿import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, Image, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, AMENITY_CONFIG, GradientHeader, EmptyState, CardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, AMENITY_CONFIG, GradientHeader, EmptyState, CardSkeleton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -61,7 +61,7 @@ export default function MyVehiclesScreen({ navigation }) {
           <LinearGradient colors={GRADIENTS.primary as any} style={styles.activeTopBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
         )}
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={styles.cardHeader}>
           <View style={styles.brandRow}>
             <View style={[styles.typeIconBox, item.isActive && styles.typeIconBoxActive]}>
@@ -83,7 +83,7 @@ export default function MyVehiclesScreen({ navigation }) {
           </View>
         </View>
 
-        {/* ── Image + Specs ───────────────────────────────────────────────────── */}
+        {/* â”€â”€ Image + Specs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={styles.cardBody}>
           {/* Image */}
           <View style={styles.imgBox}>
@@ -121,7 +121,7 @@ export default function MyVehiclesScreen({ navigation }) {
           </View>
         </View>
 
-        {/* ── Amenities ──────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Amenities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {amenities.length > 0 && (
           <View style={styles.amenitiesRow}>
             {amenities.slice(0, 5).map(a => (
@@ -138,18 +138,18 @@ export default function MyVehiclesScreen({ navigation }) {
           </View>
         )}
 
-        {/* ── Divider ─────────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={styles.divider} />
 
-        {/* ── Actions ─────────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <View style={styles.actionRow}>
           {!item.isActive ? (
-            <TouchableOpacity style={styles.activateBtn} onPress={() => handleSetActive(item.id)}>
+            <Pressable style={styles.activateBtn} onPress={() => handleSetActive(item.id)}>
               <LinearGradient colors={GRADIENTS.primary as any} style={styles.activateGrad}>
                 <Ionicons name="flash" size={16} color="#fff" />
                 <Text style={styles.activateText}>Set as Active</Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           ) : (
             <View style={styles.activeIndicator}>
               <Ionicons name="checkmark-done-circle" size={20} color={COLORS.primary} />
@@ -158,11 +158,11 @@ export default function MyVehiclesScreen({ navigation }) {
           )}
 
           <View style={styles.iconActions}>
-            <TouchableOpacity style={styles.iconBtn}
+            <Pressable style={styles.iconBtn}
               onPress={() => navigation.navigate('VehicleSetup', { vehicleId: item.id })}>
               <Ionicons name="create-outline" size={19} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconBtn, styles.deleteBtn]}
+            </Pressable>
+            <Pressable style={[styles.iconBtn, styles.deleteBtn]}
               onPress={() => showModal({
                 type: 'danger', title: 'Delete Vehicle?',
                 message: 'This will permanently remove the vehicle.',
@@ -174,7 +174,7 @@ export default function MyVehiclesScreen({ navigation }) {
                 },
               })}>
               <Ionicons name="trash-outline" size={19} color={COLORS.danger} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -343,3 +343,5 @@ const styles = StyleSheet.create({
   },
   deleteBtn: { backgroundColor: '#fff1f2', borderColor: '#ffe4e6' },
 });
+
+

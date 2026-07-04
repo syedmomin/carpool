@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Text, StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
+import { Animated, Text, StyleSheet, View, Pressable, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const CONFIGS = {
@@ -44,9 +44,9 @@ export default function Toast({ visible, message, type = 'info', onHide }: Toast
     >
       <Ionicons name={cfg.icon as any} size={20} color={cfg.text} />
       <Text style={[styles.message, { color: cfg.text }]} numberOfLines={2}>{message}</Text>
-      <TouchableOpacity onPress={onHide} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+      <Pressable onPress={onHide} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
         <Ionicons name="close" size={18} color={cfg.text} />
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 }

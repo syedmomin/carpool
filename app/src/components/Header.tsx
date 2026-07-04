@@ -1,24 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from './theme';
+import { COLORS, GRADIENTS, CURVE } from './theme';
 import { NotifBadge } from './Badge';
 import { haptics } from '../utils/haptics';
 
-// ─── Gradient Header ─────────────────────────────────────────────────────────
-// Props:
-//   title        - main heading
-//   subtitle     - optional subtitle below title
-//   colors       - gradient colors array (default: primary blue)
-//   onBack       - shows back button if provided
-//   rightIcon    - icon name for right button
-//   onRightPress - handler for right button
-//   notifCount   - shows notification badge if > 0
-//   onNotif      - handler for notification icon
-//   children     - extra content inside header (e.g. search box)
 interface GradientHeaderProps {
   title?: string;
   subtitle?: string;
@@ -32,9 +21,9 @@ interface GradientHeaderProps {
   rightAction?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
-  /** Force-hide the back button even when the screen can go back. */
   showBack?: boolean;
 }
+
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
   title,
   subtitle,
@@ -51,8 +40,6 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   showBack,
 }) => {
   const insets = useSafeAreaInsets();
-  // Auto-derive a back handler from navigation so no screen can "forget" it.
-  // Always called (hook rules); headers always render inside a navigator.
   const navigation = useNavigation<any>();
   const canBack = typeof navigation?.canGoBack === 'function' ? navigation.canGoBack() : false;
   const handleBack = onBack || (canBack ? () => navigation.goBack() : undefined);
@@ -60,47 +47,55 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
   const onBackPress = () => { haptics.impact(); handleBack?.(); };
 
   return (
-  <LinearGradient
-    colors={(colors || GRADIENTS.primary) as any}
-    style={[styles.header, { paddingTop: insets.top + 16 }, compact && styles.headerCompact, style]}
-  >
-    {/* Decorative circles */}
-    <View style={styles.circle1} />
-    <View style={styles.circle2} />
+    <LinearGradient
+      colors={(colors || GRADIENTS.primary) as any}
+      style={[styles.header, { paddingTop: insets.top + 16 }, compact && styles.headerCompact, style]}
+    >
+      <View style={styles.circle1} />
+      <View style={styles.circle2} />
 
-    {/* Top row: back + title area + right action */}
-    <View style={styles.topRow}>
-      {showBackBtn ? (
-        <TouchableOpacity onPress={onBackPress} style={styles.backBtn} activeOpacity={0.8} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.backPlaceholder} />
-      )}
+      <View style={styles.topRow}>
+        {showBackBtn ? (
+          <Pressable
+            onPress={onBackPress}
+            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.75 }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </Pressable>
+        ) : (
+          <View style={styles.backPlaceholder} />
+        )}
 
-      <View style={styles.titleArea}>
-        {title && <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text>}
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <View style={styles.titleArea}>
+          {title ? <Text style={[styles.title, compact && styles.titleCompact]}>{title}</Text> : null}
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+
+        <View style={styles.rightArea}>
+          {onNotif ? (
+            <Pressable
+              onPress={onNotif}
+              style={({ pressed }) => [styles.rightBtnSmall, pressed && { opacity: 0.75 }]}
+            >
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              <NotifBadge count={notifCount} />
+            </Pressable>
+          ) : null}
+          {rightIcon && onRightPress ? (
+            <Pressable
+              onPress={onRightPress}
+              style={({ pressed }) => [styles.rightBtn, pressed && { opacity: 0.85 }]}
+            >
+              <Ionicons name={rightIcon as any} size={22} color={COLORS.primary} />
+            </Pressable>
+          ) : null}
+          {rightAction}
+        </View>
       </View>
 
-      <View style={styles.rightArea}>
-        {onNotif && (
-          <TouchableOpacity onPress={onNotif} style={styles.rightBtnSmall} activeOpacity={0.8}>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            <NotifBadge count={notifCount} />
-          </TouchableOpacity>
-        )}
-        {rightIcon && onRightPress && (
-          <TouchableOpacity onPress={onRightPress} style={styles.rightBtn} activeOpacity={0.8}>
-            <Ionicons name={(rightIcon) as any} size={22} color={COLORS.primary} />
-          </TouchableOpacity>
-        )}
-        {rightAction}
-      </View>
-    </View>
-
-    {children}
-  </LinearGradient>
+      {children}
+    </LinearGradient>
   );
 };
 
@@ -115,7 +110,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     top: -60,
     right: -40,
   },
@@ -124,7 +119,7 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
     borderRadius: 65,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     bottom: -30,
     left: -20,
   },
@@ -136,13 +131,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
+    ...CURVE,
   },
   backPlaceholder: { width: 38 },
   titleArea: { flex: 1, paddingHorizontal: 16 },
-  title: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  title: { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
   titleCompact: { fontSize: 17 },
   headerCompact: { paddingBottom: 14 },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 2 },
   rightArea: { flexDirection: 'row', alignItems: 'center' },
   rightBtn: {
     marginLeft: 12,
@@ -154,9 +150,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 5,
+    ...CURVE,
   },
-  rightBtnSmall: { marginLeft: 8 },
+  rightBtnSmall: { marginLeft: 8, position: 'relative' },
 });

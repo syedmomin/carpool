@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+﻿import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
+import { COLORS, GRADIENTS, CURVE, FormInput, PrimaryButton, GradientHeader } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { showImagePickerOptions } from '../../utils/imagePicker';
 import { verificationApi } from '../../services/api';
 
-// ─── Image Upload Box ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Image Upload Box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function UploadBox({ label, required, image, uploading, onPress }) {
   return (
     <View>
       <Text style={styles.uploadLabel}>
         {label}{required ? ' *' : ' (Optional)'}
       </Text>
-      <TouchableOpacity style={styles.uploadBox} onPress={onPress} disabled={uploading}>
+      <Pressable style={styles.uploadBox} onPress={onPress} disabled={uploading}>
         {uploading
           ? <ActivityIndicator color={COLORS.primary} size="large" />
           : image
@@ -27,7 +27,7 @@ function UploadBox({ label, required, image, uploading, onPress }) {
               </>
             )
         }
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -69,7 +69,7 @@ export default function CnicVerificationScreen({ navigation }) {
 
   const handleSubmit = async () => {
     // For drivers: CNIC is required + licence required
-    // For passengers: CNIC is optional — but if they start filling, front image is required
+    // For passengers: CNIC is optional â€” but if they start filling, front image is required
     if (isDriver) {
       if (!cnic || !frontImg) {
         showToast('Drivers must provide CNIC number and front image.', 'error');
@@ -183,7 +183,7 @@ export default function CnicVerificationScreen({ navigation }) {
           ))}
         </View>
 
-        {/* ── CNIC Section ──────────────────────────────────────────────── */}
+        {/* â”€â”€ CNIC Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <Text style={styles.sectionHeader}>
           <Ionicons name="card-outline" size={16} color={COLORS.textPrimary} /> CNIC Details{!isDriver && '  (Optional)'}
         </Text>
@@ -213,7 +213,7 @@ export default function CnicVerificationScreen({ navigation }) {
           onPress={() => pickImage(setBackImg, setUpBack)}
         />
 
-        {/* ── Driving Licence Section (Driver Only) ─────────────────────── */}
+        {/* â”€â”€ Driving Licence Section (Driver Only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {isDriver && (
           <>
             <Text style={[styles.sectionHeader, { marginTop: 24 }]}>
@@ -282,3 +282,5 @@ const styles = StyleSheet.create({
   licenceBanner:    { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, gap: 8, marginBottom: 4 },
   licenceBannerText:{ flex: 1, fontSize: 12, color: COLORS.primary, lineHeight: 18 },
 });
+
+

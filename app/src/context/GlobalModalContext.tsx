@@ -1,13 +1,12 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, Modal, TouchableOpacity,
-  Animated, Pressable, Platform, ActivityIndicator,
+  View, Text, StyleSheet, Modal, Pressable, Animated, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '../components/theme';
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CONFIGS = {
   success: {
     gradient:    ['#43a047', '#1b5e20'],
@@ -47,10 +46,10 @@ const CONFIGS = {
   },
 };
 
-// ─── Context ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const GlobalModalContext = createContext(null);
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function GlobalModalProvider({ children }) {
   const [config, setConfig]   = useState(null);
   const [visible, setVisible] = useState(false);
@@ -140,18 +139,18 @@ export function GlobalModalProvider({ children }) {
 
             <View style={styles.btnRow}>
               {isConfirm && (
-                <TouchableOpacity style={[styles.cancelBtn, loading && { opacity: 0.4 }]} onPress={handleCancel} activeOpacity={0.7} disabled={loading}>
+                <Pressable style={[styles.cancelBtn, loading && { opacity: 0.4 }]} onPress={handleCancel} disabled={loading}>
                   <Text style={styles.cancelText}>{config?.cancelText || 'Cancel'}</Text>
-                </TouchableOpacity>
+                </Pressable>
               )}
-              <TouchableOpacity style={styles.confirmBtnWrap} onPress={handleConfirm} activeOpacity={0.85} disabled={loading}>
+              <Pressable style={styles.confirmBtnWrap} onPress={handleConfirm} disabled={loading}>
                 <LinearGradient colors={cfg.gradient} style={styles.confirmBtn}>
                   {loading
                     ? <ActivityIndicator color="#fff" size="small" />
                     : <Text style={styles.confirmText}>{config?.confirmText || 'OK'}</Text>
                   }
                 </LinearGradient>
-              </TouchableOpacity>
+              </Pressable>
             </View>
             {/* Bottom spacer for safe area (notches) */}
             <View style={{ height: Platform.OS === 'ios' ? 34 : 24 }} />
@@ -164,7 +163,7 @@ export function GlobalModalProvider({ children }) {
 
 export const useGlobalModal = () => useContext(GlobalModalContext);
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -314,3 +313,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
+

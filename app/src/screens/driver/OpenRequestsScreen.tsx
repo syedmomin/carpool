@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, Pressable,
   ActivityIndicator, TextInput, Modal, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,7 +13,7 @@ import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi, vehiclesApi } from '../../services/api';
 
-// ─── Bid Modal ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Bid Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle }) {
   const { showToast } = useToast();
   const [price, setPrice]             = useState('');
@@ -48,9 +48,9 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={bm.overlay} onPress={onClose} activeOpacity={1}>
+      <Pressable style={bm.overlay} onPress={onClose}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ justifyContent: 'flex-end', flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-          <TouchableOpacity activeOpacity={1}>
+          <Pressable>
             <View style={bm.sheet}>
               <View style={bm.handle} />
               <Text style={bm.title}>Place Your Bid</Text>
@@ -59,8 +59,8 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
               <View style={bm.routeBox}>
                 <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={bm.routeText}>{request.fromCity} → {request.toCity}</Text>
-                  <Text style={bm.dateText}>{request.date} · {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
+                  <Text style={bm.routeText}>{request.fromCity} â†’ {request.toCity}</Text>
+                  <Text style={bm.dateText}>{request.date} Â· {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
                   {request.departureTime && request.departureTime !== '00:00' && (
                     <View style={bm.timeTag}>
                       <Ionicons name="time-outline" size={12} color={COLORS.primary} />
@@ -87,15 +87,15 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
                 </Text>
               )}
 
-              {/* No vehicle — give a clear path instead of a dead-end */}
+              {/* No vehicle â€” give a clear path instead of a dead-end */}
               {vehicles.length === 0 && (
                 <View style={bm.noVehicleBox}>
                   <Ionicons name="car-outline" size={22} color={COLORS.primary} />
                   <Text style={bm.noVehicleText}>You need a registered vehicle before you can bid.</Text>
-                  <TouchableOpacity style={bm.addVehicleBtn} onPress={() => { onClose(); onAddVehicle?.(); }}>
+                  <Pressable style={bm.addVehicleBtn} onPress={() => { onClose(); onAddVehicle?.(); }}>
                     <Ionicons name="add-circle-outline" size={16} color="#fff" />
                     <Text style={bm.addVehicleBtnText}>Add a Vehicle</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
 
@@ -105,7 +105,7 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
                   <Text style={[bm.label, { marginTop: 14 }]}>Select Vehicle</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                     {vehicles.map((v: any) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={v.id}
                         style={[bm.vehicleChip, selectedVehicle?.id === v.id && bm.vehicleChipActive]}
                         onPress={() => setVehicle(v)}
@@ -114,7 +114,7 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
                         <Text style={[bm.vehicleChipText, selectedVehicle?.id === v.id && { color: '#fff' }]}>
                           {v.brand} {v.model}
                         </Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </ScrollView>
                 </>
@@ -134,7 +134,7 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
               />
 
               {vehicles.length > 0 && (
-                <TouchableOpacity
+                <Pressable
                   style={[bm.submitBtn, (!price || submitting) && { opacity: 0.6 }]}
                   onPress={handleSubmit}
                   disabled={!price || submitting}
@@ -145,17 +145,17 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
                       : <><Ionicons name="send-outline" size={16} color="#fff" /><Text style={bm.submitText}>Submit Bid</Text></>
                     }
                   </LinearGradient>
-                </TouchableOpacity>
+                </Pressable>
               )}
             </View>
-          </TouchableOpacity>
+          </Pressable>
         </ScrollView>
-      </TouchableOpacity>
+      </Pressable>
     </Modal>
   );
 }
 
-// ─── Main Screen ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function OpenRequestsScreen({ navigation }) {
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
@@ -208,7 +208,7 @@ export default function OpenRequestsScreen({ navigation }) {
     if (!myBid) return;
     showModal({
       type: 'danger', title: 'Withdraw Bid?',
-      message: `Withdraw your bid of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} → ${request.toCity}?`,
+      message: `Withdraw your bid of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} â†’ ${request.toCity}?`,
       confirmText: 'Withdraw', cancelText: 'Keep Bid',
       onConfirm: async () => {
         setWithdrawing(request.id);
@@ -238,7 +238,7 @@ export default function OpenRequestsScreen({ navigation }) {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.route}>{item.fromCity} → {item.toCity}</Text>
+            <Text style={styles.route}>{item.fromCity} â†’ {item.toCity}</Text>
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{item.date}</Text>
@@ -305,30 +305,30 @@ export default function OpenRequestsScreen({ navigation }) {
         {!isAccepted && (
           <View style={styles.actionRow}>
             {!hasBid || myBid.status === 'REJECTED' ? (
-              <TouchableOpacity style={styles.bidBtn} onPress={() => setBidTarget(item)}>
+              <Pressable style={styles.bidBtn} onPress={() => setBidTarget(item)}>
                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.bidBtnGrad}>
                   <Ionicons name="send-outline" size={15} color="#fff" />
                   <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Bid Again' : 'Place Bid'}</Text>
                 </LinearGradient>
-              </TouchableOpacity>
+              </Pressable>
             ) : myBid.status === 'PENDING' ? (
               <>
-                <TouchableOpacity style={styles.updateBtn} onPress={() => setBidTarget(item)}>
+                <Pressable style={styles.updateBtn} onPress={() => setBidTarget(item)}>
                   <Ionicons name="create-outline" size={14} color={COLORS.primary} />
                   <Text style={styles.updateBtnText}>Update Bid</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.withdrawBtn} onPress={() => handleWithdraw(item)} disabled={isWithdrawing}>
+                </Pressable>
+                <Pressable style={styles.withdrawBtn} onPress={() => handleWithdraw(item)} disabled={isWithdrawing}>
                   {isWithdrawing
                     ? <ActivityIndicator size="small" color={COLORS.danger} />
                     : <><Ionicons name="close-outline" size={14} color={COLORS.danger} /><Text style={styles.withdrawBtnText}>Withdraw</Text></>
                   }
-                </TouchableOpacity>
+                </Pressable>
               </>
             ) : null}
           </View>
         )}
 
-        {/* Accepted — ride was created */}
+        {/* Accepted â€” ride was created */}
         {isAccepted && myBid?.status === 'ACCEPTED' && (
           <View style={styles.rideCreatedBanner}>
             <Ionicons name="checkmark-circle" size={15} color={COLORS.secondary} />
@@ -349,7 +349,7 @@ export default function OpenRequestsScreen({ navigation }) {
       />
 
       {/* InDrive-style city selector */}
-      <TouchableOpacity style={styles.cityBar} onPress={() => setCityModal(true)} activeOpacity={0.8}>
+      <Pressable style={styles.cityBar} onPress={() => setCityModal(true)}>
         <View style={styles.cityBarLeft}>
           <View style={styles.cityDot} />
           <View>
@@ -361,7 +361,7 @@ export default function OpenRequestsScreen({ navigation }) {
           <Ionicons name="swap-vertical-outline" size={16} color={COLORS.primary} />
           <Text style={styles.changeCityText}>Change</Text>
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
       {!openRequestsState.loaded && openRequestsState.loading ? (
         <View style={{ flex: 1, padding: 16 }}>
@@ -499,3 +499,4 @@ const bm = StyleSheet.create({
   submitGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
   submitText: { fontSize: 16, fontWeight: '800', color: '#fff' },
 });
+

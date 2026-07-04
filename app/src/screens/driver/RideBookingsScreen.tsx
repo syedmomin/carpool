@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Linking, Alert } from 'react-native';
+﻿import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image, Linking, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState, Avatar, StatusBadge, TrustBadgesRow } from '../../components';
+import { COLORS, GRADIENTS, CURVE, GradientHeader, EmptyState, Avatar, StatusBadge, TrustBadgesRow } from '../../components';
 import { ridesApi, bookingsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
@@ -34,7 +34,7 @@ export default function RideBookingsScreen({ navigation, route }) {
     fetchRide();
   }, [fetchRide]));
 
-  // Socket always active — update booking list in real-time even if screen loses focus
+  // Socket always active â€” update booking list in real-time even if screen loses focus
   useEffect(() => {
     const onBookingChanged = (data: any) => {
       if (data.rideId === rideId) fetchRide();
@@ -109,7 +109,7 @@ export default function RideBookingsScreen({ navigation, route }) {
           <Avatar name={p.name} size={48} color={COLORS.primary} />
           <View style={styles.pInfo}>
             <Text style={styles.pName}>{p.name}</Text>
-            <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} • Rs {item.totalAmount.toLocaleString()}</Text>
+            <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} â€¢ Rs {item.totalAmount.toLocaleString()}</Text>
             <TrustBadgesRow user={p} max={2} style={{ marginTop: 4 }} />
           </View>
           <StatusBadge status={item.status.toLowerCase()} label={item.status} />
@@ -117,15 +117,15 @@ export default function RideBookingsScreen({ navigation, route }) {
 
         {isPending ? (
           <View style={styles.actionRow}>
-            <TouchableOpacity 
+            <Pressable 
               style={[styles.btn, styles.rejectBtn]} 
               onPress={() => handleReject(item.id, p.name)}
               disabled={!!actionLoading}
             >
               <Ionicons name="close" size={18} color={COLORS.danger} />
               <Text style={styles.rejectText}>Reject</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
+            </Pressable>
+            <Pressable 
               style={[styles.btn, styles.acceptBtn]} 
               onPress={() => handleAccept(item.id, p.name)}
               disabled={!!actionLoading}
@@ -138,26 +138,26 @@ export default function RideBookingsScreen({ navigation, route }) {
                   <Text style={styles.acceptText}>Accept</Text>
                 </>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ) : (
           <View style={styles.confirmedRow}>
-            <TouchableOpacity style={styles.contactBtn} onPress={() => callPassenger(p.phone)}>
+            <Pressable style={styles.contactBtn} onPress={() => callPassenger(p.phone)}>
               <Ionicons name="call-outline" size={16} color={COLORS.primary} />
               <Text style={styles.contactText}>Call</Text>
-            </TouchableOpacity>
+            </Pressable>
             <View style={styles.btnDivider} />
-            <TouchableOpacity 
+            <Pressable 
               style={styles.contactBtn} 
               onPress={() => navigation.navigate('Chat', { 
                 bookingId: item.id, 
                 otherUser: p,
-                rideInfo: { label: `${ride?.fromCity || ride?.from} → ${ride?.toCity || ride?.to}` }
+                rideInfo: { label: `${ride?.fromCity || ride?.from} â†’ ${ride?.toCity || ride?.to}` }
               })}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.primary} />
               <Text style={styles.contactText}>Chat</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
         )}
@@ -181,7 +181,7 @@ export default function RideBookingsScreen({ navigation, route }) {
       <GradientHeader
         colors={GRADIENTS.teal as any}
         title="Manage Bookings"
-        subtitle={ride ? `${ride.fromCity || ride.from} → ${ride.toCity || ride.to}` : ''}
+        subtitle={ride ? `${ride.fromCity || ride.from} â†’ ${ride.toCity || ride.to}` : ''}
         onBack={() => navigation.goBack()}
         compact
       />
@@ -240,4 +240,6 @@ const styles = StyleSheet.create({
   contactText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
   btnDivider: { width: 1, height: 20, backgroundColor: COLORS.border },
 });
+
+
 

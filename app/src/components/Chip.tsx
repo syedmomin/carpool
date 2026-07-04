@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING } from './theme';
+import { COLORS, RADIUS, SPACING, CURVE } from './theme';
 
 // ─── Filter Chip (toggle) ────────────────────────────────────────────────────
 interface ChipProps {
@@ -16,28 +16,28 @@ export const Chip: React.FC<ChipProps> = ({ label, icon, active, onPress, color,
   const isActive = !!active;
   const activeColor = color || COLORS.primary;
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
-      activeOpacity={0.75}
-      style={[
+      style={({ pressed }) => [
         styles.chip,
         isActive
           ? { backgroundColor: activeColor, borderColor: activeColor }
           : { backgroundColor: COLORS.white, borderColor: COLORS.border },
+        pressed && { opacity: 0.8 },
         style,
       ]}
     >
-      {icon && (
-        <Ionicons name={(icon) as any}
+      {icon ? (
+        <Ionicons name={icon as any}
           size={14}
           color={isActive ? '#fff' : COLORS.gray}
           style={styles.chipIcon}
         />
-      )}
+      ) : null}
       <Text style={[styles.chipText, { color: isActive ? '#fff' : COLORS.gray }]}>
         {label}
       </Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -88,10 +88,9 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onSelect, c
       const isActive = activeTab === tab.value;
       const activeColor = color || COLORS.primary;
       return (
-        <TouchableOpacity
+        <Pressable
           key={tab.value}
           onPress={() => onSelect(tab.value)}
-          activeOpacity={0.8}
           style={[
             styles.tabPill,
             isActive && { backgroundColor: activeColor },
@@ -100,7 +99,7 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onSelect, c
           <Text style={[styles.tabText, { color: isActive ? '#fff' : COLORS.gray }]}>
             {tab.label}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       );
     })}
   </View>
@@ -114,6 +113,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm - 2,
     borderRadius: RADIUS.full,
     borderWidth: 1,
+    ...CURVE,
   },
   chipIcon: { marginRight: 4 },
   chipText: { fontSize: 13, fontWeight: '600' },
@@ -125,12 +125,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.lightGray,
     borderRadius: RADIUS.full,
     padding: 3,
+    ...CURVE,
   },
   tabPill: {
     flex: 1,
     paddingVertical: 8,
     borderRadius: RADIUS.full,
     alignItems: 'center',
+    ...CURVE,
   },
   tabText: { fontSize: 14, fontWeight: '600' },
 });

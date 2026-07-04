@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View, Platform } from 'react-native';
+﻿import React, { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, PanResponder, StyleSheet, Text, Pressable, View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import { getNotificationStyle } from '../utils/notificationStyle';
 import { registerBanner, BannerPayload } from '../utils/bannerBus';
 
 /**
- * BannerContext — global, Uber/inDrive-style in-app notification banner.
+ * BannerContext â€” global, Uber/inDrive-style in-app notification banner.
  * Slides down from the top, auto-dismisses, swipe-up or tap to dismiss, and
  * tap triggers an optional action. Driven by socket events (SocketListener) and
  * FCM foreground messages (via bannerBus). Background/quit pushes are handled by
@@ -82,7 +82,7 @@ export function BannerProvider({ children }: { children: React.ReactNode }) {
           style={[styles.wrap, { paddingTop: insets.top + 6, transform: [{ translateY }] }]}
           {...panResponder.panHandlers}
         >
-          <TouchableOpacity activeOpacity={0.92} onPress={handlePress} style={styles.card}>
+          <Pressable onPress={handlePress} style={styles.card}>
             <View style={styles.accent}>
               <LinearGradient colors={style.gradient as any} style={StyleSheet.absoluteFill} />
             </View>
@@ -94,7 +94,7 @@ export function BannerProvider({ children }: { children: React.ReactNode }) {
               <Text style={styles.message} numberOfLines={2}>{banner.message}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.gray} style={{ alignSelf: 'center' }} />
-          </TouchableOpacity>
+          </Pressable>
           <View style={styles.grabber} />
         </Animated.View>
       )}
@@ -123,3 +123,4 @@ const styles = StyleSheet.create({
   message: { fontSize: 13, color: COLORS.gray, lineHeight: 18 },
   grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.7)', marginTop: 6 },
 });
+

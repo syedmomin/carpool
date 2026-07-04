@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SPACING } from './theme';
+import { COLORS, CURVE } from './theme';
 
 interface EmptyStateProps {
   icon?: string;
@@ -18,12 +18,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ icon = 'document-outline
         <Ionicons name={icon as any} size={32} color={COLORS.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-      {action && (
-        <TouchableOpacity style={styles.actionBtn} onPress={action.onPress} activeOpacity={0.8}>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {action ? (
+        <Pressable style={styles.actionBtn} onPress={action.onPress}>
           <Text style={styles.actionText}>{action.label}</Text>
-        </TouchableOpacity>
-      )}
+        </Pressable>
+      ) : null}
     </View>
   );
 };
@@ -44,6 +44,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
+    ...CURVE,
   },
   title: {
     fontSize: 16,
@@ -63,8 +64,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
-    paddingVertical: 11,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    ...CURVE,
   },
   actionText: {
     fontSize: 14,

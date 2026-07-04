@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './theme';
 
@@ -29,9 +29,9 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
         <Ionicons name="alert-circle-outline" size={56} color={COLORS.danger} />
         <Text style={styles.title}>Something went wrong</Text>
         <Text style={styles.message}>The app hit an unexpected error. Please try again.</Text>
-        <TouchableOpacity style={styles.btn} onPress={this.handleReset} activeOpacity={0.85}>
+        <Pressable style={styles.btn} onPress={this.handleReset}>
           <Text style={styles.btnText}>Try Again</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }

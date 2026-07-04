@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, TouchableOpacity,
+    View, Text, StyleSheet, FlatList, Pressable,
     ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,10 +21,10 @@ function StarPicker({ rating, onChange }) {
     return (
         <View style={rStyles.stars}>
             {[1, 2, 3, 4, 5].map(n => (
-                <TouchableOpacity key={n} onPress={() => onChange(n)}>
+                <Pressable key={n} onPress={() => onChange(n)}>
                     <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any} size={36}
                         color={n <= rating ? COLORS.warning : COLORS.border} />
-                </TouchableOpacity>
+                </Pressable>
             ))}
         </View>
     );
@@ -79,13 +79,13 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                             placeholderTextColor={COLORS.gray} value={comment} onChangeText={setComment}
                             multiline numberOfLines={3} maxLength={300} />
                         <View style={rStyles.btnRow}>
-                            <TouchableOpacity style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
+                            <Pressable style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
                                 <Text style={rStyles.skipBtnText}>Skip</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={rStyles.submitBtn} onPress={submit} disabled={submitting}>
+                            </Pressable>
+                            <Pressable style={rStyles.submitBtn} onPress={submit} disabled={submitting}>
                                 {submitting ? <ActivityIndicator size="small" color="#fff" />
                                     : <Text style={rStyles.submitBtnText}>Submit Review</Text>}
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 </View>
@@ -120,15 +120,15 @@ function CancelReasonModal({ visible, onClose, onSubmit }) {
                             placeholderTextColor={COLORS.gray} value={reason} onChangeText={setReason}
                             multiline numberOfLines={3} maxLength={200} />
                         <View style={rStyles.btnRow}>
-                            <TouchableOpacity style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
+                            <Pressable style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
                                 <Text style={rStyles.skipBtnText}>Go Back</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
+                            </Pressable>
+                            <Pressable
                                 style={[rStyles.submitBtn, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
                                 onPress={submit} disabled={!reason.trim().length || submitting}>
                                 {submitting ? <ActivityIndicator size="small" color="#fff" />
                                     : <Text style={rStyles.submitBtnText}>Cancel Booking</Text>}
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 </View>
@@ -159,7 +159,7 @@ function SOSModal({ visible, onClose }) {
                         <Text style={sosStyles.sub}>Tap to call emergency services</Text>
                     </View>
                     {emergencyNumbers.map(item => (
-                        <TouchableOpacity key={item.number} style={[sosStyles.numberRow, { borderLeftColor: item.color }]}
+                        <Pressable key={item.number} style={[sosStyles.numberRow, { borderLeftColor: item.color }]}
                             onPress={() => call(item.number)}>
                             <View style={[sosStyles.numIcon, { backgroundColor: item.color + '20' }]}>
                                 <Ionicons name={item.icon as any} size={20} color={item.color} />
@@ -172,11 +172,11 @@ function SOSModal({ visible, onClose }) {
                                 <Ionicons name="call" size={14} color="#fff" />
                                 <Text style={sosStyles.callBadgeText}>Call</Text>
                             </View>
-                        </TouchableOpacity>
+                        </Pressable>
                     ))}
-                    <TouchableOpacity style={sosStyles.closeBtn} onPress={onClose}>
+                    <Pressable style={sosStyles.closeBtn} onPress={onClose}>
                         <Text style={sosStyles.closeBtnText}>Close</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
         </Modal>
@@ -290,10 +290,10 @@ export default function BookingHistoryScreen({ navigation }) {
 
         // Swipe a cancellable booking left to reveal a quick Cancel action.
         const renderRightActions = () => canCancel ? (
-            <TouchableOpacity style={styles.swipeCancel} onPress={() => confirmCancel(item)} activeOpacity={0.85}>
+            <Pressable style={styles.swipeCancel} onPress={() => confirmCancel(item)}>
                 <Ionicons name="close-circle" size={26} color="#fff" />
                 <Text style={styles.swipeCancelText}>Cancel</Text>
-            </TouchableOpacity>
+            </Pressable>
         ) : null;
 
         return (
@@ -303,10 +303,10 @@ export default function BookingHistoryScreen({ navigation }) {
                     <LinearGradient colors={GRADIENTS.teal as any} style={styles.activeBanner}>
                         <Ionicons name="navigate-outline" size={13} color="#fff" />
                         <Text style={styles.activeBannerText}>Ride is in progress</Text>
-                        <TouchableOpacity style={styles.sosBannerBtn} onPress={() => setSosVisible(true)}>
+                        <Pressable style={styles.sosBannerBtn} onPress={() => setSosVisible(true)}>
                             <Ionicons name="warning-outline" size={13} color="#fff" />
                             <Text style={styles.sosBannerText}>SOS</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </LinearGradient>
                 )}
                 <View style={styles.cardHeader}>
@@ -365,37 +365,37 @@ export default function BookingHistoryScreen({ navigation }) {
                     </View>
                     <View style={styles.footerActions}>
                         {isInProgress && isActive && (
-                            <TouchableOpacity style={styles.joinMapBtn}
+                            <Pressable style={styles.joinMapBtn}
                                 onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}>
                                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.joinMapGrad}>
                                     <Ionicons name="map" size={16} color="#fff" />
                                     <Text style={styles.joinMapText}>JOIN LIVE MAP</Text>
                                 </LinearGradient>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {isInProgress && (
-                            <TouchableOpacity style={styles.sosBtn} onPress={() => setSosVisible(true)}>
+                            <Pressable style={styles.sosBtn} onPress={() => setSosVisible(true)}>
                                 <Ionicons name="warning-outline" size={15} color="#ef4444" />
                                 <Text style={styles.sosBtnText}>SOS</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {isActive && !isInProgress && (
-                            <TouchableOpacity style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]}
+                            <Pressable style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]}
                                 onPress={() => confirmCancel(item)} disabled={isCancelling}>
                                 {isCancelling
                                     ? <ActivityIndicator size="small" color={COLORS.danger} />
                                     : <><Ionicons name="close-circle-outline" size={16} color={COLORS.danger} /><Text style={styles.cancelBtnText}>Cancel</Text></>
                                 }
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {isActive && !isInProgress && seatsLeft > 0 && (
-                            <TouchableOpacity style={styles.addSeatsBtn} onPress={() => { setAddCount(1); setAddTarget(item); }}>
+                            <Pressable style={styles.addSeatsBtn} onPress={() => { setAddCount(1); setAddTarget(item); }}>
                                 <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
                                 <Text style={styles.addSeatsText}>Add seats</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {isActive && (
-                            <TouchableOpacity style={styles.chatBtn}
+                            <Pressable style={styles.chatBtn}
                                 onPress={() => navigation.navigate('Chat', {
                                     bookingId: item.id,
                                     otherUser: ride.driver,
@@ -403,13 +403,13 @@ export default function BookingHistoryScreen({ navigation }) {
                                 })}>
                                 <Ionicons name="chatbubble-ellipses-outline" size={15} color={COLORS.primary} />
                                 <Text style={styles.chatBtnText}>Chat</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {canReview && (
-                            <TouchableOpacity style={styles.rateBtn} onPress={() => setReviewBooking(item)}>
+                            <Pressable style={styles.rateBtn} onPress={() => setReviewBooking(item)}>
                                 <Ionicons name="star-outline" size={15} color={COLORS.warning} />
                                 <Text style={styles.rateBtnText}>Rate Driver</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                     </View>
                 </View>
@@ -469,21 +469,21 @@ export default function BookingHistoryScreen({ navigation }) {
                         <Text style={styles.addTitle}>Add seats</Text>
                         <Text style={styles.addSub}>{addAvailable} more seat{addAvailable !== 1 ? 's' : ''} available on this ride</Text>
                         <View style={styles.stepperRow}>
-                            <TouchableOpacity style={styles.stepBtn} onPress={() => setAddCount(c => Math.max(1, c - 1))}>
+                            <Pressable style={styles.stepBtn} onPress={() => setAddCount(c => Math.max(1, c - 1))}>
                                 <Ionicons name="remove" size={22} color={COLORS.primary} />
-                            </TouchableOpacity>
+                            </Pressable>
                             <Text style={styles.stepVal}>{addCount}</Text>
-                            <TouchableOpacity style={styles.stepBtn} onPress={() => setAddCount(c => Math.min(addAvailable, c + 1))}>
+                            <Pressable style={styles.stepBtn} onPress={() => setAddCount(c => Math.min(addAvailable, c + 1))}>
                                 <Ionicons name="add" size={22} color={COLORS.primary} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                         <View style={styles.addActions}>
-                            <TouchableOpacity style={[styles.addBtn, styles.addCancel]} onPress={() => setAddTarget(null)}>
+                            <Pressable style={[styles.addBtn, styles.addCancel]} onPress={() => setAddTarget(null)}>
                                 <Text style={styles.addCancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.addBtn, styles.addConfirm]} onPress={confirmAddSeats} disabled={addLoading || addAvailable < 1}>
+                            </Pressable>
+                            <Pressable style={[styles.addBtn, styles.addConfirm]} onPress={confirmAddSeats} disabled={addLoading || addAvailable < 1}>
                                 {addLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.addConfirmText}>Add {addCount}</Text>}
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 </View>

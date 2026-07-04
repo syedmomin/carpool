@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 // ─── ChalParo Brand Palette ───────────────────────────────────────────────
 // Rule: passenger UI = primary blue | driver UI = teal (unified to brand blue)
@@ -129,6 +129,10 @@ export const RADIUS = {
   xl: 20,
   full: 999,
 };
+
+// ─── CONTINUOUS CURVE (iOS squircle, no-op on Android) ──────────────────────
+// Spread into any StyleSheet style that has borderRadius for premium iOS feel.
+export const CURVE: any = Platform.OS === 'ios' ? { borderCurve: 'continuous' } : {};
 
 // ─── OVERLAYS ───────────────────────────────────────────────────────────────
 // Use these instead of inline rgba() — one place to tune all overlays

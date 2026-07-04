@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { COLORS, SPACING } from './theme';
 
 interface SectionHeaderProps {
@@ -11,9 +11,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({ title, onSeeAll, s
   <View style={[styles.row, style]}>
     <Text style={styles.title}>{title}</Text>
     {onSeeAll && (
-      <TouchableOpacity onPress={onSeeAll}>
+      <Pressable onPress={onSeeAll}>
         <Text style={styles.seeAll}>See All</Text>
-      </TouchableOpacity>
+      </Pressable>
     )}
   </View>
 );

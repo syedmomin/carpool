@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator,
   Modal, ScrollView, Image, Dimensions, Animated, RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,9 +56,9 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
                   <Text style={vm.noRatingText}>No reviews yet</Text>
                 )}
               </View>
-              <TouchableOpacity onPress={onClose} style={vm.closeBtn}>
+              <Pressable onPress={onClose} style={vm.closeBtn}>
                 <Ionicons name="close" size={20} color="#fff" />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {/* Vehicle name strip */}
@@ -382,7 +382,7 @@ export default function MyRequestsScreen({ navigation }) {
 
                   {/* Vehicle detail chip */}
                   {bid.vehicle && (
-                    <TouchableOpacity
+                    <Pressable
                       style={styles.vehicleChip}
                       onPress={() => setVehicleDetails({ vehicle: bid.vehicle, driver: bid.driver })}
                       disabled={isActioning}
@@ -390,12 +390,12 @@ export default function MyRequestsScreen({ navigation }) {
                       <Ionicons name="car-outline" size={13} color={COLORS.primary} />
                       <Text style={styles.vehicleChipText}>View Vehicle Details</Text>
                       <Ionicons name="chevron-forward" size={13} color={COLORS.primary + '80'} />
-                    </TouchableOpacity>
+                    </Pressable>
                   )}
 
                   {/* Action buttons */}
                   <View style={styles.bidActions}>
-                    <TouchableOpacity
+                    <Pressable
                       style={[styles.rejectBtn, isActioning && { opacity: 0.45 }]}
                       onPress={() => handleReject(req, bid)}
                       disabled={isActioning}
@@ -404,9 +404,9 @@ export default function MyRequestsScreen({ navigation }) {
                         ? <ActivityIndicator size="small" color={COLORS.danger} />
                         : <><Ionicons name="close" size={15} color={COLORS.danger} /><Text style={styles.rejectBtnText}>Decline</Text></>
                       }
-                    </TouchableOpacity>
+                    </Pressable>
 
-                    <TouchableOpacity
+                    <Pressable
                       style={[styles.acceptBtnWrap, isActioning && { opacity: 0.45 }]}
                       onPress={() => handleAccept(req, bid)}
                       disabled={isActioning}
@@ -415,7 +415,7 @@ export default function MyRequestsScreen({ navigation }) {
                         <Ionicons name="checkmark-circle" size={15} color="#fff" />
                         <Text style={styles.acceptBtnText}>Accept & Book</Text>
                       </LinearGradient>
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </View>
               );
@@ -437,17 +437,17 @@ export default function MyRequestsScreen({ navigation }) {
         {/* Actions Footer */}
         <View style={styles.cardFooter}>
           {req.status === 'OPEN' && (
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(req)}>
+            <Pressable style={styles.cancelBtn} onPress={() => handleCancel(req)}>
               <Ionicons name="close-circle-outline" size={15} color={COLORS.danger} />
               <Text style={styles.cancelBtnText}>Cancel Request</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {isExpired && (
-            <TouchableOpacity style={styles.repostBtn} onPress={() => handleRepost(req)}>
+            <Pressable style={styles.repostBtn} onPress={() => handleRepost(req)}>
               <Ionicons name="refresh-outline" size={15} color={COLORS.primary} />
               <Text style={styles.repostBtnText}>Re-post for another date</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </View>
@@ -467,7 +467,7 @@ export default function MyRequestsScreen({ navigation }) {
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
+        <Pressable 
           style={[styles.tab, selectedTab === 'active' && styles.tabActive]} 
           onPress={() => setSelectedTab('active')}
         >
@@ -476,14 +476,14 @@ export default function MyRequestsScreen({ navigation }) {
           {activeRequests.length > 0 && (
             <View style={styles.countBadge}><Text style={styles.countText}>{activeRequests.length}</Text></View>
           )}
-        </TouchableOpacity>
-        <TouchableOpacity 
+        </Pressable>
+        <Pressable 
           style={[styles.tab, selectedTab === 'history' && styles.tabActive]} 
           onPress={() => setSelectedTab('history')}
         >
           <Ionicons name="time-outline" size={16} color={selectedTab === 'history' ? COLORS.primary : COLORS.gray} />
           <Text style={[styles.tabText, selectedTab === 'history' && styles.tabTextActive]}>History</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {isInitialLoad ? (

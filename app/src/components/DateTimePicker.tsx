@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, Modal, StyleSheet,
+  View, Text, Pressable, Modal, StyleSheet,
   Platform, ScrollView,
 } from 'react-native';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
@@ -24,15 +24,15 @@ function PickerModal({ visible, title, onDone, onCancel, children }: PickerModal
         <View style={ms.sheet}>
           <View style={ms.handle} />
           <View style={ms.header}>
-            <TouchableOpacity onPress={onCancel}>
+            <Pressable onPress={onCancel}>
               <Text style={ms.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+            </Pressable>
             <Text style={ms.title}>{title}</Text>
-            <TouchableOpacity onPress={onDone}>
+            <Pressable onPress={onDone}>
               <LinearGradient colors={GRADIENTS.primary as any} style={ms.doneBtn}>
                 <Text style={ms.doneText}>Done</Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           </View>
           {children}
         </View>
@@ -77,13 +77,13 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
   return (
     <View style={ps.wrap}>
       {!!label && <Text style={ps.label}>{label}</Text>}
-      <TouchableOpacity style={ps.input} onPress={() => setShow(true)} activeOpacity={0.8}>
+      <Pressable style={ps.input} onPress={() => setShow(true)}>
         <Ionicons name="calendar-outline" size={18} color={COLORS.gray} style={ps.icon} />
         <Text style={[ps.inputText, !value && ps.placeholder]}>
           {value ? formatDisplay(value) : placeholder}
         </Text>
         <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Android: inline */}
       {show && Platform.OS === 'android' && (
@@ -153,13 +153,13 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
   return (
     <View style={ps.wrap}>
       {!!label && <Text style={ps.label}>{label}</Text>}
-      <TouchableOpacity style={ps.input} onPress={() => setShow(true)} activeOpacity={0.8}>
+      <Pressable style={ps.input} onPress={() => setShow(true)}>
         <Ionicons name="time-outline" size={18} color={COLORS.gray} style={ps.icon} />
         <Text style={[ps.inputText, !value && ps.placeholder]}>
           {value || placeholder}
         </Text>
         <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-      </TouchableOpacity>
+      </Pressable>
 
       {show && Platform.OS === 'android' && (
         <RNDateTimePicker

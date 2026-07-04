@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -134,34 +134,34 @@ export default function ActiveRidesScreen({ navigation }) {
           <View style={styles.stat}><Ionicons name="car-outline" size={16} color={COLORS.gray} /><Text style={styles.statText}>{vehicle?.type || 'Vehicle'}</Text></View>
         </View>
         <View style={styles.actions}>
-          <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
+          <Pressable style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
             <Ionicons name="people-outline" size={16} color={COLORS.primary} />
             <Text style={styles.btnText}>Passengers ({confirmedSeats}/{item.totalSeats})</Text>
-          </TouchableOpacity>
+          </Pressable>
           {isActive && (
-            <TouchableOpacity
+            <Pressable
               style={[styles.btn, { borderColor: COLORS.danger + '50' }, isActioning && { opacity: 0.45 }]}
               onPress={() => handleCancelRide(item)} disabled={isActioning}>
               <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
               <Text style={[styles.btnText, { color: COLORS.danger }]}>Cancel</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
           {isActive && item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday && (
-            <TouchableOpacity style={[styles.btn, styles.startBtn]} onPress={() => handleStartRide(item)} disabled={isActioning}>
+            <Pressable style={[styles.btn, styles.startBtn]} onPress={() => handleStartRide(item)} disabled={isActioning}>
               {isActioning ? <ActivityIndicator size="small" color="#fff" /> : (
                 <LinearGradient colors={['#2e7d32', '#1b5e20']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.startGrad}>
                   <Ionicons name="play" size={16} color="#fff" />
                   <Text style={styles.startText}>START TRIP NOW</Text>
                 </LinearGradient>
               )}
-            </TouchableOpacity>
+            </Pressable>
           )}
           {isInProgress && (
-            <TouchableOpacity style={[styles.btn, { backgroundColor: COLORS.primary, borderColor: 'transparent' }]}
+            <Pressable style={[styles.btn, { backgroundColor: COLORS.primary, borderColor: 'transparent' }]}
               onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}>
               <Ionicons name="navigate-outline" size={16} color="#fff" />
               <Text style={[styles.btnText, { color: '#fff' }]}>Open Tracking</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
         {isActive && !isInProgress && !(item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday) && (
@@ -205,10 +205,10 @@ export default function ActiveRidesScreen({ navigation }) {
           <View style={styles.stat}><Ionicons name="cash-outline" size={16} color={COLORS.secondary} /><Text style={styles.statText}>Rs {earned.toLocaleString()}</Text></View>
           <View style={styles.stat}><Ionicons name="car-outline" size={16} color={COLORS.gray} /><Text style={styles.statText}>{item.vehicle?.type || 'Vehicle'}</Text></View>
         </View>
-        <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
+        <Pressable style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
           <Ionicons name="people-outline" size={16} color={COLORS.primary} />
           <Text style={styles.btnText}>View Passengers</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   };
@@ -239,18 +239,18 @@ export default function ActiveRidesScreen({ navigation }) {
         subtitle={tab === 'current' ? 'Active and in-progress rides' : 'Past ride history'}
         rightIcon="add-outline" onRightPress={() => navigation.navigate('PostRide')} />
       <View style={styles.tabs}>
-        <TouchableOpacity style={[styles.tab, tab === 'current' && styles.tabActive]} onPress={() => setTab('current')}>
+        <Pressable style={[styles.tab, tab === 'current' && styles.tabActive]} onPress={() => setTab('current')}>
           <Ionicons name="car-sport-outline" size={16} color={tab === 'current' ? COLORS.primary : COLORS.gray} />
           <Text style={[styles.tabText, tab === 'current' && styles.tabTextActive]}>
             Current {currentRides.length > 0 ? `(${currentRides.length})` : ''}
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.tab, tab === 'history' && styles.tabActive]} onPress={() => setTab('history')}>
+        </Pressable>
+        <Pressable style={[styles.tab, tab === 'history' && styles.tabActive]} onPress={() => setTab('history')}>
           <Ionicons name="time-outline" size={16} color={tab === 'history' ? COLORS.primary : COLORS.gray} />
           <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>
             History {historyRides.length > 0 ? `(${historyRides.length})` : ''}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
       <FlatList
         data={data}

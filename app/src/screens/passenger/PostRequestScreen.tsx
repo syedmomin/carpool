@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -122,15 +122,15 @@ export default function PostRequestScreen({ navigation, route }: any) {
         {/* Calendar */}
         <View style={styles.calendarCard}>
           <View style={styles.monthHeader}>
-            <TouchableOpacity onPress={prevMonth} disabled={isPrevDisabled}
+            <Pressable onPress={prevMonth} disabled={isPrevDisabled}
               style={[styles.monthArrow, isPrevDisabled && styles.monthArrowDisabled]}>
               <Ionicons name="chevron-back" size={20} color={isPrevDisabled ? COLORS.border : COLORS.primary} />
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.monthTitle}>{MONTHS[viewMonth]} {viewYear}</Text>
-            <TouchableOpacity onPress={nextMonth} disabled={isNextDisabled}
+            <Pressable onPress={nextMonth} disabled={isNextDisabled}
               style={[styles.monthArrow, isNextDisabled && styles.monthArrowDisabled]}>
               <Ionicons name="chevron-forward" size={20} color={isNextDisabled ? COLORS.border : COLORS.primary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <View style={styles.daysRow}>
             {DAYS.map(d => <Text key={d} style={[styles.dayLabel, d === 'Sun' && { color: COLORS.danger }]}>{d}</Text>)}
@@ -143,9 +143,9 @@ export default function PostRequestScreen({ navigation, route }: any) {
               const isToday  = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
               const isSel    = dateStr === selectedDate;
               return (
-                <TouchableOpacity key={dateStr} style={styles.cell}
+                <Pressable key={dateStr} style={styles.cell}
                   onPress={() => !disabled && setSelectedDate(dateStr)}
-                  disabled={disabled} activeOpacity={0.7}>
+                  disabled={disabled}>
                   {isSel ? (
                     <LinearGradient colors={GRADIENTS.primary as any} style={styles.cellSel}>
                       <Text style={styles.cellTextSel}>{day}</Text>
@@ -159,7 +159,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
                       ]}>{day}</Text>
                     </View>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -167,9 +167,9 @@ export default function PostRequestScreen({ navigation, route }: any) {
             <View style={styles.selectedBanner}>
               <Ionicons name="calendar" size={15} color={COLORS.primary} />
               <Text style={styles.selectedText}>Selected: {selectedDate}</Text>
-              <TouchableOpacity onPress={() => setSelectedDate(null)}>
+              <Pressable onPress={() => setSelectedDate(null)}>
                 <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
         </View>
@@ -178,19 +178,19 @@ export default function PostRequestScreen({ navigation, route }: any) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Route</Text>
           <View style={styles.routeRow}>
-            <TouchableOpacity style={styles.cityBtn} onPress={() => setCityModal('from')}>
+            <Pressable style={styles.cityBtn} onPress={() => setCityModal('from')}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
               <Text style={[styles.cityBtnText, !from && styles.placeholder]}>{from || 'Departure City'}</Text>
               <Ionicons name="chevron-down" size={15} color={COLORS.gray} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.swapBtn} onPress={() => { const t = from; setFrom(to); setTo(t); }}>
+            </Pressable>
+            <Pressable style={styles.swapBtn} onPress={() => { const t = from; setFrom(to); setTo(t); }}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cityBtn} onPress={() => setCityModal('to')}>
+            </Pressable>
+            <Pressable style={styles.cityBtn} onPress={() => setCityModal('to')}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
               <Text style={[styles.cityBtnText, !to && styles.placeholder]}>{to || 'Destination City'}</Text>
               <Ionicons name="chevron-down" size={15} color={COLORS.gray} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -199,10 +199,10 @@ export default function PostRequestScreen({ navigation, route }: any) {
           <Text style={styles.sectionTitle}>Seats Needed</Text>
           <View style={styles.seatsRow}>
             {SEAT_OPTIONS.map(n => (
-              <TouchableOpacity key={n} style={[styles.seatChip, seats === n && styles.seatChipActive]}
+              <Pressable key={n} style={[styles.seatChip, seats === n && styles.seatChipActive]}
                 onPress={() => setSeats(n)}>
                 <Text style={[styles.seatChipText, seats === n && styles.seatChipTextActive]}>{n}</Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>

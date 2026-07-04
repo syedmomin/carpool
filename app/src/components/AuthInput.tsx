@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, StyleSheet, TouchableOpacity,
+  View, Text, TextInput, StyleSheet,
   TextInputProps, Pressable,
 } from 'react-native';
 import Animated, {
@@ -78,9 +78,9 @@ export default function AuthInput({
       )}
 
       {password && (
-        <TouchableOpacity onPress={() => setHide(h => !h)} style={styles.rightBtn} hitSlop={8}>
+        <Pressable onPress={() => setHide(h => !h)} style={styles.rightBtn} hitSlop={8}>
           <Ionicons name={hide ? 'eye-outline' : 'eye-off-outline'} size={20} color={GLASS.subOnDark} />
-        </TouchableOpacity>
+        </Pressable>
       )}
       {asButton && (
         <Ionicons name="chevron-down" size={18} color={GLASS.subOnDark} style={styles.rightBtn} />

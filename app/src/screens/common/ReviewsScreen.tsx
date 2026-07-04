@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  TouchableOpacity, Image
+  Pressable, Image
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, EmptyState, GradientHeader, Avatar } from '../../components';
+import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, Avatar } from '../../components';
 import { reviewsApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 

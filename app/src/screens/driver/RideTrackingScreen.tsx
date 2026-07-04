@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Platform,
+  View, Text, StyleSheet, Pressable, Platform,
   Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar, Alert,
 } from 'react-native';
 import { MapView, Marker } from '../../components/Map';
@@ -20,7 +20,7 @@ import ReviewModal from '../../components/ReviewModal';
 const { width } = Dimensions.get('window');
 const isDriverRole = (role?: string) => role === 'DRIVER';
 
-// ─── Elapsed timer ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Elapsed timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function useElapsed(active: boolean) {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -36,7 +36,7 @@ function useElapsed(active: boolean) {
     : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// ─── Pulsing live dot ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Pulsing live dot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function LiveDot({ active }: { active: boolean }) {
   const scale   = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.8)).current;
@@ -70,7 +70,7 @@ const dot = StyleSheet.create({
   core: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#22c55e' },
 });
 
-// ─── Stars ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Stars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Stars({ rating }: { rating: number | null }) {
   const r = rating ?? 0;
   return (
@@ -87,7 +87,7 @@ function Stars({ rating }: { rating: number | null }) {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function RideTrackingScreen({ route, navigation }) {
   const { rideId } = route.params;
   const { showToast }  = useToast();
@@ -196,7 +196,7 @@ export default function RideTrackingScreen({ route, navigation }) {
   const startTracking = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      // Tracking is useless without location — guide the driver to settings and
+      // Tracking is useless without location â€” guide the driver to settings and
       // leave the screen rather than sitting on a map that broadcasts nothing.
       Alert.alert(
         'Location needed',
@@ -253,7 +253,7 @@ export default function RideTrackingScreen({ route, navigation }) {
 
   // Best-effort background tracking. Foreground tracking already works without
   // it, so a denied permission or unsupported platform must never break the
-  // screen — we just log and carry on.
+  // screen â€” we just log and carry on.
   const startBackgroundTracking = async () => {
     try {
       const { status } = await Location.requestBackgroundPermissionsAsync();
@@ -268,7 +268,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         pausesUpdatesAutomatically: false,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
-          notificationTitle: 'ChalParo — trip in progress',
+          notificationTitle: 'ChalParo â€” trip in progress',
           notificationBody:  'Sharing your live location with passengers.',
           notificationColor: '#0d1b4b',
         },
@@ -370,14 +370,14 @@ export default function RideTrackingScreen({ route, navigation }) {
     <View style={s.container}>
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      {/* ── Full-screen Map ───────────────────────────────────────────── */}
+      {/* â”€â”€ Full-screen Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         initialRegion={initialRegion}
         onLayout={() => setMapReady(true)}
       >
-        {/* Driver car marker (used only on initial render — live updates via mapRef) */}
+        {/* Driver car marker (used only on initial render â€” live updates via mapRef) */}
         {driverLocation && (
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
@@ -407,27 +407,27 @@ export default function RideTrackingScreen({ route, navigation }) {
         )}
       </MapView>
 
-      {/* ── Recenter FAB ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Recenter FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {driverLocation && (
-        <TouchableOpacity style={s.recenterFab} onPress={handleRecenter} activeOpacity={0.85}>
+        <Pressable style={s.recenterFab} onPress={handleRecenter}>
           {recentering
             ? <ActivityIndicator size="small" color={COLORS.primary} />
             : <Ionicons name="locate" size={22} color={COLORS.primary} />
           }
-        </TouchableOpacity>
+        </Pressable>
       )}
 
-      {/* ── Top Header ───────────────────────────────────────────────── */}
+      {/* â”€â”€ Top Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+        <Pressable style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
-        </TouchableOpacity>
+        </Pressable>
         <View style={s.headerCenter}>
           <Text style={s.headerRoute} numberOfLines={1}>
-            {ride?.fromCity} → {ride?.toCity}
+            {ride?.fromCity} â†’ {ride?.toCity}
           </Text>
           <Text style={s.headerSub}>
-            {driver ? `${ride?.date} · ${ride?.departureTime}` : 'Live Ride Tracking'}
+            {driver ? `${ride?.date} Â· ${ride?.departureTime}` : 'Live Ride Tracking'}
           </Text>
         </View>
         <View style={s.livePill}>
@@ -436,7 +436,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* ── Bottom Panel ─────────────────────────────────────────────── */}
+      {/* â”€â”€ Bottom Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <View style={s.panel}>
         {/* Gradient accent line at top of panel */}
         <LinearGradient
@@ -447,7 +447,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         <View style={s.handle} />
 
         {driver ? (
-          /* ─── DRIVER PANEL ──────────────────────────────────────────── */
+          /* â”€â”€â”€ DRIVER PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
           <>
             <View style={s.statsRow}>
               <View style={s.statItem}>
@@ -484,34 +484,33 @@ export default function RideTrackingScreen({ route, navigation }) {
                     <Text style={s.pName}>{item.passenger?.name}</Text>
                     <Text style={s.pMeta}>
                       {item.boardingCity || ride?.fromCity}
-                      {item.exitCity && item.exitCity !== ride?.toCity ? ` → ${item.exitCity}` : ''}
-                      {'  ·  '}{item.seats} seat{item.seats !== 1 ? 's' : ''}
+                      {item.exitCity && item.exitCity !== ride?.toCity ? ` â†’ ${item.exitCity}` : ''}
+                      {'  Â·  '}{item.seats} seat{item.seats !== 1 ? 's' : ''}
                     </Text>
                   </View>
-                  <TouchableOpacity style={s.callBtn} onPress={() => handleCall(item.passenger?.phone)}>
+                  <Pressable style={s.callBtn} onPress={() => handleCall(item.passenger?.phone)}>
                     <Ionicons name="call" size={18} color={COLORS.primary} />
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               )}
               ListEmptyComponent={<Text style={s.emptyText}>No confirmed passengers yet.</Text>}
             />
 
             <View style={s.finishWrap}>
-              <TouchableOpacity
+              <Pressable
                 style={s.finishBtn}
                 onPress={handleFinishRide}
                 disabled={isFinishing}
-                activeOpacity={0.85}
               >
                 {isFinishing
                   ? <ActivityIndicator color="#fff" />
                   : <><Ionicons name="flag" size={20} color="#fff" /><Text style={s.finishBtnText}>Finish Ride</Text></>
                 }
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </>
         ) : (
-          /* ─── PASSENGER PANEL ───────────────────────────────────────── */
+          /* â”€â”€â”€ PASSENGER PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
           <>
             {/* Driver card with gradient background */}
             <LinearGradient
@@ -527,15 +526,15 @@ export default function RideTrackingScreen({ route, navigation }) {
                   <Ionicons name="car-sport" size={12} color={COLORS.primary} />
                   <Text style={s.vehicleText} numberOfLines={1}>
                     {[ride?.vehicle?.brand, ride?.vehicle?.model].filter(Boolean).join(' ') || ride?.vehicle?.type || 'Vehicle'}
-                    {ride?.vehicle?.plateNumber ? ` · ${ride?.vehicle?.plateNumber}` : ''}
+                    {ride?.vehicle?.plateNumber ? ` Â· ${ride?.vehicle?.plateNumber}` : ''}
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={s.callDriverBtn} onPress={() => handleCall(ride?.driver?.phone)}>
+              <Pressable style={s.callDriverBtn} onPress={() => handleCall(ride?.driver?.phone)}>
                 <LinearGradient colors={GRADIENTS.primary as any} style={s.callDriverBtnInner}>
                   <Ionicons name="call" size={20} color="#fff" />
                 </LinearGradient>
-              </TouchableOpacity>
+              </Pressable>
             </LinearGradient>
 
             <View style={s.routeRow}>
@@ -582,20 +581,20 @@ export default function RideTrackingScreen({ route, navigation }) {
             </View>
 
             <View style={s.safetyRow}>
-              <TouchableOpacity style={[s.safetyBtn, s.sosBtn]} onPress={() => handleCall('1122')}>
+              <Pressable style={[s.safetyBtn, s.sosBtn]} onPress={() => handleCall('1122')}>
                 <Ionicons name="warning" size={20} color="#fff" />
                 <Text style={s.safetyBtnText}>SOS 1122</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.safetyBtn, s.callBtn2]} onPress={() => handleCall(ride?.driver?.phone)}>
+              </Pressable>
+              <Pressable style={[s.safetyBtn, s.callBtn2]} onPress={() => handleCall(ride?.driver?.phone)}>
                 <Ionicons name="call" size={20} color="#fff" />
                 <Text style={s.safetyBtnText}>Call Driver</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </>
         )}
       </View>
 
-      {/* ── Driver rating modal after ride finish ─────────────────────── */}
+      {/* â”€â”€ Driver rating modal after ride finish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {ratingIndex >= 0 && ratingIndex < confirmedBookings.length && (
         <ReviewModal
           visible
@@ -605,7 +604,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           revieweeId={confirmedBookings[ratingIndex].passengerId}
           revieweeName={confirmedBookings[ratingIndex].passenger?.name || 'Passenger'}
           targetRole="PASSENGER"
-          routeLabel={`${ride?.fromCity} → ${ride?.toCity}`}
+          routeLabel={`${ride?.fromCity} â†’ ${ride?.toCity}`}
           routeDate={ride?.date}
         />
       )}
@@ -767,3 +766,4 @@ const s = StyleSheet.create({
   callBtn2:      { backgroundColor: COLORS.primary, shadowColor: COLORS.primary },
   safetyBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });
+

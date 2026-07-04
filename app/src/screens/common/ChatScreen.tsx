@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView,
   Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, Avatar, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, CURVE, Avatar, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { socketService } from '../../services/socket.service';
@@ -188,9 +188,9 @@ export default function ChatScreen({ route, navigation }) {
     <SafeAreaView style={styles.container}>
       {/* Custom Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
-        </TouchableOpacity>
+        </Pressable>
         <Avatar name={otherUser?.name} size={36} />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{otherUser?.name || 'User'}</Text>
@@ -231,13 +231,13 @@ export default function ChatScreen({ route, navigation }) {
             multiline
             maxLength={500}
           />
-          <TouchableOpacity
+          <Pressable
             style={[styles.sendBtn, !inputText.trim() && { opacity: 0.5 }]}
             onPress={handleSend}
             disabled={!inputText.trim()}
           >
             <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

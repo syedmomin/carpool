@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal, View, Text, StyleSheet, TouchableOpacity,
+  Modal, View, Text, StyleSheet, Pressable,
   FlatList, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,9 +44,9 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+          <Pressable onPress={onClose} style={styles.closeBtn}>
             <Ionicons name="close" size={22} color={COLORS.textPrimary} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {/* Search */}
@@ -77,13 +77,13 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
             keyExtractor={item => item}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
+              <Pressable style={styles.item} onPress={() => handleSelect(item)}>
                 <View style={styles.iconBox}>
                   <Ionicons name="location-outline" size={16} color={COLORS.primary} />
                 </View>
                 <Text style={styles.itemName}>{item}</Text>
                 <Ionicons name="chevron-forward" size={14} color={COLORS.border} />
-              </TouchableOpacity>
+              </Pressable>
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             contentContainerStyle={{ paddingBottom: 40 }}

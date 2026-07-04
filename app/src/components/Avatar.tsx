@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from './theme';
 
@@ -33,9 +33,9 @@ export const Avatar: React.FC<AvatarProps> = ({ name, size = 48, color, onlineIn
       )}
 
       {onEdit && (
-        <TouchableOpacity style={styles.editBtn} onPress={onEdit} activeOpacity={0.85}>
+        <Pressable style={styles.editBtn} onPress={onEdit}>
           <Ionicons name="camera" size={14} color="#fff" />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, Pressable,
   Image, KeyboardAvoidingView, Platform, ActivityIndicator,
   Modal, FlatList,
 } from 'react-native';
@@ -14,7 +14,7 @@ import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from 
 import { vehiclesApi, uploadApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
 
-// ─── Vehicle types ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Vehicle types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VEHICLE_TYPES = [
   { label: 'Car',     value: 'CAR',     icon: 'car-outline'       },
   { label: 'Van',     value: 'VAN',     icon: 'car-sport-outline' },
@@ -23,7 +23,7 @@ const VEHICLE_TYPES = [
   { label: 'Bus',     value: 'BUS',     icon: 'bus-outline'       },
 ];
 
-// ─── All vehicle features ──────────────────────────────────────────────────────
+// â”€â”€â”€ All vehicle features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ALL_FEATURES = [
   { key: 'ac',         label: 'Air Conditioning', icon: 'snow-outline' },
   { key: 'wifi',       label: 'WiFi',             icon: 'wifi-outline' },
@@ -37,7 +37,7 @@ const ALL_FEATURES = [
 
 const STEPS = ['Vehicle Type', 'Details & Photos'];
 
-// ─── Car brands available in Pakistan ─────────────────────────────────────────
+// â”€â”€â”€ Car brands available in Pakistan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VEHICLE_BRANDS = [
   // Japanese
   'Toyota', 'Suzuki', 'Honda', 'Daihatsu', 'Mitsubishi', 'Nissan', 'Mazda', 'Subaru',
@@ -53,7 +53,7 @@ const VEHICLE_BRANDS = [
   'Other',
 ];
 
-// ─── Year picker: 1980 to current year + 1 ────────────────────────────────────
+// â”€â”€â”€ Year picker: 1980 to current year + 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: CURRENT_YEAR - 1979 }, (_, i) => String(CURRENT_YEAR - i));
 
@@ -121,7 +121,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
 
-  // ─── Multi-image picker (local only, no upload yet) ─────────────────────────
+  // â”€â”€â”€ Multi-image picker (local only, no upload yet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const addVehicleImages = async () => {
     const { uris, error, cancelled } = await pickMultipleImagesLocal();
     if (cancelled) return;
@@ -135,7 +135,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
     if (!result.cancelled) setImages(prev => [...prev, result.uri]);
   };
 
-  // ─── Navigation ──────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const goNext = () => {
     if (step === 0) {
       if (!selectedType) {
@@ -166,7 +166,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
     else setStep(0);
   };
 
-  // ─── Save ────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleSave = async () => {
     if (!validate()) {
       showToast('Please fill all required fields correctly.', 'error');
@@ -229,7 +229,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }
   };
 
-  // ─── Step 1: Type ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Step 1: Type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderStep1 = () => (
     <View>
       <Text style={styles.stepTitle}>Choose Vehicle Type</Text>
@@ -238,11 +238,11 @@ export default function VehicleSetupScreen({ navigation, route }) {
         {VEHICLE_TYPES.map(vt => {
           const active = selectedType === vt.value;
           return (
-            <TouchableOpacity
+            <Pressable
               key={vt.value}
               style={[styles.typeCard, active && styles.typeCardSelected]}
               onPress={() => setSelectedType(vt.value)}
-              activeOpacity={0.85}
+
             >
               <LinearGradient colors={(active ? GRADIENTS.primary : ['#f8f9fa', '#f0f0f0']) as any} style={styles.typeCardInner}>
                 <View style={[styles.typeIconBox, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : COLORS.lightGray }]}>
@@ -253,25 +253,25 @@ export default function VehicleSetupScreen({ navigation, route }) {
                   {active && <View style={styles.typeRadioDot} />}
                 </View>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>
     </View>
   );
 
-  // ─── Step 2: Details + Photos ─────────────────────────────────────────────────
+  // â”€â”€â”€ Step 2: Details + Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const renderStep2 = () => (
     <View>
-      {/* ── Vehicle Photos ───────────────────────────────────────────── */}
+      {/* â”€â”€ Vehicle Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Text style={styles.sectionLabel}>Photos (add at least one)</Text>
       <View style={styles.photosRow}>
         {images.map((img, i) => (
           <View key={i} style={styles.photoWrapper}>
             <Image source={{ uri: img }} style={styles.photo} />
-            <TouchableOpacity style={styles.photoDeleteBtn} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
+            <Pressable style={styles.photoDeleteBtn} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
               <Ionicons name="close-circle" size={22} color={COLORS.danger} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         ))}
         {imgUploading ? (
@@ -280,26 +280,25 @@ export default function VehicleSetupScreen({ navigation, route }) {
           </View>
         ) : (
           <View style={styles.photoAddGroup}>
-            <TouchableOpacity style={styles.addPhotoBtn} onPress={addVehicleImages}>
+            <Pressable style={styles.addPhotoBtn} onPress={addVehicleImages}>
               <Ionicons name="images-outline" size={26} color={COLORS.primary} />
               <Text style={styles.addPhotoText}>Gallery</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.addPhotoBtn} onPress={addFromCamera}>
+            </Pressable>
+            <Pressable style={styles.addPhotoBtn} onPress={addFromCamera}>
               <Ionicons name="camera-outline" size={26} color={COLORS.teal} />
               <Text style={[styles.addPhotoText, { color: COLORS.teal }]}>Camera</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
       </View>
 
-      {/* ── Vehicle Details ──────────────────────────────────────────── */}
+      {/* â”€â”€ Vehicle Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Text style={styles.sectionLabel}>Vehicle Details</Text>
 
       {/* Brand Picker */}
-      <TouchableOpacity 
-        style={[styles.yearPickerBtn, errors.brand && { borderColor: COLORS.danger }]} 
-        onPress={() => setBrandModal(true)} 
-        activeOpacity={0.8}
+      <Pressable 
+        style={[styles.yearPickerBtn, errors.brand && { borderColor: COLORS.danger }]}
+        onPress={() => setBrandModal(true)}
       >
         <View style={[styles.yearPickerIcon, { backgroundColor: errors.brand ? COLORS.danger + '12' : COLORS.lightGray }]}>
           <Ionicons name="car-outline" size={18} color={errors.brand ? COLORS.danger : COLORS.gray} />
@@ -311,10 +310,10 @@ export default function VehicleSetupScreen({ navigation, route }) {
           </Text>
         </View>
         <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Year picker */}
-      <TouchableOpacity style={styles.yearPickerBtn} onPress={() => setYearModal(true)} activeOpacity={0.8}>
+      <Pressable style={styles.yearPickerBtn} onPress={() => setYearModal(true)}>
         <View style={[styles.yearPickerIcon, { backgroundColor: COLORS.lightGray }]}>
           <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
         </View>
@@ -325,7 +324,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
           </Text>
         </View>
         <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-      </TouchableOpacity>
+      </Pressable>
 
       <FormInput
         label="Color"
@@ -353,25 +352,24 @@ export default function VehicleSetupScreen({ navigation, route }) {
         error={errors.totalSeats}
       />
 
-      {/* ── Features ─────────────────────────────────────────────────── */}
+      {/* â”€â”€ Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <Text style={styles.sectionLabel}>Amenities & Features</Text>
-      <Text style={styles.featureHint}>Select all that apply — passengers can filter by these</Text>
+      <Text style={styles.featureHint}>Select all that apply â€” passengers can filter by these</Text>
       <View style={styles.featuresGrid}>
         {ALL_FEATURES.map(feat => {
           const active = features[feat.key];
           return (
-            <TouchableOpacity
+            <Pressable
               key={feat.key}
               style={[styles.featureChip, active && styles.featureChipActive]}
               onPress={() => toggleFeature(feat.key)}
-              activeOpacity={0.8}
             >
               <View style={[styles.featureIconBox, active && styles.featureIconBoxActive]}>
                 <Ionicons name={(feat.icon) as any} size={16} color={active ? '#fff' : COLORS.gray} />
               </View>
               <Text style={[styles.featureLabel, active && styles.featureLabelActive]}>{feat.label}</Text>
               {active && <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} style={{ marginLeft: 'auto' }} />}
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>
@@ -395,7 +393,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
         <GradientHeader
           colors={headerGradient as any}
           title={existing ? 'Edit Vehicle' : 'Register Vehicle'}
-          subtitle={`Step ${step + 1} of 2 — ${STEPS[step]}`}
+          subtitle={`Step ${step + 1} of 2 â€” ${STEPS[step]}`}
           onBack={goBack}
         />
 
@@ -438,22 +436,22 @@ export default function VehicleSetupScreen({ navigation, route }) {
         <View style={styles.yearModal}>
           <View style={styles.yearModalHeader}>
             <Text style={styles.yearModalTitle}>Select Brand</Text>
-            <TouchableOpacity onPress={() => setBrandModal(false)}>
+            <Pressable onPress={() => setBrandModal(false)}>
               <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <FlatList
             data={VEHICLE_BRANDS}
             keyExtractor={item => item}
             contentContainerStyle={{ paddingVertical: 8 }}
             renderItem={({ item }) => (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.yearItem, form.brand === item && styles.yearItemActive]}
                 onPress={() => { update('brand', item); setBrandModal(false); }}
               >
                 <Text style={[styles.yearItemText, form.brand === item && styles.yearItemTextActive]}>{item}</Text>
                 {form.brand === item && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
-              </TouchableOpacity>
+              </Pressable>
             )}
           />
         </View>
@@ -464,22 +462,22 @@ export default function VehicleSetupScreen({ navigation, route }) {
         <View style={styles.yearModal}>
           <View style={styles.yearModalHeader}>
             <Text style={styles.yearModalTitle}>Select Year</Text>
-            <TouchableOpacity onPress={() => setYearModal(false)}>
+            <Pressable onPress={() => setYearModal(false)}>
               <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
           <FlatList
             data={YEARS}
             keyExtractor={item => item}
             contentContainerStyle={{ paddingVertical: 8 }}
             renderItem={({ item }) => (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.yearItem, form.model === item && styles.yearItemActive]}
                 onPress={() => { update('model', item); setYearModal(false); }}
               >
                 <Text style={[styles.yearItemText, form.model === item && styles.yearItemTextActive]}>{item}</Text>
                 {form.model === item && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
-              </TouchableOpacity>
+              </Pressable>
             )}
           />
         </View>
@@ -551,3 +549,4 @@ const styles = StyleSheet.create({
   yearItemText:    { flex: 1, fontSize: 18, color: COLORS.textPrimary, fontWeight: '500' },
   yearItemTextActive: { color: COLORS.primary, fontWeight: '700' },
 });
+

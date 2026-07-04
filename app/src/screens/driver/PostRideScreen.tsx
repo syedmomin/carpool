@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, Pressable,
   KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -225,15 +225,15 @@ export default function PostRideScreen({ navigation }) {
               <Text style={styles.noVehicleText}>Loading your vehicles...</Text>
             </View>
           ) : driverVehicles.length === 0 ? (
-            <TouchableOpacity style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
+            <Pressable style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <Ionicons name="warning-outline" size={20} color={COLORS.accent} />
               <Text style={styles.noVehicleText}>Register your vehicle first →</Text>
-            </TouchableOpacity>
+            </Pressable>
           ) : (
-            <TouchableOpacity
+            <Pressable
               style={styles.vehicleSelector}
               onPress={() => driverVehicles.length > 1 && setVehiclePickerOpen(true)}
-              activeOpacity={driverVehicles.length > 1 ? 0.7 : 1}
+
             >
               <LinearGradient colors={GRADIENTS.teal as any} style={styles.vehicleIconBox}>
                 <Ionicons name="car-sport" size={20} color="#fff" />
@@ -246,30 +246,30 @@ export default function PostRideScreen({ navigation }) {
                 </Text>
               </View>
               {driverVehicles.length > 1 && <Ionicons name="chevron-down" size={16} color={COLORS.gray} />}
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {/* ── Route ────────────────────────────────────────────────────── */}
           <Text style={styles.sectionTitle}>Route</Text>
           <View style={styles.routeRow}>
-            <TouchableOpacity style={styles.cityBtn} onPress={() => setCityModal('from')}>
+            <Pressable style={styles.cityBtn} onPress={() => setCityModal('from')}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
               <Text style={[styles.cityBtnText, !form.from && styles.placeholder]}>{form.from || 'Leaving From?'}</Text>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { update('from', form.to); update('to', form.from); }} style={styles.swapBtn}>
+            </Pressable>
+            <Pressable onPress={() => { update('from', form.to); update('to', form.from); }} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cityBtn} onPress={() => setCityModal('to')}>
+            </Pressable>
+            <Pressable style={styles.cityBtn} onPress={() => setCityModal('to')}>
               <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
               <Text style={[styles.cityBtnText, !form.to && styles.placeholder]}>{form.to || 'Going To?'}</Text>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* ── Route Matching Suggestions ────────────────────────────────── */}
           {matchCount > 0 && (
-            <TouchableOpacity 
+            <Pressable 
               style={styles.matchBanner} 
               onPress={() => navigation.navigate('DriverApp', {
                 screen: 'DriverRequestsTab',
@@ -286,7 +286,7 @@ export default function PostRideScreen({ navigation }) {
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           )}
 
           {/* ── Multi-Stop Toggle ──────────────────────────────────────────── */}
@@ -323,7 +323,7 @@ export default function PostRideScreen({ navigation }) {
                     <View style={styles.stopLine} />
                   </View>
                   <View style={styles.stopFields}>
-                    <TouchableOpacity
+                    <Pressable
                       style={styles.stopCityBtn}
                       onPress={() => setCityModal({ type: 'stop', idx })}
                     >
@@ -332,23 +332,23 @@ export default function PostRideScreen({ navigation }) {
                         {stop.city || 'Select stop city'}
                       </Text>
                       <Ionicons name="chevron-down" size={14} color={COLORS.gray} />
-                    </TouchableOpacity>
+                    </Pressable>
                     <TimePickerInput
                       label="Arrival Time at Stop"
                       value={stop.arrivalTime}
                       onChange={(v) => updateStop(idx, 'arrivalTime', v)}
                     />
                   </View>
-                  <TouchableOpacity style={styles.stopRemoveBtn} onPress={() => removeStop(idx)}>
+                  <Pressable style={styles.stopRemoveBtn} onPress={() => removeStop(idx)}>
                     <Ionicons name="close-circle" size={22} color={COLORS.danger} />
-                  </TouchableOpacity>
+                  </Pressable>
                 </View>
               ))}
 
-              <TouchableOpacity style={styles.addStopBtn} onPress={addStop}>
+              <Pressable style={styles.addStopBtn} onPress={addStop}>
                 <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
                 <Text style={styles.addStopText}>Add Intermediate Stop</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
 
@@ -419,16 +419,16 @@ export default function PostRideScreen({ navigation }) {
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Vehicle</Text>
-              <TouchableOpacity onPress={() => setVehiclePickerOpen(false)}>
+              <Pressable onPress={() => setVehiclePickerOpen(false)}>
                 <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
             <FlatList
               data={driverVehicles}
               keyExtractor={item => item.id}
               contentContainerStyle={{ padding: 16 }}
               renderItem={({ item }) => (
-                <TouchableOpacity
+                <Pressable
                   style={[styles.vehiclePickerItem, selectedVehicle?.id === item.id && styles.vehiclePickerItemActive]}
                   onPress={() => { setSelectedVehicle(item); setVehiclePickerOpen(false); }}
                 >
@@ -438,7 +438,7 @@ export default function PostRideScreen({ navigation }) {
                     <Text style={styles.vehiclePickerDetail}>{item.plateNumber} • {item.totalSeats} seats</Text>
                   </View>
                   {selectedVehicle?.id === item.id && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
-                </TouchableOpacity>
+                </Pressable>
               )}
             />
           </View>
