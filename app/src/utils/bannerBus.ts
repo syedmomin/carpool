@@ -5,7 +5,7 @@
  */
 export interface BannerPayload {
   title:    string;
-  message:  string;
+  message?: string;
   kind?:    string;            // NotificationKind / NotificationType
   rideId?:  string;
   bookingId?: string;

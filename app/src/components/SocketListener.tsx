@@ -144,14 +144,11 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         incrementUnreadCount();
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRideInBookings(data.rideId, { status: 'IN_PROGRESS' });
-          showBanner({
-            title: 'Your ride has started',
-            message: `${routeOf(data) || 'Your trip'}. Your driver is on the way.`,
-            kind: 'RIDE_STARTED', rideId: data.rideId,
-            onPress: () => navigationRef.current?.navigate('RideTracking', { rideId: data.rideId }),
-          });
-          // Don't yank the user out of what they're doing — let them tap the
-          // banner to open live tracking.
+          // Navigate the passenger directly to the live tracking screen.
+          // A short delay lets any pending navigation settle before pushing RideTracking.
+          setTimeout(() => {
+            navigationRef.current?.navigate('RideTracking', { rideId: data.rideId });
+          }, 300);
         }
         if (currentUser.role === 'DRIVER') {
           socketData.patchRide(data.rideId, { status: 'IN_PROGRESS' });
@@ -163,7 +160,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRideInBookings(data.rideId, { status: 'COMPLETED' });
           socketData.loadMyBookings(true);
-          navigationRef.current?.navigate('PassengerApp', { screen: 'PassengerHomeTab' });
+          // Let RideTrackingScreen handle navigation on completion to avoid double-navigate
           setTimeout(() => setCompletedRide({ ...data, targetRole: 'DRIVER' }), 600);
         }
         if (currentUser.role === 'DRIVER') {
@@ -236,14 +233,11 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         if (currentUser.role === 'PASSENGER') {
           incrementUnreadCount();
           socketData.upsertBidInRequest(data.scheduleRequestId, data.bid);
-          
-          // InDrive-style Bid Popup for Passenger
-          showModal({
-            type: 'success',
-            title: 'New bid received',
-            message: `Driver ${data.bid?.driver?.name} offered Rs ${data.bid?.pricePerSeat} for your ${data.fromCity} → ${data.toCity} trip.`,
-            confirmText: 'View Bids',
-            onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestDetail', params: { requestId: data.scheduleRequestId } }),
+          showBanner({
+            title: 'You have a new offer!',
+            message: `${data.bid?.driver?.name} offered Rs ${data.bid?.pricePerSeat}/seat for ${data.fromCity} → ${data.toCity}.`,
+            kind: 'BID_PLACED',
+            onPress: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestsTab' }),
           });
         }
       },
@@ -259,12 +253,11 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           incrementUnreadCount();
           socketData.removeOpenRequest(data.scheduleRequestId);
           socketData.loadMyRides(true);
-          showModal({
-            type: 'success',
-            title: 'Bid accepted',
-            message: `Your bid for ${data.fromCity} → ${data.toCity} on ${data.date} was accepted. A ride has been created for you.`,
-            confirmText: 'View My Rides',
-            onConfirm: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
+          showBanner({
+            title: 'Your offer was accepted!',
+            message: `${data.fromCity} → ${data.toCity} on ${data.date}. A ride has been created.`,
+            kind: 'BID_ACCEPTED',
+            onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
           });
         }
       },
@@ -334,6 +327,19 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       // creates, so the bell badge stays correct for all types (reminders, new
       // requests, etc.) even if no type-specific handler bumps it.
       onNotificationNew: () => refreshUnreadCount(),
+
+      onNewChatMessage: (data: any) => {
+        const currentRoute = navigationRef.current?.getCurrentRoute?.()?.name;
+        if (currentRoute === 'Chat') return; // already visible in ChatScreen
+        const senderName = data.sender?.name || 'Someone';
+        const preview = data.content ? (data.content.length > 50 ? data.content.slice(0, 50) + '…' : data.content) : 'Sent you a message';
+        showBanner({
+          title: `💬 ${senderName}`,
+          message: preview,
+          kind: 'CHAT_MESSAGE',
+          onPress: () => navigationRef.current?.navigate('Chat', { bookingId: data.bookingId }),
+        });
+      },
     };
 
     // ── Connect first, THEN register listeners ────────────────────────────────
@@ -366,6 +372,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('REQUEST_ACCEPTED',   handlers.onRequestAccepted);
       socketService.on('REQUEST_CANCELLED',  handlers.onRequestCancelled);
       socketService.on('REQUEST_EXPIRED',    handlers.onRequestExpired);
+      socketService.on('CHAT_MESSAGE',        handlers.onNewChatMessage);
     });
 
     return () => {
@@ -393,6 +400,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('REQUEST_ACCEPTED',   handlers.onRequestAccepted);
       socketService.off('REQUEST_CANCELLED',  handlers.onRequestCancelled);
       socketService.off('REQUEST_EXPIRED',    handlers.onRequestExpired);
+      socketService.off('CHAT_MESSAGE',        handlers.onNewChatMessage);
     };
   }, [currentUser?.id]);
 

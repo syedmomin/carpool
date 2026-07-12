@@ -1,20 +1,20 @@
 ﻿import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable,
-  ActivityIndicator, TextInput, Modal, ScrollView,
+  ActivityIndicator, TextInput, Modal, ScrollView, Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState, RequestCardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, GradientHeader, EmptyState, RequestCardSkeleton, Avatar } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi, vehiclesApi } from '../../services/api';
 
-// â”€â”€â”€ Bid Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle }) {
+// â”€â”€â”€ Offer Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle }) {
   const { showToast } = useToast();
   const [price, setPrice]             = useState('');
   const [selectedVehicle, setVehicle] = useState<any>(null);
@@ -38,12 +38,15 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
       showToast('Please select a vehicle', 'warning'); return;
     }
     setSubmitting(true);
-    await onSubmit({
+    const errorMsg = await onSubmit({
       pricePerSeat: Number(price),
       vehicleId:    selectedVehicle.id,
       note:         note.trim() || undefined,
     });
     setSubmitting(false);
+    if (errorMsg) {
+      Alert.alert('Could Not Send Offer', errorMsg, [{ text: 'OK' }]);
+    }
   };
 
   return (
@@ -53,13 +56,13 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
           <Pressable>
             <View style={bm.sheet}>
               <View style={bm.handle} />
-              <Text style={bm.title}>Place Your Bid</Text>
+              <Text style={bm.title}>Make an Offer</Text>
 
               {/* Route + departure time from passenger */}
               <View style={bm.routeBox}>
                 <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={bm.routeText}>{request.fromCity} â†’ {request.toCity}</Text>
+                  <Text style={bm.routeText}>{request.fromCity} â†' {request.toCity}</Text>
                   <Text style={bm.dateText}>{request.date} Â· {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
                   {request.departureTime && request.departureTime !== '00:00' && (
                     <View style={bm.timeTag}>
@@ -91,7 +94,7 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
               {vehicles.length === 0 && (
                 <View style={bm.noVehicleBox}>
                   <Ionicons name="car-outline" size={22} color={COLORS.primary} />
-                  <Text style={bm.noVehicleText}>You need a registered vehicle before you can bid.</Text>
+                  <Text style={bm.noVehicleText}>You need a registered vehicle before you can make an offer.</Text>
                   <Pressable style={bm.addVehicleBtn} onPress={() => { onClose(); onAddVehicle?.(); }}>
                     <Ionicons name="add-circle-outline" size={16} color="#fff" />
                     <Text style={bm.addVehicleBtnText}>Add a Vehicle</Text>
@@ -142,7 +145,7 @@ function BidModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle 
                   <LinearGradient colors={GRADIENTS.primary as any} style={bm.submitGrad}>
                     {submitting
                       ? <ActivityIndicator color="#fff" size="small" />
-                      : <><Ionicons name="send-outline" size={16} color="#fff" /><Text style={bm.submitText}>Submit Bid</Text></>
+                      : <><Ionicons name="send-outline" size={16} color="#fff" /><Text style={bm.submitText}>Submit Offer</Text></>
                     }
                   </LinearGradient>
                 </Pressable>
@@ -187,10 +190,10 @@ export default function OpenRequestsScreen({ navigation }) {
     await loadOpenRequests(true, city);
   }, []);
 
-  const handlePlaceBid = async (bidData: any) => {
+  const handlePlaceBid = async (bidData: any): Promise<string | undefined> => {
     const { data, error } = await scheduleRequestsApi.placeBid(bidTarget.id, bidData);
-    if (error) { showToast(error, 'error'); return; }
-    showToast('Bid placed! Waiting for passenger to accept.', 'success');
+    if (error) return error;
+    showToast('Offer sent! Waiting for passenger to accept.', 'success');
     setBidTarget(null);
     // Optimistic update; BID_PLACED socket will reconcile with real id
     upsertOwnBid(bidTarget.id, {
@@ -207,15 +210,15 @@ export default function OpenRequestsScreen({ navigation }) {
     const myBid = (request.bids || [])[0];
     if (!myBid) return;
     showModal({
-      type: 'danger', title: 'Withdraw Bid?',
-      message: `Withdraw your bid of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} â†’ ${request.toCity}?`,
-      confirmText: 'Withdraw', cancelText: 'Keep Bid',
+      type: 'danger', title: 'Withdraw Offer?',
+      message: `Withdraw your offer of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} → ${request.toCity}?`,
+      confirmText: 'Withdraw', cancelText: 'Keep Offer',
       onConfirm: async () => {
         setWithdrawing(request.id);
         const { error } = await scheduleRequestsApi.withdrawBid(request.id, myBid.id);
         setWithdrawing(null);
         if (error) { showToast(error, 'error'); return; }
-        showToast('Bid withdrawn', 'info');
+        showToast('Offer withdrawn', 'info');
         patchOpenRequest(request.id, { bids: [] });
       },
     });
@@ -238,7 +241,7 @@ export default function OpenRequestsScreen({ navigation }) {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.route}>{item.fromCity} â†’ {item.toCity}</Text>
+            <Text style={styles.route}>{item.fromCity} â†' {item.toCity}</Text>
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{item.date}</Text>
@@ -261,9 +264,7 @@ export default function OpenRequestsScreen({ navigation }) {
 
         {/* Passenger */}
         <View style={styles.passengerRow}>
-          <View style={styles.passengerAvatar}>
-            <Text style={styles.passengerAvatarText}>{item.passenger?.name?.[0] || 'P'}</Text>
-          </View>
+          <Avatar name={item.passenger?.name || 'P'} uri={item.passenger?.avatar} size={32} />
           <Text style={styles.passengerName}>{item.passenger?.name || 'Passenger'}</Text>
         </View>
 
@@ -287,7 +288,7 @@ export default function OpenRequestsScreen({ navigation }) {
               color={myBid.status === 'REJECTED' ? COLORS.danger : COLORS.primary}
             />
             <Text style={[styles.myBidText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
-              Your bid: Rs {myBid.pricePerSeat}/seat
+              Your offer: Rs {myBid.pricePerSeat}/seat
             </Text>
             <View style={[
               styles.bidStatusDot,
@@ -296,7 +297,7 @@ export default function OpenRequestsScreen({ navigation }) {
               : styles.bidDotPending
             ]} />
             <Text style={[styles.bidStatusText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
-              {myBid.status === 'ACCEPTED' ? 'Accepted' : myBid.status === 'REJECTED' ? 'Declined, bid again?' : 'Pending'}
+              {myBid.status === 'ACCEPTED' ? 'Accepted' : myBid.status === 'REJECTED' ? 'Declined, offer again?' : 'Pending'}
             </Text>
           </View>
         )}
@@ -308,14 +309,14 @@ export default function OpenRequestsScreen({ navigation }) {
               <Pressable style={styles.bidBtn} onPress={() => setBidTarget(item)}>
                 <LinearGradient colors={GRADIENTS.primary as any} style={styles.bidBtnGrad}>
                   <Ionicons name="send-outline" size={15} color="#fff" />
-                  <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Bid Again' : 'Place Bid'}</Text>
+                  <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Offer Again' : 'Make Offer'}</Text>
                 </LinearGradient>
               </Pressable>
             ) : myBid.status === 'PENDING' ? (
               <>
                 <Pressable style={styles.updateBtn} onPress={() => setBidTarget(item)}>
                   <Ionicons name="create-outline" size={14} color={COLORS.primary} />
-                  <Text style={styles.updateBtnText}>Update Bid</Text>
+                  <Text style={styles.updateBtnText}>Update Offer</Text>
                 </Pressable>
                 <Pressable style={styles.withdrawBtn} onPress={() => handleWithdraw(item)} disabled={isWithdrawing}>
                   {isWithdrawing
@@ -344,7 +345,7 @@ export default function OpenRequestsScreen({ navigation }) {
       <GradientHeader
         colors={GRADIENTS.teal as any}
         title="Passenger Requests"
-        subtitle="Browse and bid on schedule requests"
+        subtitle="Browse and make offers on schedule requests"
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
 
@@ -397,7 +398,7 @@ export default function OpenRequestsScreen({ navigation }) {
         />
       )}
 
-      <BidModal
+      <OfferModal
         visible={!!bidTarget}
         request={bidTarget}
         vehicles={vehicles}
@@ -443,10 +444,8 @@ const styles = StyleSheet.create({
   badgeTextOpen:{ color: COLORS.secondary },
   badgeTextAccepted: { color: '#0369a1' },
 
-  passengerRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  passengerAvatar:     { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.primary + '20', alignItems: 'center', justifyContent: 'center' },
-  passengerAvatarText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
-  passengerName:       { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  passengerRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  passengerName: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
 
   noteRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: COLORS.lightGray, borderRadius: 8, padding: 8, marginBottom: 8 },
   noteText: { flex: 1, fontSize: 12, color: COLORS.gray, fontStyle: 'italic' },

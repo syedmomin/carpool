@@ -47,9 +47,10 @@ interface DatePickerInputProps {
   value?: string | Date | null;
   onChange: (d: string) => void;
   minDate?: Date;
+  maxDate?: Date;
   placeholder?: string;
 }
-export function DatePickerInput({ label, value, onChange, minDate, placeholder = 'Select date' }: DatePickerInputProps) {
+export function DatePickerInput({ label, value, onChange, minDate, maxDate, placeholder = 'Select date' }: DatePickerInputProps) {
   const [show, setShow] = useState(false);
   const [tempDate, setTempDate] = useState(value ? new Date(value) : new Date());
 
@@ -92,6 +93,7 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
           mode="date"
           display="default"
           minimumDate={minDate}
+          maximumDate={maxDate}
           onChange={handleChange}
         />
       )}
@@ -104,6 +106,7 @@ export function DatePickerInput({ label, value, onChange, minDate, placeholder =
             mode="date"
             display="spinner"
             minimumDate={minDate}
+            maximumDate={maxDate}
             onChange={handleChange}
             style={{ height: 200 }}
           />

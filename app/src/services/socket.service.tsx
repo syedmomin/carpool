@@ -92,6 +92,18 @@ class SocketService {
       this._emitConn(false);
     });
 
+    this.socket.on('reconnect', (attempt) => {
+      console.log('[Socket] Reconnected after', attempt, 'attempt(s)');
+    });
+
+    this.socket.on('reconnect_attempt', (attempt) => {
+      console.log('[Socket] Reconnect attempt', attempt);
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.warn('[Socket] Reconnect failed after all attempts');
+    });
+
     this.socket.on('pong', () => {
       // Server-side ping/pong logic
     });

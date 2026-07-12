@@ -34,7 +34,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
   const { showToast } = useToast();
 
   const today    = new Date();
-  const maxDate  = new Date(today.getFullYear(), today.getMonth() + 3, today.getDate());
+  const maxDate  = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
   const [viewYear, setViewYear]     = useState(today.getFullYear());
   const [viewMonth, setViewMonth]   = useState(today.getMonth());
@@ -103,7 +103,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
       showToast(parseApiError(error), 'error');
     } else {
       haptics.success();
-      showToast('Request posted! Drivers will bid soon.', 'success', 4000);
+      showToast('Request posted! Drivers will send offers soon.', 'success', 4000);
       setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
       navigation.navigate('MyRequests');
     }
@@ -114,7 +114,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
       <GradientHeader
         colors={GRADIENTS.primary as any}
         title="Post a Request"
-        subtitle="Drivers will bid with their price"
+        subtitle="Drivers will make offers on your request"
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
@@ -248,7 +248,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
           <Text style={styles.infoText}>
-            Drivers will see your request and bid with their price. Accept the best offer — a ride will be instantly created and your seat confirmed.
+            Drivers will see your request and send offers with their price. Accept the best offer — a ride will be instantly created and your seat confirmed.
           </Text>
         </View>
 

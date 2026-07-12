@@ -10,6 +10,7 @@ import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY } from '../../tasks/locationTa
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, Avatar } from '../../components';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ridesApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useApp } from '../../context/AppContext';
@@ -93,6 +94,7 @@ export default function RideTrackingScreen({ route, navigation }) {
   const { showToast }  = useToast();
   const { showModal }  = useGlobalModal();
   const { currentUser } = useApp();
+  const insets = useSafeAreaInsets();
   const driver = isDriverRole(currentUser?.role);
 
   const [ride, setRide]                       = useState<any>(null);
@@ -418,7 +420,7 @@ export default function RideTrackingScreen({ route, navigation }) {
       )}
 
       {/* â”€â”€ Top Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <View style={s.header}>
+      <View style={[s.header, { top: insets.top + 12 }]}>
         <Pressable style={s.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
         </Pressable>
@@ -437,7 +439,7 @@ export default function RideTrackingScreen({ route, navigation }) {
       </View>
 
       {/* â”€â”€ Bottom Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <View style={s.panel}>
+      <View style={[s.panel, { paddingBottom: insets.bottom + 16 }]}>
         {/* Gradient accent line at top of panel */}
         <LinearGradient
           colors={[COLORS.primary, '#7c3aed']}
@@ -479,7 +481,7 @@ export default function RideTrackingScreen({ route, navigation }) {
               scrollEnabled={confirmedBookings.length > 2}
               renderItem={({ item }) => (
                 <View style={s.passengerRow}>
-                  <Avatar name={item.passenger?.name} size={42} />
+                  <Avatar name={item.passenger?.name} uri={item.passenger?.avatar} size={42} />
                   <View style={s.pInfo}>
                     <Text style={s.pName}>{item.passenger?.name}</Text>
                     <Text style={s.pMeta}>
@@ -518,7 +520,7 @@ export default function RideTrackingScreen({ route, navigation }) {
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={s.driverCardGrad}
             >
-              <Avatar name={ride?.driver?.name} size={58} />
+              <Avatar name={ride?.driver?.name} uri={ride?.driver?.avatar} size={58} />
               <View style={s.driverMeta}>
                 <Text style={s.driverName}>{ride?.driver?.name || 'Your Driver'}</Text>
                 <Stars rating={driverRating} />

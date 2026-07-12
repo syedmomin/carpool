@@ -13,6 +13,7 @@ import { useGlobalModal } from '../../context/GlobalModalContext';
 import { parseApiError } from '../../utils/errorMessages';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { vehiclesApi, scheduleRequestsApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
 
@@ -27,6 +28,7 @@ export default function PostRideScreen({ navigation }) {
   const { postRide, currentUser } = useApp();
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
+  const insets = useSafeAreaInsets();
 
   const [driverVehicles, setDriverVehicles] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -46,6 +48,7 @@ export default function PostRideScreen({ navigation }) {
   }, []));
 
   const [vehiclePickerOpen, setVehiclePickerOpen] = useState(false);
+  const maxRideDate = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
   const [form, setForm] = useState({
     from: '', to: '', date: '', departureTime: '', arrivalTime: '',
@@ -282,7 +285,7 @@ export default function PostRideScreen({ navigation }) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.matchTitle}>{matchCount} passengers waiting!</Text>
-                  <Text style={styles.matchSub}>Found requests matching your route. View & bid now?</Text>
+                  <Text style={styles.matchSub}>Found requests matching your route. View & make offers?</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
               </LinearGradient>
@@ -359,6 +362,7 @@ export default function PostRideScreen({ navigation }) {
             value={form.date}
             onChange={v => update('date', v)}
             minDate={new Date()}
+            maxDate={maxRideDate}
           />
           <TimePickerInput
             label="Departure Time *"
@@ -417,7 +421,7 @@ export default function PostRideScreen({ navigation }) {
         {/* ── Vehicle Picker Modal ───────────────────────────────────────── */}
         <Modal visible={vehiclePickerOpen} animationType="slide" onRequestClose={() => setVehiclePickerOpen(false)}>
           <View style={styles.modal}>
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { paddingTop: insets.top + 16 }]}>
               <Text style={styles.modalTitle}>Select Vehicle</Text>
               <Pressable onPress={() => setVehiclePickerOpen(false)}>
                 <Ionicons name="close" size={24} color={COLORS.textPrimary} />

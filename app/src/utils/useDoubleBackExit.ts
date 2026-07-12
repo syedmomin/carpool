@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { BackHandler, Platform, ToastAndroid } from 'react-native';
+import { BackHandler, Platform } from 'react-native';
+import { useToast } from '../context/ToastContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 
@@ -9,6 +10,7 @@ import { useCallback } from 'react';
  */
 export function useDoubleBackExit(enabled = true) {
   const lastPress = useRef(0);
+  const { showToast } = useToast();
 
   useFocusEffect(
     useCallback(() => {
@@ -21,12 +23,12 @@ export function useDoubleBackExit(enabled = true) {
           return true;
         }
         lastPress.current = now;
-        ToastAndroid.show('Press back again to exit', ToastAndroid.SHORT);
+        showToast('Press back again to exit', 'info');
         return true; // swallow the first press
       };
 
       const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
       return () => sub.remove();
-    }, [enabled])
+    }, [enabled, showToast])
   );
 }

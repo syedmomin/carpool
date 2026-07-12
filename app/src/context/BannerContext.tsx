@@ -91,7 +91,7 @@ export function BannerProvider({ children }: { children: React.ReactNode }) {
             </View>
             <View style={styles.content}>
               <Text style={styles.title} numberOfLines={1}>{banner.title}</Text>
-              <Text style={styles.message} numberOfLines={2}>{banner.message}</Text>
+              {!!banner.message && <Text style={styles.message} numberOfLines={2}>{banner.message}</Text>}
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.gray} style={{ alignSelf: 'center' }} />
           </Pressable>

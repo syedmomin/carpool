@@ -22,15 +22,17 @@ export default function DriverHomeScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => {
     loadMyRides();
-    setLoadingVehicles(true);
-    vehiclesApi.myVehicles().then(({ data }) => {
-      if (data?.data) {
-        const active = data.data.find((v: any) => v.isActive) || data.data[0] || null;
-        setMyVehicle(active);
-      }
-      setLoadingVehicles(false);
-    }).catch(() => setLoadingVehicles(false));
-  }, [loadMyRides]));
+    if (!myVehicle) {
+      setLoadingVehicles(true);
+      vehiclesApi.myVehicles().then(({ data }) => {
+        if (data?.data) {
+          const active = data.data.find((v: any) => v.isActive) || data.data[0] || null;
+          setMyVehicle(active);
+        }
+        setLoadingVehicles(false);
+      }).catch(() => setLoadingVehicles(false));
+    }
+  }, [loadMyRides, myVehicle]));
 
   const todayStr = getTodayStr();
   const todayRides     = myRides.filter(r => r.date === todayStr);
@@ -53,7 +55,7 @@ export default function DriverHomeScreen({ navigation }) {
     { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
     { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRidesTab', desc: 'Manage bookings' },
     { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehiclesTab', desc: 'Vehicle details' },
-    { icon: 'list', label: 'Ride Requests', gradient: GRADIENTS.secondary, screen: 'DriverRequestsTab', desc: 'Bid on requests' },
+    { icon: 'list', label: 'Ride Requests', gradient: GRADIENTS.secondary, screen: 'DriverRequestsTab', desc: 'Make offers on requests' },
   ];
 
   return (
@@ -65,7 +67,7 @@ export default function DriverHomeScreen({ navigation }) {
 
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
-            <Avatar name={currentUser?.name} size={52} color="rgba(255,255,255,0.3)" />
+            <Avatar name={currentUser?.name} uri={currentUser?.avatar} size={52} color="rgba(255,255,255,0.3)" />
             <View style={styles.headerInfo}>
               <Text style={styles.greeting}>Good day,</Text>
               <Text style={styles.userName}>{currentUser?.name}</Text>
@@ -254,8 +256,8 @@ const styles = StyleSheet.create({
   body: { padding: 20 },
   sectionTitle: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 14 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
-  actionCard: { width: '47%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, ...CURVE },
-  actionGrad: { padding: 16, minHeight: 120, justifyContent: 'flex-start' },
+  actionCard: { width: '47%', aspectRatio: 1.05, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, ...CURVE },
+  actionGrad: { flex: 1, padding: 16, justifyContent: 'flex-start' },
   actionIconBox: { width: 52, height: 52, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   actionLabel: { fontSize: 14, fontWeight: '800', color: '#fff' },
   actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },

@@ -8,7 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge, BookingCardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge, BookingCardSkeleton, Avatar } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -299,6 +299,8 @@ export default function BookingHistoryScreen({ navigation }) {
         return (
           <Swipeable renderRightActions={renderRightActions} overshootRight={false} friction={2}>
             <View style={styles.card}>
+
+                {/* Active ride banner */}
                 {isInProgress && isActive && (
                     <LinearGradient colors={GRADIENTS.teal as any} style={styles.activeBanner}>
                         <Ionicons name="navigate-outline" size={13} color="#fff" />
@@ -309,110 +311,127 @@ export default function BookingHistoryScreen({ navigation }) {
                         </Pressable>
                     </LinearGradient>
                 )}
-                <View style={styles.cardHeader}>
-                    <View style={styles.routeCol}>
-                        <View style={styles.routeRow}>
-                            <View style={styles.cityDot} />
-                            <Text style={styles.city}>{fromCity}</Text>
-                        </View>
-                        <View style={styles.routeLine2} />
-                        <View style={styles.routeRow}>
-                            <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
-                            <Text style={styles.city}>{toCity}</Text>
-                        </View>
-                    </View>
-                    <View style={styles.headerRight}>
-                        <StatusBadge status={item.status} />
-                        <Text style={styles.dateText}>{ride.date}</Text>
-                    </View>
+
+                {/* ── Status + Date ── */}
+                <View style={styles.cardTopRow}>
+                    <StatusBadge status={item.status} />
+                    <Text style={styles.cardDate}>{ride.date}</Text>
                 </View>
-                <View style={styles.detailRow}>
-                    <View style={styles.detailItem}>
-                        <View>
-                            <Text style={styles.detailLabel}>Driver</Text>
-                            <Text style={styles.detailValue}>{driverName}</Text>
-                            {!!driverPhone && <Text style={styles.detailSub}>{driverPhone}</Text>}
-                        </View>
+
+                {/* ── Route ── */}
+                <View style={styles.routeBlock}>
+                    <View style={styles.routeTrack}>
+                        <View style={[styles.trackDot, { backgroundColor: COLORS.primary }]} />
+                        <View style={styles.trackLine} />
+                        <View style={[styles.trackDot, { backgroundColor: COLORS.secondary }]} />
                     </View>
-                    <View style={styles.detailDivider} />
-                    <View style={[styles.detailItem, { flexDirection: 'column', alignItems: 'flex-end', gap: 6 }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.detailValue}>{vehicleLabel}</Text>
-                            <Ionicons name="car-outline" size={14} color={COLORS.teal} />
+                    <View style={styles.routeCities}>
+                        <Text style={styles.routeCity}>{fromCity}</Text>
+                        <Text style={styles.routeCity}>{toCity}</Text>
+                    </View>
+                    <View style={styles.routeTimes}>
+                        <View style={styles.routeTimeCell}>
+                            <Text style={styles.routeLabel}>Pickup</Text>
+                            <Text style={styles.routeTime}>{ride.departureTime}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.detailSub}>{ride.departureTime}</Text>
-                            <Ionicons name="time-outline" size={14} color={COLORS.gray} />
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.detailSub}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
-                            <Ionicons name="people-outline" size={14} color={COLORS.gray} />
+                        <View style={styles.routeTimeCell}>
+                            <Text style={styles.routeLabel}>Est. Arrival</Text>
+                            <Text style={styles.routeTime}>{ride.arrivalTime || '—'}</Text>
                         </View>
                     </View>
                 </View>
-                {item.boardingCity && item.boardingCity !== ride.from && (
-                    <View style={styles.chipsRow}>
-                        <View style={[styles.chip, { backgroundColor: '#eff6ff' }]}>
+
+                {/* ── Meta chips ── */}
+                <View style={styles.metaRow}>
+                    <View style={styles.metaChip}>
+                        <Ionicons name="people-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.metaChipText}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
+                    </View>
+                    <View style={styles.metaChip}>
+                        <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.metaChipText}>{ride.departureTime}</Text>
+                    </View>
+                    {item.boardingCity && item.boardingCity !== ride.from && (
+                        <View style={[styles.metaChip, { backgroundColor: '#eff6ff' }]}>
                             <Ionicons name="git-branch-outline" size={12} color={COLORS.primary} />
-                            <Text style={[styles.chipText, { color: COLORS.primary }]}>Partial Route Segment</Text>
+                            <Text style={[styles.metaChipText, { color: COLORS.primary }]}>Partial</Text>
                         </View>
+                    )}
+                </View>
+
+                {/* ── Driver + Amount ── */}
+                <View style={styles.driverAmountRow}>
+                    <Avatar name={driverName} uri={ride.driver?.avatar} size={44} />
+                    <View style={styles.driverMeta}>
+                        <Text style={styles.driverName}>{driverName}</Text>
+                        <Text style={styles.driverVehicle}>{vehicleLabel}</Text>
+                        {!!driverPhone && (
+                            <View style={styles.phoneRow}>
+                                <Ionicons name="call-outline" size={11} color={COLORS.gray} />
+                                <Text style={styles.driverPhone}>{driverPhone}</Text>
+                            </View>
+                        )}
                     </View>
-                )}
-                <View style={styles.cardFooter}>
-                    <View>
+                    <View style={styles.amountBox}>
                         <Text style={styles.amountLabel}>Total Paid</Text>
                         <Text style={styles.amountValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
                     </View>
-                    <View style={styles.footerActions}>
+                </View>
+
+                {/* ── Action buttons ── */}
+                {(isActive || canReview) && (
+                    <View style={styles.actionsRow}>
                         {isInProgress && isActive && (
-                            <Pressable style={styles.joinMapBtn}
+                            <Pressable style={styles.actionBtnPrimary}
                                 onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}>
-                                <LinearGradient colors={GRADIENTS.primary as any} style={styles.joinMapGrad}>
-                                    <Ionicons name="map" size={16} color="#fff" />
-                                    <Text style={styles.joinMapText}>JOIN LIVE MAP</Text>
+                                <LinearGradient colors={GRADIENTS.primary as any} style={styles.actionBtnGrad}>
+                                    <Ionicons name="map" size={14} color="#fff" />
+                                    <Text style={styles.actionBtnPrimaryText}>Live Map</Text>
                                 </LinearGradient>
                             </Pressable>
                         )}
                         {isInProgress && (
-                            <Pressable style={styles.sosBtn} onPress={() => setSosVisible(true)}>
-                                <Ionicons name="warning-outline" size={15} color="#ef4444" />
-                                <Text style={styles.sosBtnText}>SOS</Text>
-                            </Pressable>
-                        )}
-                        {isActive && !isInProgress && (
-                            <Pressable style={[styles.cancelBtn, isCancelling && { opacity: 0.5 }]}
-                                onPress={() => confirmCancel(item)} disabled={isCancelling}>
-                                {isCancelling
-                                    ? <ActivityIndicator size="small" color={COLORS.danger} />
-                                    : <><Ionicons name="close-circle-outline" size={16} color={COLORS.danger} /><Text style={styles.cancelBtnText}>Cancel</Text></>
-                                }
-                            </Pressable>
-                        )}
-                        {isActive && !isInProgress && seatsLeft > 0 && (
-                            <Pressable style={styles.addSeatsBtn} onPress={() => { setAddCount(1); setAddTarget(item); }}>
-                                <Ionicons name="add-circle-outline" size={16} color={COLORS.primary} />
-                                <Text style={styles.addSeatsText}>Add seats</Text>
+                            <Pressable style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => setSosVisible(true)}>
+                                <Ionicons name="warning-outline" size={14} color="#ef4444" />
+                                <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>SOS</Text>
                             </Pressable>
                         )}
                         {isActive && (
-                            <Pressable style={styles.chatBtn}
+                            <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
                                 onPress={() => navigation.navigate('Chat', {
                                     bookingId: item.id,
                                     otherUser: ride.driver,
                                     rideInfo: { label: `${ride.fromCity} → ${ride.toCity}` },
                                 })}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={15} color={COLORS.primary} />
-                                <Text style={styles.chatBtnText}>Chat</Text>
+                                <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLORS.primary} />
+                                <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Chat</Text>
+                            </Pressable>
+                        )}
+                        {isActive && !isInProgress && seatsLeft > 0 && (
+                            <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
+                                onPress={() => { setAddCount(1); setAddTarget(item); }}>
+                                <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
+                                <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Add Seats</Text>
+                            </Pressable>
+                        )}
+                        {isActive && !isInProgress && (
+                            <Pressable style={[styles.actionBtn, styles.actionBtnDanger, isCancelling && { opacity: 0.5 }]}
+                                onPress={() => confirmCancel(item)} disabled={isCancelling}>
+                                {isCancelling
+                                    ? <ActivityIndicator size="small" color={COLORS.danger} />
+                                    : <><Ionicons name="close-circle-outline" size={14} color={COLORS.danger} /><Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text></>
+                                }
                             </Pressable>
                         )}
                         {canReview && (
-                            <Pressable style={styles.rateBtn} onPress={() => setReviewBooking(item)}>
-                                <Ionicons name="star-outline" size={15} color={COLORS.warning} />
-                                <Text style={styles.rateBtnText}>Rate Driver</Text>
+                            <Pressable style={[styles.actionBtn, styles.actionBtnGold]} onPress={() => setReviewBooking(item)}>
+                                <Ionicons name="star-outline" size={14} color="#d97706" />
+                                <Text style={[styles.actionBtnText, { color: '#d97706' }]}>Rate Driver</Text>
                             </Pressable>
                         )}
                     </View>
-                </View>
+                )}
+
             </View>
           </Swipeable>
         );
@@ -516,42 +535,48 @@ const styles = StyleSheet.create({
     addConfirm: { backgroundColor: COLORS.primary },
     addConfirmText: { color: '#fff', fontWeight: '800', fontSize: 15 },
     card: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
-    activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
+    activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
     activeBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },
     sosBannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
     sosBannerText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
-    routeCol: { flex: 1 },
-    routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    routeLine2: { width: 2, height: 12, backgroundColor: COLORS.border, marginLeft: 3, marginVertical: 2 },
-    cityDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary },
-    city: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-    headerRight: { alignItems: 'flex-end', gap: 6 },
-    dateText: { fontSize: 11, color: COLORS.gray, fontWeight: '600' },
-    detailRow: { flexDirection: 'row', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 14, padding: 12, marginBottom: 12 },
-    detailItem: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-    detailDivider: { width: 1, backgroundColor: COLORS.border, marginHorizontal: 8 },
-    detailLabel: { fontSize: 10, color: COLORS.gray, marginBottom: 2 },
-    detailValue: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
-    detailSub: { fontSize: 11, color: COLORS.gray, marginTop: 1 },
-    chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14, paddingHorizontal: 16 },
-    chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-    chipText: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12, paddingHorizontal: 16, paddingBottom: 14 },
-    amountLabel: { fontSize: 11, color: COLORS.gray },
-    amountValue: { fontSize: 20, fontWeight: '800', color: COLORS.primary },
-    footerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-    sosBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fff0f0', paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, borderWidth: 1, borderColor: '#ef444430' },
-    sosBtnText: { fontSize: 12, fontWeight: '800', color: '#ef4444' },
-    cancelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#fff0f0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger + '30' },
-    cancelBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.danger },
-    rateBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.warningLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.warning + '40' },
-    rateBtnText: { fontSize: 13, fontWeight: '700', color: '#d97706' },
-    chatBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary + '30' },
-    chatBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
-    joinMapBtn: { borderRadius: 10, overflow: 'hidden', marginLeft: 5 },
-    joinMapGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8 },
-    joinMapText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
+
+    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
+    cardDate: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
+
+    routeBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10, gap: 10 },
+    routeTrack: { alignItems: 'center', width: 12 },
+    trackDot: { width: 10, height: 10, borderRadius: 5 },
+    trackLine: { width: 2, height: 22, backgroundColor: COLORS.border, marginVertical: 3 },
+    routeCities: { flex: 1, justifyContent: 'space-between', gap: 14 },
+    routeCity: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
+    routeTimes: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 },
+    routeTimeCell: { alignItems: 'flex-end' },
+    routeLabel: { fontSize: 10, fontWeight: '600', color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 1 },
+    routeTime: { fontSize: 13, color: COLORS.textPrimary, fontWeight: '700' },
+
+    metaRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 14, flexWrap: 'wrap' },
+    metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+    metaChipText: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
+
+    driverAmountRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+    driverMeta: { flex: 1 },
+    driverName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+    driverVehicle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+    phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    driverPhone: { fontSize: 11, color: COLORS.gray },
+    amountBox: { alignItems: 'flex-end' },
+    amountLabel: { fontSize: 10, color: COLORS.gray, marginBottom: 2 },
+    amountValue: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
+
+    actionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4, flexWrap: 'wrap' },
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+    actionBtnText: { fontSize: 12, fontWeight: '700' },
+    actionBtnBlue: { backgroundColor: '#eff6ff', borderColor: COLORS.primary + '30' },
+    actionBtnDanger: { backgroundColor: '#fff0f0', borderColor: '#ef444430' },
+    actionBtnGold: { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning + '40' },
+    actionBtnPrimary: { borderRadius: 10, overflow: 'hidden' },
+    actionBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
+    actionBtnPrimaryText: { fontSize: 12, fontWeight: '800', color: '#fff' },
 });
 
 const rStyles = StyleSheet.create({

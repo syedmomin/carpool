@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState, Avatar } from '../../components';
 import { Skeleton, CardSkeleton, RequestCardSkeleton } from '../../components/Skeleton';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -40,11 +40,7 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
           {/* Gradient header with driver info */}
           <LinearGradient colors={GRADIENTS.primary as any} style={vm.header}>
             <View style={vm.headerContent}>
-              <View style={vm.avatarRing}>
-                <View style={vm.avatarInner}>
-                  <Text style={vm.avatarText}>{driver?.name?.[0] || 'D'}</Text>
-                </View>
-              </View>
+              <Avatar name={driver?.name || 'D'} uri={driver?.avatar} size={52} color="rgba(255,255,255,0.3)" />
               <View style={{ flex: 1 }}>
                 <Text style={vm.driverName}>{driver?.name || 'Driver'}</Text>
                 {driver?.rating > 0 ? (
@@ -216,7 +212,7 @@ export default function MyRequestsScreen({ navigation }) {
   const handleCancel = (req: any) => {
     showModal({
       type: 'danger', title: 'Cancel Request?',
-      message: `Cancel your ${req.fromCity} → ${req.toCity} request on ${req.date}? All pending bids will be removed.`,
+      message: `Cancel your ${req.fromCity} → ${req.toCity} request on ${req.date}? All pending offers will be removed.`,
       confirmText: 'Yes, Cancel', cancelText: 'No',
       onConfirm: async () => {
         const { error } = await scheduleRequestsApi.cancel(req.id);
@@ -229,7 +225,7 @@ export default function MyRequestsScreen({ navigation }) {
 
   const handleAccept = (req: any, bid: any) => {
     showModal({
-      type: 'primary', title: 'Accept Bid?',
+      type: 'primary', title: 'Accept Offer?',
       message: `Accept ${bid.driver?.name}'s offer of Rs ${bid.pricePerSeat}/seat for ${req.fromCity} → ${req.toCity}?\n\nA ride will be auto-created and your seat confirmed.`,
       confirmText: 'Accept & Book', cancelText: 'Not Now', icon: 'checkmark-circle-outline',
       onConfirm: async () => {
@@ -266,7 +262,7 @@ export default function MyRequestsScreen({ navigation }) {
     const { error } = await scheduleRequestsApi.rejectBid(req.id, bid.id);
     setActionBidId(null);
     if (error) { showToast(parseApiError(error), 'error'); return; }
-    showToast('Bid rejected', 'info');
+    showToast('Offer declined', 'info');
     // SocketListener will update context via BID_REJECTED; remove optimistically too
     patchRequest(req.id, {
       bids: (req.bids || []).filter((b: any) => b.id !== bid.id),
@@ -338,7 +334,7 @@ export default function MyRequestsScreen({ navigation }) {
             <View style={styles.bidsSectionHeader}>
               <Ionicons name="pricetags-outline" size={14} color={COLORS.primary} />
               <Text style={styles.bidsSectionTitle}>
-                {pendingBids.length} Bid{pendingBids.length > 1 ? 's' : ''} Received
+                {pendingBids.length} Offer{pendingBids.length > 1 ? 's' : ''} Received
               </Text>
             </View>
 
@@ -350,9 +346,7 @@ export default function MyRequestsScreen({ navigation }) {
                 <View key={bid.id} style={styles.bidCard}>
                   {/* Driver + Price row */}
                   <View style={styles.bidTopRow}>
-                    <View style={styles.bidAvatar}>
-                      <Text style={styles.bidAvatarText}>{bid.driver?.name?.[0] || 'D'}</Text>
-                    </View>
+                    <Avatar name={bid.driver?.name || 'D'} uri={bid.driver?.avatar} size={42} />
                     <View style={styles.bidDriverInfo}>
                       <Text style={styles.bidDriver}>{bid.driver?.name || 'Driver'}</Text>
                       {bid.driver?.rating > 0 && (
@@ -514,7 +508,7 @@ export default function MyRequestsScreen({ navigation }) {
                 icon={selectedTab === 'active' ? "calendar-outline" : "time-outline"}
                 title={selectedTab === 'active' ? "No Requests Yet" : "No Past Requests"}
                 subtitle={selectedTab === 'active'
-                  ? "Post a schedule request and drivers will bid with their prices."
+                  ? "Post a schedule request and drivers will send their offers."
                   : "Your past and cancelled requests will appear here."
                 }
                 action={selectedTab === 'active' ? { label: 'Post a Request', onPress: () => navigation.navigate('PostRequest') } : undefined}
@@ -561,8 +555,6 @@ const styles = StyleSheet.create({
   bidCard:          { backgroundColor: '#f8fafc', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: COLORS.border },
 
   bidTopRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
-  bidAvatar:        { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  bidAvatarText:    { fontSize: 17, fontWeight: '800', color: '#fff' },
   bidDriverInfo:    { flex: 1 },
   bidDriver:        { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
   ratingRow:        { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
@@ -621,9 +613,6 @@ const vm = StyleSheet.create({
   // Header
   header:        { paddingTop: 28, paddingBottom: 20, paddingHorizontal: 20 },
   headerContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
-  avatarRing:    { width: 58, height: 58, borderRadius: 29, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
-  avatarInner:   { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  avatarText:    { fontSize: 22, fontWeight: '900', color: '#fff' },
   driverName:    { fontSize: 18, fontWeight: '900', color: '#fff' },
   ratingRow:     { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   ratingText:    { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },

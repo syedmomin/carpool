@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import Toast from '../components/Toast';
+import React, { createContext, useContext, useCallback } from 'react';
+import { showGlobalBanner } from '../utils/bannerBus';
 
 export interface ToastContextState {
   showToast: (message: string, type?: 'success' | 'error' | 'warning' | 'info', duration?: number) => void;
@@ -7,32 +7,15 @@ export interface ToastContextState {
 
 const ToastContext = createContext<ToastContextState | null>(null);
 
-export function ToastProvider({ children }) {
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
-  const timerRef = useRef(null);
-
-  const showToast = useCallback((message, type = 'info', duration = 3500) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setToast({ visible: true, message, type });
-    timerRef.current = setTimeout(() => {
-      setToast(prev => ({ ...prev, visible: false }));
-    }, duration);
-  }, []);
-
-  const hideToast = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setToast(prev => ({ ...prev, visible: false }));
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', _duration?: number) => {
+    if (!message) return;
+    showGlobalBanner({ title: message, kind: type });
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <Toast
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type as any}
-        onHide={hideToast}
-      />
     </ToastContext.Provider>
   );
 }

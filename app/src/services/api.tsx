@@ -239,7 +239,7 @@ export const vehiclesApi = {
 
 // ─── Notifications ───────────────────────────────────────────────────────────
 export const notificationsApi = {
-  getAll: (page = 1, limit = 20) => request('GET', `/notifications?page=${page}&limit=${limit}`),
+  getAll: (page = 1, limit = 20) => request('GET', `/notifications?page=${page}&limit=${limit}&sortOrder=desc`),
   markRead: (id) => request('PUT', `/notifications/${id}/read`),
   markAllRead: () => request('PUT', '/notifications/read-all'),
 };

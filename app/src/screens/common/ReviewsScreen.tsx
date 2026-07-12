@@ -41,7 +41,7 @@ export default function ReviewsScreen({ navigation }) {
   const renderReview = ({ item }) => (
     <View style={styles.reviewCard}>
       <View style={styles.reviewHeader}>
-        <Avatar name={item.reviewer?.name} size={40} />
+        <Avatar name={item.reviewer?.name} uri={item.reviewer?.avatar} size={40} />
         <View style={styles.reviewerInfo}>
           <Text style={styles.reviewerName}>{item.reviewer?.name}</Text>
           <Text style={styles.reviewDate}>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useCallback, useEffect } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image, Linking, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,11 +17,15 @@ export default function RideBookingsScreen({ navigation, route }) {
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
 
   const fetchRide = useCallback(async () => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     setLoading(true);
     const { data, error } = await ridesApi.getMineById(rideId);
     setLoading(false);
+    fetchingRef.current = false;
     if (error) {
       showToast(error, 'error');
       navigation.goBack();
@@ -106,7 +110,7 @@ export default function RideBookingsScreen({ navigation, route }) {
     return (
       <View style={[styles.card, !isPending && { opacity: 0.8 }]}>
         <View style={styles.cardTop}>
-          <Avatar name={p.name} size={48} color={COLORS.primary} />
+          <Avatar name={p.name} uri={p.avatar} size={48} color={COLORS.primary} />
           <View style={styles.pInfo}>
             <Text style={styles.pName}>{p.name}</Text>
             <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} â€¢ Rs {item.totalAmount.toLocaleString()}</Text>

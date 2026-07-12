@@ -95,7 +95,7 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
 
       <View style={styles.rideFooter}>
         <View style={styles.driverInfo}>
-          <Avatar name={driver?.name || 'D'} size={34} style={{ marginRight: 8 }} />
+          <Avatar name={driver?.name || 'D'} uri={driver?.avatar} size={34} style={{ marginRight: 8 }} />
           <View>
             {/* Driver name + verified badge */}
             <View style={styles.driverNameRow}>

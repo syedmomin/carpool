@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, CURVE } from './theme';
@@ -34,6 +34,7 @@ function getInitials(name: string | undefined): string {
 
 interface AvatarProps {
   name?: string;
+  uri?: string;
   size?: number;
   /** If provided, overrides the gradient with a flat background color (backward compat). */
   color?: string;
@@ -44,6 +45,7 @@ interface AvatarProps {
 
 export const Avatar: React.FC<AvatarProps> = ({
   name,
+  uri,
   size = 48,
   color,
   onlineIndicator,
@@ -65,7 +67,9 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <View style={[styles.wrapper, style]}>
-      {color ? (
+      {uri ? (
+        <Image source={{ uri }} style={[styles.circle, circleStyle, { backgroundColor: COLORS.border }]} />
+      ) : color ? (
         // Flat color fallback for backward compat
         <View style={[styles.circle, circleStyle, { backgroundColor: color }]}>
           <Text style={[styles.initials, { fontSize }]}>{initials}</Text>

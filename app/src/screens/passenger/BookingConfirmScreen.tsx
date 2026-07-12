@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, GhostButton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, GhostButton, GradientHeader } from '../../components';
 import { haptics } from '../../utils/haptics';
 
 export default function BookingConfirmScreen({ navigation, route }) {
@@ -17,15 +16,6 @@ export default function BookingConfirmScreen({ navigation, route }) {
 
   const bookingId = '#BK' + Date.now().toString().slice(-6);
 
-  const checkScale = useSharedValue(0);
-  useEffect(() => {
-    checkScale.value = withSpring(1, { damping: 12, stiffness: 120 });
-  }, []);
-
-  const animatedCheckStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: checkScale.value }],
-  }));
-
   const TICKET_ROWS = [
     { label: 'Date',         value: ride?.date ?? 'N/A',                                                           icon: 'calendar-outline' },
     { label: 'Seats',        value: `${seats} seat(s)`,                                                            icon: 'people-outline' },
@@ -37,22 +27,11 @@ export default function BookingConfirmScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* Hero gradient header */}
-      <LinearGradient colors={GRADIENTS.primary as any} style={styles.heroGradient}>
-        <Animated.View style={[styles.checkOuter, animatedCheckStyle]}>
-          <View style={styles.checkInner}>
-            <Ionicons name={'checkmark-circle' as any} size={40} color={COLORS.primary} />
-          </View>
-        </Animated.View>
-
-        <Text style={styles.heroTitle}>Booking Sent! 🎉</Text>
-        <Text style={styles.heroSubtitle}>Driver will confirm your request soon</Text>
-
-        <View style={styles.pendingBadge}>
-          <Ionicons name={'time-outline' as any} size={12} color="#fff" />
-          <Text style={styles.pendingBadgeText}>Awaiting Confirmation</Text>
-        </View>
-      </LinearGradient>
+      <GradientHeader
+        title="Booking Sent!"
+        subtitle="Driver will confirm your request soon"
+        onBack={() => navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab' })}
+      />
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* Floating ticket card */}
@@ -155,57 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f7fa',
   },
 
-  /* Hero */
-  heroGradient: {
-    paddingTop: 60,
-    paddingBottom: 80,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  checkOuter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#fff',
-    marginTop: 16,
-    letterSpacing: 0.2,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 6,
-  },
-  pendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    marginTop: 14,
-  },
-  pendingBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
   /* Scroll body */
   body: {
     paddingHorizontal: 20,
@@ -217,7 +145,7 @@ const styles = StyleSheet.create({
   ticketCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
-    marginTop: -40,
+    marginTop: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1,

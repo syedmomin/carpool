@@ -143,8 +143,7 @@ export const SocketDataProvider = ({ children }: { children: React.ReactNode }) 
       const all: any[] = (data?.data?.data ?? data?.data ?? []).map(normalizeBooking);
       const active = all.filter(b =>
         b.status === 'PENDING' ||
-        b.status === 'CONFIRMED' ||
-        (b.status === 'CONFIRMED' && b.ride?.status === 'IN_PROGRESS')
+        b.status === 'CONFIRMED'
       );
       setMyBookings(active);
       setMyBookingsState({ loading: false, loaded: true, error: false });

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS, GRADIENTS, CURVE,
-  AmenityBadge, StarRating, PrimaryButton,
+  StarRating, PrimaryButton,
   Avatar, VerifiedBadge, TrustBadgesRow,
 } from '../../components';
 import { useApp } from '../../context/AppContext';
@@ -177,7 +177,7 @@ export default function RideDetailScreen({ navigation, route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Driver</Text>
           <View style={styles.driverCard}>
-            <Avatar name={driver?.name} size={56} color={COLORS.primary} />
+            <Avatar name={driver?.name} uri={driver?.avatar} size={56} color={COLORS.primary} />
             <View style={styles.driverInfo}>
               <View style={styles.driverNameRow}>
                 <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
@@ -224,6 +224,27 @@ export default function RideDetailScreen({ navigation, route }) {
                 <Text style={styles.vehicleName}>{vehicle?.brand} {vehicle?.model}</Text>
                 <Text style={styles.plateNum}>{vehicle?.plateNumber}</Text>
               </View>
+
+              {/* Features — shown first so they're immediately visible */}
+              <View style={styles.amenityGrid}>
+                {[
+                  { key: 'ac',           icon: 'snow-outline',            label: 'AC',        color: COLORS.teal },
+                  { key: 'wifi',         icon: 'wifi-outline',            label: 'WiFi',      color: COLORS.primary },
+                  { key: 'music',        icon: 'musical-notes-outline',   label: 'Music',     color: '#e91e63' },
+                  { key: 'usbCharging',  icon: 'flash-outline',           label: 'USB',       color: '#ff9800' },
+                  { key: 'waterCooler',  icon: 'water-outline',           label: 'Water',     color: '#03a9f4' },
+                  { key: 'blanket',      icon: 'bed-outline',             label: 'Blanket',   color: '#795548' },
+                  { key: 'firstAid',     icon: 'medkit-outline',          label: 'First Aid', color: COLORS.danger },
+                  { key: 'luggageRack',  icon: 'briefcase-outline',       label: 'Luggage',   color: COLORS.gray },
+                ].filter(f => vehicle?.[f.key]).map(f => (
+                  <View key={f.key} style={[styles.amenityChip, { backgroundColor: f.color + '15' }]}>
+                    <Ionicons name={(f.icon) as any} size={13} color={f.color} />
+                    <Text style={[styles.amenityChipText, { color: f.color }]}>{f.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Meta chips — type, seats, color */}
               <View style={styles.vehicleMetaRow}>
                 <View style={styles.vehicleChip}>
                   <Ionicons name="car-outline" size={12} color={COLORS.gray} />
@@ -239,24 +260,6 @@ export default function RideDetailScreen({ navigation, route }) {
                     <Text style={styles.vehicleChipText}>{vehicle.color}</Text>
                   </View>
                 )}
-              </View>
-              {/* Amenities */}
-              <View style={styles.amenityGrid}>
-                {[
-                  { key: 'ac', icon: 'snow-outline', label: 'AC', color: COLORS.teal },
-                  { key: 'wifi', icon: 'wifi-outline', label: 'WiFi', color: COLORS.primary },
-                  { key: 'music', icon: 'musical-notes-outline', label: 'Music', color: '#e91e63' },
-                  { key: 'usbCharging', icon: 'flash-outline', label: 'USB', color: '#ff9800' },
-                  { key: 'waterCooler', icon: 'water-outline', label: 'Water', color: '#03a9f4' },
-                  { key: 'blanket', icon: 'bed-outline', label: 'Blanket', color: '#795548' },
-                  { key: 'firstAid', icon: 'medkit-outline', label: 'First Aid', color: COLORS.danger },
-                  { key: 'luggageRack', icon: 'briefcase-outline', label: 'Luggage', color: COLORS.gray },
-                ].filter(f => vehicle?.[f.key]).map(f => (
-                  <View key={f.key} style={[styles.amenityChip, { backgroundColor: f.color + '15' }]}>
-                    <Ionicons name={(f.icon) as any} size={13} color={f.color} />
-                    <Text style={[styles.amenityChipText, { color: f.color }]}>{f.label}</Text>
-                  </View>
-                ))}
               </View>
             </View>
           </View>
@@ -299,16 +302,6 @@ export default function RideDetailScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Amenities */}
-        {ride.amenities?.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Amenities</Text>
-            <View style={styles.amenitiesRow}>
-              {ride.amenities.map(a => <AmenityBadge key={a} name={a} />)}
-            </View>
-          </View>
-        )}
-
         {available == 0 && (
           <View style={{ height: 80 }} />
         )}
@@ -316,7 +309,7 @@ export default function RideDetailScreen({ navigation, route }) {
 
       {/* Book Bar */}
       {available > 0 && (
-        <View style={styles.bookingBar}>
+        <View style={[styles.bookingBar, { paddingBottom: insets.bottom + 14 }]}>
           <View style={styles.seatsSelector}>
             <Text style={styles.seatsSelectorLabel}>Seats:</Text>
             <Pressable style={styles.seatBtn} onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}>
@@ -382,7 +375,7 @@ const styles = StyleSheet.create({
   vehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   vehicleName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   plateNum: { fontSize: 12, color: COLORS.textPrimary, fontWeight: '700', backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  vehicleMetaRow: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  vehicleMetaRow: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
   vehicleChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
   vehicleChipText: { fontSize: 12, color: COLORS.gray, fontWeight: '600' },
   amenityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
@@ -395,14 +388,13 @@ const styles = StyleSheet.create({
   rdLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 2 },
   rdValue: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   descText: { fontSize: 13, color: COLORS.gray, flex: 1, lineHeight: 20 },
-  amenitiesRow: { flexDirection: 'row', flexWrap: 'wrap' },
   reviewCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
   reviewTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 },
   reviewInfo: { flex: 1 },
   reviewerName: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 3 },
   reviewDate: { fontSize: 11, color: COLORS.gray },
   reviewComment: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 20 },
-  bookingBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 20, borderTopWidth: 1, borderTopColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
+  bookingBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 0, borderTopWidth: 1, borderTopColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 8 },
   seatsSelector: { flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 8 },
   seatsSelectorLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   seatBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center', ...CURVE },

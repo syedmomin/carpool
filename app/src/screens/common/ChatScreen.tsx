@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, Pressable,
-  KeyboardAvoidingView, Platform, ActivityIndicator, SafeAreaView,
-  Keyboard
+  KeyboardAvoidingView, Platform, ActivityIndicator,
+  Keyboard, TouchableWithoutFeedback,
 } from 'react-native';
+
+const QUICK_EMOJIS = ['😊','😂','❤️','👍','🙏','😮','😢','🔥','👏','😎','✅','🎉'];
+const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🙏'];
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, CURVE, Avatar, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
@@ -24,6 +28,9 @@ export default function ChatScreen({ route, navigation }) {
   const [rideInfo, setRideInfo] = useState(initialRideInfo);
   const [sending, setSending] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [reactions, setReactions] = useState<Record<string, string>>({});
+  const [reactingTo, setReactingTo] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
 
@@ -148,29 +155,67 @@ export default function ChatScreen({ route, navigation }) {
     const isMe = item.senderId === currentUser?.id;
     const time = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     const isRead = !!item.readAt;
+    const msgReaction = reactions[item.id];
+    const isReacting = reactingTo === item.id;
 
     return (
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
         {!isMe && (
-          <Avatar name={item.sender?.name} size={30} style={styles.avatar} />
+          <Avatar name={item.sender?.name} uri={item.sender?.avatar} size={30} style={styles.avatar} />
         )}
-        <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
-          <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
-            {item.content}
-          </Text>
-          <View style={styles.messageFooter}>
-            <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>
-              {time}
-            </Text>
-            {isMe && (
-              <Ionicons
-                name="checkmark-done"
-                size={12}
-                color={isRead ? '#4ade80' : 'rgba(255,255,255,0.5)'}
-                style={styles.readIcon}
-              />
-            )}
-          </View>
+        <View>
+          <Pressable
+            onLongPress={() => setReactingTo(isReacting ? null : item.id)}
+            delayLongPress={350}
+          >
+            <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
+              <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
+                {item.content}
+              </Text>
+              <View style={styles.messageFooter}>
+                <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>{time}</Text>
+                {isMe && (
+                  <Ionicons
+                    name="checkmark-done"
+                    size={12}
+                    color={isRead ? '#4ade80' : 'rgba(255,255,255,0.5)'}
+                    style={styles.readIcon}
+                  />
+                )}
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Reaction picker bar */}
+          {isReacting && (
+            <View style={[styles.reactionBar, isMe ? styles.reactionBarRight : styles.reactionBarLeft]}>
+              {REACTION_EMOJIS.map(e => (
+                <Pressable
+                  key={e}
+                  onPress={() => {
+                    setReactions(r => ({ ...r, [item.id]: r[item.id] === e ? '' : e }));
+                    setReactingTo(null);
+                  }}
+                  style={styles.reactionOption}
+                >
+                  <Text style={styles.reactionOptionText}>{e}</Text>
+                </Pressable>
+              ))}
+              <Pressable onPress={() => setReactingTo(null)} style={styles.reactionClose}>
+                <Ionicons name="close" size={14} color={COLORS.gray} />
+              </Pressable>
+            </View>
+          )}
+
+          {/* Attached reaction badge */}
+          {!!msgReaction && (
+            <Pressable
+              onPress={() => setReactions(r => ({ ...r, [item.id]: '' }))}
+              style={[styles.reactionBadge, isMe ? styles.reactionBadgeRight : styles.reactionBadgeLeft]}
+            >
+              <Text style={styles.reactionBadgeText}>{msgReaction}</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     );
@@ -191,7 +236,7 @@ export default function ChatScreen({ route, navigation }) {
         <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
-        <Avatar name={otherUser?.name} size={36} />
+        <Avatar name={otherUser?.name} uri={otherUser?.avatar} size={36} />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{otherUser?.name || 'User'}</Text>
           <Text style={styles.headerRide} numberOfLines={1}>
@@ -205,6 +250,7 @@ export default function ChatScreen({ route, navigation }) {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
+        <Pressable onPress={() => { setReactingTo(null); setEmojiOpen(false); }} style={{ flex: 1 }}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -221,13 +267,36 @@ export default function ChatScreen({ route, navigation }) {
           }
           onContentSizeChange={() => messages.length > 0 && flatListRef.current?.scrollToEnd({ animated: true })}
         />
+        </Pressable>
+
+        {/* Emoji picker grid */}
+        {emojiOpen && (
+          <View style={styles.emojiGrid}>
+            {QUICK_EMOJIS.map(e => (
+              <Pressable
+                key={e}
+                onPress={() => setInputText(t => t + e)}
+                style={styles.emojiItem}
+              >
+                <Text style={styles.emojiChar}>{e}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
 
         <View style={styles.inputArea}>
+          <Pressable
+            style={styles.emojiBtn}
+            onPress={() => { setEmojiOpen(v => !v); Keyboard.dismiss(); }}
+          >
+            <Text style={styles.emojiBtnIcon}>{emojiOpen ? '⌨️' : '😊'}</Text>
+          </Pressable>
           <TextInput
             style={styles.input}
             placeholder="Type a message..."
             value={inputText}
             onChangeText={handleInputChange}
+            onFocus={() => setEmojiOpen(false)}
             multiline
             maxLength={500}
           />
@@ -315,6 +384,73 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 10,
+    marginLeft: 8,
   },
+
+  emojiBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  emojiBtnIcon: { fontSize: 22 },
+
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  emojiItem: {
+    width: '14.28%',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  emojiChar: { fontSize: 24 },
+
+  reactionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 4,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+    alignSelf: 'flex-start',
+  },
+  reactionBarRight: { alignSelf: 'flex-end' },
+  reactionBarLeft: { alignSelf: 'flex-start' },
+  reactionOption: { paddingHorizontal: 4, paddingVertical: 2 },
+  reactionOptionText: { fontSize: 22 },
+  reactionClose: { paddingHorizontal: 4, paddingVertical: 2 },
+
+  reactionBadge: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  reactionBadgeRight: { alignSelf: 'flex-end' },
+  reactionBadgeLeft: { alignSelf: 'flex-start' },
+  reactionBadgeText: { fontSize: 16 },
 });
