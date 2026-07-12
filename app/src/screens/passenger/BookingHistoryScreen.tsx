@@ -336,7 +336,7 @@ export default function BookingHistoryScreen({ navigation }) {
                         </View>
                         <View style={styles.routeTimeCell}>
                             <Text style={styles.routeLabel}>Est. Arrival</Text>
-                            <Text style={styles.routeTime}>{ride.arrivalTime || '—'}</Text>
+                            <Text style={styles.routeTime}>{ride.arrivalTime || '-'}</Text>
                         </View>
                     </View>
                 </View>

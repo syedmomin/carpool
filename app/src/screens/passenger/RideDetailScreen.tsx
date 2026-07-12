@@ -140,7 +140,7 @@ export default function RideDetailScreen({ navigation, route }) {
               </View>
               <View style={[styles.cityBlock, { alignItems: 'flex-end' }]}>
                 <Text style={styles.cityLarge}>{isSegment ? exitCity : ride.to}</Text>
-                <Text style={styles.timeSmall}>{ride.arrivalTime || '—'}</Text>
+                <Text style={styles.timeSmall}>{ride.arrivalTime || '-'}</Text>
               </View>
             </View>
             <View style={styles.dateLine}>
@@ -322,7 +322,7 @@ export default function RideDetailScreen({ navigation, route }) {
           </View>
           <Pressable onPress={handleBook} style={styles.bookBtn} disabled={booking}>
             <LinearGradient colors={GRADIENTS.primary as any} style={styles.bookBtnGrad}>
-              <Text style={styles.bookBtnText}>Book • Rs {(selectedSeats * ride.pricePerSeat)?.toLocaleString()}</Text>
+              <Text style={styles.bookBtnText}>Book  Rs {(selectedSeats * ride.pricePerSeat)?.toLocaleString()}</Text>
             </LinearGradient>
           </Pressable>
         </View>

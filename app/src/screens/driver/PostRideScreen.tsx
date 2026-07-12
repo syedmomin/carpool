@@ -78,7 +78,7 @@ export default function PostRideScreen({ navigation }) {
     }
   }, [form.from, form.to, form.date]);
 
-  const vehicleSeats = selectedVehicle?.totalSeats || '—';
+  const vehicleSeats = selectedVehicle?.totalSeats || '-';
   const vehicleAmenities = [
     ...(selectedVehicle?.ac ? ['AC'] : []),
     ...(selectedVehicle?.wifi ? ['WiFi'] : []),

@@ -248,7 +248,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
           <Text style={styles.infoText}>
-            Drivers will see your request and send offers with their price. Accept the best offer — a ride will be instantly created and your seat confirmed.
+            Drivers will see your request and send offers with their price. Accept the best offer and a ride will be instantly created with your seat confirmed.
           </Text>
         </View>
 

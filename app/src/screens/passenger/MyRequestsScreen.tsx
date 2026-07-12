@@ -323,7 +323,7 @@ export default function MyRequestsScreen({ navigation }) {
           <View style={styles.acceptedBanner}>
             <Ionicons name="checkmark-circle" size={16} color={COLORS.secondary} />
             <Text style={styles.acceptedText}>
-              Accepted: {acceptedBid.driver?.name} — Rs {acceptedBid.pricePerSeat}/seat
+              Accepted: {acceptedBid.driver?.name} · Rs {acceptedBid.pricePerSeat}/seat
             </Text>
           </View>
         )}
