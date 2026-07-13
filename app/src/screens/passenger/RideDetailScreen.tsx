@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS, GRADIENTS, CURVE,
   StarRating, PrimaryButton,
-  Avatar, VerifiedBadge, TrustBadgesRow,
+  Avatar, VerifiedBadge, TrustBadgesRow, RouteTag,
 } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -82,8 +82,8 @@ export default function RideDetailScreen({ navigation, route }) {
 
   const handleBook = () => {
     const priceLabel = isSegment
-      ? `${boardingCity} → ${exitCity}`
-      : `${ride.from} → ${ride.to}`;
+      ? `${boardingCity} > ${exitCity}`
+      : `${ride.from} > ${ride.to}`;
     showModal({
       type: 'confirm',
       title: 'Confirm Booking',
@@ -147,7 +147,10 @@ export default function RideDetailScreen({ navigation, route }) {
               <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.7)" />
               <Text style={styles.dateText}>{ride.date}</Text>
               {isSegment && (
-                <Text style={styles.fullRouteText}> · Full: {ride.from} → {ride.to}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.fullRouteText}> · Full: </Text>
+                  <RouteTag from={ride.from} to={ride.to} textStyle={styles.fullRouteText} arrowColor="rgba(255,255,255,0.6)" />
+                </View>
               )}
             </View>
           </View>

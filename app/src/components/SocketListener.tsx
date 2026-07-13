@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSocketData } from '../context/SocketDataContext';
 import { useToast } from '../context/ToastContext';
@@ -30,7 +30,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
 
   // Convenience: route label from a socket payload for banner subtitles.
   const routeOf = (d: any) =>
-    d?.fromCity && d?.toCity ? `${d.fromCity} → ${d.toCity}` : (d?.routeLabel || '');
+    d?.fromCity && d?.toCity ? `${d.fromCity} > ${d.toCity}` : (d?.routeLabel || '');
 
   // Passenger: whenever bookings load/update, join ride rooms for any
   // confirmed booking whose ride is ACTIVE or IN_PROGRESS so the passenger
@@ -181,7 +181,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           showModal({
             type: 'danger',
             title: 'Ride cancelled',
-            message: `The ${data.fromCity} → ${data.toCity} ride on ${data.date} has been cancelled by the driver.`,
+            message: `The ${data.fromCity} > ${data.toCity} ride on ${data.date} has been cancelled by the driver.`,
             confirmText: 'Find Another Ride',
             onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'SearchTab' }),
           });
@@ -235,7 +235,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           socketData.upsertBidInRequest(data.scheduleRequestId, data.bid);
           showBanner({
             title: 'You have a new offer!',
-            message: `${data.bid?.driver?.name} offered Rs ${data.bid?.pricePerSeat}/seat for ${data.fromCity} → ${data.toCity}.`,
+            message: `${data.bid?.driver?.name} offered Rs ${data.bid?.pricePerSeat}/seat for ${data.fromCity} > ${data.toCity}.`,
             kind: 'BID_PLACED',
             onPress: () => navigationRef.current?.navigate('PassengerApp', { screen: 'RequestsTab' }),
           });
@@ -255,7 +255,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
           socketData.loadMyRides(true);
           showBanner({
             title: 'Your offer was accepted!',
-            message: `${data.fromCity} → ${data.toCity} on ${data.date}. A ride has been created.`,
+            message: `${data.fromCity} > ${data.toCity} on ${data.date}. A ride has been created.`,
             kind: 'BID_ACCEPTED',
             onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
           });

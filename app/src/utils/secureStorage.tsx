@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Secure storage utility — XOR cipher + Base64 encoding
  * Prevents plain-text snooping of AsyncStorage values on rooted devices.
  * Not military-grade — designed to obscure, not to protect against determined attackers.
@@ -16,14 +16,14 @@ function xor(str) {
   return result;
 }
 
-// ─── Encrypt: JSON-serialize → XOR → Base64 ──────────────────────────────────
+// ─── Encrypt: JSON-serialize > XOR > Base64 ──────────────────────────────────
 export function encryptValue(value) {
   if (value === null || value === undefined) return null;
   const str = typeof value === 'string' ? value : JSON.stringify(value);
   return btoa(unescape(encodeURIComponent(xor(str))));
 }
 
-// ─── Decrypt: Base64 → XOR → parse ────────────────────────────────────────────
+// ─── Decrypt: Base64 > XOR > parse ────────────────────────────────────────────
 export function decryptValue(encrypted) {
   if (!encrypted) return null;
   try {

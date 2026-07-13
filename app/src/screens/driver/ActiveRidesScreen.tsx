@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge, ProgressBar, RideCardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge, ProgressBar, RideCardSkeleton, RouteTag } from '../../components';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -108,7 +108,7 @@ export default function ActiveRidesScreen({ navigation }) {
         )}
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.route}>{item.from} → {item.to}</Text>
+            <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
             <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
           </View>
           <StatusBadge
@@ -193,7 +193,7 @@ export default function ActiveRidesScreen({ navigation }) {
       <View style={[styles.card, styles.historyCard]}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.route}>{item.from} → {item.to}</Text>
+            <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
             <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
           </View>
           <View style={[styles.historyBadge, { backgroundColor: statusConfig.bg }]}>

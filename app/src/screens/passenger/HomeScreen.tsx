@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Pressable,
   Dimensions, Platform, Modal, FlatList,
@@ -46,7 +46,7 @@ export default function PassengerHomeScreen({ navigation }) {
 
   useEffect(() => {
     const onNewRide = (data: any) => {
-      showToast(`New ride: ${data.fromCity || data.from} → ${data.toCity || data.to}`, 'info');
+      showToast(`New ride: ${data.fromCity || data.from} > ${data.toCity || data.to}`, 'info');
     };
     socketService.on('NEW_RIDE', onNewRide);
     return () => socketService.off('NEW_RIDE', onNewRide);

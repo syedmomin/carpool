@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from 'react-native';
+﻿import { Platform, StyleSheet } from 'react-native';
 
 // ─── ChalParo Brand Palette ───────────────────────────────────────────────
 // Rule: passenger UI = primary blue | driver UI = teal (unified to brand blue)
@@ -44,7 +44,7 @@ export const GRADIENTS = {
   primary:   [COLORS.primary,   COLORS.primaryDark],
   teal:      [COLORS.primary,   COLORS.primaryDark],
   secondary: [COLORS.secondary, COLORS.secondaryDark],
-  purple:    [COLORS.primary,   COLORS.primaryDark],  // legacy → blue
+  purple:    [COLORS.primary,   COLORS.primaryDark],  // legacy > blue
   accent:    ['#f59e0b',        '#d97706'],
   warning:   ['#f59e0b',        '#d97706'],
   // Deep-navy auth hero — drives every unauthenticated screen.
@@ -194,7 +194,7 @@ export const AMENITY_CONFIG: Record<string, AmenityToken> = {
   luggageRack: { icon: 'briefcase-outline',      color: '#64748b', label: 'Luggage' },
 };
 
-// Legacy string-key variants used in AmenityBadge (display name → token)
+// Legacy string-key variants used in AmenityBadge (display name > token)
 export const AMENITY_DISPLAY_CONFIG: Record<string, AmenityToken> = {
   'AC':           { icon: 'snow-outline',           color: '#0ea5e9', label: 'A/C' },
   'WiFi':         { icon: 'wifi-outline',           color: '#6366f1', label: 'WiFi' },

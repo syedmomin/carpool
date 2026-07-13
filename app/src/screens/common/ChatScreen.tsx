@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -48,7 +48,7 @@ export default function ChatScreen({ route, navigation }) {
         const b = data.data;
         const isDriver = b.ride.driverId === currentUser.id;
         setOtherUser(isDriver ? b.passenger : b.ride.driver);
-        setRideInfo({ label: `${b.ride.fromCity} → ${b.ride.toCity}` });
+        setRideInfo({ label: `${b.ride.fromCity} > ${b.ride.toCity}` });
       }
     } catch (err) {
       console.error('[ChatScreen] Failed to fetch booking info:', err);

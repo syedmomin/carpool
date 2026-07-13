@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Platform, Pressable, Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { NavigationContainer, StackActions } from '@react-navigation/native';
@@ -470,7 +470,7 @@ export default function AppNavigator({ navigationRef }: any) {
   const [activeSessionChecked, setActiveSessionChecked] = useState(false);
 
   // Re-arm the active-session check whenever the logged-in user changes, so a
-  // logout→login (AppNavigator never unmounts) still resumes an in-progress ride.
+  // logout>login (AppNavigator never unmounts) still resumes an in-progress ride.
   useEffect(() => {
     setActiveSessionChecked(false);
   }, [currentUser?.id]);

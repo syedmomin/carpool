@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { secureStorage } from '../utils/secureStorage';
 import { tokenStorage, authApi, ridesApi, bookingsApi, vehiclesApi, profileApi, notificationsApi, setLogoutHandler } from '../services/api';
 import { registerForPushNotifications } from '../utils/notifications';
@@ -107,7 +107,7 @@ export const AppProvider = ({ children }) => {
 
   const logout = async () => {
     // Only hit the server while we still hold a token. Without this guard a
-    // forced logout (401 → clearAll → onLogout → logout) would call the
+    // forced logout (401 > clearAll > onLogout > logout) would call the
     // tokenless /auth/logout endpoint, get another 401, and recurse forever —
     // flooding the server with requests and its error log with 401 stacks.
     const token = await tokenStorage.get();

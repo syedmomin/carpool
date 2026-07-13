@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar, PulseBadge, PressableScale, CURVE } from '../../components';
+import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar, PulseBadge, PressableScale, CURVE, RouteTag } from '../../components';
 import { Skeleton, CardSkeleton, RideCardSkeleton } from '../../components/Skeleton';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -195,7 +195,7 @@ export default function DriverHomeScreen({ navigation }) {
                 <View style={styles.rideLeft}>
                   <View style={[styles.rideDot, { backgroundColor: ride.bookedSeats < ride.totalSeats ? COLORS.secondary : COLORS.accent }]} />
                   <View>
-                    <Text style={styles.rideRoute}>{ride.from} → {ride.to}</Text>
+                    <RouteTag from={ride.from} to={ride.to} textStyle={styles.rideRoute} />
                     <Text style={styles.rideDate}>{ride.date} • {ride.departureTime}</Text>
                   </View>
                 </View>

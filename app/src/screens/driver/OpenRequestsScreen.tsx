@@ -211,7 +211,7 @@ export default function OpenRequestsScreen({ navigation }) {
     if (!myBid) return;
     showModal({
       type: 'danger', title: 'Withdraw Offer?',
-      message: `Withdraw your offer of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} → ${request.toCity}?`,
+      message: `Withdraw your offer of Rs ${myBid.pricePerSeat}/seat for ${request.fromCity} > ${request.toCity}?`,
       confirmText: 'Withdraw', cancelText: 'Keep Offer',
       onConfirm: async () => {
         setWithdrawing(request.id);

@@ -65,6 +65,9 @@ export type { LogoVariant } from './Logo';
 // ─── Route Loader (animated curved path) ──────────────────────────────────────
 export { default as RouteLoader } from './RouteLoader';
 
+// ─── Route Tag (from > to with SVG arrow) ─────────────────────────────────────
+export { RouteTag } from './RouteTag';
+
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 export {
   Skeleton,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, Pressable,
     ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
@@ -64,7 +64,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                     <View style={rStyles.sheetBody}>
                         <View style={rStyles.routeRecap}>
                             <Text style={rStyles.routeText}>
-                                {booking?.ride?.fromCity || booking?.ride?.from}{' → '}
+                                {booking?.ride?.fromCity || booking?.ride?.from}{' > '}
                                 {booking?.ride?.toCity || booking?.ride?.to}
                             </Text>
                             <Text style={rStyles.routeDate}>{booking?.ride?.date}</Text>
@@ -401,7 +401,7 @@ export default function BookingHistoryScreen({ navigation }) {
                                 onPress={() => navigation.navigate('Chat', {
                                     bookingId: item.id,
                                     otherUser: ride.driver,
-                                    rideInfo: { label: `${ride.fromCity} → ${ride.toCity}` },
+                                    rideInfo: { label: `${ride.fromCity} > ${ride.toCity}` },
                                 })}>
                                 <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLORS.primary} />
                                 <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Chat</Text>

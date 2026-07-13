@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator,
@@ -230,7 +230,7 @@ export default function PostRideScreen({ navigation }) {
           ) : driverVehicles.length === 0 ? (
             <Pressable style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <Ionicons name="warning-outline" size={20} color={COLORS.accent} />
-              <Text style={styles.noVehicleText}>Register your vehicle first →</Text>
+              <Text style={styles.noVehicleText}>Register your vehicle first ></Text>
             </Pressable>
           ) : (
             <Pressable
@@ -313,7 +313,7 @@ export default function PostRideScreen({ navigation }) {
           {isMultiStop && (
             <View style={styles.stopsContainer}>
               <Text style={styles.stopsHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Passengers can book any segment (e.g. Hyderabad → Multan)
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Passengers can book any segment (e.g. Hyderabad > Multan)
               </Text>
 
               {stops.map((stop, idx) => (

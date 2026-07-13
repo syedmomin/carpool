@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, TextInput, StyleSheet, Pressable, FlatList, Modal,
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, RideCard, EmptyState, Chip, GradientHeader, RideCardSkeleton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, RideCard, EmptyState, Chip, GradientHeader, RideCardSkeleton, RouteTag } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { ridesApi } from '../../services/api';
@@ -311,7 +311,7 @@ export default function SearchScreen({ navigation, route }) {
       {/* ── Gradient Header ─────────────────────────────────────────── */}
       <GradientHeader
         colors={GRADIENTS.primary as any}
-        title={fromCity && toCity ? `${fromCity} → ${toCity}` : 'Find a Ride'}
+        title={fromCity && toCity ? `${fromCity} > ${toCity}` : 'Find a Ride'}
         subtitle={fromCity && toCity ? `${fromCity} to ${toCity}` : 'Search for your next journey'}
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
       />
@@ -416,7 +416,7 @@ export default function SearchScreen({ navigation, route }) {
               {recentSearches.map((h, i) => (
                 <Pressable key={i} style={styles.recentCard} onPress={() => handleRecentPress(h)}>
                   <Ionicons name="time-outline" size={14} color={COLORS.gray} />
-                  <Text style={styles.recentText}>{h.from} → {h.to}</Text>
+                  <RouteTag from={h.from} to={h.to} textStyle={styles.recentText} />
                 </Pressable>
               ))}
             </ScrollView>
@@ -448,7 +448,7 @@ export default function SearchScreen({ navigation, route }) {
             {displayList.length} ride{displayList.length !== 1 ? 's' : ''} found
           </Text>
           {fromCity && toCity ? (
-            <Text style={styles.resultsRoute}>{fromCity} → {toCity}</Text>
+            <RouteTag from={fromCity} to={toCity} textStyle={styles.resultsRoute} arrowColor={COLORS.gray} />
           ) : (
             sort !== null && <Text style={styles.sortLabel}>{SORT_OPTIONS[sort]}</Text>
           )}

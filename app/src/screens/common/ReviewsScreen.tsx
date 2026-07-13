@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
   Pressable, Image
@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, Avatar } from '../../components';
+import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, Avatar, RouteTag } from '../../components';
 import { reviewsApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 
@@ -61,9 +61,8 @@ export default function ReviewsScreen({ navigation }) {
       {item.ride && (
         <View style={styles.rideTag}>
           <Ionicons name="navigate-outline" size={12} color={COLORS.primary} />
-          <Text style={styles.rideTagText}>
-            Ride: {(item.ride.fromCity || item.ride.from)} → {(item.ride.toCity || item.ride.to)}
-          </Text>
+          <Text style={styles.rideTagText}>Ride: </Text>
+          <RouteTag from={item.ride.fromCity || item.ride.from} to={item.ride.toCity || item.ride.to} textStyle={styles.rideTagText} arrowColor={COLORS.primary} />
         </View>
       )}
     </View>

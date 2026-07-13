@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator,
   Modal, ScrollView, Image, Dimensions, Animated, RefreshControl,
@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState, Avatar } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState, Avatar, RouteTag } from '../../components';
 import { Skeleton, CardSkeleton, RequestCardSkeleton } from '../../components/Skeleton';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -212,7 +212,7 @@ export default function MyRequestsScreen({ navigation }) {
   const handleCancel = (req: any) => {
     showModal({
       type: 'danger', title: 'Cancel Request?',
-      message: `Cancel your ${req.fromCity} → ${req.toCity} request on ${req.date}? All pending offers will be removed.`,
+      message: `Cancel your ${req.fromCity} > ${req.toCity} request on ${req.date}? All pending offers will be removed.`,
       confirmText: 'Yes, Cancel', cancelText: 'No',
       onConfirm: async () => {
         const { error } = await scheduleRequestsApi.cancel(req.id);
@@ -226,7 +226,7 @@ export default function MyRequestsScreen({ navigation }) {
   const handleAccept = (req: any, bid: any) => {
     showModal({
       type: 'primary', title: 'Accept Offer?',
-      message: `Accept ${bid.driver?.name}'s offer of Rs ${bid.pricePerSeat}/seat for ${req.fromCity} → ${req.toCity}?\n\nA ride will be auto-created and your seat confirmed.`,
+      message: `Accept ${bid.driver?.name}'s offer of Rs ${bid.pricePerSeat}/seat for ${req.fromCity} > ${req.toCity}?\n\nA ride will be auto-created and your seat confirmed.`,
       confirmText: 'Accept & Book', cancelText: 'Not Now', icon: 'checkmark-circle-outline',
       onConfirm: async () => {
         const { data, error } = await scheduleRequestsApi.acceptBid(req.id, bid.id);
@@ -298,7 +298,7 @@ export default function MyRequestsScreen({ navigation }) {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.route}>{req.fromCity} → {req.toCity}</Text>
+            <RouteTag from={req.fromCity} to={req.toCity} textStyle={styles.route} />
             <View style={styles.meta}>
               <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{req.date}</Text>

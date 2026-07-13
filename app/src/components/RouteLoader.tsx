@@ -1,13 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
 import Svg, { Path, Circle, G, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+// Animated.createAnimatedComponent injects `collapsable={false}` which SVG
+// elements don't accept. Filter it out before forwarding to the native Path.
+const SvgPath = React.forwardRef<any, any>(({ collapsable: _ignored, ...props }, ref) => (
+  <Path {...props} ref={ref} />
+));
+const AnimatedPath = Animated.createAnimatedComponent(SvgPath);
 
 // A symmetric curved "route" centred in the box: a glowing segment travels from
 // one map pin, through the centre, to the other pin (looping). Matches the
 // splash reference (road arcing toward the destination).
-const PIN_H = 19;                          // tip → head-centre distance
+const PIN_H = 19;                          // tip > head-centre distance
 const START = { x: 20, y: 98 };            // pin TIP position (wider apart)
 const END = { x: 200, y: 98 };             // pin TIP position (wider apart)
 // Route connects the marker HEAD CENTRES (not the tips):

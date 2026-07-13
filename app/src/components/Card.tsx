@@ -1,9 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, SHADOWS, RADIUS, SPACING, CURVE } from './theme';
 import { StarRating } from './StarRating';
+import { RouteTag } from './RouteTag';
 import { PressableScale } from './PressableScale';
 import { Avatar } from './Avatar';
 
@@ -43,7 +44,8 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
       {isSegment && (
         <View style={styles.segmentBadge}>
           <Ionicons name="git-branch-outline" size={11} color={COLORS.primary} />
-          <Text style={styles.segmentText}>Partial route • {ride.from} → {ride.to}</Text>
+          <Text style={styles.segmentText}>Partial route</Text>
+          <RouteTag from={ride.from} to={ride.to} textStyle={styles.segmentText} arrowColor={COLORS.primary} />
         </View>
       )}
 

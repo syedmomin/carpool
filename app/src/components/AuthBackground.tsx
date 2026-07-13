@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
@@ -8,7 +8,7 @@ const { width: W } = Dimensions.get('window');
 
 /**
  * The shared navy-gradient hero behind every auth screen. Renders:
- *   1. a full-screen deep-navy → blue LinearGradient,
+ *   1. a full-screen deep-navy > blue LinearGradient,
  *   2. two soft glow orbs for depth,
  *   3. a city-skyline + curved-route silhouette anchored to the bottom.
  * Children render on top. Atmosphere only — no layout assumptions.
