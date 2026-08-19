@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSocketData } from '../context/SocketDataContext';
 import { useToast } from '../context/ToastContext';
@@ -32,6 +32,27 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
   const routeOf = (d: any) =>
     d?.fromCity && d?.toCity ? `${d.fromCity} > ${d.toCity}` : (d?.routeLabel || '');
 
+  // Ride lifecycle events (RIDE_STARTED / RIDE_COMPLETED) are emitted by the
+  // server to BOTH the user room (user_<id>) and the ride room (ride_<id>), and
+  // a passenger belongs to both — so each event arrives twice. Keyed on
+  // event+rideId, so a genuine ACTIVE > IN_PROGRESS > COMPLETED sequence is
+  // unaffected (different events).
+  const DEDUPE_MS = 5000;
+  const handledRef = useRef<Map<string, number>>(new Map());
+
+  const isDuplicate = (event: string, rideId: string) => {
+    const key = `${event}:${rideId}`;
+    const now = Date.now();
+    const seenAt = handledRef.current.get(key);
+    if (seenAt !== undefined && now - seenAt < DEDUPE_MS) return true;
+    handledRef.current.set(key, now);
+    // Drop stale keys so the map never grows unbounded.
+    handledRef.current.forEach((at, k) => {
+      if (now - at >= DEDUPE_MS) handledRef.current.delete(k);
+    });
+    return false;
+  };
+
   // Passenger: whenever bookings load/update, join ride rooms for any
   // confirmed booking whose ride is ACTIVE or IN_PROGRESS so the passenger
   // receives RIDE_STARTED / RIDE_COMPLETED even after a fresh app launch.
@@ -61,12 +82,16 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         incrementUnreadCount();
         if (currentUser.role === 'DRIVER') {
           if (data.rideId) {
-            socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
+            // patchBookingInRide recomputes bookedSeats from CONFIRMED/COMPLETED
+            // bookings only, so it must run BEFORE patchRide — otherwise it would
+            // clobber the server-authoritative bookedSeats (which counts the new
+            // PENDING reservation). Same ordering as the accept/reject/cancel handlers.
             if (data.booking) {
               socketData.patchBookingInRide(data.rideId, data.booking.id, data.booking);
             }
+            socketData.patchRide(data.rideId, { bookedSeats: data.bookedSeats });
           }
-          
+
           showModal({
             type: 'confirm',
             title: 'New ride request',
@@ -141,6 +166,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       },
 
       onRideStarted: (data: any) => {
+        if (isDuplicate('RIDE_STARTED', data.rideId)) return;
         incrementUnreadCount();
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRideInBookings(data.rideId, { status: 'IN_PROGRESS' });
@@ -156,6 +182,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       },
 
       onRideCompleted: (data: any) => {
+        if (isDuplicate('RIDE_COMPLETED', data.rideId)) return;
         incrementUnreadCount();
         if (currentUser.role === 'PASSENGER') {
           socketData.patchRideInBookings(data.rideId, { status: 'COMPLETED' });
@@ -202,6 +229,20 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
             onPress: () => navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' }),
           });
         }
+      },
+
+      // Departure reminder from the server's 15-min cron — sent to the driver and
+      // to every confirmed passenger of the ride.
+      onRideReminder: (data: any) => {
+        incrementUnreadCount();
+        showBanner({
+          title: 'Upcoming ride',
+          message: `${routeOf(data) || 'Your ride'}${data.departureTime ? ` departs at ${data.departureTime}` : ' is coming up'}.`,
+          kind: 'REMINDER', rideId: data.rideId,
+          onPress: () => currentUser.role === 'DRIVER'
+            ? navigationRef.current?.navigate('DriverApp', { screen: 'MyRidesTab' })
+            : navigationRef.current?.navigate('PassengerApp', { screen: 'BookingHistoryTab' }),
+        });
       },
 
       onRideUpdated: (data: any) => {
@@ -363,6 +404,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('RIDE_COMPLETED',     handlers.onRideCompleted);
       socketService.on('RIDE_CANCELLED',     handlers.onRideCancelled);
       socketService.on('RIDE_EXPIRED',       handlers.onRideExpired);
+      socketService.on('RIDE_REMINDER',      handlers.onRideReminder);
       socketService.on('SCHEDULE_REQUEST',   handlers.onScheduleRequest);
       socketService.on('RIDE_BID',           handlers.onRideBid);
       socketService.on('BID_PLACED',         handlers.onBidPlaced);
@@ -391,6 +433,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('RIDE_COMPLETED',     handlers.onRideCompleted);
       socketService.off('RIDE_CANCELLED',     handlers.onRideCancelled);
       socketService.off('RIDE_EXPIRED',       handlers.onRideExpired);
+      socketService.off('RIDE_REMINDER',      handlers.onRideReminder);
       socketService.off('SCHEDULE_REQUEST',   handlers.onScheduleRequest);
       socketService.off('RIDE_BID',           handlers.onRideBid);
       socketService.off('BID_PLACED',         handlers.onBidPlaced);

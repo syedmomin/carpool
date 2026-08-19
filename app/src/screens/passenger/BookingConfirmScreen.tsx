@@ -10,11 +10,12 @@ export default function BookingConfirmScreen({ navigation, route }) {
     haptics.success();
   }, []);
 
-  const { rideId, seats, rideData } = route.params;
+  const { rideId, seats, rideData, booking, boardingCity, exitCity } = route.params;
   const ride   = rideData || null;
   const driver = ride?.driver;
 
-  const bookingId = '#BK' + Date.now().toString().slice(-6);
+  // Real booking id from the server-created row — never fabricate one.
+  const bookingId = booking?.id ? `#${booking.id}` : '—';
 
   const TICKET_ROWS = [
     { label: 'Date',         value: ride?.date ?? 'N/A',                                                           icon: 'calendar-outline' },
@@ -45,12 +46,12 @@ export default function BookingConfirmScreen({ navigation, route }) {
             </View>
             <View style={styles.routeInfo}>
               <View style={styles.routeRow}>
-                <Text style={styles.cityName}>{ride?.from ?? '-'}</Text>
+                <Text style={styles.cityName}>{boardingCity ?? ride?.from ?? '-'}</Text>
                 <Text style={styles.timeLabel}>{ride?.departureTime ?? ''}</Text>
               </View>
               <View style={styles.routeSpacer} />
               <View style={styles.routeRow}>
-                <Text style={styles.cityName}>{ride?.to ?? '-'}</Text>
+                <Text style={styles.cityName}>{exitCity ?? ride?.to ?? '-'}</Text>
                 <Text style={styles.timeLabel}>{ride?.arrivalTime ?? ''}</Text>
               </View>
             </View>

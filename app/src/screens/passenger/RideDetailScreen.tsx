@@ -92,14 +92,21 @@ export default function RideDetailScreen({ navigation, route }) {
       cancelText: 'Cancel',
       onConfirm: async () => {
         setBooking(true);
-        const { error } = await bookRide(rideId, selectedSeats, boardingCity, exitCity);
+        const { data, error } = await bookRide(rideId, selectedSeats, boardingCity, exitCity);
         setBooking(false);
         if (error) {
           showToast(parseApiError(error), 'error');
           return;
         }
         haptics.success();
-        navigation.replace('BookingConfirm', { rideId, seats: selectedSeats, rideData: ride });
+        navigation.replace('BookingConfirm', {
+          rideId,
+          seats: selectedSeats,
+          rideData: ride,
+          booking: data || null,
+          boardingCity: data?.boardingCity || boardingCity,
+          exitCity: data?.exitCity || exitCity,
+        });
       },
     });
   };

@@ -18,9 +18,23 @@ interface MarkerData {
   isDriver?: boolean;
 }
 
+// Marker titles carry user-supplied text (e.g. a driver's name) into a JS string
+// literal inside the WebView's <script>. Escape the HTML first — that also kills
+// any `</script>` — then JSON.stringify to get a safely quoted JS literal.
+const escapeHtml = (s: unknown) =>
+  String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+// Coordinates/angles are interpolated as raw JS — never trust them to be numeric.
+const num = (v: unknown, fallback = 0) => (Number.isFinite(Number(v)) ? Number(v) : fallback);
+
 function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyline: { latitude: number; longitude: number }[] = []) {
-  const lat  = initialRegion?.latitude  ?? 30.3753;
-  const lng  = initialRegion?.longitude ?? 69.3451;
+  const lat  = num(initialRegion?.latitude,  30.3753);
+  const lng  = num(initialRegion?.longitude, 69.3451);
 
   // Separate driver marker from static markers
   const driverM  = markers.find(m => m.isDriver || m.pinColor === 'green');
@@ -31,24 +45,24 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
     const bg    = isPickup ? '#2563eb' : '#ef4444';
     const label = isPickup ? 'A' : 'B';
     return `
-      L.marker([${m.coordinate.latitude}, ${m.coordinate.longitude}], {
+      L.marker([${num(m.coordinate?.latitude)}, ${num(m.coordinate?.longitude)}], {
         icon: L.divIcon({
           html: '<div style="display:flex;flex-direction:column;align-items:center;"><div style="width:36px;height:36px;background:${bg};border:3px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-weight:900;font-size:15px;color:#fff;font-family:sans-serif;">${label}</div><div style="width:3px;height:10px;background:${bg};border-radius:0 0 2px 2px;margin-top:-1px;"></div></div>',
           className: '', iconSize:[36,48], iconAnchor:[18,48], popupAnchor:[0,-48]
         })
-      }).addTo(map)${m.title ? `.bindPopup('<b>${m.title}</b>')` : ''};
+      }).addTo(map)${m.title ? `.bindPopup(${JSON.stringify(`<b>${escapeHtml(m.title)}</b>`)})` : ''};
     `;
   }).join('\n');
 
   const initDriverJs = driverM ? `
-    var driverLatLng = L.latLng(${driverM.coordinate.latitude}, ${driverM.coordinate.longitude});
+    var driverLatLng = L.latLng(${num(driverM.coordinate?.latitude)}, ${num(driverM.coordinate?.longitude)});
     driverMarker = L.marker(driverLatLng, {
-      icon: carIcon, rotationAngle: ${driverM.rotation || 0}, rotationOrigin: 'center center', zIndexOffset: 1000
+      icon: carIcon, rotationAngle: ${num(driverM.rotation)}, rotationOrigin: 'center center', zIndexOffset: 1000
     }).addTo(map);
   ` : '';
 
   const polylineJs = polyline.length > 1
-    ? `L.polyline([${polyline.map(p => `[${p.latitude},${p.longitude}]`).join(',')}],
+    ? `L.polyline([${polyline.map(p => `[${num(p.latitude)},${num(p.longitude)}]`).join(',')}],
         { color:'#1d4ed8', weight:5, opacity:0.75, lineCap:'round', lineJoin:'round' }).addTo(map);`
     : '';
 

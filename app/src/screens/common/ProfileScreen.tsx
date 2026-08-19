@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, CURVE, TrustBadgesRow, PressableScale } from '../../components';
+import { reviewsApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 
@@ -42,8 +44,9 @@ const getMenuItems = (userRole: string) => [
 // ─── Verification Progress Section ────────────────────────────────────────────
 function VerificationProgress({ user, userRole, onNavigate }) {
   const isDriver = userRole === 'driver';
-  const cnicUploaded = !!user?.cnicStatus && user.cnicStatus !== 'NONE';
-  const cnicApproved = user?.cnicStatus === 'APPROVED';
+  const cnicStatus = user?.cnicStatus ?? user?.verification?.cnicStatus;
+  const cnicUploaded = !!cnicStatus;
+  const cnicApproved = cnicStatus === 'APPROVED';
   const licenceStatus = user?.licenceStatus ?? user?.verification?.licenceStatus;
   const licenceUploaded = !!licenceStatus && licenceStatus !== 'NONE';
   const licenceApproved = licenceStatus === 'APPROVED';
@@ -107,6 +110,28 @@ export default function ProfileScreen({ navigation }) {
   const { showModal } = useGlobalModal();
   const headerColors = userRole === 'driver' ? GRADIENTS.teal : GRADIENTS.primary;
 
+  // Rating isn't part of the /auth/me payload — pull it from the reviews endpoint.
+  const [reviewStats, setReviewStats] = useState<any>(null);
+  const [ratingLoading, setRatingLoading] = useState(true);
+
+  const fetchRating = useCallback(async () => {
+    if (!currentUser?.id) { setRatingLoading(false); return; }
+    try {
+      const { data } = await reviewsApi.forUser(currentUser.id);
+      if (data) setReviewStats(data.data?.stats || null);
+    } catch (err) {
+      console.error('Fetch profile rating error:', err);
+    } finally {
+      setRatingLoading(false);
+    }
+  }, [currentUser?.id]);
+
+  useFocusEffect(useCallback(() => {
+    fetchRating();
+  }, [fetchRating]));
+
+  const ratingValue = reviewStats?.total ? reviewStats.averageRating : currentUser?.rating;
+
   const handleLogout = async () => {
     await logout();
   };
@@ -157,7 +182,7 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.statDivider} />
         <View style={styles.stat}>
           <Text style={styles.statValue}>
-            {currentUser?.rating ? `${Number(currentUser.rating).toFixed(1)} ★` : 'New'}
+            {ratingLoading && !reviewStats ? '…' : ratingValue ? `${Number(ratingValue).toFixed(1)} ★` : 'New'}
           </Text>
           <Text style={styles.statLabel}>Rating</Text>
         </View>
