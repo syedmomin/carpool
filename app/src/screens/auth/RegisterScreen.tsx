@@ -6,8 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AuthBackground, AuthInput, Logo, CitySearchModal, GLASS, COLORS, CURVE } from '../../components';
+import { AuthBackground, AuthInput, Logo, CitySearchModal, COLORS, CURVE, FONTS, HEADING_FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -80,17 +79,19 @@ export default function RegisterScreen({ navigation, route }) {
     };
 
     return (
-        <AuthBackground>
+        <AuthBackground variant="light">
             <SafeAreaView style={styles.safe}>
                 <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
                         <Pressable style={styles.back} onPress={() => navigation.goBack()} hitSlop={10}>
-                            <Ionicons name="chevron-back" size={24} color="#fff" />
+                            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
                         </Pressable>
 
-                        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
-                            <Logo variant="splash" size={LOGO_SIZE} />
+                        <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>
+                            <Logo variant="auth" size={LOGO_SIZE} />
+                        </Animated.View>
+                        <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
                             <Text style={styles.title}>Create Account</Text>
                             <Text style={styles.subtitle}>Sign up to start your journey</Text>
                         </Animated.View>
@@ -111,6 +112,7 @@ export default function RegisterScreen({ navigation, route }) {
                             </View>
 
                             <AuthInput
+                                variant="light"
                                 icon="person-outline"
                                 placeholder="Full name"
                                 value={form.name}
@@ -118,6 +120,7 @@ export default function RegisterScreen({ navigation, route }) {
                                 error={errors.name}
                             />
                             <AuthInput
+                                variant="light"
                                 leftLabel="PK +92"
                                 placeholder="Mobile number"
                                 value={form.phone}
@@ -127,6 +130,7 @@ export default function RegisterScreen({ navigation, route }) {
                                 error={errors.phone}
                             />
                             <AuthInput
+                                variant="light"
                                 icon="mail-outline"
                                 placeholder="Email address"
                                 value={form.email}
@@ -136,6 +140,7 @@ export default function RegisterScreen({ navigation, route }) {
                                 error={errors.email}
                             />
                             <AuthInput
+                                variant="light"
                                 icon="lock-closed-outline"
                                 placeholder="Create a password (min 6 chars)"
                                 value={form.password}
@@ -144,6 +149,7 @@ export default function RegisterScreen({ navigation, route }) {
                                 error={errors.password}
                             />
                             <AuthInput
+                                variant="light"
                                 asButton
                                 icon="location-outline"
                                 placeholder="Select your city"
@@ -153,20 +159,14 @@ export default function RegisterScreen({ navigation, route }) {
                             />
 
                             <Pressable
-                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
+                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
                                 onPress={handleRegister}
                                 disabled={loading}
                             >
-                                <LinearGradient colors={['#2196f3', '#1a73e8', '#1557b0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-                                    {loading ? (
-                                        <Text style={styles.primaryText}>Creating Account…</Text>
-                                    ) : (
-                                        <>
-                                            <Text style={styles.primaryText}>Create Account</Text>
-                                            <Ionicons name="arrow-forward" size={18} color="#fff" />
-                                        </>
-                                    )}
-                                </LinearGradient>
+                                <Text style={styles.primaryText}>{loading ? 'Creating Account…' : 'Create Account'}</Text>
+                                <View style={styles.primaryBtnIcon}>
+                                    <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                </View>
                             </Pressable>
                         </Animated.View>
 
@@ -193,30 +193,30 @@ const styles = StyleSheet.create({
     safe: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28 },
     back: { marginTop: 4, width: 40, height: 40, justifyContent: 'center' },
-    header: { alignItems: 'center', marginTop: 4, marginBottom: 22 },
-    title: { color: GLASS.textOnDark, fontSize: 24, fontWeight: '800', letterSpacing: -0.4, marginTop: 14 },
-    subtitle: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500', marginTop: 5 },
+    hero: { alignItems: 'center', marginTop: 4, marginBottom: 4 },
+    header: { marginBottom: 22 },
+    title: { color: COLORS.textPrimary, fontSize: 20, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2, marginTop: 14 },
+    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 5 },
     card: {
-        backgroundColor: GLASS.fill,
-        borderWidth: 1,
-        borderColor: GLASS.border,
+        backgroundColor: COLORS.cardBg,
         borderRadius: 24,
         padding: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 20,
+        elevation: 2,
     },
-    fieldLabel: { color: GLASS.subOnDark, fontSize: 12, fontWeight: '700', letterSpacing: 0.4, marginBottom: 10 },
+    fieldLabel: { color: COLORS.gray, fontSize: 12, fontFamily: FONTS.bold, letterSpacing: 0.4, marginBottom: 10 },
     // Read-only role badge (role is picked on RoleSelect)
     roleBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         height: 48,
         borderRadius: 14,
-        backgroundColor: 'rgba(89,150,255,0.16)',
+        backgroundColor: COLORS.primaryLight,
         borderWidth: 1,
-        borderColor: '#7fb0ff',
+        borderColor: COLORS.primary,
         paddingHorizontal: 14,
     },
     roleBadgeIcon: {
@@ -225,31 +225,33 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginRight: 12,
     },
-    roleBadgeLabel: { color: GLASS.textOnDark, fontSize: 15, fontWeight: '800' },
-    roleBadgeSub: { color: GLASS.subOnDark, fontSize: 12, fontWeight: '500', marginTop: 1 },
-    roleChange: { color: '#9ec5ff', fontSize: 13, fontWeight: '800' },
+    roleBadgeLabel: { color: COLORS.textPrimary, fontSize: 15, fontFamily: FONTS.extraBold },
+    roleBadgeSub: { color: COLORS.gray, fontSize: 12, fontFamily: FONTS.medium, marginTop: 1 },
+    roleChange: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.extraBold },
     // Primary button
-    primaryBtnWrap: {
-        marginTop: 22,
-        borderRadius: 16,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.45,
-        shadowRadius: 16,
-        elevation: 6,
-        ...CURVE,
-    },
     primaryBtn: {
+        marginTop: 22,
         height: 52,
         borderRadius: 16,
+        backgroundColor: COLORS.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 4,
         ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+    primaryText: { color: '#fff', fontSize: 16, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3 },
+    primaryBtnIcon: {
+        width: 28, height: 28, borderRadius: 14,
+        backgroundColor: '#fff',
+        alignItems: 'center', justifyContent: 'center',
+    },
     bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
-    bottomMuted: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500' },
-    bottomLink: { color: '#9ec5ff', fontSize: 14, fontWeight: '800' },
+    bottomMuted: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium },
+    bottomLink: { color: COLORS.primary, fontSize: 14, fontFamily: FONTS.extraBold },
 });

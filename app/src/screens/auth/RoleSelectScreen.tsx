@@ -6,7 +6,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, Logo, GLASS, COLORS } from '../../components';
+import { AuthBackground, Logo, COLORS, FONTS, HEADING_FONTS } from '../../components';
 
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
@@ -26,13 +26,13 @@ function RoleCard({
   React.useEffect(() => { s.value = withTiming(selected ? 1 : 0, { duration: 220 }); }, [selected]);
 
   const cardStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(s.value, [0, 1], [GLASS.border, '#7fb0ff']),
-    backgroundColor: interpolateColor(s.value, [0, 1], [GLASS.fill, 'rgba(89,150,255,0.22)']),
+    borderColor: interpolateColor(s.value, [0, 1], [COLORS.border, COLORS.primary]),
+    backgroundColor: interpolateColor(s.value, [0, 1], [COLORS.cardBg, COLORS.primaryLight]),
     transform: [{ scale: withSpring(selected ? 1.03 : 1, { damping: 14 }) }],
-    shadowOpacity: 0.12 + s.value * 0.4,
+    shadowOpacity: 0.04 + s.value * 0.1,
   }));
   const iconStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(s.value, [0, 1], ['rgba(255,255,255,0.12)', COLORS.primary]),
+    backgroundColor: interpolateColor(s.value, [0, 1], [COLORS.lightGray, COLORS.primary]),
   }));
   const checkStyle = useAnimatedStyle(() => ({
     opacity: s.value,
@@ -43,14 +43,14 @@ function RoleCard({
     <Pressable onPress={onPress} style={styles.cardPress}>
       <Animated.View style={[styles.card, cardStyle]}>
         <Animated.View style={[styles.cardIcon, iconStyle]}>
-          <Ionicons name={role.icon} size={28} color="#fff" />
+          <Ionicons name={role.icon} size={28} color={selected ? '#fff' : COLORS.gray} />
         </Animated.View>
         <View style={styles.cardText}>
           <Text style={styles.cardTitle}>{role.title}</Text>
           <Text style={styles.cardSub}>{role.sub}</Text>
         </View>
         <Animated.View style={[styles.check, checkStyle]}>
-          <Ionicons name="checkmark-circle" size={26} color="#9ec5ff" />
+          <Ionicons name="checkmark-circle" size={26} color={COLORS.primary} />
         </Animated.View>
       </Animated.View>
     </Pressable>
@@ -61,12 +61,12 @@ export default function RoleSelectScreen({ navigation }: any) {
   const [role, setRole] = useState<Role | null>(null);
 
   return (
-    <AuthBackground>
+    <AuthBackground variant="light">
       <SafeAreaView style={styles.safe}>
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.duration(600)} style={styles.header}>
-            <Logo variant="splash" size={LOGO_SIZE} />
-            <Text style={styles.tagline}>Safar Saath, Manzil Aasan</Text>
+            <Logo variant="auth" size={LOGO_SIZE} />
+            <Text style={styles.tagline}>Saath Chalein, Saath Bachaein</Text>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(150).duration(600)}>
@@ -106,13 +106,13 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
   header: { alignItems: 'center', marginBottom: 36 },
   tagline: {
-    color: GLASS.subOnDark, fontSize: 14, fontWeight: '600', letterSpacing: 0.3, marginTop: 8,
+    color: COLORS.primary, fontSize: 13, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3, marginTop: 10,
   },
   heading: {
-    color: GLASS.textOnDark, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, textAlign: 'center',
+    color: COLORS.textPrimary, fontSize: 24, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2, textAlign: 'center', marginTop: 18,
   },
   subheading: {
-    color: GLASS.subOnDark, fontSize: 14, fontWeight: '500', textAlign: 'center', marginTop: 6,
+    color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, textAlign: 'center', marginTop: 6,
   },
   cards: { marginTop: 32, gap: 16 },
   cardPress: { width: '100%' },
@@ -122,20 +122,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1.5,
     padding: 18,
-    shadowColor: '#4d8bff',
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
   },
   cardIcon: {
     width: 56, height: 56, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
   },
   cardText: { flex: 1, marginLeft: 16 },
-  cardTitle: { color: GLASS.textOnDark, fontSize: 19, fontWeight: '800', letterSpacing: -0.2 },
-  cardSub: { color: GLASS.subOnDark, fontSize: 13, fontWeight: '500', marginTop: 3 },
+  cardTitle: { color: COLORS.textPrimary, fontSize: 19, fontFamily: HEADING_FONTS.bold, letterSpacing: -0.2 },
+  cardSub: { color: COLORS.gray, fontSize: 13, fontFamily: FONTS.medium, marginTop: 3 },
   check: { marginLeft: 8 },
   footer: { marginTop: 36, alignItems: 'center' },
   signinRow: { flexDirection: 'row', paddingVertical: 4 },
-  signinMuted: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500' },
-  signinLink: { color: '#9ec5ff', fontSize: 14, fontWeight: '800' },
+  signinMuted: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium },
+  signinLink: { color: COLORS.primary, fontSize: 14, fontFamily: FONTS.extraBold },
 });

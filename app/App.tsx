@@ -1,7 +1,21 @@
 import React, { useEffect, useRef } from "react";
+import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  useFonts,
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_600SemiBold,
+  Poppins_700Bold,
+  Poppins_800ExtraBold,
+} from "@expo-google-fonts/poppins";
+import {
+  Baloo2_600SemiBold,
+  Baloo2_700Bold,
+  Baloo2_800ExtraBold,
+} from "@expo-google-fonts/baloo-2";
 import { AppProvider } from "./src/context/AppContext";
 import { ToastProvider } from "./src/context/ToastContext";
 import { GlobalModalProvider } from "./src/context/GlobalModalContext";
@@ -20,11 +34,29 @@ import "./src/tasks/locationTask";
 export default function App() {
   const navigationRef = useRef(null);
 
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    Poppins_800ExtraBold,
+    Baloo2_600SemiBold,
+    Baloo2_700Bold,
+    Baloo2_800ExtraBold,
+  });
+
   useEffect(() => {
     // Wire notification tap navigation once navigation is ready
     const cleanup = setupNotificationListeners(navigationRef);
     return cleanup;
   }, []);
+
+  // Block on fonts before anything renders — avoids a system-font flash on
+  // first paint. Plain navy fill (matches the splash background color) since
+  // the branded SplashScreen itself renders text that needs these fonts.
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: "#0d1b4b" }} />;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

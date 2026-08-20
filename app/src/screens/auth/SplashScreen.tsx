@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, Dimensions } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Logo, RouteLoader } from '../../components';
+import { Logo, FONTS, HEADING_FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { systemApi } from '../../services/api';
 
@@ -88,37 +88,21 @@ export default function SplashScreen({ navigation, onDone }) {
         </View>
 
         <View style={styles.titleContainer}>
-          <Text style={styles.tagline}>Safar Saath, Manzil Aasan</Text>
-          {/* <Text style={styles.platform}>Pakistan's Trusted Carpooling Platform</Text> */}
+          <Text style={styles.tagline}>Saath Chalein, Saath Bachaein</Text>
         </View>
 
-        {/* ── Center loading animation: glowing pointer travels a curved route ── */}
+        {/* ── Center: pagination-style progress indicator ── */}
         <View style={styles.loaderSection}>
-          <RouteLoader width={240} height={120} />
+          <View style={styles.dots}>
+            <View style={[styles.dot, styles.dotActive]} />
+            <View style={styles.dot} />
+          </View>
           {connecting && <Text style={styles.connectingText}>Connecting…</Text>}
         </View>
 
-        <View style={styles.featuresContainer}>
-          {[
-            { icon: 'shield-checkmark', title: 'Verified Drivers', sub: 'Safe & Trusted', color: '#1a73e8' },
-            { icon: 'people', title: 'Save Together', sub: 'Lower Travel Cost', color: '#2e7d32' },
-            { icon: 'location', title: 'Live Tracking', sub: 'Real-time Updates', color: '#0277bd' },
-          ].map((f, i) => (
-            <React.Fragment key={f.title}>
-              {i > 0 ? <View style={styles.featureDivider} /> : null}
-              <View style={styles.featureItem}>
-                <View style={[styles.iconCircle, { backgroundColor: f.color }]}>
-                  <Ionicons name={f.icon as any} size={18} color="#fff" />
-                </View>
-                <Text style={styles.featureTitle}>{f.title}</Text>
-                <Text style={styles.featureSub}>{f.sub}</Text>
-              </View>
-            </React.Fragment>
-          ))}
-        </View>
-
-        <View style={styles.bottomFooter}>
-          <Text style={styles.footerText}>Made in Pakistan</Text>
+        <View style={styles.captionRow}>
+          <Ionicons name="shield-checkmark" size={16} color="#fff" />
+          <Text style={styles.captionText}>Verified Rides. Safe Journeys. For Everyone.</Text>
         </View>
       </Animated.View>
     </ImageBackground>
@@ -148,79 +132,53 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginTop: -20,
+    marginTop: -8,
   },
   tagline: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 17,
-    fontWeight: '700',
+    color: '#9ec5ff',
+    fontSize: 15,
+    fontFamily: HEADING_FONTS.bold,
     letterSpacing: 0.3,
     marginTop: 6,
   },
-  platform: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 6,
-  },
-  // ── Center loader ──────────────────────────────────────────────
+  // ── Center: pagination indicator ──────────────────────────────
   loaderSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  dotActive: {
+    width: 22,
+    backgroundColor: '#ffffff',
+  },
   connectingText: {
     color: 'rgba(255,255,255,0.6)',
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: FONTS.medium,
     letterSpacing: 0.5,
-    marginTop: 6,
+    marginTop: 12,
   },
-  featuresContainer: {
+  captionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 10,
-    marginBottom: 24,
-  },
-  featureItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  featureDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1a73e8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 24,
   },
-  featureTitle: {
+  captionText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  featureSub: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  bottomFooter: {
-    marginTop: 16,
-    marginBottom: 0,
-  },
-  footerText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FONTS.semiBold,
   },
 });

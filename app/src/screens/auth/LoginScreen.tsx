@@ -5,9 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, GLASS, COLORS, CURVE } from '../../components';
+import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS, HEADING_FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -49,19 +48,23 @@ export default function LoginScreen({ navigation }) {
     };
 
     return (
-        <AuthBackground>
+        <AuthBackground variant="light">
             <SafeAreaView style={styles.safe}>
                 <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-                        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
-                            <Logo variant="splash" size={LOGO_SIZE} />
-                            <Text style={styles.title}>Welcome Back</Text>
+                        <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>
+                            <Logo variant="auth" size={LOGO_SIZE} />
+                            <Text style={styles.brandTagline}>Saath Chalein, Saath Bachaein</Text>
+                        </Animated.View>
+                        <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
+                            <Text style={styles.title}>Welcome back!</Text>
                             <Text style={styles.subtitle}>Login to continue your journey</Text>
                         </Animated.View>
 
                         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
                             <AuthInput
+                                variant="light"
                                 leftLabel="PK +92"
                                 placeholder="Mobile number"
                                 value={phone}
@@ -71,6 +74,7 @@ export default function LoginScreen({ navigation }) {
                                 error={errors.phone}
                             />
                             <AuthInput
+                                variant="light"
                                 icon="lock-closed-outline"
                                 placeholder="Password"
                                 value={password}
@@ -84,20 +88,14 @@ export default function LoginScreen({ navigation }) {
                             </Pressable>
 
                             <Pressable
-                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
+                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
                                 onPress={handleLogin}
                                 disabled={loading}
                             >
-                                <LinearGradient colors={['#2196f3', '#1a73e8', '#1557b0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-                                    {loading ? (
-                                        <Text style={styles.primaryText}>Signing In…</Text>
-                                    ) : (
-                                        <>
-                                            <Text style={styles.primaryText}>Sign In</Text>
-                                            <Ionicons name="arrow-forward" size={18} color="#fff" />
-                                        </>
-                                    )}
-                                </LinearGradient>
+                                <Text style={styles.primaryText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
+                                <View style={styles.primaryBtnIcon}>
+                                    <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                </View>
                             </Pressable>
 
                             <View style={styles.dividerRow}>
@@ -124,54 +122,57 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
     safe: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28, justifyContent: 'center' },
-    header: { alignItems: 'center', marginBottom: 26 },
-    title: { color: GLASS.textOnDark, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, marginTop: 16 },
-    subtitle: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500', marginTop: 5 },
+    hero: { alignItems: 'center', marginBottom: 22 },
+    brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: HEADING_FONTS.bold, marginTop: 8 },
+    header: { marginBottom: 22 },
+    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2 },
+    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 5 },
     card: {
-        backgroundColor: GLASS.fill,
-        borderWidth: 1,
-        borderColor: GLASS.border,
+        backgroundColor: COLORS.cardBg,
         borderRadius: 24,
         padding: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 20,
+        elevation: 2,
     },
     forgot: { alignSelf: 'flex-end', marginTop: 12 },
-    forgotText: { color: '#9ec5ff', fontSize: 13, fontWeight: '700' },
-    primaryBtnWrap: {
-        marginTop: 18,
-        borderRadius: 16,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.45,
-        shadowRadius: 16,
-        elevation: 6,
-        ...CURVE,
-    },
+    forgotText: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold },
     primaryBtn: {
+        marginTop: 18,
         height: 52,
         borderRadius: 16,
+        backgroundColor: COLORS.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 4,
         ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+    primaryText: { color: '#fff', fontSize: 16, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3 },
+    primaryBtnIcon: {
+        width: 28, height: 28, borderRadius: 14,
+        backgroundColor: '#fff',
+        alignItems: 'center', justifyContent: 'center',
+    },
     dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-    dividerLine: { flex: 1, height: 1, backgroundColor: GLASS.border },
-    dividerText: { marginHorizontal: 14, color: GLASS.faintOnDark, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+    dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+    dividerText: { marginHorizontal: 14, color: COLORS.gray, fontSize: 12, fontFamily: FONTS.bold, letterSpacing: 1 },
     ghostBtn: {
         height: 52,
         borderRadius: 16,
         borderWidth: 1.5,
-        borderColor: GLASS.borderFocus,
+        borderColor: COLORS.primary,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: COLORS.primaryLight,
         ...CURVE,
     },
-    ghostText: { color: '#fff', fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
+    ghostText: { color: COLORS.primary, fontSize: 15, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.2 },
 });

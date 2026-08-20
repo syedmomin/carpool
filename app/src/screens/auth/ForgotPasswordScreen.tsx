@@ -6,8 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { AuthBackground, AuthInput, Logo, GLASS, COLORS, CURVE } from '../../components';
+import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS, HEADING_FONTS } from '../../components';
 import { authApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -70,7 +69,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     };
 
     return (
-        <AuthBackground>
+        <AuthBackground variant="light">
             <SafeAreaView style={styles.safe}>
                 <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -80,11 +79,13 @@ export default function ForgotPasswordScreen({ navigation }) {
                             hitSlop={10}
                             onPress={() => step === 'reset' ? setStep('request') : navigation.goBack()}
                         >
-                            <Ionicons name="chevron-back" size={24} color="#fff" />
+                            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
                         </Pressable>
 
-                        <Animated.View entering={FadeInDown.duration(500)} style={styles.header}>
-                            <Logo variant="splash" size={LOGO_SIZE} />
+                        <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>
+                            <Logo variant="auth" size={LOGO_SIZE} />
+                        </Animated.View>
+                        <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
                             <Text style={styles.title}>Forgot Password?</Text>
                             <Text style={styles.subtitle}>
                                 {step === 'request'
@@ -96,6 +97,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                         {step === 'request' ? (
                             <Animated.View entering={FadeIn.duration(350)} style={styles.card}>
                                 <AuthInput
+                                    variant="light"
                                     icon="mail-outline"
                                     placeholder="Email address"
                                     value={email}
@@ -105,25 +107,20 @@ export default function ForgotPasswordScreen({ navigation }) {
                                     error={errors.email}
                                 />
                                 <Pressable
-                                    style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
+                                    style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
                                     onPress={handleRequest}
                                     disabled={loading}
                                 >
-                                    <LinearGradient colors={['#2196f3', '#1a73e8', '#1557b0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-                                        {loading ? (
-                                            <Text style={styles.primaryText}>Sending…</Text>
-                                        ) : (
-                                            <>
-                                                <Text style={styles.primaryText}>Send Reset Code</Text>
-                                                <Ionicons name="arrow-forward" size={18} color="#fff" />
-                                            </>
-                                        )}
-                                    </LinearGradient>
+                                    <Text style={styles.primaryText}>{loading ? 'Sending…' : 'Send Reset Code'}</Text>
+                                    <View style={styles.primaryBtnIcon}>
+                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                    </View>
                                 </Pressable>
                             </Animated.View>
                         ) : (
                             <Animated.View entering={FadeIn.duration(350)} style={styles.card}>
                                 <AuthInput
+                                    variant="light"
                                     icon="keypad-outline"
                                     placeholder="6-digit code"
                                     value={code}
@@ -133,6 +130,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                                     error={errors.code}
                                 />
                                 <AuthInput
+                                    variant="light"
                                     icon="lock-closed-outline"
                                     placeholder="New password (min 6 chars)"
                                     value={password}
@@ -141,20 +139,14 @@ export default function ForgotPasswordScreen({ navigation }) {
                                     error={errors.password}
                                 />
                                 <Pressable
-                                    style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
+                                    style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
                                     onPress={handleReset}
                                     disabled={loading}
                                 >
-                                    <LinearGradient colors={['#2196f3', '#1a73e8', '#1557b0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-                                        {loading ? (
-                                            <Text style={styles.primaryText}>Resetting…</Text>
-                                        ) : (
-                                            <>
-                                                <Text style={styles.primaryText}>Reset Password</Text>
-                                                <Ionicons name="arrow-forward" size={18} color="#fff" />
-                                            </>
-                                        )}
-                                    </LinearGradient>
+                                    <Text style={styles.primaryText}>{loading ? 'Resetting…' : 'Reset Password'}</Text>
+                                    <View style={styles.primaryBtnIcon}>
+                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                    </View>
                                 </Pressable>
                                 <Pressable style={styles.resend} onPress={handleResend} hitSlop={6} disabled={loading}>
                                     <Text style={styles.resendText}>Didn’t get a code? Resend</Text>
@@ -178,46 +170,48 @@ const styles = StyleSheet.create({
     safe: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28, justifyContent: 'center' },
     back: { position: 'absolute', top: 8, left: 18, width: 40, height: 40, justifyContent: 'center', zIndex: 2 },
-    header: { alignItems: 'center', marginBottom: 26 },
-    title: { color: GLASS.textOnDark, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, marginTop: 16 },
+    hero: { alignItems: 'center', marginBottom: 4 },
+    header: { marginBottom: 26 },
+    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2, marginTop: 12 },
     subtitle: {
-        color: GLASS.subOnDark, fontSize: 14, fontWeight: '500', marginTop: 8,
-        textAlign: 'center', lineHeight: 20, paddingHorizontal: 6,
+        color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 8,
+        lineHeight: 20,
     },
     card: {
-        backgroundColor: GLASS.fill,
-        borderWidth: 1,
-        borderColor: GLASS.border,
+        backgroundColor: COLORS.cardBg,
         borderRadius: 24,
         padding: 20,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 24,
-    },
-    primaryBtnWrap: {
-        marginTop: 18,
-        borderRadius: 16,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.45,
-        shadowRadius: 16,
-        elevation: 6,
-        ...CURVE,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.06,
+        shadowRadius: 20,
+        elevation: 2,
     },
     primaryBtn: {
+        marginTop: 18,
         height: 52,
         borderRadius: 16,
+        backgroundColor: COLORS.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 4,
         ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+    primaryText: { color: '#fff', fontSize: 16, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3 },
+    primaryBtnIcon: {
+        width: 28, height: 28, borderRadius: 14,
+        backgroundColor: '#fff',
+        alignItems: 'center', justifyContent: 'center',
+    },
     resend: { alignSelf: 'center', marginTop: 16, paddingVertical: 4 },
-    resendText: { color: '#9ec5ff', fontSize: 13, fontWeight: '700' },
+    resendText: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold },
     bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
-    bottomMuted: { color: GLASS.subOnDark, fontSize: 14, fontWeight: '500' },
-    bottomLink: { color: '#9ec5ff', fontSize: 14, fontWeight: '800' },
+    bottomMuted: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium },
+    bottomLink: { color: COLORS.primary, fontSize: 14, fontFamily: FONTS.extraBold },
 });

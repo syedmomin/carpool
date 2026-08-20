@@ -4,8 +4,8 @@ import { Image, ImageStyle, StyleProp, ImageResizeMode } from 'react-native';
 // ─── Brand logo variants ──────────────────────────────────────────────────────
 // Real brand assets. Drop a new file in /assets and add one line here.
 const LOGO_VARIANTS = {
-  auth:   require('../../assets/light-logo.png'),  // brand mark for light backgrounds
-  splash: require('../../assets/dark-logo.png'),   // brand mark for the dark splash background
+  auth:   require('../../assets/auth-logo.png'),   // brand mark for light backgrounds
+  splash: require('../../assets/splash-logo.png'), // brand mark for the dark splash background
 };
 
 export type LogoVariant = keyof typeof LOGO_VARIANTS;

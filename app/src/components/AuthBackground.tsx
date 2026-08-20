@@ -2,18 +2,42 @@
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Circle, Defs, LinearGradient as SvgGrad, Stop } from 'react-native-svg';
-import { GRADIENTS } from './theme';
+import { GRADIENTS, COLORS } from './theme';
 
 const { width: W } = Dimensions.get('window');
 
+interface Props {
+  children: React.ReactNode;
+  /** 'dark' (default) = navy gradient hero (Splash). 'light' = white bg with a subtle decorative corner (Login/Register/ForgotPassword/RoleSelect). */
+  variant?: 'dark' | 'light';
+}
+
 /**
- * The shared navy-gradient hero behind every auth screen. Renders:
- *   1. a full-screen deep-navy > blue LinearGradient,
- *   2. two soft glow orbs for depth,
- *   3. a city-skyline + curved-route silhouette anchored to the bottom.
- * Children render on top. Atmosphere only — no layout assumptions.
+ * The shared hero behind every auth screen.
+ * Dark variant renders a deep-navy > blue gradient + glow orbs + a city-skyline
+ * silhouette. Light variant renders a plain app-background fill with a soft
+ * decorative dot-grid + blob in the top-right corner. Children render on top —
+ * atmosphere only, no layout assumptions.
  */
-export default function AuthBackground({ children }: { children: React.ReactNode }) {
+export default function AuthBackground({ children, variant = 'dark' }: Props) {
+  if (variant === 'light') {
+    return (
+      <View style={styles.lightFill}>
+        <View pointerEvents="none" style={styles.lightCorner}>
+          <View style={styles.lightBlob} />
+          <Svg width={140} height={140} style={StyleSheet.absoluteFill}>
+            {Array.from({ length: 6 }).map((_, row) =>
+              Array.from({ length: 6 }).map((__, col) => (
+                <Circle key={`${row}-${col}`} cx={10 + col * 12} cy={10 + row * 12} r={1.4} fill="rgba(26,115,232,0.18)" />
+              ))
+            )}
+          </Svg>
+        </View>
+        {children}
+      </View>
+    );
+  }
+
   return (
     <LinearGradient
       colors={GRADIENTS.authNavy as any}
@@ -84,5 +108,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  // ── Light variant ──
+  lightFill: { flex: 1, backgroundColor: COLORS.bg },
+  lightCorner: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 140,
+    height: 140,
+  },
+  lightBlob: {
+    position: 'absolute',
+    top: -50,
+    right: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: COLORS.primaryLight,
   },
 });
