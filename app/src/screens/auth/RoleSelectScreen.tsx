@@ -6,11 +6,11 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, Logo, COLORS, FONTS, HEADING_FONTS } from '../../components';
+import { AuthBackground, Logo, COLORS, FONTS } from '../../components';
 
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
-const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
+const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
 
 type Role = 'passenger' | 'driver';
 
@@ -104,15 +104,15 @@ export default function RoleSelectScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: 36 },
+  header: { alignItems: 'center', marginBottom: 20 },
   tagline: {
-    color: COLORS.primary, fontSize: 13, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3, marginTop: 10,
+    color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, letterSpacing: 0.3, marginTop: 6,
   },
   heading: {
-    color: COLORS.textPrimary, fontSize: 24, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2, textAlign: 'center', marginTop: 18,
+    color: COLORS.textPrimary, fontSize: 24, fontFamily: FONTS.extraBold, letterSpacing: -0.2, textAlign: 'center', marginTop: 10,
   },
   subheading: {
-    color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, textAlign: 'center', marginTop: 6,
+    color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, textAlign: 'center', marginTop: 2,
   },
   cards: { marginTop: 32, gap: 16 },
   cardPress: { width: '100%' },
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   cardText: { flex: 1, marginLeft: 16 },
-  cardTitle: { color: COLORS.textPrimary, fontSize: 19, fontFamily: HEADING_FONTS.bold, letterSpacing: -0.2 },
+  cardTitle: { color: COLORS.textPrimary, fontSize: 19, fontFamily: FONTS.bold, letterSpacing: -0.2 },
   cardSub: { color: COLORS.gray, fontSize: 13, fontFamily: FONTS.medium, marginTop: 3 },
   check: { marginLeft: 8 },
   footer: { marginTop: 36, alignItems: 'center' },

@@ -6,14 +6,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS, HEADING_FONTS } from '../../components';
+import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS } from '../../components';
 import { authApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
-const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
+const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
 
 const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -170,22 +170,18 @@ const styles = StyleSheet.create({
     safe: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28, justifyContent: 'center' },
     back: { position: 'absolute', top: 8, left: 18, width: 40, height: 40, justifyContent: 'center', zIndex: 2 },
-    hero: { alignItems: 'center', marginBottom: 4 },
-    header: { marginBottom: 26 },
-    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2, marginTop: 12 },
+    hero: { alignItems: 'center', marginBottom: 2 },
+    header: { marginBottom: 16 },
+    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: FONTS.extraBold, letterSpacing: -0.2, marginTop: 6 },
     subtitle: {
-        color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 8,
+        color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 2,
         lineHeight: 20,
     },
+    // No card background — inputs float directly on the light auth
+    // background, each with its own shadow; a white card behind white inputs
+    // made the fields nearly invisible.
     card: {
-        backgroundColor: COLORS.cardBg,
-        borderRadius: 24,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 20,
-        elevation: 2,
+        paddingHorizontal: 2,
     },
     primaryBtn: {
         marginTop: 18,
@@ -203,7 +199,7 @@ const styles = StyleSheet.create({
         elevation: 4,
         ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3 },
+    primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
     primaryBtnIcon: {
         width: 28, height: 28, borderRadius: 14,
         backgroundColor: '#fff',

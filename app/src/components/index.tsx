@@ -1,6 +1,6 @@
 // ─── Theme ───────────────────────────────────────────────────────────────────
 export {
-  COLORS, GRADIENTS, GLASS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, CURVE, FONTS, HEADING_FONTS,
+  COLORS, GRADIENTS, GLASS, SPACING, TYPOGRAPHY, SHADOWS, RADIUS, CURVE, FONTS,
   OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, AMENITY_DISPLAY_CONFIG, TRUST_BADGE_CONFIG,
 } from './theme';
 export type { StatusToken, AmenityToken, TrustToken } from './theme';

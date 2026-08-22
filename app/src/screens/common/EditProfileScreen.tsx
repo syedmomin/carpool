@@ -11,6 +11,7 @@ import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { showImagePickerOptions } from '../../utils/imagePicker';
+import { digitsOnly, normalizePkPhone, toLocalDisplay, isValidLocalPhone } from '../../utils/phone';
 
 export default function EditProfileScreen({ navigation }) {
   const { currentUser, updateProfile } = useApp();
@@ -19,7 +20,7 @@ export default function EditProfileScreen({ navigation }) {
   const savedRef = useRef(false);
   const [form, setForm] = useState({
     name:  currentUser?.name  || '',
-    phone: currentUser?.phone || '',
+    phone: toLocalDisplay(currentUser?.phone || ''),
     email: currentUser?.email || '',
     city:  currentUser?.city  || '',
   });
@@ -29,10 +30,12 @@ export default function EditProfileScreen({ navigation }) {
 
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
-  // Warn before leaving with unsaved edits.
+  // Warn before leaving with unsaved edits. `form.phone` is local display
+  // format (leading 0); `currentUser.phone` is wire format (92-prefixed) —
+  // normalize both before comparing, or every load shows as "dirty".
   const isDirty = useMemo(() =>
     form.name  !== (currentUser?.name  || '') ||
-    form.phone !== (currentUser?.phone || '') ||
+    normalizePkPhone(form.phone) !== normalizePkPhone(currentUser?.phone || '') ||
     form.email !== (currentUser?.email || '') ||
     form.city  !== (currentUser?.city  || '') ||
     avatar     !== (currentUser?.avatar || null),
@@ -67,8 +70,9 @@ export default function EditProfileScreen({ navigation }) {
 
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('Name is required.', 'error'); return; }
+    if (!isValidLocalPhone(form.phone)) { showToast('Enter your number as 0300 1234567.', 'error'); return; }
     setLoading(true);
-    const { error } = await updateProfile({ ...form, avatar });
+    const { error } = await updateProfile({ ...form, phone: normalizePkPhone(form.phone), avatar });
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
     savedRef.current = true; // bypass the unsaved-changes guard
@@ -125,7 +129,7 @@ export default function EditProfileScreen({ navigation }) {
           </View>
 
           <FormInput label="Full Name *"    icon="person-outline"    placeholder="Your full name"  value={form.name}  onChangeText={v => set('name', v)} />
-          <FormInput label="Phone Number *" icon="call-outline"       placeholder="03001234567"     value={form.phone} onChangeText={v => set('phone', v)} keyboardType="phone-pad" />
+          <FormInput label="Phone Number *" icon="call-outline"       placeholder="03001234567"     value={form.phone} onChangeText={v => set('phone', digitsOnly(v).slice(0, 11))} keyboardType="phone-pad" maxLength={11} />
           <FormInput label="Email Address"  icon="mail-outline"       placeholder="your@email.com" value={form.email} onChangeText={v => set('email', v)} keyboardType="email-address" autoCapitalize="none" />
           <FormInput label="City"           icon="location-outline"   placeholder="e.g. Karachi"   value={form.city}  onChangeText={v => set('city', v)} />
 

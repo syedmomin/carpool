@@ -6,17 +6,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, CitySearchModal, COLORS, CURVE, FONTS, HEADING_FONTS } from '../../components';
+import { AuthBackground, AuthInput, Logo, CitySearchModal, COLORS, CURVE, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
+import { digitsOnly, normalizePkPhone, isValidLocalPhone } from '../../utils/phone';
 
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
-const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
+const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
 
 // ─── Validators ───────────────────────────────────────────────────────────────
-const isValidPhone = (v) => /^\d{10}$/.test(v.replace(/[\s\-]/g, ''));
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const isValidPassword = (v) => v.length >= 6;
 
@@ -47,7 +47,7 @@ export default function RegisterScreen({ navigation, route }) {
         else if (form.name.trim().length < 2) e.name = 'Name must be at least 2 characters';
 
         if (!form.phone.trim()) e.phone = 'Phone number is required';
-        else if (!isValidPhone(form.phone)) e.phone = 'Enter exactly 10 digits after +92';
+        else if (!isValidLocalPhone(form.phone)) e.phone = 'Enter your number as 0300 1234567';
 
         if (!form.email.trim()) e.email = 'Email is required';
         else if (!isValidEmail(form.email)) e.email = 'Enter a valid email address';
@@ -67,7 +67,7 @@ export default function RegisterScreen({ navigation, route }) {
         const { error } = await register({
             name: form.name.trim(),
             email: form.email.trim().toLowerCase(),
-            phone: '92' + form.phone.replace(/[\s\-]/g, ''),
+            phone: normalizePkPhone(form.phone),
             password: form.password,
             city: form.city.trim(),
             role: role === 'driver' ? 'DRIVER' : 'PASSENGER',
@@ -121,12 +121,13 @@ export default function RegisterScreen({ navigation, route }) {
                             />
                             <AuthInput
                                 variant="light"
-                                leftLabel="PK +92"
-                                placeholder="Mobile number"
+                                icon="call-outline"
+                                rightLabel="+92"
+                                placeholder="03001234567"
                                 value={form.phone}
-                                onChangeText={v => set('phone', v.replace(/[^0-9]/g, '').slice(0, 10))}
+                                onChangeText={v => set('phone', digitsOnly(v).slice(0, 11))}
                                 keyboardType="phone-pad"
-                                maxLength={10}
+                                maxLength={11}
                                 error={errors.phone}
                             />
                             <AuthInput
@@ -193,19 +194,15 @@ const styles = StyleSheet.create({
     safe: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28 },
     back: { marginTop: 4, width: 40, height: 40, justifyContent: 'center' },
-    hero: { alignItems: 'center', marginTop: 4, marginBottom: 4 },
-    header: { marginBottom: 22 },
-    title: { color: COLORS.textPrimary, fontSize: 20, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2, marginTop: 14 },
-    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 5 },
+    hero: { alignItems: 'center', marginTop: 4, marginBottom: 2 },
+    header: { marginBottom: 14 },
+    title: { color: COLORS.textPrimary, fontSize: 20, fontFamily: FONTS.extraBold, letterSpacing: -0.2, marginTop: 8 },
+    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 2 },
+    // No card background — inputs float directly on the light auth
+    // background, each with its own shadow; a white card behind white inputs
+    // made the fields nearly invisible.
     card: {
-        backgroundColor: COLORS.cardBg,
-        borderRadius: 24,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 20,
-        elevation: 2,
+        paddingHorizontal: 2,
     },
     fieldLabel: { color: COLORS.gray, fontSize: 12, fontFamily: FONTS.bold, letterSpacing: 0.4, marginBottom: 10 },
     // Read-only role badge (role is picked on RoleSelect)
@@ -245,7 +242,7 @@ const styles = StyleSheet.create({
         elevation: 4,
         ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3 },
+    primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
     primaryBtnIcon: {
         width: 28, height: 28, borderRadius: 14,
         backgroundColor: '#fff',

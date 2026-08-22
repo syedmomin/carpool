@@ -11,11 +11,6 @@ import {
   Poppins_700Bold,
   Poppins_800ExtraBold,
 } from "@expo-google-fonts/poppins";
-import {
-  Baloo2_600SemiBold,
-  Baloo2_700Bold,
-  Baloo2_800ExtraBold,
-} from "@expo-google-fonts/baloo-2";
 import { AppProvider } from "./src/context/AppContext";
 import { ToastProvider } from "./src/context/ToastContext";
 import { GlobalModalProvider } from "./src/context/GlobalModalContext";
@@ -40,9 +35,6 @@ export default function App() {
     Poppins_600SemiBold,
     Poppins_700Bold,
     Poppins_800ExtraBold,
-    Baloo2_600SemiBold,
-    Baloo2_700Bold,
-    Baloo2_800ExtraBold,
   });
 
   useEffect(() => {

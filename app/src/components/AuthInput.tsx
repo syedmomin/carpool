@@ -11,9 +11,11 @@ import { GLASS, COLORS, RADIUS, FONTS } from './theme';
 
 const AView = Animated.View;
 
-// Light-variant palette — mirrors GLASS's role but for a white background.
+// Light-variant palette — fields float on the light auth background (not
+// inside a white card), so the border must read clearly on its own — a plain
+// white-on-white card made these nearly invisible before.
 const LIGHT = {
-  border:      COLORS.border,
+  border:      '#D7DCE5',
   borderFocus: COLORS.primary,
   inputFill:   COLORS.white,
   fillStrong:  COLORS.white,
@@ -27,6 +29,8 @@ interface Props extends Omit<TextInputProps, 'style'> {
   icon?: keyof typeof Ionicons.glyphMap;
   /** Static left label (e.g. "PK +92") shown instead of / before the field. */
   leftLabel?: string;
+  /** Static right label (e.g. "+92") shown after the field, before any eye-toggle/chevron. */
+  rightLabel?: string;
   /** Validation message; turns the ring red when present. */
   error?: string;
   /** Renders a password eye-toggle on the right. */
@@ -47,7 +51,7 @@ interface Props extends Omit<TextInputProps, 'style'> {
  * One component covers text fields, phone (+92), password, and the city button.
  */
 export default function AuthInput({
-  icon, leftLabel, error, password, asButton, onPress, value, placeholder, variant = 'dark', ...rest
+  icon, leftLabel, rightLabel, error, password, asButton, onPress, value, placeholder, variant = 'dark', ...rest
 }: Props) {
   const [focused, setFocused] = useState(false);
   const [hide, setHide] = useState(true);
@@ -60,7 +64,8 @@ export default function AuthInput({
     borderColor: error
       ? COLORS.danger
       : interpolateColor(f.value, [0, 1], [light ? LIGHT.border : GLASS.border, light ? LIGHT.borderFocus : GLASS.borderFocus]),
-    shadowOpacity: light ? 0.06 + f.value * 0.08 : 0.10 + f.value * 0.35,
+    borderWidth: light ? 1.5 : 1,
+    shadowOpacity: light ? 0.10 + f.value * 0.10 : 0.10 + f.value * 0.35,
     backgroundColor: light ? LIGHT.inputFill : interpolateColor(f.value, [0, 1], [GLASS.inputFill, GLASS.fillStrong]),
   }));
 
@@ -95,6 +100,11 @@ export default function AuthInput({
         />
       )}
 
+      {rightLabel && (
+        <View style={[styles.rightLabelBox, light && styles.rightLabelBoxLight]}>
+          <Text style={[styles.rightLabelText, { color: textColor }]}>{rightLabel}</Text>
+        </View>
+      )}
       {password && (
         <Pressable onPress={() => setHide(h => !h)} style={styles.rightBtn} hitSlop={8}>
           <Ionicons name={hide ? 'eye-outline' : 'eye-off-outline'} size={20} color={subColor} />
@@ -131,8 +141,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   rowLight: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 3,
   },
   leftIcon: { marginRight: 10 },
   leftLabelBox: {
@@ -147,6 +159,22 @@ const styles = StyleSheet.create({
     borderRightColor: COLORS.border,
   },
   leftLabelText: {
+    fontSize: 15,
+    fontFamily: FONTS.bold,
+    letterSpacing: 0.3,
+  },
+  rightLabelBox: {
+    paddingLeft: 12,
+    marginLeft: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: GLASS.border,
+    height: '60%',
+    justifyContent: 'center',
+  },
+  rightLabelBoxLight: {
+    borderLeftColor: COLORS.border,
+  },
+  rightLabelText: {
     fontSize: 15,
     fontFamily: FONTS.bold,
     letterSpacing: 0.3,

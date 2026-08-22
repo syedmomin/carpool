@@ -11,15 +11,6 @@ export const FONTS = {
   extraBold: 'Poppins_800ExtraBold',
 };
 
-// Rounded/bubbly — matches the brand mark's own baked-in lettering. Use for
-// headlines, taglines, and buttons on the auth screens; NOT for dense body
-// copy or small labels (a rounded face reads poorly at small sizes).
-export const HEADING_FONTS = {
-  semiBold:  'Baloo2_600SemiBold',
-  bold:      'Baloo2_700Bold',
-  extraBold: 'Baloo2_800ExtraBold',
-};
-
 // ─── ChalParo Brand Palette ───────────────────────────────────────────────
 // Rule: passenger UI = primary blue | driver UI = teal (unified to brand blue)
 // Never use purple — was replaced with blue

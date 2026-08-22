@@ -6,17 +6,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS, HEADING_FONTS } from '../../components';
+import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
+import { digitsOnly, normalizePkPhone, isValidLocalPhone } from '../../utils/phone';
 
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
-const LOGO_SIZE = Math.max(160, Math.min(W * 0.44, 200));
+const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
 
-// phone: exactly 10 digits after +92 prefix
-const isValidPhone = (v) => /^\d{10}$/.test(v.replace(/[\s\-]/g, ''));
 const isValidPassword = (v) => v.length >= 6;
 
 export default function LoginScreen({ navigation }) {
@@ -30,7 +29,7 @@ export default function LoginScreen({ navigation }) {
     const validate = () => {
         const e: any = {};
         if (!phone.trim()) e.phone = 'Phone number is required';
-        else if (!isValidPhone(phone)) e.phone = 'Enter exactly 10 digits after +92';
+        else if (!isValidLocalPhone(phone)) e.phone = 'Enter your number as 0300 1234567';
         if (!password) e.password = 'Password is required';
         else if (!isValidPassword(password)) e.password = 'Password must be at least 6 characters';
         setErrors(e);
@@ -40,7 +39,7 @@ export default function LoginScreen({ navigation }) {
     const handleLogin = async () => {
         if (!validate()) return;
         setLoading(true);
-        const cleanPhone = '92' + phone.replace(/[\s\-]/g, '');
+        const cleanPhone = normalizePkPhone(phone);
         const { error, role } = await login(cleanPhone, password);
         setLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
@@ -65,12 +64,13 @@ export default function LoginScreen({ navigation }) {
                         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
                             <AuthInput
                                 variant="light"
-                                leftLabel="PK +92"
-                                placeholder="Mobile number"
+                                icon="call-outline"
+                                rightLabel="+92"
+                                placeholder="03001234567"
                                 value={phone}
-                                onChangeText={(v) => { setPhone(v.replace(/[^0-9]/g, '').slice(0, 10)); setErrors(p => ({ ...p, phone: '' })); }}
+                                onChangeText={(v) => { setPhone(digitsOnly(v).slice(0, 11)); setErrors(p => ({ ...p, phone: '' })); }}
                                 keyboardType="phone-pad"
-                                maxLength={10}
+                                maxLength={11}
                                 error={errors.phone}
                             />
                             <AuthInput
@@ -122,20 +122,16 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
     safe: { flex: 1 },
     scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28, justifyContent: 'center' },
-    hero: { alignItems: 'center', marginBottom: 22 },
-    brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: HEADING_FONTS.bold, marginTop: 8 },
-    header: { marginBottom: 22 },
-    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: HEADING_FONTS.extraBold, letterSpacing: -0.2 },
-    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 5 },
+    hero: { alignItems: 'center', marginBottom: 14 },
+    brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, marginTop: 6 },
+    header: { marginBottom: 14 },
+    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: FONTS.extraBold, letterSpacing: -0.2 },
+    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 2 },
+    // No card background — inputs float directly on the light auth
+    // background, each with its own shadow; a white card behind white inputs
+    // made the fields nearly invisible.
     card: {
-        backgroundColor: COLORS.cardBg,
-        borderRadius: 24,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 20,
-        elevation: 2,
+        paddingHorizontal: 2,
     },
     forgot: { alignSelf: 'flex-end', marginTop: 12 },
     forgotText: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold },
@@ -155,7 +151,7 @@ const styles = StyleSheet.create({
         elevation: 4,
         ...CURVE,
     },
-    primaryText: { color: '#fff', fontSize: 16, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.3 },
+    primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
     primaryBtnIcon: {
         width: 28, height: 28, borderRadius: 14,
         backgroundColor: '#fff',
@@ -174,5 +170,5 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primaryLight,
         ...CURVE,
     },
-    ghostText: { color: COLORS.primary, fontSize: 15, fontFamily: HEADING_FONTS.bold, letterSpacing: 0.2 },
+    ghostText: { color: COLORS.primary, fontSize: 15, fontFamily: FONTS.bold, letterSpacing: 0.2 },
 });

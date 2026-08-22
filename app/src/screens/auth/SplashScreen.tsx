@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, Dimensions } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Logo, FONTS, HEADING_FONTS } from '../../components';
+import { Logo, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { systemApi } from '../../services/api';
 
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   tagline: {
     color: '#9ec5ff',
     fontSize: 15,
-    fontFamily: HEADING_FONTS.bold,
+    fontFamily: FONTS.bold,
     letterSpacing: 0.3,
     marginTop: 6,
   },
