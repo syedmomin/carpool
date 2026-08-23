@@ -3,15 +3,15 @@ import {
   View, Text, StyleSheet, Pressable, Platform,
   Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar, Alert,
 } from 'react-native';
-import { MapView, Marker } from '../../components/Map';
+import { MapView, Marker, Polyline } from '../../components/Map';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY } from '../../tasks/locationTask';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, Avatar } from '../../components';
+import { COLORS, GRADIENTS, Avatar, SectionHeader, PrimaryButton } from '../../components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ridesApi } from '../../services/api';
+import { ridesApi, trackingApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
@@ -21,7 +21,18 @@ import ReviewModal from '../../components/ReviewModal';
 const { width } = Dimensions.get('window');
 const isDriverRole = (role?: string) => role === 'DRIVER';
 
-// â”€â”€â”€ Elapsed timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Haversine distance (km) + rough ETA ───────────────────────────────────────
+function distanceKm(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+  const R = 6371;
+  const dLat = (b.latitude - a.latitude) * Math.PI / 180;
+  const dLon = (b.longitude - a.longitude) * Math.PI / 180;
+  const lat1 = a.latitude * Math.PI / 180;
+  const lat2 = b.latitude * Math.PI / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+// ─── Elapsed timer ────────────────────────────────────────────────────────────
 function useElapsed(active: boolean) {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -37,7 +48,7 @@ function useElapsed(active: boolean) {
     : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// â”€â”€â”€ Pulsing live dot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Pulsing live dot ─────────────────────────────────────────────────────────
 function LiveDot({ active }: { active: boolean }) {
   const scale   = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.8)).current;
@@ -71,7 +82,7 @@ const dot = StyleSheet.create({
   core: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#22c55e' },
 });
 
-// â”€â”€â”€ Stars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Stars ────────────────────────────────────────────────────────────────────
 function Stars({ rating }: { rating: number | null }) {
   const r = rating ?? 0;
   return (
@@ -88,7 +99,7 @@ function Stars({ rating }: { rating: number | null }) {
   );
 }
 
-// â”€â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RideTrackingScreen({ route, navigation }) {
   const { rideId } = route.params;
   const { showToast }  = useToast();
@@ -102,6 +113,7 @@ export default function RideTrackingScreen({ route, navigation }) {
   const [driverLocation, setDriverLocation]   = useState<any>(null);
   const [locTimedOut, setLocTimedOut]         = useState(false);
   const [currentSpeed, setCurrentSpeed]       = useState(0);
+  const [routeCoords, setRouteCoords]         = useState<{ latitude: number; longitude: number }[]>([]);
 
   // Passenger: surface a fallback if the driver's location never arrives, rather
   // than an indefinite "Waiting for driver location...".
@@ -177,6 +189,24 @@ export default function RideTrackingScreen({ route, navigation }) {
     }
   }, [mapReady]);
 
+  // Fetch the road-following route (falls back to a straight stub server-side
+  // when no routing API key is configured) and render it as a polyline.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await trackingApi.getRoute(rideId);
+      if (cancelled) return;
+      const poly = data?.data?.polyline;
+      if (Array.isArray(poly) && poly.length > 1) {
+        const coords = poly
+          .filter((p: any) => Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1]))
+          .map((p: any) => ({ latitude: p[1], longitude: p[0] })); // [lng, lat] -> {latitude, longitude}
+        if (coords.length > 1) setRouteCoords(coords);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [rideId]);
+
   const fetchRide = async () => {
     // Driver needs the ride WITH its bookings + passengers (getMineById), so the
     // tracking screen can show confirmed passengers. The public getById omits
@@ -198,7 +228,7 @@ export default function RideTrackingScreen({ route, navigation }) {
   const startTracking = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      // Tracking is useless without location â€” guide the driver to settings and
+      // Tracking is useless without location — guide the driver to settings and
       // leave the screen rather than sitting on a map that broadcasts nothing.
       Alert.alert(
         'Location needed',
@@ -255,7 +285,7 @@ export default function RideTrackingScreen({ route, navigation }) {
 
   // Best-effort background tracking. Foreground tracking already works without
   // it, so a denied permission or unsupported platform must never break the
-  // screen â€” we just log and carry on.
+  // screen — we just log and carry on.
   const startBackgroundTracking = async () => {
     try {
       const { status } = await Location.requestBackgroundPermissionsAsync();
@@ -270,7 +300,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         pausesUpdatesAutomatically: false,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
-          notificationTitle: 'ChalParo â€” trip in progress',
+          notificationTitle: 'ChalParo — trip in progress',
           notificationBody:  'Sharing your live location with passengers.',
           notificationColor: '#0d1b4b',
         },
@@ -358,6 +388,21 @@ export default function RideTrackingScreen({ route, navigation }) {
     );
   }
 
+  const destination = ride?.toLat && ride?.toLng ? { latitude: ride.toLat, longitude: ride.toLng } : null;
+  const remainingKm = driverLocation && destination ? distanceKm(driverLocation, destination) : null;
+  const etaMinutes = remainingKm !== null ? Math.max(1, Math.round((remainingKm / 35) * 60)) : null; // ~35km/h assumed avg speed
+
+  const openNavigation = () => {
+    if (!destination) { showToast('Destination location not available', 'error'); return; }
+    const label = encodeURIComponent(ride?.toCity || 'Destination');
+    const url = Platform.select({
+      ios: `maps://app?daddr=${destination.latitude},${destination.longitude}`,
+      android: `google.navigation:q=${destination.latitude},${destination.longitude}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}`,
+    });
+    Linking.openURL(url as string).catch(() => showToast('Could not open navigation app', 'error'));
+  };
+
   const confirmedBookings = ride?.bookings?.filter((b: any) => b.status === 'CONFIRMED') || [];
   // Seats filled = sum of each booking's seats (one booking can hold several seats).
   const confirmedSeats    = confirmedBookings.reduce((sum: number, b: any) => sum + (b.seats || 1), 0);
@@ -372,14 +417,14 @@ export default function RideTrackingScreen({ route, navigation }) {
     <View style={s.container}>
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      {/* â”€â”€ Full-screen Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Full-screen Map ───────────────────────────────────────────── */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         initialRegion={initialRegion}
         onLayout={() => setMapReady(true)}
       >
-        {/* Driver car marker (used only on initial render â€” live updates via mapRef) */}
+        {/* Driver car marker (used only on initial render — live updates via mapRef) */}
         {driverLocation && (
           <Marker
             coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
@@ -407,9 +452,24 @@ export default function RideTrackingScreen({ route, navigation }) {
             title={ride?.fromCity || 'Pickup'}
           />
         )}
+
+        {/* Route line: prefer the fetched road route; otherwise fall back to a
+            straight line between the live driver position and the destination. */}
+        {routeCoords.length > 1 ? (
+          <Polyline coordinates={routeCoords} strokeColor="#1d4ed8" strokeWidth={4} />
+        ) : (driverLocation && destination) ? (
+          <Polyline
+            coordinates={[
+              { latitude: driverLocation.latitude, longitude: driverLocation.longitude },
+              destination,
+            ]}
+            strokeColor="#1d4ed8"
+            strokeWidth={4}
+          />
+        ) : null}
       </MapView>
 
-      {/* â”€â”€ Recenter FAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Recenter FAB ─────────────────────────────────────────────── */}
       {driverLocation && (
         <Pressable style={s.recenterFab} onPress={handleRecenter}>
           {recentering
@@ -419,37 +479,48 @@ export default function RideTrackingScreen({ route, navigation }) {
         </Pressable>
       )}
 
-      {/* â”€â”€ Top Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {remainingKm !== null && (
+        <Pressable style={s.etaChip} onPress={handleRecenter}>
+          <Text style={s.etaChipDistance}>{remainingKm.toFixed(1)} km</Text>
+          <Text style={s.etaChipTime}>{etaMinutes} min away</Text>
+        </Pressable>
+      )}
+
+      {/* ── Top Header ───────────────────────────────────────────────── */}
       <View style={[s.header, { top: insets.top + 12 }]}>
-        <Pressable style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
+        <Pressable
+          style={s.backBtn}
+          onPress={() => driver
+            ? navigation.navigate('DriverApp', { screen: 'DriverHomeTab' })
+            : navigation.goBack()
+          }
+        >
+          <Ionicons name={driver ? 'chevron-down' : 'arrow-back'} size={22} color={COLORS.textPrimary} />
         </Pressable>
         <View style={s.headerCenter}>
           <Text style={s.headerRoute} numberOfLines={1}>
-            {ride?.fromCity} â†’ {ride?.toCity}
+            {ride?.fromCity} {'>'} {ride?.toCity}
           </Text>
           <Text style={s.headerSub}>
-            {driver ? `${ride?.date} Â· ${ride?.departureTime}` : 'Live Ride Tracking'}
+            {driver ? `${ride?.date} · ${ride?.departureTime}` : 'Live Ride Tracking'}
           </Text>
         </View>
-        <View style={s.livePill}>
-          <LiveDot active />
-          <Text style={s.liveText}>LIVE</Text>
-        </View>
+        <Pressable
+          style={s.headerCallBtn}
+          onPress={() => handleCall(driver ? confirmedBookings[0]?.passenger?.phone : ride?.driver?.phone)}
+        >
+          <Ionicons name="call" size={18} color={COLORS.primary} />
+        </Pressable>
       </View>
 
-      {/* â”€â”€ Bottom Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Bottom Panel ─────────────────────────────────────────────── */}
       <View style={[s.panel, { paddingBottom: insets.bottom + 16 }]}>
         {/* Gradient accent line at top of panel */}
-        <LinearGradient
-          colors={[COLORS.primary, '#7c3aed']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={s.panelAccent}
-        />
+        
         <View style={s.handle} />
 
         {driver ? (
-          /* â”€â”€â”€ DRIVER PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+          /* ─── DRIVER PANEL ──────────────────────────────────────────── */
           <>
             <View style={s.statsRow}>
               <View style={s.statItem}>
@@ -473,7 +544,7 @@ export default function RideTrackingScreen({ route, navigation }) {
               </View>
             </View>
 
-            <Text style={s.sectionTitle}>Onboard Passengers</Text>
+            <SectionHeader title="Onboard Passengers" style={s.sectionTitle} />
             <FlatList
               data={confirmedBookings}
               keyExtractor={item => item.id}
@@ -486,8 +557,8 @@ export default function RideTrackingScreen({ route, navigation }) {
                     <Text style={s.pName}>{item.passenger?.name}</Text>
                     <Text style={s.pMeta}>
                       {item.boardingCity || ride?.fromCity}
-                      {item.exitCity && item.exitCity !== ride?.toCity ? ` â†’ ${item.exitCity}` : ''}
-                      {'  Â·  '}{item.seats} seat{item.seats !== 1 ? 's' : ''}
+                      {item.exitCity && item.exitCity !== ride?.toCity ? ` > ${item.exitCity}` : ''}
+                      {'  ·  '}{item.seats} seat{item.seats !== 1 ? 's' : ''}
                     </Text>
                   </View>
                   <Pressable style={s.callBtn} onPress={() => handleCall(item.passenger?.phone)}>
@@ -499,20 +570,20 @@ export default function RideTrackingScreen({ route, navigation }) {
             />
 
             <View style={s.finishWrap}>
-              <Pressable
-                style={s.finishBtn}
-                onPress={handleFinishRide}
-                disabled={isFinishing}
-              >
-                {isFinishing
-                  ? <ActivityIndicator color="#fff" />
-                  : <><Ionicons name="flag" size={20} color="#fff" /><Text style={s.finishBtnText}>Finish Ride</Text></>
-                }
+              <Pressable style={s.navigateBtn} onPress={openNavigation}>
+                <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
+                <Text style={s.navigateBtnText}>Navigate</Text>
               </Pressable>
+              <PrimaryButton
+                title="Complete Ride"
+                onPress={handleFinishRide}
+                loading={isFinishing}
+                style={s.finishBtn}
+              />
             </View>
           </>
         ) : (
-          /* â”€â”€â”€ PASSENGER PANEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+          /* ─── PASSENGER PANEL ───────────────────────────────────────── */
           <>
             {/* Driver card with gradient background */}
             <LinearGradient
@@ -528,7 +599,7 @@ export default function RideTrackingScreen({ route, navigation }) {
                   <Ionicons name="car-sport" size={12} color={COLORS.primary} />
                   <Text style={s.vehicleText} numberOfLines={1}>
                     {[ride?.vehicle?.brand, ride?.vehicle?.model].filter(Boolean).join(' ') || ride?.vehicle?.type || 'Vehicle'}
-                    {ride?.vehicle?.plateNumber ? ` Â· ${ride?.vehicle?.plateNumber}` : ''}
+                    {ride?.vehicle?.plateNumber ? ` · ${ride?.vehicle?.plateNumber}` : ''}
                   </Text>
                 </View>
               </View>
@@ -596,7 +667,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         )}
       </View>
 
-      {/* â”€â”€ Driver rating modal after ride finish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Driver rating modal after ride finish ─────────────────────── */}
       {ratingIndex >= 0 && ratingIndex < confirmedBookings.length && (
         <ReviewModal
           visible
@@ -606,7 +677,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           revieweeId={confirmedBookings[ratingIndex].passengerId}
           revieweeName={confirmedBookings[ratingIndex].passenger?.name || 'Passenger'}
           targetRole="PASSENGER"
-          routeLabel={`${ride?.fromCity} â†’ ${ride?.toCity}`}
+          routeLabel={`${ride?.fromCity} > ${ride?.toCity}`}
           routeDate={ride?.date}
         />
       )}
@@ -634,47 +705,48 @@ const s = StyleSheet.create({
     zIndex: 9,
   },
 
+  // ETA chip
+  etaChip: {
+    position: 'absolute', right: 16, bottom: Platform.OS === 'ios' ? 400 : 380,
+    backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10,
+    alignItems: 'flex-end', zIndex: 9,
+  },
+  etaChipDistance: { fontSize: 13, fontWeight: '700', color: COLORS.white },
+  etaChipTime: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 1 },
+
   // Header
   header: {
     position: 'absolute', top: Platform.OS === 'ios' ? 56 : 28,
     left: 16, right: 16,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.97)', borderRadius: 20,
+    backgroundColor: COLORS.cardBg, borderRadius: 16,
     paddingHorizontal: 12, paddingVertical: 11,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18, shadowRadius: 16, elevation: 14, zIndex: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)',
+    borderWidth: 1, borderColor: COLORS.border,
+    zIndex: 10,
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center',
   },
   headerCenter: { flex: 1 },
-  headerRoute:  { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
-  headerSub:    { fontSize: 11, color: COLORS.gray, marginTop: 1, fontWeight: '500' },
-  livePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#f0fdf4', borderRadius: 12,
-    paddingHorizontal: 9, paddingVertical: 5,
-    borderWidth: 1, borderColor: '#86efac',
+  headerRoute:  { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  headerSub:    { fontSize: 11, color: COLORS.textSecondary, marginTop: 1, fontWeight: '500' },
+  headerCallBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
   },
-  liveText: { fontSize: 10, fontWeight: '900', color: '#15803d', letterSpacing: 1.5 },
 
   // Panel
   panel: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    backgroundColor: COLORS.cardBg,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 22,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.14, shadowRadius: 24, elevation: 28,
+    borderWidth: 1, borderColor: COLORS.border, borderBottomWidth: 0,
     overflow: 'hidden',
   },
-  panelAccent: {
-    height: 4, borderTopLeftRadius: 32, borderTopRightRadius: 32,
-  },
   handle: {
-    width: 44, height: 4, backgroundColor: '#e2e8f0',
+    width: 44, height: 4, backgroundColor: COLORS.border,
     borderRadius: 2, alignSelf: 'center', marginTop: 14, marginBottom: 18,
   },
 
@@ -686,11 +758,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#e0e7ff',
   },
   statItem:    { flex: 1, alignItems: 'center', gap: 2 },
-  statVal:     { fontSize: 19, fontWeight: '900', color: COLORS.textPrimary },
+  statVal:     { fontSize: 19, fontWeight: '700', color: COLORS.textPrimary },
   statLabel:   { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.6 },
   statDivider: { width: 1, height: '75%', backgroundColor: '#dde3f0', alignSelf: 'center' },
 
-  sectionTitle:  { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary, marginHorizontal: 20, marginBottom: 10 },
+  sectionTitle:  { marginHorizontal: 20, marginBottom: 10, marginTop: 0 },
   passengerList: { maxHeight: 155, marginHorizontal: 20, marginBottom: 12 },
   passengerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -704,14 +776,13 @@ const s = StyleSheet.create({
   callBtn:  { width: 38, height: 38, borderRadius: 19, backgroundColor: '#eef2ff', alignItems: 'center', justifyContent: 'center' },
   emptyText: { textAlign: 'center', fontSize: 13, color: COLORS.gray, marginVertical: 8 },
 
-  finishWrap: { paddingHorizontal: 20, marginTop: 4 },
-  finishBtn: {
-    height: 58, borderRadius: 20, backgroundColor: '#ef4444',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    shadowColor: '#ef4444', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4, shadowRadius: 16, elevation: 10,
+  finishWrap: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: 4 },
+  navigateBtn: {
+    flex: 1, height: 52, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  finishBtnText: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 0.3 },
+  navigateBtnText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
+  finishBtn: { flex: 1.4 },
 
   // Passenger
   driverCardGrad: {
@@ -721,7 +792,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#e0e7ff',
   },
   driverMeta:       { flex: 1, gap: 4 },
-  driverName:       { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
+  driverName:       { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
   vehiclePill:      { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   vehicleText:      { fontSize: 12, color: COLORS.gray, fontWeight: '600', flex: 1 },
   callDriverBtn:    { width: 52, height: 52, borderRadius: 26, overflow: 'hidden',
@@ -736,7 +807,7 @@ const s = StyleSheet.create({
   routeDot:  { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
   routeLine: { flex: 1, height: 2, backgroundColor: '#e2e8f0', borderRadius: 1 },
-  routeCity: { fontSize: 13, fontWeight: '800', color: COLORS.textPrimary },
+  routeCity: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
 
   tripInfoRow: {
     flexDirection: 'row', marginHorizontal: 20,
@@ -746,7 +817,7 @@ const s = StyleSheet.create({
   },
   tripInfoItem:    { flex: 1, alignItems: 'center', gap: 3 },
   tripInfoLabel:   { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.5 },
-  tripInfoVal:     { fontSize: 13, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center' },
+  tripInfoVal:     { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
   tripInfoDivider: { width: 1, height: '80%', backgroundColor: '#e2e8f0', alignSelf: 'center' },
 
   liveStatus: {
@@ -756,7 +827,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1, borderColor: '#86efac',
   },
-  liveStatusText: { fontSize: 13, fontWeight: '700', color: '#15803d' },
+  liveStatusText: { fontSize: 13, fontWeight: '400', color: '#15803d' },
 
   safetyRow: { flexDirection: 'row', marginHorizontal: 20, gap: 12 },
   safetyBtn: {

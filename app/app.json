@@ -21,27 +21,38 @@
         "backgroundColor": "#0d1b4b",
         "foregroundImage": "./assets/dark-logo.png"
       },
-      "package": "com.safarishare.app",
+      "package": "com.chalparo.app",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE"
       ]
     },
     "ios": {
       "infoPlist": {
         "UIBackgroundModes": [
           "location"
-        ]
+        ],
+        "NSPhotoLibraryUsageDescription": "ChalParo needs access to your photo library so you can upload vehicle and profile photos.",
+        "NSCameraUsageDescription": "ChalParo needs access to your camera so you can take vehicle and profile photos."
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-image-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ChalParo needs access to your photo library so you can upload vehicle and profile photos.",
+          "cameraPermission": "ChalParo needs access to your camera so you can take vehicle and profile photos."
+        }
+      ],
       [
         "expo-location",
         {

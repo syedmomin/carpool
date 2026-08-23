@@ -1,13 +1,14 @@
-﻿import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable,
+    View, Text, StyleSheet, SectionList, ActivityIndicator, Pressable,
     RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge } from '../../components';
+import { COLORS, CURVE, EmptyState, AppBar, StatusPill, TabPills } from '../../components';
 import ReviewModal from '../../components/ReviewModal';
 import { bookingsApi } from '../../services/api';
+import { groupByMonth, isUpcomingByDate } from '../../utils/bookingGrouping';
 
 export default function PastBookingsScreen({ navigation }) {
     const [bookings, setBookings] = useState([]);
@@ -19,13 +20,19 @@ export default function PastBookingsScreen({ navigation }) {
     const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
     const isFetching = useRef(false);
 
+    // "Upcoming" here still only contains terminal (completed/cancelled/etc.)
+    // bookings — e.g. a booking cancelled ahead of a ride that hasn't happened
+    // yet. "Past" (rides that already happened) is the more relevant default
+    // for this screen per its purpose.
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('past');
+
     const fetchBookings = useCallback(async (pageNum = 1, replace = false) => {
         if (isFetching.current) return;
         isFetching.current = true;
         try {
             pageNum === 1 ? setRefreshing(true) : setLoading(true);
             const { data: responseBody } = await bookingsApi.myBookings(pageNum, 10);
-            
+
             const apiData = responseBody?.data;
             const bookingsArray = Array.isArray(apiData) ? apiData : (Array.isArray(apiData?.data) ? apiData.data : []);
 
@@ -34,10 +41,10 @@ export default function PastBookingsScreen({ navigation }) {
                 ride: b.ride ? { ...b.ride, from: b.ride.fromCity || b.ride.from, to: b.ride.toCity || b.ride.to } : null,
             });
             // Only past/terminal bookings belong in history (active ones live in
-            // the Bookings tab) â€” otherwise this list duplicates active bookings.
+            // the Bookings tab) — otherwise this list duplicates active bookings.
             const TERMINAL = ['COMPLETED', 'CANCELLED', 'REJECTED', 'EXPIRED'];
             const items = bookingsArray.map(normalize).filter((b: any) => TERMINAL.includes(b.status));
-            
+
             setBookings(prev => replace ? items : [...prev, ...items]);
             setHasMore(apiData?.meta?.hasNext ?? (responseBody?.meta?.hasNext ?? false));
             setPage(pageNum);
@@ -64,10 +71,18 @@ export default function PastBookingsScreen({ navigation }) {
         }
     };
 
-    const renderBooking = ({ item }) => (
+    const tabFiltered = useMemo(
+        () => bookings.filter((b: any) => isUpcomingByDate(b) === (activeTab === 'upcoming')),
+        [bookings, activeTab]
+    );
+    const sections = useMemo(() => groupByMonth(tabFiltered), [tabFiltered]);
+    const upcomingCount = useMemo(() => bookings.filter((b: any) => isUpcomingByDate(b)).length, [bookings]);
+    const pastCount = bookings.length - upcomingCount;
+
+    const renderBooking = ({ item }: any) => (
         <Pressable
             style={styles.card}
-            onPress={() => item.ride && navigation.navigate('RideDetail', { rideId: item.rideId || item.ride?.id, rideData: item.ride })}
+            onPress={() => navigation.navigate('PastBookingDetail', { booking: item })}
         >
             <View style={styles.cardHeader}>
                 <View style={styles.routeCol}>
@@ -75,7 +90,7 @@ export default function PastBookingsScreen({ navigation }) {
                     <Ionicons name="arrow-forward" size={14} color={COLORS.gray} />
                     <Text style={styles.cityText}>{item.ride?.toCity || 'Unknown'}</Text>
                 </View>
-                <StatusBadge status={item.status} />
+                <StatusPill status={item.status} />
             </View>
             <View style={styles.cardFooter}>
                 <View>
@@ -98,26 +113,38 @@ export default function PastBookingsScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
-            <GradientHeader 
-                colors={GRADIENTS.primary as any} 
-                title="Booking History" 
-                subtitle="All your past trips"
-                onBack={() => navigation.goBack()} 
+            <AppBar title="Past Bookings" onBack={() => navigation.goBack()} />
+
+            <TabPills
+                style={styles.tabPills}
+                tabs={[
+                    { label: `Upcoming${upcomingCount ? ` (${upcomingCount})` : ''}`, value: 'upcoming' },
+                    { label: `Past${pastCount ? ` (${pastCount})` : ''}`, value: 'past' },
+                ]}
+                activeTab={activeTab}
+                onSelect={(v) => setActiveTab(v)}
             />
-            <FlatList
-                data={bookings}
+
+            <SectionList
+                sections={sections}
                 keyExtractor={item => item.id}
                 renderItem={renderBooking}
+                renderSectionHeader={({ section }) => (
+                    <Text style={styles.sectionHeader}>{section.title}</Text>
+                )}
+                stickySectionHeadersEnabled={false}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
                 onEndReached={loadMore}
                 onEndReachedThreshold={0.5}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                     !loading && (
-                        <EmptyState 
-                            icon="receipt-outline" 
-                            title="No History" 
-                            subtitle="Your past bookings will appear here." 
+                        <EmptyState
+                            icon="receipt-outline"
+                            title={activeTab === 'upcoming' ? 'Nothing Upcoming' : 'No Past Bookings'}
+                            subtitle={activeTab === 'upcoming'
+                                ? 'Cancelled bookings for rides that haven\'t happened yet will appear here.'
+                                : 'Your completed and cancelled bookings will appear here.'}
                         />
                     )
                 }
@@ -130,7 +157,7 @@ export default function PastBookingsScreen({ navigation }) {
                     revieweeId={reviewBooking.ride?.driver?.id || ''}
                     revieweeName={reviewBooking.ride?.driver?.name || 'your Driver'}
                     targetRole="DRIVER"
-                    routeLabel={`${reviewBooking.ride?.fromCity || ''} â†’ ${reviewBooking.ride?.toCity || ''}`}
+                    routeLabel={`${reviewBooking.ride?.fromCity || ''} > ${reviewBooking.ride?.toCity || ''}`}
                     routeDate={reviewBooking.ride?.date}
                     onClose={() => setReviewBooking(null)}
                     onSubmit={() => { setReviewedIds(prev => new Set([...prev, reviewBooking.id])); setReviewBooking(null); }}
@@ -142,19 +169,19 @@ export default function PastBookingsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.bg },
+    tabPills: { marginHorizontal: 20, marginBottom: 4 },
     listContent: { padding: 20, paddingBottom: 32 },
-    card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#f0f0f0' },
+    sectionHeader: { fontSize: 13, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 12, marginBottom: 10 },
+    card: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
     routeCol: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
     cityText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
-    dateText: { fontSize: 12, color: COLORS.gray, fontWeight: '600' },
-    driverText: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+    dateText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },
+    driverText: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
     priceCol: { alignItems: 'flex-end' },
-    priceLabel: { fontSize: 9, color: COLORS.gray, textTransform: 'uppercase' },
-    priceValue: { fontSize: 16, fontWeight: '800', color: COLORS.primary },
-    rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.warning + '40', backgroundColor: COLORS.warning + '10' },
+    priceLabel: { fontSize: 9, color: COLORS.textSecondary, textTransform: 'uppercase' },
+    priceValue: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
+    rateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border },
     rateBtnText: { color: COLORS.warning, fontWeight: '700', fontSize: 13 },
 });
-
-

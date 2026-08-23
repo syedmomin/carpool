@@ -1,24 +1,43 @@
-﻿import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, SectionHeader, NotifBadge, Avatar, PulseBadge, PressableScale, CURVE, RouteTag } from '../../components';
-import { Skeleton, CardSkeleton, RideCardSkeleton } from '../../components/Skeleton';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, GRADIENTS, SectionHeader, PulseBadge, PressableScale, CURVE, RouteTag } from '../../components';
+import { Skeleton, RideCardSkeleton } from '../../components/Skeleton';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
-import { vehiclesApi } from '../../services/api';
+import { vehiclesApi, reviewsApi } from '../../services/api';
 
 import { formatLocalDate, getTodayStr } from '../../utils/date';
 import { useDoubleBackExit } from '../../utils/useDoubleBackExit';
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+// Compute confirmed seats from bookings array when the full bookings list is
+// available (loaded via SocketDataContext), so pending-but-unaccepted seats
+// don't inflate the dashboard earnings number.
+function confirmedSeatsFor(r: any): number {
+  if (r.bookings) {
+    return r.bookings
+      .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
+      .reduce((sum: number, b: any) => sum + (b.seats || 1), 0);
+  }
+  return r.bookedSeats || 0;
+}
 
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { myRides, myRidesState, loadMyRides } = useSocketData();
   useDoubleBackExit();
   const [myVehicle, setMyVehicle] = useState(null);
-
   const [loadingVehicles, setLoadingVehicles] = useState(!myVehicle);
+  const [rating, setRating] = useState<number | null>(null);
 
   useFocusEffect(useCallback(() => {
     loadMyRides();
@@ -32,119 +51,165 @@ export default function DriverHomeScreen({ navigation }) {
         setLoadingVehicles(false);
       }).catch(() => setLoadingVehicles(false));
     }
-  }, [loadMyRides, myVehicle]));
+    if (currentUser?.id) {
+      reviewsApi.forUser(currentUser.id).then(({ data }) => {
+        const stats = data?.data?.stats;
+        setRating(stats?.total ? stats.averageRating : (currentUser?.rating ?? null));
+      }).catch(() => {});
+    }
+  }, [loadMyRides, myVehicle, currentUser?.id]));
 
   const todayStr = getTodayStr();
+  const yesterdayStr = formatLocalDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
   const todayRides     = myRides.filter(r => r.date === todayStr);
-  const activeRides    = myRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
-  // Use the confirmed/completed booking seats when the full bookings array is
-  // available (loaded via SocketDataContext), so pending-but-unaccepted seats
-  // don't inflate the dashboard earnings number.
-  const confirmedSeatsFor = (r: any) => {
-    if (r.bookings) {
-      return r.bookings
-        .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
-        .reduce((sum: number, b: any) => sum + (b.seats || 1), 0);
-    }
-    return r.bookedSeats || 0;
-  };
-  const totalEarned    = todayRides.reduce((s, r) => s + confirmedSeatsFor(r) * (r.pricePerSeat || 0), 0);
-  const totalPassengers= todayRides.reduce((s, r) => s + confirmedSeatsFor(r), 0);
+  const yesterdayRides = myRides.filter(r => r.date === yesterdayStr);
+  const inProgressRide = myRides.find(r => r.status === 'IN_PROGRESS');
+
+  const totalEarned     = todayRides.reduce((s, r) => s + confirmedSeatsFor(r) * (r.pricePerSeat || 0), 0);
+  const yesterdayEarned  = yesterdayRides.reduce((s, r) => s + confirmedSeatsFor(r) * (r.pricePerSeat || 0), 0);
+  const totalPassengers = todayRides.reduce((s, r) => s + confirmedSeatsFor(r), 0);
+
+  // Percentage change vs. yesterday. When there's no baseline, fall back to
+  // a flat 0% instead of a misleading divide-by-zero spike.
+  const earningsDeltaPct = yesterdayEarned > 0
+    ? Math.round(((totalEarned - yesterdayEarned) / yesterdayEarned) * 100)
+    : (totalEarned > 0 ? 100 : 0);
+
+  // NOTE: online-time tracking doesn't exist anywhere in the backend yet
+  // (no session/presence duration is recorded), so this is a static
+  // placeholder — see final report.
+  const onlineTime = '--';
 
   const QUICK_ACTIONS = [
-    { icon: 'add-circle', label: 'Post Ride', gradient: GRADIENTS.primary, screen: 'PostRide', desc: 'Share your route' },
-    { icon: 'car-sport', label: 'My Rides', gradient: GRADIENTS.teal, screen: 'MyRidesTab', desc: 'Manage bookings' },
-    { icon: 'car', label: 'My Vehicles', gradient: GRADIENTS.primary, screen: 'MyVehiclesTab', desc: 'Vehicle details' },
-    { icon: 'list', label: 'Ride Requests', gradient: GRADIENTS.secondary, screen: 'DriverRequestsTab', desc: 'Make offers on requests' },
+    { icon: 'add-circle', label: 'Post Ride', screen: 'PostRide' },
+    { icon: 'list', label: 'Requests', screen: 'DriverRequestsTab' },
+    { icon: 'car-sport', label: 'My Rides', screen: 'MyRidesTab' },
+    { icon: 'wallet', label: 'Earnings', screen: 'Earnings' },
   ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={GRADIENTS.teal as any} style={styles.header}>
-        <View style={styles.bgCircle} />
-        <View style={styles.bgCircle2} />
-
+      <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View style={styles.headerLeft}>
-            <Avatar name={currentUser?.name} uri={currentUser?.avatar} size={52} color="rgba(255,255,255,0.3)" />
-            <View style={styles.headerInfo}>
-              <Text style={styles.greeting}>Good day,</Text>
-              <Text style={styles.userName}>{currentUser?.name}</Text>
-            </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.greeting}>{getGreeting()}, {currentUser?.name} 👋</Text>
+            <Text style={styles.subGreeting}>Here's your dashboard overview</Text>
           </View>
           <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
             <View style={styles.notifIcon}>
-              <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={23} color={COLORS.primary} />
+              <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={21} color={COLORS.primary} />
               <PulseBadge count={unreadCount} />
             </View>
           </Pressable>
         </View>
 
-        {/* Stats — hero earnings + two supporting metrics */}
-        <View style={styles.statsWrap}>
-          <PressableScale
-            style={styles.heroCard}
-            onPress={() => navigation.navigate('Earnings')}
-            scaleTo={0.97}
-          >
-            <View style={styles.heroIconChip}>
-              <Ionicons name="wallet" size={24} color={COLORS.accent} />
+      </View>
+
+      {/* Active ride indicator — shown while a trip is in progress and the
+          driver has minimized the tracking screen to do other work. */}
+      {inProgressRide && (
+        <PressableScale
+          style={{ marginHorizontal: 20, marginTop: 4 }}
+          onPress={() => navigation.navigate('RideTracking', { rideId: inProgressRide.id })}
+          scaleTo={0.98}
+        >
+          <LinearGradient colors={GRADIENTS.primary as any} style={styles.activeRideBanner}>
+            <View style={styles.activeRideDot} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activeRideTitle}>Trip in progress</Text>
+              <RouteTag
+                from={inProgressRide.from}
+                to={inProgressRide.to}
+                textStyle={styles.activeRideRoute}
+                arrowColor="rgba(255,255,255,0.7)"
+              />
             </View>
+            <Ionicons name="chevron-forward" size={18} color={COLORS.white} />
+          </LinearGradient>
+        </PressableScale>
+      )}
+
+      {/* Earnings hero + stats */}
+      <View style={styles.statsWrap}>
+        <PressableScale onPress={() => navigation.navigate('Earnings')} scaleTo={0.97}>
+          <LinearGradient colors={GRADIENTS.primary as any} style={styles.heroCard}>
             <View style={{ flex: 1 }}>
               <Text style={styles.heroLabel}>Today's Earnings</Text>
-              <Text style={styles.heroVal}>Rs {totalEarned > 0 ? totalEarned.toLocaleString() : '0'}</Text>
+              <Text style={styles.heroVal}>Rs. {totalEarned > 0 ? totalEarned.toLocaleString() : '0'}</Text>
+              <View style={styles.deltaRow}>
+                <Ionicons name={earningsDeltaPct >= 0 ? 'arrow-up' : 'arrow-down'} size={12} color={COLORS.white} />
+                <Text style={styles.deltaText}>{Math.abs(earningsDeltaPct)}% vs yesterday</Text>
+              </View>
             </View>
-            <View style={styles.heroArrow}>
-              <Ionicons name="arrow-forward" size={16} color="#fff" />
+            <View style={styles.heroIconChip}>
+              <Ionicons name="wallet" size={24} color={COLORS.white} />
             </View>
-          </PressableScale>
+          </LinearGradient>
+        </PressableScale>
 
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <View style={styles.statIconChip}>
-                <Ionicons name="car-sport-outline" size={20} color="#fff" />
-              </View>
-              <View>
-                <Text style={styles.statVal}>{todayRides.length}</Text>
-                <Text style={styles.statLabel}>Today's Rides</Text>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={styles.statIconChip}>
-                <Ionicons name="people-outline" size={20} color="#fff" />
-              </View>
-              <View>
-                <Text style={styles.statVal}>{totalPassengers}</Text>
-                <Text style={styles.statLabel}>Passengers</Text>
-              </View>
-            </View>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statVal}>{todayRides.length}</Text>
+            <Text style={styles.statLabel}>Rides</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statVal}>{onlineTime}</Text>
+            <Text style={styles.statLabel}>Online Time</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statVal}>{rating != null ? rating.toFixed(1) : '--'}</Text>
+            <Text style={styles.statLabel}>Rating</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.body}>
         {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <SectionHeader title="Quick Actions" />
         <View style={styles.actionsGrid}>
           {QUICK_ACTIONS.map((action, i) => (
-            <PressableScale key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)} scaleTo={0.96} index={i}>
-              <LinearGradient colors={action.gradient as any} style={styles.actionGrad}>
-                <View style={styles.actionIconBox}>
-                  <Ionicons name={action.icon as any} size={26} color="#fff" />
-                </View>
-                <Text style={styles.actionLabel}>{action.label}</Text>
-                <Text style={styles.actionDesc}>{action.desc}</Text>
-                <View style={styles.actionArrow}>
-                  <Ionicons name="arrow-forward" size={13} color="rgba(255,255,255,0.8)" />
-                </View>
-              </LinearGradient>
+            <PressableScale key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)} scaleTo={0.94} index={i}>
+              <View style={styles.actionIconBox}>
+                <Ionicons name={action.icon as any} size={22} color={COLORS.primary} />
+              </View>
+              <Text style={styles.actionLabel}>{action.label}</Text>
             </PressableScale>
           ))}
         </View>
 
+        {/* Today's Requests */}
+        <SectionHeader title="Today's Requests" onSeeAll={() => navigation.navigate('MyRidesTab')} />
+        {(myRidesState.loading && !myRidesState.loaded) ? (
+          <>
+            <RideCardSkeleton />
+            <RideCardSkeleton />
+          </>
+        ) : todayRides.length > 0 ? (
+          todayRides.slice(0, 4).map(ride => (
+            <PressableScale key={ride.id} style={styles.rideCard} onPress={() => navigation.navigate('MyRidesTab')} scaleTo={0.98}>
+              <View style={styles.rideLeft}>
+                <View style={[styles.rideDot, { backgroundColor: confirmedSeatsFor(ride) < ride.totalSeats ? COLORS.secondary : COLORS.accent }]} />
+                <View>
+                  <RouteTag from={ride.from} to={ride.to} textStyle={styles.rideRoute} />
+                  <Text style={styles.rideDate}>{confirmedSeatsFor(ride)}/{ride.totalSeats} seats booked</Text>
+                </View>
+              </View>
+              <View style={styles.rideRight}>
+                <Text style={styles.rideEarned}>Rs {(confirmedSeatsFor(ride) * ride.pricePerSeat).toLocaleString()}</Text>
+                <Text style={styles.rideSeats}>{ride.departureTime}</Text>
+              </View>
+            </PressableScale>
+          ))
+        ) : (
+          <View style={styles.emptyRow}>
+            <Ionicons name="calendar-outline" size={20} color={COLORS.textSecondary} />
+            <Text style={styles.emptyRowText}>No requests scheduled for today.</Text>
+          </View>
+        )}
+
         {/* Active Vehicle */}
-        <SectionHeader title="Active Vehicle" onSeeAll={() => navigation.navigate('MyVehiclesTab')} />
+        <SectionHeader title="Active Vehicle" onSeeAll={() => navigation.navigate('MyVehiclesTab')} style={{ marginTop: 8 }} />
         {loadingVehicles ? (
            <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 24 }} />
         ) : myVehicle ? (
@@ -209,10 +274,10 @@ export default function DriverHomeScreen({ navigation }) {
         )}
 
         {/* Tip */}
-        <LinearGradient colors={['#fff8e1', '#fff3cd']} style={styles.tipCard}>
-          <Ionicons name="bulb-outline" size={22} color={COLORS.accent} />
+        <View style={styles.tipCard}>
+          <Ionicons name="bulb-outline" size={22} color={COLORS.warning} />
           <Text style={styles.tipText}>Uploading clear vehicle photos can increase your bookings by 40%!</Text>
-        </LinearGradient>
+        </View>
 
         <View style={{ height: 24 }} />
       </View>
@@ -222,47 +287,44 @@ export default function DriverHomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: Platform.OS === 'ios' ? 55 : 45, paddingBottom: 28, paddingHorizontal: 20, position: 'relative', overflow: 'hidden' },
-  bgCircle: { position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.06)', top: -70, right: -50 },
-  bgCircle2: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.05)', bottom: -40, left: -30 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerInfo: {},
-  greeting: { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
-  userName: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  header: { backgroundColor: COLORS.bg, paddingTop: Platform.OS === 'ios' ? 55 : 45, paddingBottom: 4, paddingHorizontal: 20 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  headerInfo: { flex: 1 },
+  greeting: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
+  subGreeting: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3 },
   notifBtn: {},
-  notifIcon: { width: 44, height: 44, backgroundColor: '#fff', borderRadius: 14, alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.danger },
-  notifDotText: { fontSize: 8, color: '#fff', fontWeight: '700' },
-  statsWrap: { gap: 12 },
+  notifIcon: { width: 44, height: 44, backgroundColor: COLORS.cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center', position: 'relative', borderWidth: 1, borderColor: COLORS.border },
+  activeRideBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 16, padding: 14, ...CURVE,
+  },
+  activeRideDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#22c55e' },
+  activeRideTitle: { fontSize: 13, fontWeight: '700', color: COLORS.white, marginBottom: 2 },
+  activeRideRoute: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  statsWrap: { gap: 12, paddingHorizontal: 20, paddingTop: 16 },
   heroCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
-    borderRadius: 20, padding: 16, ...CURVE,
+    borderRadius: 16, padding: 18, ...CURVE,
   },
-  heroIconChip: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center' },
-  heroLabel: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginBottom: 3 },
-  heroVal: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: 0.3 },
-  heroArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
-  statsGrid: { flexDirection: 'row', gap: 12 },
+  heroIconChip: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  heroLabel: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)', marginBottom: 4 },
+  heroVal: { fontSize: 26, fontWeight: '700', color: COLORS.white },
+  deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  deltaText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.95)' },
+  statsGrid: { flexDirection: 'row', gap: 10 },
   statCard: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
-    borderRadius: 16, padding: 14,
+    flex: 1, alignItems: 'center',
+    backgroundColor: COLORS.cardBg, borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: 14, paddingVertical: 12,
   },
-  statIconChip: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.28)', alignItems: 'center', justifyContent: 'center' },
-  statVal: { fontSize: 20, fontWeight: '900', color: '#fff' },
-  statLabel: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  statVal: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  statLabel: { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginTop: 2 },
   body: { padding: 20 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 14 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
-  actionCard: { width: '47%', aspectRatio: 1.05, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, ...CURVE },
-  actionGrad: { flex: 1, padding: 16, justifyContent: 'flex-start' },
-  actionIconBox: { width: 52, height: 52, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  actionLabel: { fontSize: 14, fontWeight: '800', color: '#fff' },
-  actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  actionArrow: { position: 'absolute', top: 14, right: 14, width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  vehicleCard: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+  actionsGrid: { flexDirection: 'row', gap: 10, marginBottom: 28 },
+  actionCard: { flex: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+  actionIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  actionLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
+  vehicleCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   vehicleInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   vehicleAccentBar: { width: 4, borderRadius: 2, height: '80%', backgroundColor: COLORS.primary, marginRight: 0 },
   vehicleIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
@@ -272,22 +334,24 @@ const styles = StyleSheet.create({
   activePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f5e9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, gap: 4 },
   activeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.secondary },
   activeText: { fontSize: 11, color: COLORS.secondary, fontWeight: '700' },
-  vehicleType: { fontSize: 12, color: COLORS.gray, marginBottom: 6 },
+  vehicleType: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 6 },
   plateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  plateBadge: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary, backgroundColor: 'rgba(26,115,232,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  seatsText: { fontSize: 11, color: COLORS.gray },
-  featureTag: { fontSize: 11, color: COLORS.teal, fontWeight: '700', backgroundColor: 'rgba(0,137,123,0.1)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  addVehicleCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 24, borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed' },
-  addVehicleTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginTop: 10, marginBottom: 4 },
-  addVehicleSub: { fontSize: 12, color: COLORS.gray, textAlign: 'center', lineHeight: 18 },
-  rideCard: { backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  plateBadge: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary, backgroundColor: COLORS.primaryLight, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  seatsText: { fontSize: 11, color: COLORS.textSecondary },
+  featureTag: { fontSize: 11, color: COLORS.primary, fontWeight: '700', backgroundColor: COLORS.primaryLight, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  addVehicleCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 24, borderWidth: 1.5, borderColor: COLORS.border, borderStyle: 'dashed' },
+  addVehicleTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 10, marginBottom: 4 },
+  addVehicleSub: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 18 },
+  rideCard: { backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: COLORS.border },
   rideLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rideDot: { width: 10, height: 10, borderRadius: 5 },
   rideRoute: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  rideDate: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+  rideDate: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   rideRight: { alignItems: 'flex-end' },
-  rideEarned: { fontSize: 14, fontWeight: '800', color: COLORS.secondary },
-  rideSeats: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
-  tipCard: { borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  rideEarned: { fontSize: 14, fontWeight: '700', color: COLORS.secondary },
+  rideSeats: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
+  emptyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border },
+  emptyRowText: { fontSize: 12, color: COLORS.textSecondary, flex: 1 },
+  tipCard: { borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8, backgroundColor: COLORS.warningLight },
   tipText: { flex: 1, fontSize: 13, color: COLORS.textPrimary, lineHeight: 20 },
 });

@@ -1,19 +1,96 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, GradientHeader, EmptyState } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, Avatar, TabPills } from '../../components';
 import { useApp } from '../../context/AppContext';
-import { notificationsApi } from '../../services/api';
+import { notificationsApi, chatApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { getNotificationStyle } from '../../utils/notificationStyle';
 import { CardSkeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 20;
 
+function ChatsTab({ navigation, searchQuery }) {
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchConversations = useCallback(async (isRefresh = false) => {
+    isRefresh ? setRefreshing(true) : setLoading(true);
+    const { data } = await chatApi.getConversations();
+    if (data?.data) setConversations(data.data);
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useFocusEffect(useCallback(() => { fetchConversations(); }, [fetchConversations]));
+
+  const formatTime = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    const days = Math.floor((+now - +d) / 86400000);
+    return days < 7 ? `${days} days ago` : d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
+  if (loading) {
+    return (
+      <View style={{ paddingTop: 8 }}>
+        {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
+      </View>
+    );
+  }
+
+  const filtered = searchQuery
+    ? conversations.filter(c => (c.otherUser?.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    : conversations;
+
+  return (
+    <FlatList
+      data={filtered}
+      keyExtractor={item => item.bookingId}
+      contentContainerStyle={styles.listContent}
+      refreshing={refreshing}
+      onRefresh={() => fetchConversations(true)}
+      renderItem={({ item }) => (
+        <Pressable
+          style={styles.chatRow}
+          onPress={() => navigation.navigate('Chat', {
+            bookingId: item.bookingId,
+            otherUser: item.otherUser,
+            rideInfo: { label: `${item.rideInfo?.fromCity} > ${item.rideInfo?.toCity}` },
+          })}
+        >
+          <Avatar name={item.otherUser?.name} uri={item.otherUser?.avatar} size={48} color={COLORS.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.chatName} numberOfLines={1}>{item.otherUser?.name || 'User'}</Text>
+            <Text style={styles.chatPreview} numberOfLines={1}>{item.lastMessage?.content || ''}</Text>
+          </View>
+          <View style={styles.chatRight}>
+            <Text style={styles.chatTime}>{formatTime(item.lastMessage?.createdAt)}</Text>
+            {item.unreadCount > 0 && (
+              <View style={styles.chatUnreadBadge}>
+                <Text style={styles.chatUnreadText}>{item.unreadCount}</Text>
+              </View>
+            )}
+          </View>
+        </Pressable>
+      )}
+      ListEmptyComponent={<EmptyState icon="chatbubbles-outline" title="No Messages" subtitle="Conversations with drivers and passengers will appear here." />}
+    />
+  );
+}
+
 export default function NotificationsScreen({ navigation }) {
   const { markAllNotificationsRead } = useApp();
+  const [tab, setTab] = useState<'chats' | 'notifications'>('chats');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [page,          setPage]          = useState(1);
   const [hasMore,       setHasMore]       = useState(true);
@@ -43,6 +120,7 @@ export default function NotificationsScreen({ navigation }) {
   }, [markAllNotificationsRead]);
 
   useFocusEffect(useCallback(() => {
+    if (tab !== 'notifications') return;
     // Reset highlight snapshot each time the screen is opened.
     highlightIds.current = new Set();
     setHighlightCount(0);
@@ -67,14 +145,16 @@ export default function NotificationsScreen({ navigation }) {
       socketService.off('RIDE_STARTED',       onAnyNotif);
       socketService.off('RIDE_COMPLETED',     onAnyNotif);
     };
-  }, [fetchNotifs]));
+  }, [fetchNotifs, tab]));
 
-  // Opening the screen already marks read; tapping just clears the highlight.
+  // Opening the screen already marks read; tapping clears the highlight and
+  // opens the full notification detail.
   const handleNotifPress = (item) => {
     if (highlightIds.current.has(item.id)) {
       highlightIds.current.delete(item.id);
       setHighlightCount(highlightIds.current.size);
     }
+    navigation.navigate('NotificationDetail', { notification: item });
   };
 
   const handleViewRide = (item) => {
@@ -85,15 +165,40 @@ export default function NotificationsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.primary as any}
-        title="Notifications"
-        subtitle={highlightCount > 0 ? `${highlightCount} new` : 'All caught up'}
+      <AppBar
+        title="Messages"
         onBack={() => navigation.goBack()}
+        rightIcon={searchOpen ? 'close' : 'search-outline'}
+        onRightPress={() => { setSearchOpen(o => !o); setSearchQuery(''); }}
       />
 
+      {searchOpen && (
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={16} color={COLORS.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={tab === 'chats' ? 'Search conversations...' : 'Search notifications...'}
+            placeholderTextColor={COLORS.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoFocus
+          />
+        </View>
+      )}
+
+      <TabPills
+        tabs={[
+          { label: 'Chats', value: 'chats' },
+          { label: `Notifications${highlightCount > 0 ? ` (${highlightCount})` : ''}`, value: 'notifications' },
+        ]}
+        activeTab={tab}
+        onSelect={setTab}
+        style={{ marginHorizontal: 16, marginBottom: 12 }}
+      />
+
+      {tab === 'chats' ? <ChatsTab navigation={navigation} searchQuery={searchQuery} /> : (
       <FlatList
-        data={notifications}
+        data={searchQuery ? notifications.filter(n => (n.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (n.message || '').toLowerCase().includes(searchQuery.toLowerCase())) : notifications}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         onEndReached={() => { if (hasMore && !loading) fetchNotifs(page + 1); }}
@@ -129,10 +234,8 @@ export default function NotificationsScreen({ navigation }) {
                     style={styles.interestedBtn}
                     onPress={() => handleViewRide(item)}
                   >
-                    <LinearGradient colors={GRADIENTS.teal as any} style={styles.interestedGrad}>
-                      <Ionicons name="eye-outline" size={15} color="#fff" />
-                      <Text style={styles.interestedText}>View Ride</Text>
-                    </LinearGradient>
+                    <Ionicons name="eye-outline" size={15} color={COLORS.white} />
+                    <Text style={styles.interestedText}>View Ride</Text>
                   </Pressable>
                 )}
               </View>
@@ -149,6 +252,7 @@ export default function NotificationsScreen({ navigation }) {
           )
         }
       />
+      )}
     </View>
   );
 }
@@ -156,10 +260,25 @@ export default function NotificationsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   listContent: { padding: 16, paddingBottom: 32, flexGrow: 1 },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border,
+    marginHorizontal: 16, marginBottom: 12, paddingHorizontal: 12, height: 40,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: COLORS.textPrimary, height: '100%' },
+
+  chatRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 14, marginBottom: 10, ...CURVE },
+  chatName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  chatPreview: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  chatRight: { alignItems: 'flex-end', gap: 6 },
+  chatTime: { fontSize: 11, color: COLORS.textSecondary },
+  chatUnreadBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  chatUnreadText: { fontSize: 11, fontWeight: '700', color: COLORS.white },
+
   card: {
-    flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fff',
+    flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.cardBg,
     borderRadius: 16, padding: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: COLORS.border,
     ...CURVE,
   },
   markAllBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
@@ -173,7 +292,6 @@ const styles = StyleSheet.create({
   message: { fontSize: 13, color: COLORS.gray, lineHeight: 19, marginBottom: 6 },
   time: { fontSize: 11, color: COLORS.gray },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, flexShrink: 0 },
-  interestedBtn: { marginTop: 10, alignSelf: 'flex-start', borderRadius: 12, overflow: 'hidden', ...CURVE },
-  interestedGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9 },
-  interestedText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  interestedBtn: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, ...CURVE },
+  interestedText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
 });

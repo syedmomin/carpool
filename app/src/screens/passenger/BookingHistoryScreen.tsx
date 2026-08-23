@@ -1,6 +1,6 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, Pressable,
+    View, Text, StyleSheet, FlatList, SectionList, Pressable,
     ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,13 +8,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, OVERLAYS, EmptyState, GradientHeader, StatusBadge, BookingCardSkeleton, Avatar } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { reviewsApi, bookingsApi } from '../../services/api';
+import { groupByMonth } from '../../utils/bookingGrouping';
 
 // ─── Star picker ─────────────────────────────────────────────────────────────
 function StarPicker({ rating, onChange }) {
@@ -83,8 +84,10 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                                 <Text style={rStyles.skipBtnText}>Skip</Text>
                             </Pressable>
                             <Pressable style={rStyles.submitBtn} onPress={submit} disabled={submitting}>
-                                {submitting ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Text style={rStyles.submitBtnText}>Submit Review</Text>}
+                                <LinearGradient colors={GRADIENTS.primary as any} style={rStyles.submitInner}>
+                                    {submitting ? <ActivityIndicator size="small" color="#fff" />
+                                        : <Text style={rStyles.submitBtnText}>Submit Review</Text>}
+                                </LinearGradient>
                             </Pressable>
                         </View>
                     </View>
@@ -124,7 +127,7 @@ function CancelReasonModal({ visible, onClose, onSubmit }) {
                                 <Text style={rStyles.skipBtnText}>Go Back</Text>
                             </Pressable>
                             <Pressable
-                                style={[rStyles.submitBtn, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
+                                style={[rStyles.submitBtn, rStyles.submitInner, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
                                 onPress={submit} disabled={!reason.trim().length || submitting}>
                                 {submitting ? <ActivityIndicator size="small" color="#fff" />
                                     : <Text style={rStyles.submitBtnText}>Cancel Booking</Text>}
@@ -210,6 +213,53 @@ export default function BookingHistoryScreen({ navigation }) {
     const [addTarget, setAddTarget]             = useState<any>(null);
     const [addCount, setAddCount]               = useState(1);
     const [addLoading, setAddLoading]           = useState(false);
+
+    // "All" and "Cancelled" are additional filtered views derived from the
+    // SAME underlying booking lists this screen already fetches — myBookings
+    // (active, from the socket-backed hook) for "Upcoming", and pastBookings
+    // (fetched below) for "Past". "All" merges both into Upcoming/Past
+    // sections; "Cancelled" is just pastBookings narrowed to the
+    // cancelled/rejected/expired statuses. No new API calls were added.
+    const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'past' | 'cancelled'>('upcoming');
+    const [pastBookings, setPastBookings] = useState<any[]>([]);
+    const [pastLoading, setPastLoading] = useState(true);
+    const [pastLoaded, setPastLoaded] = useState(false);
+
+    const fetchPastBookings = useCallback(async () => {
+        setPastLoading(true);
+        try {
+            const { data: responseBody } = await bookingsApi.myBookings(1, 50);
+            const apiData = responseBody?.data;
+            const bookingsArray = Array.isArray(apiData) ? apiData : (Array.isArray(apiData?.data) ? apiData.data : []);
+            const TERMINAL = ['COMPLETED', 'CANCELLED', 'REJECTED', 'EXPIRED'];
+            setPastBookings(bookingsArray.filter((b: any) => TERMINAL.includes(b.status)));
+        } catch (err) {
+            console.error('Fetch past bookings error:', err);
+        } finally {
+            setPastLoading(false);
+            setPastLoaded(true);
+        }
+    }, []);
+
+    // "All" and "Cancelled" both need the past-bookings list loaded too.
+    const needsPastData = activeTab === 'past' || activeTab === 'all' || activeTab === 'cancelled';
+    useFocusEffect(useCallback(() => {
+        if (needsPastData && !pastLoaded) fetchPastBookings();
+    }, [needsPastData, pastLoaded, fetchPastBookings]));
+
+    const cancelledBookings = React.useMemo(
+        () => pastBookings.filter((b: any) => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)),
+        [pastBookings]
+    );
+    const pastSections = React.useMemo(() => groupByMonth(pastBookings), [pastBookings]);
+    const cancelledSections = React.useMemo(() => groupByMonth(cancelledBookings), [cancelledBookings]);
+    const allSections = React.useMemo(() => {
+        const sections: any[] = [{ key: 'upcoming', kind: 'upcoming', title: 'Upcoming', data: myBookings }];
+        if (pastLoaded) {
+            for (const s of pastSections) sections.push({ ...s, kind: 'past' });
+        }
+        return sections;
+    }, [myBookings, pastSections, pastLoaded]);
 
     const addAvailable = addTarget ? Math.max(0, (addTarget.ride?.totalSeats ?? 0) - (addTarget.ride?.bookedSeats ?? 0)) : 0;
 
@@ -302,19 +352,19 @@ export default function BookingHistoryScreen({ navigation }) {
 
                 {/* Active ride banner */}
                 {isInProgress && isActive && (
-                    <LinearGradient colors={GRADIENTS.teal as any} style={styles.activeBanner}>
-                        <Ionicons name="navigate-outline" size={13} color="#fff" />
+                    <View style={styles.activeBanner}>
+                        <Ionicons name="navigate-outline" size={13} color={COLORS.white} />
                         <Text style={styles.activeBannerText}>Ride is in progress</Text>
                         <Pressable style={styles.sosBannerBtn} onPress={() => setSosVisible(true)}>
-                            <Ionicons name="warning-outline" size={13} color="#fff" />
+                            <Ionicons name="warning-outline" size={13} color={COLORS.white} />
                             <Text style={styles.sosBannerText}>SOS</Text>
                         </Pressable>
-                    </LinearGradient>
+                    </View>
                 )}
 
                 {/* ── Status + Date ── */}
                 <View style={styles.cardTopRow}>
-                    <StatusBadge status={item.status} />
+                    <StatusPill status={item.status} />
                     <Text style={styles.cardDate}>{ride.date}</Text>
                 </View>
 
@@ -382,12 +432,10 @@ export default function BookingHistoryScreen({ navigation }) {
                 {(isActive || canReview) && (
                     <View style={styles.actionsRow}>
                         {isInProgress && isActive && (
-                            <Pressable style={styles.actionBtnPrimary}
+                            <Pressable style={[styles.actionBtnPrimary, styles.actionBtnGrad]}
                                 onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}>
-                                <LinearGradient colors={GRADIENTS.primary as any} style={styles.actionBtnGrad}>
-                                    <Ionicons name="map" size={14} color="#fff" />
-                                    <Text style={styles.actionBtnPrimaryText}>Live Map</Text>
-                                </LinearGradient>
+                                <Ionicons name="map" size={14} color={COLORS.white} />
+                                <Text style={styles.actionBtnPrimaryText}>Live Map</Text>
                             </Pressable>
                         )}
                         {isInProgress && (
@@ -437,13 +485,53 @@ export default function BookingHistoryScreen({ navigation }) {
         );
     };
 
+    const renderPastBooking = ({ item }: any) => {
+        const ride = item.ride;
+        const canReview = item.status === 'COMPLETED' && ride?.driver?.id && !reviewedIds.has(item.id);
+        return (
+            <Pressable
+                style={styles.pastRow}
+                onPress={() => navigation.navigate('PastBookingDetail', { booking: item })}
+            >
+                <View style={styles.pastTopRow}>
+                    <Text style={styles.pastRoute} numberOfLines={1}>
+                        {ride?.fromCity || ride?.from} <Ionicons name="arrow-forward" size={12} color={COLORS.gray} /> {ride?.toCity || ride?.to}
+                    </Text>
+                    <StatusPill status={item.status} />
+                </View>
+                <View style={styles.pastMetaRow}>
+                    <View style={styles.pastMetaChip}>
+                        <Ionicons name="calendar-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{ride?.date || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.pastMetaChip}>
+                        <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{ride?.departureTime || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.pastMetaChip}>
+                        <Ionicons name="people-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
+                    </View>
+                </View>
+                <View style={styles.pastBottomRow}>
+                    <Text style={styles.pastAmount}>Rs {item.totalAmount?.toLocaleString()}</Text>
+                    {canReview && (
+                        <Pressable style={[styles.actionBtn, styles.actionBtnGold]} onPress={() => setReviewBooking(item)}>
+                            <Ionicons name="star-outline" size={13} color="#d97706" />
+                            <Text style={[styles.actionBtnText, { color: '#d97706' }]}>Rate Driver</Text>
+                        </Pressable>
+                    )}
+                </View>
+            </Pressable>
+        );
+    };
+
     const isInitialLoad = !myBookingsState.loaded && myBookingsState.loading;
 
     if (isInitialLoad) {
         return (
             <View style={styles.container}>
-                <GradientHeader colors={GRADIENTS.primary as any} title="My Bookings" subtitle="Loading..."
-                    onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
+                <AppBar title="Booking History" onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
                 <ScrollView contentContainerStyle={styles.listContent}>
                     {[1, 2, 3].map(i => <BookingCardSkeleton key={i} />)}
                 </ScrollView>
@@ -453,29 +541,95 @@ export default function BookingHistoryScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
-            <GradientHeader colors={GRADIENTS.primary as any} title="My Bookings"
-                subtitle={myBookings.length > 0 ? `${myBookings.length} booking${myBookings.length !== 1 ? 's' : ''}` : 'No current bookings'}
-                onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
-            <FlatList
-                data={myBookings}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContent}
-                renderItem={renderBooking}
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                ListEmptyComponent={
-                    !refreshing ? (
-                        myBookingsState.error ? (
-                            <EmptyState icon="receipt-outline" title="Couldn't load your bookings"
-                                subtitle="Please check your connection and try again."
-                                action={{ label: 'Try Again', onPress: () => loadMyBookings(true) }} />
-                        ) : (
-                            <EmptyState icon="receipt-outline" title="No Active Bookings"
-                                subtitle="You have no pending or confirmed bookings." />
-                        )
-                    ) : null
-                }
+            <AppBar title="Booking History" onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined} />
+
+            <TabPills
+                style={styles.tabPills}
+                tabs={[
+                    { label: `All${myBookings.length + pastBookings.length > 0 ? ` (${myBookings.length + pastBookings.length})` : ''}`, value: 'all' },
+                    { label: `Upcoming${myBookings.length > 0 ? ` (${myBookings.length})` : ''}`, value: 'upcoming' },
+                    { label: `Past${pastLoaded && pastBookings.length > 0 ? ` (${pastBookings.length})` : ''}`, value: 'past' },
+                    { label: `Cancelled${pastLoaded && cancelledBookings.length > 0 ? ` (${cancelledBookings.length})` : ''}`, value: 'cancelled' },
+                ]}
+                activeTab={activeTab}
+                onSelect={(v) => setActiveTab(v)}
             />
+
+            {activeTab === 'upcoming' ? (
+                <FlatList
+                    data={myBookings}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={renderBooking}
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    ListEmptyComponent={
+                        !refreshing ? (
+                            myBookingsState.error ? (
+                                <EmptyState icon="receipt-outline" title="Couldn't load your bookings"
+                                    subtitle="Please check your connection and try again."
+                                    action={{ label: 'Try Again', onPress: () => loadMyBookings(true) }} />
+                            ) : (
+                                <EmptyState icon="receipt-outline" title="No Active Bookings"
+                                    subtitle="You have no pending or confirmed bookings." />
+                            )
+                        ) : null
+                    }
+                />
+            ) : activeTab === 'past' ? (
+                <SectionList
+                    sections={pastSections}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={renderPastBooking}
+                    renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+                    stickySectionHeadersEnabled={false}
+                    refreshing={pastLoading}
+                    onRefresh={fetchPastBookings}
+                    ListEmptyComponent={
+                        !pastLoading ? (
+                            <EmptyState icon="time-outline" title="No Past Bookings"
+                                subtitle="Your completed and cancelled bookings will appear here." />
+                        ) : null
+                    }
+                />
+            ) : activeTab === 'cancelled' ? (
+                <SectionList
+                    sections={cancelledSections}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={renderPastBooking}
+                    renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+                    stickySectionHeadersEnabled={false}
+                    refreshing={pastLoading}
+                    onRefresh={fetchPastBookings}
+                    ListEmptyComponent={
+                        !pastLoading ? (
+                            <EmptyState icon="close-circle-outline" title="No Cancelled Bookings"
+                                subtitle="Bookings you cancel (or that get rejected/expired) will appear here." />
+                        ) : null
+                    }
+                />
+            ) : (
+                <SectionList
+                    sections={allSections}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContent}
+                    renderItem={({ item, section }: any) => section.kind === 'upcoming' ? renderBooking({ item }) : renderPastBooking({ item })}
+                    renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+                    stickySectionHeadersEnabled={false}
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    ListFooterComponent={!pastLoaded ? <ActivityIndicator color={COLORS.primary} style={{ margin: 20 }} /> : null}
+                    ListEmptyComponent={
+                        !refreshing && pastLoaded ? (
+                            <EmptyState icon="receipt-outline" title="No Bookings Yet"
+                                subtitle="Your upcoming and past bookings will appear here." />
+                        ) : null
+                    }
+                />
+            )}
+
             {reviewBooking && (
                 <ReviewModal booking={reviewBooking} onClose={() => setReviewBooking(null)} onSubmit={handleReviewSubmitted} />
             )}
@@ -517,6 +671,16 @@ const styles = StyleSheet.create({
     loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     loadingText: { fontSize: 14, color: COLORS.gray },
     listContent: { padding: 16, paddingBottom: 32 },
+    tabPills: { marginHorizontal: 16, marginBottom: 4, marginTop: 8 },
+    sectionHeader: { fontSize: 13, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 10, marginBottom: 10 },
+    pastRow: { backgroundColor: COLORS.cardBg, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14, marginBottom: 10, ...CURVE },
+    pastTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
+    pastRoute: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+    pastMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+    pastMetaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
+    pastMetaText: { fontSize: 11, fontWeight: '600', color: COLORS.gray },
+    pastBottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+    pastAmount: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
     swipeCancel: { backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center', width: 96, borderRadius: 16, marginBottom: 16, gap: 2 },
     swipeCancelText: { color: '#fff', fontWeight: '800', fontSize: 12 },
     addSeatsBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.primary + '30', backgroundColor: COLORS.primary + '0d' },
@@ -534,8 +698,8 @@ const styles = StyleSheet.create({
     addCancelText: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 15 },
     addConfirm: { backgroundColor: COLORS.primary },
     addConfirmText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-    card: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 4 },
-    activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
+    card: { backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 14, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+    activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: COLORS.primary },
     activeBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },
     sosBannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
     sosBannerText: { fontSize: 11, fontWeight: '800', color: '#fff' },
@@ -548,7 +712,7 @@ const styles = StyleSheet.create({
     trackDot: { width: 10, height: 10, borderRadius: 5 },
     trackLine: { width: 2, height: 22, backgroundColor: COLORS.border, marginVertical: 3 },
     routeCities: { flex: 1, justifyContent: 'space-between', gap: 14 },
-    routeCity: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary },
+    routeCity: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
     routeTimes: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 },
     routeTimeCell: { alignItems: 'flex-end' },
     routeLabel: { fontSize: 10, fontWeight: '600', color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 1 },
@@ -566,7 +730,7 @@ const styles = StyleSheet.create({
     driverPhone: { fontSize: 11, color: COLORS.gray },
     amountBox: { alignItems: 'flex-end' },
     amountLabel: { fontSize: 10, color: COLORS.gray, marginBottom: 2 },
-    amountValue: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
+    amountValue: { fontSize: 18, fontWeight: '700', color: COLORS.primary },
 
     actionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4, flexWrap: 'wrap' },
     actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
@@ -574,8 +738,8 @@ const styles = StyleSheet.create({
     actionBtnBlue: { backgroundColor: '#eff6ff', borderColor: COLORS.primary + '30' },
     actionBtnDanger: { backgroundColor: '#fff0f0', borderColor: '#ef444430' },
     actionBtnGold: { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning + '40' },
-    actionBtnPrimary: { borderRadius: 10, overflow: 'hidden' },
-    actionBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
+    actionBtnPrimary: { borderRadius: 10 },
+    actionBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: COLORS.primary },
     actionBtnPrimaryText: { fontSize: 12, fontWeight: '800', color: '#fff' },
 });
 
@@ -595,10 +759,11 @@ const rStyles = StyleSheet.create({
     ratingLabelText: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
     commentInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, padding: 14, fontSize: 14, color: COLORS.textPrimary, minHeight: 80, textAlignVertical: 'top', marginBottom: 20 },
     btnRow: { flexDirection: 'row', gap: 12 },
-    skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border },
+    skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },
     skipBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.gray },
-    submitBtn: { flex: 2, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.primary },
-    submitBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+    submitBtn: { flex: 2, borderRadius: 12, overflow: 'hidden' },
+    submitInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
+    submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
 
 const sosStyles = StyleSheet.create({

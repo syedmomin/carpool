@@ -86,6 +86,36 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, style }
   );
 };
 
+// ─── Status Pill (mockup-accurate booking status colors) ────────────────────
+// Booking-flow specific palette per the approved passenger history designs:
+// Confirmed = blue, Completed = green, Cancelled/Rejected/Expired = red,
+// Pending = orange. Kept separate from StatusBadge (whose STATUS_COLORS
+// palette is shared/reused across ride + request statuses elsewhere) so this
+// change doesn't ripple into unrelated screens.
+const STATUS_PILL_CONFIG: Record<string, { text: string; bg: string; label: string }> = {
+  confirmed: { text: COLORS.primary,   bg: '#eff6ff', label: 'Confirmed' },
+  completed: { text: COLORS.secondary, bg: '#e8f5e9', label: 'Completed' },
+  cancelled: { text: COLORS.danger,    bg: '#fef2f2', label: 'Cancelled' },
+  rejected:  { text: COLORS.danger,    bg: '#fef2f2', label: 'Rejected' },
+  expired:   { text: COLORS.danger,    bg: '#fef2f2', label: 'Expired' },
+  pending:   { text: COLORS.warning,   bg: COLORS.warningLight, label: 'Pending' },
+};
+
+interface StatusPillProps {
+  status: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const StatusPill: React.FC<StatusPillProps> = ({ status, style }) => {
+  const key = (status || '').toLowerCase();
+  const cfg = STATUS_PILL_CONFIG[key] ?? STATUS_PILL_CONFIG.pending;
+  return (
+    <View style={[styles.status, { backgroundColor: cfg.bg }, style]}>
+      <Text style={[styles.statusText, { color: cfg.text }]}>{cfg.label}</Text>
+    </View>
+  );
+};
+
 // ─── Notification Badge (count dot) ─────────────────────────────────────────
 interface NotifBadgeProps {
   count?: number;

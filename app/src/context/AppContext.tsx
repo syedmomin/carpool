@@ -20,13 +20,15 @@ export interface AppContextState {
   
   postRide: (rideData: any) => Promise<{ data?: any, error?: any }>;
   searchRides: (from: string, to: string, date: string) => Promise<{ data: any[], error?: any }>;
-  bookRide: (rideId: string, seats: number, boardingCity?: string, exitCity?: string) => Promise<{ data?: any, error?: any }>;
+  bookRide: (rideId: string, seats: number, boardingCity?: string, exitCity?: string, note?: string) => Promise<{ data?: any, error?: any }>;
   cancelBooking: (bookingId: string, reason: string) => Promise<{ error?: any }>;
   
   registerVehicle: (vehicleData: any) => Promise<{ data?: any, error?: any }>;
   updateVehicle: (vehicleId: string, updates: any) => Promise<{ error?: any }>;
   deleteVehicle: (vehicleId: string) => Promise<{ error?: any }>;
   setActiveVehicle: (vehicleId: string) => Promise<{ error?: any }>;
+
+  deleteAccount: () => Promise<{ error?: any }>;
   
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
@@ -196,8 +198,8 @@ export const AppProvider = ({ children }) => {
   };
 
   // ─── Bookings (pure API wrappers) ─────────────────────────────────────────
-  const bookRide = async (rideId, seats, boardingCity, exitCity) => {
-    const { data, error } = await bookingsApi.book(rideId, seats, boardingCity, exitCity);
+  const bookRide = async (rideId, seats, boardingCity, exitCity, note) => {
+    const { data, error } = await bookingsApi.book(rideId, seats, boardingCity, exitCity, note);
     if (error) return { error };
     return { data: data.data };
   };
@@ -227,6 +229,16 @@ export const AppProvider = ({ children }) => {
   const setActiveVehicle = async (vehicleId) => {
     const { error } = await vehiclesApi.setActive(vehicleId);
     return { error };
+  };
+
+  const deleteAccount = async () => {
+    const { error } = await profileApi.deleteAccount();
+    if (error) return { error };
+    // Account is anonymized + deactivated server-side — clear the local
+    // session the same way a normal logout does so navigation falls back
+    // to the Login screen.
+    await logout();
+    return { error: null };
   };
 
   // ─── Notifications ────────────────────────────────────────────────────────
@@ -276,6 +288,9 @@ export const AppProvider = ({ children }) => {
 
       // Vehicles
       registerVehicle, updateVehicle, deleteVehicle, setActiveVehicle,
+
+      // Account
+      deleteAccount,
 
       // Notifications
       markNotificationRead, markAllNotificationsRead, refreshUnreadCount, incrementUnreadCount,

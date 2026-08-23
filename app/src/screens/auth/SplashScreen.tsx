@@ -91,12 +91,8 @@ export default function SplashScreen({ navigation, onDone }) {
           <Text style={styles.tagline}>Saath Chalein, Saath Bachaein</Text>
         </View>
 
-        {/* ── Center: pagination-style progress indicator ── */}
+        {/* ── Center spacer ── */}
         <View style={styles.loaderSection}>
-          <View style={styles.dots}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={styles.dot} />
-          </View>
           {connecting && <Text style={styles.connectingText}>Connecting…</Text>}
         </View>
 
@@ -146,21 +142,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  dots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  dotActive: {
-    width: 22,
-    backgroundColor: '#ffffff',
   },
   connectingText: {
     color: 'rgba(255,255,255,0.6)',

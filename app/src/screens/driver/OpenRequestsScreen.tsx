@@ -6,14 +6,14 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader, EmptyState, RequestCardSkeleton, Avatar } from '../../components';
+import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { scheduleRequestsApi, vehiclesApi } from '../../services/api';
 
-// â”€â”€â”€ Offer Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Offer Modal ───────────────────────────────────────────────────────────────
 function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicle }) {
   const { showToast } = useToast();
   const [price, setPrice]             = useState('');
@@ -62,8 +62,8 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
               <View style={bm.routeBox}>
                 <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={bm.routeText}>{request.fromCity} â†' {request.toCity}</Text>
-                  <Text style={bm.dateText}>{request.date} Â· {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
+                  <Text style={bm.routeText}>{request.fromCity} → {request.toCity}</Text>
+                  <Text style={bm.dateText}>{request.date} · {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
                   {request.departureTime && request.departureTime !== '00:00' && (
                     <View style={bm.timeTag}>
                       <Ionicons name="time-outline" size={12} color={COLORS.primary} />
@@ -90,7 +90,7 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
                 </Text>
               )}
 
-              {/* No vehicle â€” give a clear path instead of a dead-end */}
+              {/* No vehicle — give a clear path instead of a dead-end */}
               {vehicles.length === 0 && (
                 <View style={bm.noVehicleBox}>
                   <Ionicons name="car-outline" size={22} color={COLORS.primary} />
@@ -158,7 +158,7 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
   );
 }
 
-// â”€â”€â”€ Main Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function OpenRequestsScreen({ navigation }) {
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
@@ -173,6 +173,9 @@ export default function OpenRequestsScreen({ navigation }) {
   const [bidTarget, setBidTarget]       = useState<any>(null);
   const [withdrawing, setWithdrawing]   = useState<string | null>(null);
   const [cityModal, setCityModal]       = useState(false);
+  const [dismissed, setDismissed]       = useState<Set<string>>(new Set());
+
+  const visibleRequests = openRequests.filter(r => !dismissed.has(r.id));
 
   const loadVehicles = useCallback(async () => {
     const { data } = await vehiclesApi.myVehicles();
@@ -240,20 +243,11 @@ export default function OpenRequestsScreen({ navigation }) {
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.route}>{item.fromCity} â†' {item.toCity}</Text>
-            <View style={styles.metaRow}>
-              <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
-              <Text style={styles.metaText}>{item.date}</Text>
-              {hasTime && (
-                <>
-                  <Ionicons name="time-outline" size={13} color={COLORS.primary} />
-                  <Text style={[styles.metaText, { color: COLORS.primary, fontWeight: '700' }]}>{item.departureTime}</Text>
-                </>
-              )}
-              <Ionicons name="people-outline" size={13} color={COLORS.gray} />
-              <Text style={styles.metaText}>{item.seats} seat{item.seats > 1 ? 's' : ''}</Text>
-            </View>
+          <View style={styles.metaRow}>
+            {hasTime && (
+              <Text style={styles.metaText}>{item.departureTime} · </Text>
+            )}
+            <Text style={styles.metaText}>{item.date}</Text>
           </View>
           <View style={[styles.badge, isAccepted ? styles.badgeAccepted : styles.badgeOpen]}>
             <Text style={[styles.badgeText, isAccepted ? styles.badgeTextAccepted : styles.badgeTextOpen]}>
@@ -262,10 +256,19 @@ export default function OpenRequestsScreen({ navigation }) {
           </View>
         </View>
 
+        <Text style={styles.route}>{item.fromCity} → {item.toCity}</Text>
+
         {/* Passenger */}
         <View style={styles.passengerRow}>
           <Avatar name={item.passenger?.name || 'P'} uri={item.passenger?.avatar} size={32} />
           <Text style={styles.passengerName}>{item.passenger?.name || 'Passenger'}</Text>
+          {item.passenger?.rating > 0 && (
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={12} color={COLORS.warning} />
+              <Text style={styles.ratingText}>{item.passenger.rating}</Text>
+            </View>
+          )}
+          <Text style={styles.seatsInline}>{item.seats} seat{item.seats > 1 ? 's' : ''}</Text>
         </View>
 
         {/* Note */}
@@ -306,12 +309,16 @@ export default function OpenRequestsScreen({ navigation }) {
         {!isAccepted && (
           <View style={styles.actionRow}>
             {!hasBid || myBid.status === 'REJECTED' ? (
-              <Pressable style={styles.bidBtn} onPress={() => setBidTarget(item)}>
-                <LinearGradient colors={GRADIENTS.primary as any} style={styles.bidBtnGrad}>
-                  <Ionicons name="send-outline" size={15} color="#fff" />
-                  <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Offer Again' : 'Make Offer'}</Text>
-                </LinearGradient>
-              </Pressable>
+              <>
+                {!hasBid && (
+                  <Pressable style={styles.declineBtn} onPress={() => setDismissed(prev => new Set(prev).add(item.id))}>
+                    <Text style={styles.declineBtnText}>Decline</Text>
+                  </Pressable>
+                )}
+                <Pressable style={styles.bidBtn} onPress={() => setBidTarget(item)}>
+                  <Text style={styles.bidBtnText}>{myBid?.status === 'REJECTED' ? 'Offer Again' : 'Accept'}</Text>
+                </Pressable>
+              </>
             ) : myBid.status === 'PENDING' ? (
               <>
                 <Pressable style={styles.updateBtn} onPress={() => setBidTarget(item)}>
@@ -329,7 +336,7 @@ export default function OpenRequestsScreen({ navigation }) {
           </View>
         )}
 
-        {/* Accepted â€” ride was created */}
+        {/* Accepted — ride was created */}
         {isAccepted && myBid?.status === 'ACCEPTED' && (
           <View style={styles.rideCreatedBanner}>
             <Ionicons name="checkmark-circle" size={15} color={COLORS.secondary} />
@@ -342,27 +349,28 @@ export default function OpenRequestsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.teal as any}
-        title="Passenger Requests"
-        subtitle="Browse and make offers on schedule requests"
+      <AppBar
+        title="Open Requests"
         onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+        rightIcon="funnel-outline"
+        onRightPress={() => setCityModal(true)}
       />
 
-      {/* InDrive-style city selector */}
-      <Pressable style={styles.cityBar} onPress={() => setCityModal(true)}>
-        <View style={styles.cityBarLeft}>
-          <View style={styles.cityDot} />
-          <View>
-            <Text style={styles.cityBarLabel}>Your current city</Text>
-            <Text style={styles.cityBarValue}>{driverCity || 'Select city to see requests'}</Text>
+      {/* Current city (tap the filter icon above to change) */}
+      {driverCity ? (
+        <View style={styles.cityHint}>
+          <Ionicons name="location" size={13} color={COLORS.primary} />
+          <Text style={styles.cityHintText}>Showing requests near {driverCity}</Text>
+        </View>
+      ) : (
+        <Pressable style={styles.cityBar} onPress={() => setCityModal(true)}>
+          <View style={styles.cityBarLeft}>
+            <View style={styles.cityDot} />
+            <Text style={styles.cityBarValue}>Select your city to see requests</Text>
           </View>
-        </View>
-        <View style={styles.changeCityBtn}>
-          <Ionicons name="swap-vertical-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.changeCityText}>Change</Text>
-        </View>
-      </Pressable>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.primary} />
+        </Pressable>
+      )}
 
       {!openRequestsState.loaded && openRequestsState.loading ? (
         <View style={{ flex: 1, padding: 16 }}>
@@ -370,7 +378,7 @@ export default function OpenRequestsScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={openRequests}
+          data={visibleRequests}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           refreshing={refreshing}
@@ -390,7 +398,7 @@ export default function OpenRequestsScreen({ navigation }) {
                 title={driverCity ? `No Requests from ${driverCity}` : 'Select Your City'}
                 subtitle={driverCity
                   ? 'No passengers have posted requests from your city yet.'
-                  : 'Tap "Change" above to set your current city and see nearby requests.'
+                  : 'Tap the filter icon above to set your current city and see nearby requests.'
                 }
               />
             )
@@ -423,20 +431,19 @@ const styles = StyleSheet.create({
   loadingText:  { fontSize: 14, color: COLORS.gray },
   listContent:  { padding: 16, paddingBottom: 32 },
 
-  // InDrive-style city bar
-  cityBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.primary + '30', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  // City filter hint / selector
+  cityHint:     { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, marginTop: 12, marginBottom: 4 },
+  cityHintText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' },
+  cityBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.cardBg, marginHorizontal: 16, marginTop: 12, marginBottom: 4, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },
   cityBarLeft:   { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  cityDot:       { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary, borderWidth: 2, borderColor: COLORS.primary + '40' },
-  cityBarLabel:  { fontSize: 11, color: COLORS.gray, fontWeight: '500' },
-  cityBarValue:  { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 1 },
-  changeCityBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primary + '12', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  changeCityText:{ fontSize: 12, fontWeight: '700', color: COLORS.primary },
+  cityDot:       { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primary },
+  cityBarValue:  { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
 
-  card:         { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8 },
-  cardHeader:   { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
-  route:        { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
-  metaRow:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText:     { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
+  card:         { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  cardHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  route:        { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
+  metaRow:      { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  metaText:     { fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' },
   badge:        { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeOpen:    { backgroundColor: '#e8f5e9' },
   badgeAccepted:{ backgroundColor: '#e0f2fe' },
@@ -445,14 +452,17 @@ const styles = StyleSheet.create({
   badgeTextAccepted: { color: '#0369a1' },
 
   passengerRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  passengerName: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  passengerName: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
+  ratingRow:     { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  ratingText:    { fontSize: 12, fontWeight: '700', color: COLORS.textPrimary },
+  seatsInline:   { fontSize: 12, color: COLORS.textSecondary, marginLeft: 'auto' },
 
   noteRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: COLORS.lightGray, borderRadius: 8, padding: 8, marginBottom: 8 },
   noteText: { flex: 1, fontSize: 12, color: COLORS.gray, fontStyle: 'italic' },
 
   myBidRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#eff6ff', borderRadius: 8, padding: 8, marginBottom: 8 },
   myBidRowRejected: { backgroundColor: '#fff5f5' },
-  myBidText:     { fontSize: 13, fontWeight: '600', color: COLORS.primary, flex: 1 },
+  myBidText:     { fontSize: 13, fontWeight: '700', color: COLORS.primary, flex: 1 },
   bidStatusDot:  { width: 8, height: 8, borderRadius: 4 },
   bidDotPending: { backgroundColor: COLORS.warning },
   bidDotAccepted:{ backgroundColor: COLORS.secondary },
@@ -460,16 +470,17 @@ const styles = StyleSheet.create({
   bidStatusText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
 
   actionRow:      { flexDirection: 'row', gap: 8 },
-  bidBtn:         { flex: 1, borderRadius: 10, overflow: 'hidden' },
-  bidBtnGrad:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
-  bidBtnText:     { fontSize: 14, fontWeight: '700', color: '#fff' },
+  declineBtn:     { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.border, paddingVertical: 10 },
+  declineBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.textSecondary },
+  bidBtn:         { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primary, borderRadius: 10, paddingVertical: 10 },
+  bidBtnText:     { fontSize: 14, fontWeight: '700', color: COLORS.white },
   updateBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 10, paddingVertical: 8 },
   updateBtnText:  { fontSize: 13, fontWeight: '600', color: COLORS.primary },
   withdrawBtn:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1.5, borderColor: COLORS.danger + '40', borderRadius: 10, paddingVertical: 8 },
   withdrawBtnText:{ fontSize: 13, fontWeight: '600', color: COLORS.danger },
 
   rideCreatedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#e8f5e9', borderRadius: 10, padding: 10, marginTop: 6 },
-  rideCreatedText:   { fontSize: 13, fontWeight: '600', color: COLORS.secondary, flex: 1 },
+  rideCreatedText:   { fontSize: 13, fontWeight: '400', color: COLORS.secondary, flex: 1 },
 });
 
 const bm = StyleSheet.create({
@@ -494,8 +505,8 @@ const bm = StyleSheet.create({
   noVehicleText: { fontSize: 13, color: COLORS.textPrimary, textAlign: 'center', lineHeight: 19 },
   addVehicleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
   addVehicleBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  submitBtn:  { borderRadius: 14, overflow: 'hidden' },
-  submitGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
-  submitText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  submitBtn:  { borderRadius: 12, overflow: 'hidden' },
+  submitGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15 },
+  submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });
 

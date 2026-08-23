@@ -100,13 +100,31 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
             cancelText: 'Decline',
             onConfirm: async () => {
               const { error } = await bookingsApi.accept(data.booking.id);
-              if (error) showToast(error, 'error');
-              else showToast('Booking accepted', 'success');
+              if (error) {
+                showToast(error, 'error');
+              } else {
+                // The server only emits BOOKING_ACCEPTED to the passenger, so
+                // the driver's own ride/booking cache (confirmedSeats, Start
+                // Trip eligibility) would otherwise stay stale until the next
+                // unrelated refetch — patch it locally right away.
+                if (data.rideId) {
+                  socketData.patchBookingInRide(data.rideId, data.booking.id, { status: 'CONFIRMED' });
+                }
+                showToast('Booking accepted', 'success');
+              }
             },
             onCancel: async () => {
               const { error } = await bookingsApi.reject(data.booking.id);
-              if (error) showToast(error, 'error');
-              else showToast('Booking Declined', 'info');
+              if (error) {
+                showToast(error, 'error');
+              } else {
+                // Same gap as the accept path above — BOOKING_REJECTED only
+                // reaches the passenger, so patch the driver's own cache here.
+                if (data.rideId) {
+                  socketData.patchBookingInRide(data.rideId, data.booking.id, { status: 'REJECTED' });
+                }
+                showToast('Booking Declined', 'info');
+              }
             }
           });
         }

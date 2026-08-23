@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, GradientHeader, EmptyState, Avatar, RouteTag } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, AppBar, EmptyState, Avatar, RouteTag, TabPills } from '../../components';
 import { Skeleton, CardSkeleton, RequestCardSkeleton } from '../../components/Skeleton';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -247,7 +247,7 @@ export default function MyRequestsScreen({ navigation }) {
             departureTime: created.departureTime || bid.departureTime,
             totalSeats: created.totalSeats || req.seats,
           };
-          navigation.navigate('BookingConfirm', { rideId: created.id, seats: req.seats, rideData });
+          navigation.navigate('BookingSuccess', { rideId: created.id, seats: req.seats, rideData });
         } else {
           // Ride shape unknown but accept succeeded — send them to their bookings.
           showToast('Ride booked. Check My Bookings.', 'success');
@@ -405,10 +405,8 @@ export default function MyRequestsScreen({ navigation }) {
                       onPress={() => handleAccept(req, bid)}
                       disabled={isActioning}
                     >
-                      <LinearGradient colors={GRADIENTS.primary as any} style={styles.acceptBtnGrad}>
-                        <Ionicons name="checkmark-circle" size={15} color="#fff" />
-                        <Text style={styles.acceptBtnText}>Accept & Book</Text>
-                      </LinearGradient>
+                      <Ionicons name="checkmark-circle" size={15} color={COLORS.white} />
+                      <Text style={styles.acceptBtnText}>Accept & Book</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -450,35 +448,22 @@ export default function MyRequestsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.primary as any}
+      <AppBar
         title="My Requests"
-        subtitle="Bids from drivers on your requests"
-        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
         rightIcon="add-outline"
         onRightPress={() => navigation.navigate('PostRequest')}
       />
 
-      {/* Tabs */}
-      <View style={styles.tabContainer}>
-        <Pressable 
-          style={[styles.tab, selectedTab === 'active' && styles.tabActive]} 
-          onPress={() => setSelectedTab('active')}
-        >
-          <Ionicons name="search-outline" size={16} color={selectedTab === 'active' ? COLORS.primary : COLORS.gray} />
-          <Text style={[styles.tabText, selectedTab === 'active' && styles.tabTextActive]}>Active</Text>
-          {activeRequests.length > 0 && (
-            <View style={styles.countBadge}><Text style={styles.countText}>{activeRequests.length}</Text></View>
-          )}
-        </Pressable>
-        <Pressable 
-          style={[styles.tab, selectedTab === 'history' && styles.tabActive]} 
-          onPress={() => setSelectedTab('history')}
-        >
-          <Ionicons name="time-outline" size={16} color={selectedTab === 'history' ? COLORS.primary : COLORS.gray} />
-          <Text style={[styles.tabText, selectedTab === 'history' && styles.tabTextActive]}>History</Text>
-        </Pressable>
-      </View>
+      {/* Segmented Tabs */}
+      <TabPills
+        tabs={[
+          { label: `Active${activeRequests.length > 0 ? ` (${activeRequests.length})` : ''}`, value: 'active' },
+          { label: 'Completed', value: 'history' },
+        ]}
+        activeTab={selectedTab}
+        onSelect={setSelectedTab}
+        style={{ marginHorizontal: 16, marginBottom: 12 }}
+      />
 
       {isInitialLoad ? (
         <View style={styles.list}>
@@ -535,9 +520,9 @@ const styles = StyleSheet.create({
   loadingCenter:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list:             { padding: 16, paddingBottom: 32 },
 
-  card:             { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 14, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10 },
+  card:             { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: COLORS.border },
   cardHeader:       { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  route:            { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
+  route:            { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   meta:             { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   metaText:         { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
   noteText:         { fontSize: 12, color: COLORS.gray, fontStyle: 'italic', marginTop: 4 },
@@ -556,13 +541,13 @@ const styles = StyleSheet.create({
 
   bidTopRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 8 },
   bidDriverInfo:    { flex: 1 },
-  bidDriver:        { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
+  bidDriver:        { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   ratingRow:        { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
   ratingText:       { fontSize: 11, color: COLORS.warning, fontWeight: '600' },
   bidVehicle:       { fontSize: 11, color: COLORS.gray, marginTop: 3 },
 
   bidPriceBox:      { alignItems: 'flex-end', flexShrink: 0 },
-  bidPrice:         { fontSize: 18, fontWeight: '900', color: COLORS.primary },
+  bidPrice:         { fontSize: 18, fontWeight: '700', color: COLORS.primary },
   bidPriceLabel:    { fontSize: 10, color: COLORS.gray, marginTop: 1 },
   bidTotal:         { fontSize: 11, color: COLORS.gray, fontWeight: '600', marginTop: 2 },
 
@@ -576,21 +561,13 @@ const styles = StyleSheet.create({
   bidActions:       { flexDirection: 'row', gap: 8 },
   rejectBtn:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1.5, borderColor: COLORS.danger + '40', borderRadius: 12, paddingVertical: 10, backgroundColor: '#fff5f5' },
   rejectBtnText:    { fontSize: 13, fontWeight: '700', color: COLORS.danger },
-  acceptBtnWrap:    { flex: 2, borderRadius: 12, overflow: 'hidden' },
-  acceptBtnGrad:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
-  acceptBtnText:    { fontSize: 13, fontWeight: '800', color: '#fff' },
+  acceptBtnWrap:    { flex: 2, borderRadius: 12, backgroundColor: COLORS.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
+  acceptBtnText:    { fontSize: 13, fontWeight: '700', color: COLORS.white },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   cancelBtnText:    { fontSize: 13, fontWeight: '600', color: COLORS.danger },
 
-  // ── Tabs ─────────────────────────────────────────────────────────────────
-  tabContainer:     { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tab:              { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
-  tabActive:        { borderBottomWidth: 2.5, borderBottomColor: COLORS.primary },
-  tabText:          { fontSize: 13, fontWeight: '600', color: COLORS.gray },
-  tabTextActive:    { color: COLORS.primary, fontWeight: '800' },
-  countBadge:       { backgroundColor: COLORS.lightGray, paddingHorizontal: 6, borderRadius: 10, minWidth: 18, alignItems: 'center' },
-  countText:        { fontSize: 10, fontWeight: '900', color: COLORS.primary },
+  // ── Tabs (segmented pill control) ────────────────────────────────────────
 
   // ── Footer ────────────────────────────────────────────────────────────────
   waitingRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#f0f7ff', borderRadius: 12, padding: 12, marginTop: 4 },
@@ -613,13 +590,13 @@ const vm = StyleSheet.create({
   // Header
   header:        { paddingTop: 28, paddingBottom: 20, paddingHorizontal: 20 },
   headerContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
-  driverName:    { fontSize: 18, fontWeight: '900', color: '#fff' },
+  driverName:    { fontSize: 18, fontWeight: '700', color: '#fff' },
   ratingRow:     { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   ratingText:    { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
   noRatingText:  { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 3 },
   closeBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   vehicleNameStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  vehicleNameText:  { fontSize: 15, fontWeight: '800', color: '#fff', flex: 1 },
+  vehicleNameText:  { fontSize: 15, fontWeight: '700', color: '#fff', flex: 1 },
   vehicleColorDot:  { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
 
   // Gallery
@@ -640,8 +617,8 @@ const vm = StyleSheet.create({
   specsGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   specCard:      { flex: 1, minWidth: '43%', borderRadius: 14, overflow: 'hidden' },
   specCardGrad:  { padding: 14, alignItems: 'center', gap: 6 },
-  specLabel:     { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', fontWeight: '700', letterSpacing: 0.5 },
-  specValue:     { fontSize: 14, fontWeight: '900', color: COLORS.textPrimary },
+  specLabel:     { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', fontWeight: '600', letterSpacing: 0.5 },
+  specValue:     { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
 
   // Amenities
   amenitiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

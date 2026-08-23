@@ -8,7 +8,7 @@ import { getNotificationStyle } from '../utils/notificationStyle';
 import { registerBanner, BannerPayload } from '../utils/bannerBus';
 
 /**
- * BannerContext â€” global, Uber/inDrive-style in-app notification banner.
+ * BannerContext — global, Uber/inDrive-style in-app notification banner.
  * Slides down from the top, auto-dismisses, swipe-up or tap to dismiss, and
  * tap triggers an optional action. Driven by socket events (SocketListener) and
  * FCM foreground messages (via bannerBus). Background/quit pushes are handled by

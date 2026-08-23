@@ -206,11 +206,12 @@ export const ridesApi = {
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
 export const bookingsApi = {
-  book: (rideId, seats, boardingCity, exitCity) =>
+  book: (rideId, seats, boardingCity, exitCity, note) =>
     request('POST', '/bookings', {
       rideId, seats,
       ...(boardingCity ? { boardingCity } : {}),
       ...(exitCity ? { exitCity } : {}),
+      ...(note ? { note } : {}),
     }),
   cancel: (bookingId, reason) => request('DELETE', `/bookings/${bookingId}`, { reason }),
   accept: (bookingId) => request('POST', `/bookings/accept/${bookingId}`),
@@ -225,6 +226,17 @@ export const profileApi = {
   get: () => request('GET', '/users/me'),
   update: (updates) => request('PUT', '/users/me', updates),
   updateFcmToken: (fcmToken) => request('PUT', '/users/me/fcm-token', { fcmToken }),
+  deleteAccount: () => request('DELETE', '/users/me'),
+};
+
+// ─── Reports (Report Suspicious Activity) ────────────────────────────────────
+export const reportsApi = {
+  create: (reportedUserId: string, reason: string, description?: string, rideId?: string) =>
+    request('POST', '/reports', {
+      reportedUserId, reason,
+      ...(description ? { description } : {}),
+      ...(rideId ? { rideId } : {}),
+    }),
 };
 
 // ─── Vehicles ────────────────────────────────────────────────────────────────
@@ -242,18 +254,20 @@ export const notificationsApi = {
   getAll: (page = 1, limit = 20) => request('GET', `/notifications?page=${page}&limit=${limit}&sortOrder=desc`),
   markRead: (id) => request('PUT', `/notifications/${id}/read`),
   markAllRead: () => request('PUT', '/notifications/read-all'),
+  delete: (id) => request('DELETE', `/notifications/${id}`),
 };
 
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 export const reviewsApi = {
   forUser: (userId) => request('GET', `/reviews/user/${userId}`),
+  myGiven: () => request('GET', '/reviews/mine/given'),
   submit: (reviewData) => request('POST', '/reviews', reviewData),
 };
 
 
 // ─── Verification ────────────────────────────────────────────────────────────
 export const verificationApi = {
-  submitCnic: (cnicNumber, frontImage, backImage) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage }),
+  submitCnic: (cnicNumber, frontImage, backImage, selfieImage) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage, selfieImage }),
   submitLicence: (licenceImage) => request('POST', '/verification/licence', { licenceImage }),
   status: () => request('GET', '/verification/status'),
 };
@@ -280,6 +294,14 @@ export const scheduleRequestsApi = {
   withdrawBid:   (requestId: string, bidId: string) => request('DELETE', `/schedule-requests/${requestId}/bids/${bidId}`),
 };
 
+// ─── Schedule Alerts ("notify me when a matching ride is posted") ───────────
+export const scheduleAlertsApi = {
+  getMine: () => request('GET', '/schedule-alerts'),
+  create:  (data: { fromCity: string; toCity: string; date: string }) =>
+             request('POST', '/schedule-alerts', data),
+  remove:  (alertId: string) => request('DELETE', `/schedule-alerts/${alertId}`),
+};
+
 // ─── Earnings ────────────────────────────────────────────────────────────────
 export const earningsApi = {
   summary: (period) => request('GET', `/earnings?period=${period || 'all'}`),
@@ -288,6 +310,7 @@ export const earningsApi = {
 // ─── Chat ────────────────────────────────────────────────────────────────────
 export const chatApi = {
   getHistory: (bookingId) => request('GET', `/chat/${bookingId}`),
+  getConversations: () => request('GET', '/chat/conversations/mine'),
 };
 
 

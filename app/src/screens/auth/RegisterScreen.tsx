@@ -85,7 +85,7 @@ export default function RegisterScreen({ navigation, route }) {
                     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
                         <Pressable style={styles.back} onPress={() => navigation.goBack()} hitSlop={10}>
-                            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
+                            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
                         </Pressable>
 
                         <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>

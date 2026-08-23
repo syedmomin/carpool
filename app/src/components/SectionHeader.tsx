@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   titleGroup: { flex: 1 },
-  title: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.2 },
+  title: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.1 },
   subtitle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   seeAllBtn: { paddingVertical: 4, paddingHorizontal: 8 },
   seeAll: { fontSize: 13, color: COLORS.primary, fontWeight: '700' },

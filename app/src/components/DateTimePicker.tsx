@@ -77,12 +77,13 @@ export function DatePickerInput({ label, value, onChange, minDate, maxDate, plac
 
   return (
     <View style={ps.wrap}>
-      {!!label && <Text style={ps.label}>{label}</Text>}
       <Pressable style={ps.input} onPress={() => setShow(true)}>
-        <Ionicons name="calendar-outline" size={18} color={COLORS.gray} style={ps.icon} />
-        <Text style={[ps.inputText, !value && ps.placeholder]}>
-          {value ? formatDisplay(value) : placeholder}
-        </Text>
+        <View style={{ flex: 1 }}>
+          {!!label && <Text style={ps.label}>{label}</Text>}
+          <Text style={[ps.inputText, !value && ps.placeholder]}>
+            {value ? formatDisplay(value) : placeholder}
+          </Text>
+        </View>
         <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
       </Pressable>
 
@@ -95,6 +96,22 @@ export function DatePickerInput({ label, value, onChange, minDate, maxDate, plac
           minimumDate={minDate}
           maximumDate={maxDate}
           onChange={handleChange}
+        />
+      )}
+
+      {/* Web: RNDateTimePicker has no web implementation — fall back to a
+          native <input type="date"> transparently overlaid on the Pressable,
+          so the same tap area opens the browser's own date picker (a click
+          must land on the real input for that popup to open). */}
+      {Platform.OS === 'web' && (
+        // @ts-ignore - host element, valid under react-native-web
+        <input
+          type="date"
+          value={value ? formatLocalDate(new Date(value)) : ''}
+          min={minDate ? formatLocalDate(minDate) : undefined}
+          max={maxDate ? formatLocalDate(maxDate) : undefined}
+          onChange={(e: any) => { if (e.target.value) onChange(e.target.value); }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
         />
       )}
 
@@ -155,12 +172,13 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
 
   return (
     <View style={ps.wrap}>
-      {!!label && <Text style={ps.label}>{label}</Text>}
       <Pressable style={ps.input} onPress={() => setShow(true)}>
-        <Ionicons name="time-outline" size={18} color={COLORS.gray} style={ps.icon} />
-        <Text style={[ps.inputText, !value && ps.placeholder]}>
-          {value || placeholder}
-        </Text>
+        <View style={{ flex: 1 }}>
+          {!!label && <Text style={ps.label}>{label}</Text>}
+          <Text style={[ps.inputText, !value && ps.placeholder]}>
+            {value || placeholder}
+          </Text>
+        </View>
         <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
       </Pressable>
 
@@ -171,6 +189,24 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
           display="default"
           is24Hour={false}
           onChange={handleChange}
+        />
+      )}
+
+      {/* Web: same transparent-overlay approach as DatePickerInput. Native
+          <input type="time"> gives 24h "HH:MM"; convert to this app's
+          "h:mm AM/PM" string so form.departureTime etc. stay consistent. */}
+      {Platform.OS === 'web' && (
+        // @ts-ignore - host element, valid under react-native-web
+        <input
+          type="time"
+          onChange={(e: any) => {
+            if (!e.target.value) return;
+            const [h, m] = e.target.value.split(':').map(Number);
+            const d = new Date();
+            d.setHours(h, m, 0);
+            onChange(formatTime(d));
+          }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
         />
       )}
 
@@ -191,11 +227,10 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
 }
 
 const ps = StyleSheet.create({
-  wrap:        { marginBottom: 14 },
-  label:       { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
-  input:       { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 13 },
-  icon:        { marginRight: 10 },
-  inputText:   { flex: 1, fontSize: 15, fontWeight: '500', color: COLORS.textPrimary },
+  wrap:        { marginBottom: 12 },
+  label:       { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
+  input:       { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 12, position: 'relative' },
+  inputText:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   placeholder: { color: COLORS.gray, fontWeight: '400' },
 });
 

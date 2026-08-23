@@ -86,7 +86,7 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
         {/* Price */}
         <View style={styles.priceSection}>
           <Text style={styles.priceAmount}>Rs {displayPrice?.toLocaleString() || '-'}</Text>
-          <Text style={styles.priceLabel}>Per Seat</Text>
+          <Text style={styles.priceLabel}>per seat</Text>
           {isSegment && segmentPrice && segmentPrice !== ride.pricePerSeat && (
             <Text style={styles.fullPriceNote}>Full: Rs {ride.pricePerSeat?.toLocaleString()}</Text>
           )}
@@ -97,7 +97,7 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
 
       <View style={styles.rideFooter}>
         <View style={styles.driverInfo}>
-          <Avatar name={driver?.name || 'D'} uri={driver?.avatar} size={34} style={{ marginRight: 8 }} />
+          <Avatar name={driver?.name || 'D'} uri={driver?.avatar} size={36} style={styles.driverAvatar} />
           <View>
             {/* Driver name + verified badge */}
             <View style={styles.driverNameRow}>
@@ -191,31 +191,35 @@ const styles = StyleSheet.create({
   // Ride Card
   card: {
     backgroundColor: '#fff',
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
     ...CURVE,
   },
   rideHeader: { flexDirection: 'row', justifyContent: 'space-between' },
   routeSection: { flexDirection: 'row', flex: 1 },
   routeLeft: { alignItems: 'center', marginRight: 10, paddingTop: 3 },
-  dotBlue: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary },
-  routeLine: { width: 2.5, height: 24, backgroundColor: COLORS.border, marginVertical: 3 },
+  dotBlue: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primary },
+  routeLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 4 },
   routeInfo: { flex: 1, justifyContent: 'space-between', height: 54 },
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cityName: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
+  cityName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: 0.1 },
   timeWrapper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  timeText: { fontSize: 13, color: COLORS.gray, fontWeight: '600' },
-  priceSection: { alignItems: 'flex-end', justifyContent: 'center', marginLeft: 12 },
-  priceLabel: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
-  priceAmount: { fontSize: 20, fontWeight: '900', color: COLORS.primary },
+  timeText: { fontSize: 12, color: COLORS.gray, fontWeight: '600' },
+  priceSection: {
+    alignItems: 'flex-end', justifyContent: 'center', marginLeft: 12,
+    backgroundColor: COLORS.primaryLight, borderRadius: RADIUS.md,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  priceLabel: { fontSize: 10, color: COLORS.primary, marginTop: 1, fontWeight: '600', opacity: 0.75 },
+  priceAmount: { fontSize: 17, fontWeight: '800', color: COLORS.primary, letterSpacing: 0.2 },
   segmentBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
   segmentText: { fontSize: 11, fontWeight: '600', color: COLORS.primary },
   multiStopBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0f7fa', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginBottom: 10, gap: 5, alignSelf: 'flex-start' },
@@ -248,12 +252,13 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
   rideFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   driverInfo: { flexDirection: 'row', alignItems: 'center' },
+  driverAvatar: { marginRight: 9, borderWidth: 1.5, borderColor: COLORS.border },
   driverNameRow: { flexDirection: 'row', alignItems: 'center' },
   driverName: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
   vehicleInfo: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   vehicleText: { fontSize: 11, color: COLORS.gray },
-  seatsBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: RADIUS.md },
-  seatsText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
+  seatsBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: RADIUS.full },
+  seatsText: { fontSize: 11, fontWeight: '700', marginLeft: 4 },
   amenitiesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 4 },
 
   // Stats Card

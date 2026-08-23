@@ -1,13 +1,19 @@
-﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Image, Linking, Alert } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, CURVE, GradientHeader, EmptyState, Avatar, StatusBadge, TrustBadgesRow } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, Avatar, StarRating, StatusBadge, TrustBadgesRow, TabPills, SectionHeader } from '../../components';
 import { ridesApi, bookingsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+
+function requestedAtLabel(createdAt?: string) {
+  if (!createdAt) return null;
+  const d = new Date(createdAt);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
 export default function RideBookingsScreen({ navigation, route }) {
   const { rideId } = route.params;
@@ -17,6 +23,7 @@ export default function RideBookingsScreen({ navigation, route }) {
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [tab, setTab] = useState<'pending' | 'accepted'>('pending');
   const fetchingRef = useRef(false);
 
   const fetchRide = useCallback(async () => {
@@ -38,7 +45,7 @@ export default function RideBookingsScreen({ navigation, route }) {
     fetchRide();
   }, [fetchRide]));
 
-  // Socket always active â€” update booking list in real-time even if screen loses focus
+  // Socket always active — update booking list in real-time even if screen loses focus
   useEffect(() => {
     const onBookingChanged = (data: any) => {
       if (data.rideId === rideId) fetchRide();
@@ -97,75 +104,74 @@ export default function RideBookingsScreen({ navigation, route }) {
     });
   };
 
-  const callPassenger = (phone: string) => {
-    Linking.openURL(`tel:${phone}`).catch(() => Alert.alert('Error', 'Could not open phone dialer.'));
-  };
-
-  const renderBooking = ({ item }: { item: any }) => {
+  const renderPendingCard = (item: any) => {
     const p = item.passenger;
-    const isPending = item.status === 'PENDING';
-    const isConfirmed = item.status === 'CONFIRMED';
     const isActioning = actionLoading === item.id;
+    const requestedAt = requestedAtLabel(item.createdAt);
 
     return (
-      <View style={[styles.card, !isPending && { opacity: 0.8 }]}>
+      <View key={item.id} style={styles.card}>
         <View style={styles.cardTop}>
           <Avatar name={p.name} uri={p.avatar} size={48} color={COLORS.primary} />
           <View style={styles.pInfo}>
-            <Text style={styles.pName}>{p.name}</Text>
-            <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} â€¢ Rs {item.totalAmount.toLocaleString()}</Text>
+            <View style={styles.pNameRow}>
+              <Text style={styles.pName}>{p.name}</Text>
+              {p.rating > 0 && <StarRating rating={p.rating} size={12} />}
+            </View>
+            <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} · Rs {item.totalAmount.toLocaleString()}</Text>
             <TrustBadgesRow user={p} max={2} style={{ marginTop: 4 }} />
           </View>
-          <StatusBadge status={item.status.toLowerCase()} label={item.status} />
         </View>
 
-        {isPending ? (
-          <View style={styles.actionRow}>
-            <Pressable 
-              style={[styles.btn, styles.rejectBtn]} 
-              onPress={() => handleReject(item.id, p.name)}
-              disabled={!!actionLoading}
-            >
-              <Ionicons name="close" size={18} color={COLORS.danger} />
-              <Text style={styles.rejectText}>Reject</Text>
-            </Pressable>
-            <Pressable 
-              style={[styles.btn, styles.acceptBtn]} 
-              onPress={() => handleAccept(item.id, p.name)}
-              disabled={!!actionLoading}
-            >
-              {isActioning ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark" size={18} color="#fff" />
-                  <Text style={styles.acceptText}>Accept</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.confirmedRow}>
-            <Pressable style={styles.contactBtn} onPress={() => callPassenger(p.phone)}>
-              <Ionicons name="call-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.contactText}>Call</Text>
-            </Pressable>
-            <View style={styles.btnDivider} />
-            <Pressable 
-              style={styles.contactBtn} 
-              onPress={() => navigation.navigate('Chat', { 
-                bookingId: item.id, 
-                otherUser: p,
-                rideInfo: { label: `${ride?.fromCity || ride?.from} â†’ ${ride?.toCity || ride?.to}` }
-              })}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.contactText}>Chat</Text>
-            </Pressable>
-          </View>
+        {requestedAt && <Text style={styles.requestedAt}>Requested at {requestedAt}</Text>}
 
-        )}
+        <View style={styles.actionRow}>
+          <Pressable
+            style={[styles.btn, styles.rejectBtn]}
+            onPress={() => handleReject(item.id, p.name)}
+            disabled={!!actionLoading}
+          >
+            <Ionicons name="close" size={18} color={COLORS.danger} />
+            <Text style={styles.rejectText}>Reject</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.btn, styles.acceptBtn]}
+            onPress={() => handleAccept(item.id, p.name)}
+            disabled={!!actionLoading}
+          >
+            {isActioning ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <>
+                <Ionicons name="checkmark" size={18} color={COLORS.white} />
+                <Text style={styles.acceptText}>Accept</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
       </View>
+    );
+  };
+
+  const renderAcceptedRow = (item: any) => {
+    const p = item.passenger;
+    return (
+      <Pressable
+        key={item.id}
+        style={({ pressed }) => [styles.acceptedRow, pressed && styles.acceptedRowPressed]}
+        onPress={() => navigation.navigate('DriverBookingDetail', { booking: { ...item, ride } })}
+      >
+        <Avatar name={p.name} uri={p.avatar} size={40} color={COLORS.primary} />
+        <View style={{ flex: 1 }}>
+          <View style={styles.pNameRow}>
+            <Text style={styles.pName}>{p.name}</Text>
+            {p.rating > 0 && <StarRating rating={p.rating} size={12} />}
+          </View>
+          <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
+        </View>
+        <Text style={styles.bookingPrice}>Rs {item.totalAmount.toLocaleString()}</Text>
+        <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
+      </Pressable>
     );
   };
 
@@ -178,42 +184,83 @@ export default function RideBookingsScreen({ navigation, route }) {
   }
 
   const pending = ride?.bookings?.filter((b: any) => b.status === 'PENDING') || [];
-  const confirmed = ride?.bookings?.filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED') || [];
+  const accepted = ride?.bookings?.filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED') || [];
+  const confSeats = accepted.reduce((s: number, b: any) => s + (b.seats || 1), 0);
+  const isFinished = ride?.status === 'COMPLETED' || ride?.status === 'CANCELLED' || ride?.status === 'EXPIRED';
+  const earned = accepted.reduce((s: number, b: any) => s + (b.totalAmount || 0), 0);
+
+  const hasTime = ride?.departureTime && ride.departureTime !== '00:00';
+
+  // Build the list; for 'accepted'/'all' tabs, inject a section-header marker
+  // ahead of the accepted rows so they read as a distinct "Accepted Bookings" group.
+  let listData: any[] = [];
+  if (tab === 'pending') {
+    listData = pending;
+  } else {
+    listData = accepted.length ? [{ id: '__accepted_header', _section: true }, ...accepted] : [];
+  }
 
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.teal as any}
-        title="Manage Bookings"
-        subtitle={ride ? `${ride.fromCity || ride.from} â†’ ${ride.toCity || ride.to}` : ''}
+      <AppBar
+        title="Ride Bookings"
         onBack={() => navigation.goBack()}
-        compact
+      />
+
+      {ride && (
+        <View style={styles.subtitleBlock}>
+          <Text style={styles.subtitleRoute}>{(ride.fromCity || ride.from)} → {(ride.toCity || ride.to)}</Text>
+          <Text style={styles.subtitleDate}>
+            {ride.date}{hasTime ? `, ${ride.departureTime}` : ''}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.summaryRow}>
+        <View style={styles.stat}>
+          <Text style={styles.statVal}>{confSeats}/{ride?.totalSeats ?? 0}</Text>
+          <Text style={styles.statLab}>{isFinished ? 'Passengers' : 'Confirmed Seats'}</Text>
+        </View>
+        <View style={styles.divider} />
+        {isFinished ? (
+          <View style={styles.stat}>
+            <Text style={styles.statVal}>Rs {earned.toLocaleString()}</Text>
+            <Text style={styles.statLab}>Total Earned</Text>
+          </View>
+        ) : (
+          <View style={styles.stat}>
+            <Text style={styles.statVal}>{pending.length}</Text>
+            <Text style={styles.statLab}>Pending</Text>
+          </View>
+        )}
+      </View>
+
+      <TabPills
+        style={styles.tabs}
+        tabs={[
+          { label: `Pending (${pending.length})`, value: 'pending' },
+          { label: `Accepted (${accepted.length})`, value: 'accepted' },
+        ]}
+        activeTab={tab}
+        onSelect={(v) => setTab(v)}
       />
 
       <FlatList
-        data={[...pending, ...confirmed]}
+        data={listData}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.list}
-        renderItem={renderBooking}
-        ListHeaderComponent={
-          ride && (() => {
-            const confSeats = confirmed.reduce((s: number, b: any) => s + (b.seats || 1), 0);
-            return (
-              <View style={styles.summary}>
-                <View style={styles.stat}>
-                  <Text style={styles.statVal}>{confSeats}/{ride.totalSeats}</Text>
-                  <Text style={styles.statLab}>Confirmed Seats</Text>
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statVal}>{pending.length}</Text>
-                  <Text style={styles.statLab}>Pending</Text>
-                </View>
-              </View>
-            );
-          })()
+        renderItem={({ item }) => (
+          item._section
+            ? <SectionHeader title="Accepted Bookings" style={styles.sectionHeader} />
+            : item.status === 'PENDING' ? renderPendingCard(item) : renderAcceptedRow(item)
+        )}
+        ListEmptyComponent={
+          <EmptyState
+            icon="people-outline"
+            title={tab === 'pending' ? 'No Pending Requests' : 'No Accepted Bookings'}
+            subtitle="Passenger requests will appear here."
+          />
         }
-        ListEmptyComponent={<EmptyState icon="people-outline" title="No Bookings Yet" subtitle="Passenger requests will appear here." />}
       />
     </View>
   );
@@ -222,28 +269,37 @@ export default function RideBookingsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 16, paddingBottom: 32 },
-  summary: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, alignItems: 'center', elevation: 2 },
+  subtitleBlock: { paddingHorizontal: 16, marginBottom: 12 },
+  subtitleRoute: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  subtitleDate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  summaryRow: {
+    flexDirection: 'row', backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 14,
+    marginHorizontal: 16, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border, ...CURVE,
+  },
   stat: { flex: 1, alignItems: 'center' },
-  statVal: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  statVal: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
   statLab: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
-  divider: { width: 1, height: 30, backgroundColor: COLORS.border },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 12, elevation: 2 },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  divider: { width: 1, height: 28, backgroundColor: COLORS.border },
+  tabs: { marginHorizontal: 16, marginBottom: 12 },
+  sectionHeader: { marginBottom: 10 },
+  list: { padding: 16, paddingTop: 0, paddingBottom: 32 },
+  card: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+  cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
   pInfo: { flex: 1 },
+  pNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   pName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   pMeta: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  requestedAt: { fontSize: 11, color: COLORS.gray, marginBottom: 10 },
   actionRow: { flexDirection: 'row', gap: 10 },
   btn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6, borderWidth: 1.5 },
   rejectBtn: { borderColor: COLORS.danger + '30', backgroundColor: '#fff5f5' },
   rejectText: { color: COLORS.danger, fontWeight: '700', fontSize: 13 },
   acceptBtn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   acceptText: { color: '#fff', fontWeight: '800', fontSize: 13 },
-  confirmedRow: { borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10, marginTop: 2 },
-  contactBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' },
-  contactText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
-  btnDivider: { width: 1, height: 20, backgroundColor: COLORS.border },
+  acceptedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.cardBg, borderRadius: 16,
+    padding: 12, marginBottom: 10, borderWidth: 1, borderColor: COLORS.border, ...CURVE,
+  },
+  acceptedRowPressed: { backgroundColor: COLORS.lightGray },
+  bookingPrice: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
 });
-
-
-

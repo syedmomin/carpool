@@ -79,7 +79,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                             hitSlop={10}
                             onPress={() => step === 'reset' ? setStep('request') : navigation.goBack()}
                         >
-                            <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
+                            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
                         </Pressable>
 
                         <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>

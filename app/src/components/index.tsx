@@ -9,7 +9,7 @@ export type { StatusToken, AmenityToken, TrustToken } from './theme';
 export { PrimaryButton, GhostButton, IconButton, FAB } from './Button';
 
 // ─── Badges ──────────────────────────────────────────────────────────────────
-export { AmenityBadge, StatusBadge, NotifBadge, RoleBadge, VerifiedBadge, TrustBadgesRow, computeBadges } from './Badge';
+export { AmenityBadge, StatusBadge, StatusPill, NotifBadge, RoleBadge, VerifiedBadge, TrustBadgesRow, computeBadges } from './Badge';
 
 // ─── Inputs ──────────────────────────────────────────────────────────────────
 export { FormInput, SearchInput, OTPInput } from './Input';
@@ -22,6 +22,7 @@ export { PulseBadge } from './PulseBadge';
 
 // ─── Headers ─────────────────────────────────────────────────────────────────
 export { GradientHeader } from './Header';
+export { AppBar } from './AppBar';
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 export { Avatar } from './Avatar';

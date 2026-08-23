@@ -2,8 +2,7 @@
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, CURVE, EmptyState, GradientHeader, StatusBadge, ProgressBar, RideCardSkeleton, RouteTag } from '../../components';
+import { COLORS, CURVE, EmptyState, AppBar, ProgressBar, RideCardSkeleton, RouteTag, Avatar, StarRating, TabPills } from '../../components';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -14,7 +13,7 @@ export default function ActiveRidesScreen({ navigation }) {
   const { showToast } = useToast();
   const { myRides, myRidesState, loadMyRides, patchRide } = useSocketData();
 
-  const [tab, setTab] = useState<'current' | 'history'>('current');
+  const [tab, setTab] = useState<'active' | 'upcoming' | 'completed'>('active');
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -34,7 +33,8 @@ export default function ActiveRidesScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const currentRides = myRides.filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS');
+  const activeRides = myRides.filter(r => r.status === 'IN_PROGRESS');
+  const upcomingRides = myRides.filter(r => r.status === 'ACTIVE');
   const historyRides = myRides.filter(r => r.status === 'COMPLETED' || r.status === 'CANCELLED' || r.status === 'EXPIRED');
 
   const handleStartRide = (ride: any) => {
@@ -85,9 +85,9 @@ export default function ActiveRidesScreen({ navigation }) {
 
   const renderCurrentRide = ({ item }: any) => {
     const vehicle = item.vehicle;
-    const confirmedSeats = (item.bookings || [])
-      .filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
-      .reduce((s: number, b: any) => s + (b.seats || 1), 0);
+    const confirmedBookings = (item.bookings || []).filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED');
+    const confirmedSeats = confirmedBookings.reduce((s: number, b: any) => s + (b.seats || 1), 0);
+    const firstPassenger = confirmedBookings[0]?.passenger;
     const available = item.totalSeats - item.bookedSeats;
     const fillPercent = confirmedSeats / item.totalSeats;
     const earned = confirmedSeats * item.pricePerSeat;
@@ -98,75 +98,79 @@ export default function ActiveRidesScreen({ navigation }) {
     const hasAnyBooking = (item.bookings || []).length > 0;
     const isExpiredNoBook = isActive && !hasAnyBooking && item.date < todayStr;
 
+    const statusLabel = isInProgress ? 'In Progress' :
+      isExpiredNoBook ? 'Expired' :
+        !hasAnyBooking ? 'No Requests Yet' :
+          isToday ? 'Today' : available > 0 ? 'Scheduled' : 'Full';
+    const statusColor = isInProgress ? COLORS.secondary : isExpiredNoBook ? COLORS.danger : isToday ? COLORS.primary : COLORS.textSecondary;
+
     return (
       <View style={styles.card}>
-        {isInProgress && (
-          <LinearGradient colors={GRADIENTS.teal as any} style={styles.inProgressBanner}>
-            <Ionicons name="navigate-outline" size={14} color="#fff" />
-            <Text style={styles.inProgressText}>Ride In Progress</Text>
-          </LinearGradient>
-        )}
         <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
-            <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
-          </View>
-          <StatusBadge
-            status={
-              isInProgress ? 'in_progress' :
-                isExpiredNoBook ? 'expired_no_bookings' :
-                  !hasAnyBooking ? 'no_requests' :
-                    available > 0 ? (isToday ? 'active' : 'pending') : 'pending'
-            }
-            label={
-              isInProgress ? 'In Progress' :
-                isExpiredNoBook ? 'Expired, no bookings' :
-                  !hasAnyBooking ? 'No Requests Yet' :
-                    available > 0 ? (isToday ? 'Scheduled Today' : 'Scheduled') : 'Full'
-            }
-          />
+          <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
+          <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
         </View>
+        <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
+
+        {firstPassenger ? (
+          <View style={styles.passengerRow}>
+            <Avatar name={firstPassenger.name} uri={firstPassenger.avatar} size={32} color={COLORS.primary} />
+            <Text style={styles.passengerName} numberOfLines={1}>{firstPassenger.name}</Text>
+            {firstPassenger.rating > 0 && <StarRating rating={firstPassenger.rating} size={12} />}
+            {confirmedBookings.length > 1 && <Text style={styles.morePassengers}>+{confirmedBookings.length - 1} more</Text>}
+          </View>
+        ) : (
+          <Text style={styles.noPassengersText}>No confirmed passengers yet</Text>
+        )}
+
         <ProgressBar value={fillPercent} label={`Confirmed Seats: ${confirmedSeats}/${item.totalSeats}`}
           caption={`${Math.round(fillPercent * 100)}%`} style={styles.progress} />
         <View style={styles.statsRow}>
           <View style={styles.stat}><Ionicons name="people-outline" size={16} color={COLORS.primary} /><Text style={styles.statText}>{confirmedSeats} confirmed</Text></View>
           <View style={styles.stat}><Ionicons name="cash-outline" size={16} color={COLORS.secondary} /><Text style={styles.statText}>Rs {earned.toLocaleString()} earned</Text></View>
-          <View style={styles.stat}><Ionicons name="car-outline" size={16} color={COLORS.gray} /><Text style={styles.statText}>{vehicle?.type || 'Vehicle'}</Text></View>
+          <View style={styles.stat}><Ionicons name="car-outline" size={16} color={COLORS.textSecondary} /><Text style={styles.statText}>{vehicle?.type || 'Vehicle'}</Text></View>
         </View>
         <View style={styles.actions}>
-          <Pressable style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
-            <Ionicons name="people-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.btnText}>Passengers ({confirmedSeats}/{item.totalSeats})</Text>
+          <Pressable
+            style={({ pressed }) => [styles.btn, styles.viewBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}
+          >
+            <Ionicons name="people-outline" size={15} color={COLORS.primary} />
+            <Text style={styles.btnText} numberOfLines={1}>View {confirmedSeats}/{item.totalSeats}</Text>
           </Pressable>
           {isActive && (
             <Pressable
-              style={[styles.btn, { borderColor: COLORS.danger + '50' }, isActioning && { opacity: 0.45 }]}
+              style={({ pressed }) => [styles.btn, styles.cancelBtn, (isActioning || pressed) && { opacity: 0.6 }]}
               onPress={() => handleCancelRide(item)} disabled={isActioning}>
-              <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
-              <Text style={[styles.btnText, { color: COLORS.danger }]}>Cancel</Text>
+              <Text style={[styles.btnText, { color: COLORS.danger }]} numberOfLines={1}>Cancel</Text>
             </Pressable>
           )}
           {isActive && item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday && (
-            <Pressable style={[styles.btn, styles.startBtn]} onPress={() => handleStartRide(item)} disabled={isActioning}>
-              {isActioning ? <ActivityIndicator size="small" color="#fff" /> : (
-                <LinearGradient colors={['#2e7d32', '#1b5e20']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.startGrad}>
-                  <Ionicons name="play" size={16} color="#fff" />
-                  <Text style={styles.startText}>START TRIP NOW</Text>
-                </LinearGradient>
+            <Pressable
+              style={({ pressed }) => [styles.btn, styles.startBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => handleStartRide(item)} disabled={isActioning}
+            >
+              {isActioning ? <ActivityIndicator size="small" color={COLORS.white} /> : (
+                <>
+                  <Ionicons name="play" size={14} color={COLORS.white} />
+                  <Text style={styles.startText} numberOfLines={1}>Start Trip</Text>
+                </>
               )}
             </Pressable>
           )}
           {isInProgress && (
-            <Pressable style={[styles.btn, { backgroundColor: COLORS.primary, borderColor: 'transparent' }]}
-              onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}>
-              <Ionicons name="navigate-outline" size={16} color="#fff" />
-              <Text style={[styles.btnText, { color: '#fff' }]}>Open Tracking</Text>
+            <Pressable
+              style={({ pressed }) => [styles.btn, styles.trackBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => navigation.navigate('RideTracking', { rideId: item.id })}
+            >
+              <Ionicons name="navigate" size={14} color={COLORS.white} />
+              <Text style={styles.trackBtnText} numberOfLines={1}>Open Tracking</Text>
             </Pressable>
           )}
         </View>
         {isActive && !isInProgress && !(item.bookings?.some((b: any) => b.status === 'CONFIRMED') && isToday) && (
           <View style={styles.startHint}>
-            <Ionicons name="information-circle-outline" size={14} color={COLORS.gray} />
+            <Ionicons name="information-circle-outline" size={14} color={COLORS.textSecondary} />
             <Text style={styles.startHintText}>
               {!isToday
                 ? 'You can start this trip on its scheduled date.'
@@ -192,21 +196,16 @@ export default function ActiveRidesScreen({ navigation }) {
     return (
       <View style={[styles.card, styles.historyCard]}>
         <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
-            <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
-          </View>
-          <View style={[styles.historyBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.historyBadgeText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
-          </View>
+          <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
+          <Text style={[styles.statusLabel, { color: statusConfig.color }]}>{statusConfig.label}</Text>
         </View>
+        <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
         <View style={styles.statsRow}>
           <View style={styles.stat}><Ionicons name="people-outline" size={16} color={COLORS.primary} /><Text style={styles.statText}>{confirmedSeats} passengers</Text></View>
           <View style={styles.stat}><Ionicons name="cash-outline" size={16} color={COLORS.secondary} /><Text style={styles.statText}>Rs {earned.toLocaleString()}</Text></View>
-          <View style={styles.stat}><Ionicons name="car-outline" size={16} color={COLORS.gray} /><Text style={styles.statText}>{item.vehicle?.type || 'Vehicle'}</Text></View>
+          <View style={styles.stat}><Ionicons name="car-outline" size={16} color={COLORS.textSecondary} /><Text style={styles.statText}>{item.vehicle?.type || 'Vehicle'}</Text></View>
         </View>
         <Pressable style={styles.btn} onPress={() => navigation.navigate('RideBookings', { rideId: item.id })}>
-          <Ionicons name="people-outline" size={16} color={COLORS.primary} />
           <Text style={styles.btnText}>View Passengers</Text>
         </Pressable>
       </View>
@@ -215,11 +214,17 @@ export default function ActiveRidesScreen({ navigation }) {
 
   const isInitialLoad = !myRidesState.loaded && myRidesState.loading;
 
+  const addRideBtn = (
+    <Pressable style={styles.addBtn} onPress={() => navigation.navigate('PostRide')}>
+      <Ionicons name="add" size={18} color={COLORS.white} />
+      <Text style={styles.addBtnText}>Add</Text>
+    </Pressable>
+  );
+
   if (isInitialLoad) {
     return (
       <View style={styles.container}>
-        <GradientHeader colors={GRADIENTS.teal as any} title="My Rides"
-          rightIcon="add-outline" onRightPress={() => navigation.navigate('PostRide')} />
+        <AppBar title="My Rides" rightAction={addRideBtn} />
         <FlatList
           data={[1, 2, 3]}
           keyExtractor={item => item.toString()}
@@ -230,28 +235,22 @@ export default function ActiveRidesScreen({ navigation }) {
     );
   }
 
-  const data = tab === 'current' ? currentRides : historyRides;
-  const renderItem = tab === 'current' ? renderCurrentRide : renderHistoryRide;
+  const data = tab === 'active' ? activeRides : tab === 'upcoming' ? upcomingRides : historyRides;
+  const renderItem = tab === 'completed' ? renderHistoryRide : renderCurrentRide;
 
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.teal as any} title="My Rides"
-        subtitle={tab === 'current' ? 'Active and in-progress rides' : 'Past ride history'}
-        rightIcon="add-outline" onRightPress={() => navigation.navigate('PostRide')} />
-      <View style={styles.tabs}>
-        <Pressable style={[styles.tab, tab === 'current' && styles.tabActive]} onPress={() => setTab('current')}>
-          <Ionicons name="car-sport-outline" size={16} color={tab === 'current' ? COLORS.primary : COLORS.gray} />
-          <Text style={[styles.tabText, tab === 'current' && styles.tabTextActive]}>
-            Current {currentRides.length > 0 ? `(${currentRides.length})` : ''}
-          </Text>
-        </Pressable>
-        <Pressable style={[styles.tab, tab === 'history' && styles.tabActive]} onPress={() => setTab('history')}>
-          <Ionicons name="time-outline" size={16} color={tab === 'history' ? COLORS.primary : COLORS.gray} />
-          <Text style={[styles.tabText, tab === 'history' && styles.tabTextActive]}>
-            History {historyRides.length > 0 ? `(${historyRides.length})` : ''}
-          </Text>
-        </Pressable>
-      </View>
+      <AppBar title="My Rides" rightAction={addRideBtn} />
+      <TabPills
+        tabs={[
+          { label: `Active${activeRides.length > 0 ? ` (${activeRides.length})` : ''}`, value: 'active' },
+          { label: `Upcoming${upcomingRides.length > 0 ? ` (${upcomingRides.length})` : ''}`, value: 'upcoming' },
+          { label: 'Completed', value: 'completed' },
+        ]}
+        activeTab={tab}
+        onSelect={setTab}
+        style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 4 }}
+      />
       <FlatList
         data={data}
         keyExtractor={item => item.id}
@@ -261,13 +260,16 @@ export default function ActiveRidesScreen({ navigation }) {
         onRefresh={onRefresh}
         ListEmptyComponent={
           !refreshing ? (
-            (tab === 'current' && myRidesState.error)
+            (tab !== 'completed' && myRidesState.error)
               ? <EmptyState icon="car-sport-outline" title="Couldn't load your rides"
                 subtitle="Please check your connection and try again."
                 action={{ label: 'Try Again', onPress: () => loadMyRides(true) }} />
-            : tab === 'current'
+            : tab === 'active'
               ? <EmptyState icon="car-sport-outline" title="No Active Rides"
-                subtitle="You have no active rides. Post a new ride to get started."
+                subtitle="Rides you've started will appear here." />
+            : tab === 'upcoming'
+              ? <EmptyState icon="car-sport-outline" title="No Upcoming Rides"
+                subtitle="You have no scheduled rides. Post a new ride to get started."
                 action={{ label: 'Post a Ride', onPress: () => navigation.navigate('PostRide') }} />
               : <EmptyState icon="time-outline" title="No Ride History"
                 subtitle="Your completed and cancelled rides will appear here." />
@@ -281,32 +283,35 @@ export default function ActiveRidesScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: COLORS.gray },
-  tabs: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingHorizontal: 16, paddingTop: 8 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10, ...CURVE },
-  tabActive: { borderBottomWidth: 2.5, borderBottomColor: COLORS.primary },
-  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.gray, letterSpacing: 0.1 },
-  tabTextActive: { color: COLORS.primary, fontWeight: '800', letterSpacing: 0.1 },
+  loadingText: { fontSize: 14, color: COLORS.textSecondary },
+  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 38, borderRadius: 12, backgroundColor: COLORS.primary, ...CURVE },
+  addBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.white },
   list: { padding: 16, paddingBottom: 32 },
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, ...CURVE },
+  card: { backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   historyCard: { opacity: 0.9 },
-  inProgressBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 7 },
-  inProgressText: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', padding: 16, paddingBottom: 0, marginBottom: 14 },
-  route: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.2 },
-  date: { fontSize: 12, color: COLORS.gray, marginTop: 3 },
-  progress: { marginHorizontal: 16, marginBottom: 12 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16 },
+  route: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  statusLabel: { fontSize: 12, fontWeight: '700' },
+  date: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3, paddingHorizontal: 16 },
+
+  passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 12 },
+  passengerName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, flexShrink: 1 },
+  morePassengers: { fontSize: 11, color: COLORS.textSecondary, marginLeft: 'auto' },
+  noPassengersText: { fontSize: 12, color: COLORS.textSecondary, marginHorizontal: 16, marginTop: 12 },
+
+  progress: { marginHorizontal: 16, marginBottom: 12, marginTop: 12 },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, marginHorizontal: 16, borderRadius: 14, padding: 12, marginBottom: 12, ...CURVE },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 16, paddingTop: 0 },
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '40', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 14, gap: 6, minWidth: 100, ...CURVE },
-  btnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  actions: { flexDirection: 'row', gap: 8, padding: 16, paddingTop: 0 },
+  btn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 10, paddingVertical: 11, paddingHorizontal: 8, gap: 5, ...CURVE },
+  btnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  viewBtn: { backgroundColor: COLORS.primaryLight, borderColor: COLORS.primary + '30' },
+  cancelBtn: { borderColor: COLORS.danger + '50' },
   startHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingBottom: 14, marginTop: -2 },
-  startHintText: { fontSize: 11.5, color: COLORS.gray, flex: 1, lineHeight: 16 },
-  startBtn: { paddingVertical: 0, paddingHorizontal: 0, borderWidth: 0, minWidth: 150 },
-  startGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, paddingHorizontal: 16, borderRadius: 12, gap: 8, width: '100%', ...CURVE },
-  startText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
-  historyBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, ...CURVE },
-  historyBadgeText: { fontSize: 11, fontWeight: '700' },
+  startHintText: { fontSize: 11.5, color: COLORS.textSecondary, flex: 1, lineHeight: 16 },
+  startBtn: { backgroundColor: COLORS.secondary, borderColor: COLORS.secondary },
+  startText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
+  trackBtn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  trackBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
 });

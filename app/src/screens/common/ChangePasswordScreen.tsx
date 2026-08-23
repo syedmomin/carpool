@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, FormInput, PrimaryButton, GradientHeader } from '../../components';
+import { COLORS, CURVE, FormInput, AppBar, PrimaryButton } from '../../components';
 import { useToast } from '../../context/ToastContext';
 import { authApi } from '../../services/api';
 import { parseApiError } from '../../utils/errorMessages';
@@ -15,12 +15,17 @@ export default function ChangePasswordScreen({ navigation }) {
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleShow = (key) => setShow(prev => ({ ...prev, [key]: !prev[key] }));
 
+  const hasMinLength = form.newPass.length >= 8;
+  const hasUppercase = /[A-Z]/.test(form.newPass);
+  const hasNumberOrSymbol = /[0-9]|[^A-Za-z0-9]/.test(form.newPass);
+  const meetsAllCriteria = hasMinLength && hasUppercase && hasNumberOrSymbol;
+
   const handleChange = async () => {
     if (!form.current || !form.newPass || !form.confirm) {
       showToast('Please fill in all fields.', 'error'); return;
     }
-    if (form.newPass.length < 6) {
-      showToast('New password must be at least 6 characters.', 'error'); return;
+    if (!meetsAllCriteria) {
+      showToast('Please meet all password requirements.', 'error'); return;
     }
     if (form.newPass !== form.confirm) {
       showToast('New passwords do not match.', 'error'); return;
@@ -29,30 +34,25 @@ export default function ChangePasswordScreen({ navigation }) {
     const { error } = await authApi.changePassword(form.current, form.newPass);
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
-    // Reset form
     setForm({ current: '', newPass: '', confirm: '' });
     showToast('Password changed successfully', 'success');
     navigation.goBack();
   };
 
-  const strength = form.newPass.length === 0 ? 0 : form.newPass.length < 6 ? 1 : form.newPass.length < 10 ? 2 : 3;
-  const strengthColors = ['', COLORS.danger, COLORS.warning, COLORS.secondary];
-  const strengthLabels = ['', 'Weak', 'Medium', 'Strong'];
+  const CRITERIA = [
+    { label: 'At least 8 characters', met: hasMinLength },
+    { label: 'One uppercase letter', met: hasUppercase },
+    { label: 'One number or special character', met: hasNumberOrSymbol },
+  ];
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <GradientHeader colors={GRADIENTS.primary as any} title="Change Password" subtitle="Keep your account secure" onBack={() => navigation.goBack()} />
+        <AppBar title="Change Password" onBack={() => navigation.goBack()} />
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          <View style={styles.tipCard}>
-            <Ionicons name="lock-closed-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.tipText}>Use a mix of letters, numbers and symbols for a strong password.</Text>
-          </View>
-
           <FormInput
-            label="Current Password *"
-            icon="lock-closed-outline"
+            label="Current Password"
             placeholder="Enter current password"
             value={form.current}
             onChangeText={v => update('current', v)}
@@ -61,8 +61,7 @@ export default function ChangePasswordScreen({ navigation }) {
             onRightIconPress={() => toggleShow('current')}
           />
           <FormInput
-            label="New Password *"
-            icon="lock-open-outline"
+            label="New Password"
             placeholder="Enter new password"
             value={form.newPass}
             onChangeText={v => update('newPass', v)}
@@ -70,21 +69,10 @@ export default function ChangePasswordScreen({ navigation }) {
             rightIcon={show.newPass ? 'eye-off-outline' : 'eye-outline'}
             onRightIconPress={() => toggleShow('newPass')}
           />
-
-          {form.newPass.length > 0 && (
-            <View style={styles.strengthBox}>
-              <View style={styles.strengthBars}>
-                {[1, 2, 3].map(i => (
-                  <View key={i} style={[styles.strengthBar, { backgroundColor: i <= strength ? strengthColors[strength] : COLORS.lightGray }]} />
-                ))}
-              </View>
-              <Text style={[styles.strengthLabel, { color: strengthColors[strength] }]}>{strengthLabels[strength]}</Text>
-            </View>
-          )}
+          <Text style={styles.hint}>Minimum 8 characters</Text>
 
           <FormInput
-            label="Confirm New Password *"
-            icon="checkmark-circle-outline"
+            label="Confirm New Password"
             placeholder="Confirm new password"
             value={form.confirm}
             onChangeText={v => update('confirm', v)}
@@ -93,7 +81,20 @@ export default function ChangePasswordScreen({ navigation }) {
             onRightIconPress={() => toggleShow('confirm')}
           />
 
-          <PrimaryButton title="Change Password" onPress={handleChange} loading={loading} icon="shield-checkmark-outline" colors={GRADIENTS.primary as any} style={{ marginTop: 24 }} />
+          <View style={styles.criteriaWrap}>
+            {CRITERIA.map((c) => (
+              <View key={c.label} style={styles.criteriaRow}>
+                <Ionicons
+                  name={c.met ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={16}
+                  color={c.met ? COLORS.secondary : COLORS.textSecondary}
+                />
+                <Text style={[styles.criteriaText, c.met && { color: COLORS.secondary }]}>{c.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <PrimaryButton title="Update Password" onPress={handleChange} loading={loading} style={styles.submitBtn} />
           <View style={{ height: 24 }} />
         </ScrollView>
       </View>
@@ -103,11 +104,10 @@ export default function ChangePasswordScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  body: { padding: 24 },
-  tipCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#eff6ff', borderRadius: 14, padding: 14, marginBottom: 20, gap: 10 },
-  tipText: { flex: 1, fontSize: 13, color: COLORS.primary, lineHeight: 20 },
-  strengthBox: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, marginTop: -4 },
-  strengthBars: { flexDirection: 'row', gap: 4, flex: 1 },
-  strengthBar: { flex: 1, height: 4, borderRadius: 2 },
-  strengthLabel: { fontSize: 12, fontWeight: '700', minWidth: 50 },
+  body: { padding: 20 },
+  hint: { fontSize: 12, color: COLORS.textSecondary, marginTop: -8, marginBottom: 14 },
+  criteriaWrap: { marginTop: 6, marginBottom: 24, gap: 10 },
+  criteriaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  criteriaText: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  submitBtn: { marginTop: 0 },
 });

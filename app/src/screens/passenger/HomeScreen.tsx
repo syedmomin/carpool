@@ -1,19 +1,18 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable,
-  Dimensions, Platform, Modal, FlatList,
+  Platform, Modal, FlatList, ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PulseBadge, CURVE } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, GRADIENTS, PulseBadge, CURVE, RideCard, SectionHeader, EmptyState } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
-import MapBackground from '../../components/MapBackground';
 import { useApp } from '../../context/AppContext';
+import { useSocketData } from '../../context/SocketDataContext';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
 import { useDoubleBackExit } from '../../utils/useDoubleBackExit';
-
-const { width } = Dimensions.get('window');
 
 function getUpcomingDates() {
   const dates = [];
@@ -31,11 +30,31 @@ function getUpcomingDates() {
   return dates;
 }
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
 const UPCOMING_DATES = getUpcomingDates();
+
+// ─── Quick Action Tile ────────────────────────────────────────────────────────
+function QuickAction({ icon, label, onPress }) {
+  return (
+    <Pressable style={styles.quickTile} onPress={onPress}>
+      <View style={styles.quickIconWrap}>
+        <Ionicons name={icon} size={22} color={COLORS.primary} />
+      </View>
+      <Text style={styles.quickLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+    </Pressable>
+  );
+}
 
 export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { showToast } = useToast();
+  const { availableRides, loadAvailableRides } = useSocketData() as any;
   useDoubleBackExit();
 
   const [fromCity, setFromCity] = useState('');
@@ -51,6 +70,10 @@ export default function PassengerHomeScreen({ navigation }) {
     socketService.on('NEW_RIDE', onNewRide);
     return () => socketService.off('NEW_RIDE', onNewRide);
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadAvailableRides(1, 20);
+  }, [loadAvailableRides]));
 
   const swapCities = () => { setFromCity(toCity); setToCity(fromCity); };
 
@@ -68,10 +91,15 @@ export default function PassengerHomeScreen({ navigation }) {
 
   const firstName = currentUser?.name?.split(' ')[0] || 'there';
 
+  // Popular Rides — reuses the same available-rides feed the Search tab shows.
+  const popularRides = useMemo(() => (
+    (availableRides || [])
+      .filter((r: any) => r.status === 'ACTIVE' && (r.totalSeats - r.bookedSeats) > 0)
+      .slice(0, 4)
+  ), [availableRides]);
+
   return (
     <View style={styles.container}>
-      <MapBackground style={styles.mapSection} />
-
       {/* Top Bar */}
       <View style={styles.topBar}>
         <View style={styles.topCenter}>
@@ -87,14 +115,15 @@ export default function PassengerHomeScreen({ navigation }) {
         </Pressable>
       </View>
 
-      {/* Bottom Sheet */}
-      <View style={styles.bottomSheet}>
-        <View style={styles.sheetHandle} />
-
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Greeting */}
         <View style={styles.greetRow}>
-          <Text style={styles.greetName}>Hello, {firstName} 👋</Text>
-          <Text style={styles.greetSub}>Where are you heading today?</Text>
+          <Text style={styles.greetName}>{getGreeting()}, {firstName} 👋</Text>
+          <Text style={styles.greetSub}>Where are you going today?</Text>
         </View>
 
         {/* From / To */}
@@ -113,12 +142,12 @@ export default function PassengerHomeScreen({ navigation }) {
             <View style={styles.routeInputDivider} />
             <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
               <Text style={[styles.routeInput, !toCity && styles.routeInputPlaceholder]}>
-                {toCity || 'Going To'}
+                {toCity || 'Where to?'}
               </Text>
             </Pressable>
           </View>
           <Pressable onPress={swapCities} style={styles.swapBtn}>
-            <Ionicons name="swap-vertical" size={20} color={COLORS.primary} />
+            <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
           </Pressable>
         </View>
 
@@ -142,13 +171,61 @@ export default function PassengerHomeScreen({ navigation }) {
         </View>
 
         {/* Find Rides Button */}
-        <Pressable onPress={handleFindRide} style={styles.findBtnShadow}>
-          <LinearGradient colors={GRADIENTS.primary as any} style={styles.findBtn}>
+        <Pressable onPress={handleFindRide} style={styles.findBtn}>
+          <LinearGradient
+            colors={GRADIENTS.primary as any}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.findBtnGradient}
+          >
             <Text style={styles.findBtnText}>Find Ride</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
+            <Ionicons name="arrow-forward" size={16} color={COLORS.white} />
           </LinearGradient>
         </Pressable>
-      </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickRow}>
+          <QuickAction icon="flash-outline" label="Ride Now" onPress={handleFindRide} />
+          <QuickAction icon="search-outline" label="Find Rides" onPress={() => navigation.navigate('SearchTab')} />
+          <QuickAction
+            icon="add-circle-outline"
+            label="Post Request"
+            onPress={() => navigation.navigate('RequestsTab', { screen: 'PostRequest' })}
+          />
+          <QuickAction
+            icon="receipt-outline"
+            label="My Bookings"
+            onPress={() => navigation.navigate('BookingHistoryTab', { screen: 'BookingHistoryMain' })}
+          />
+        </View>
+
+        {/* Popular Rides */}
+        <SectionHeader
+          title="Popular Rides"
+          onSeeAll={() => navigation.navigate('SearchTab')}
+          style={styles.popularHeader}
+        />
+        {popularRides.length > 0 ? (
+          popularRides.map((item: any, index: number) => (
+            <RideCard
+              key={item.id}
+              ride={item}
+              driver={item.driver}
+              vehicle={item.vehicle}
+              index={index}
+              onPress={() => navigation.navigate('RideDetail', { rideId: item.id, rideData: item })}
+            />
+          ))
+        ) : (
+          <EmptyState
+            icon="car-outline"
+            title="No rides yet"
+            subtitle="Check back soon for available rides near you."
+          />
+        )}
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
 
       {/* Shared City Search Modal */}
       <CitySearchModal
@@ -208,18 +285,18 @@ export default function PassengerHomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f2efe9' },
-  mapSection: { flex: 1 },
+  container: { flex: 1, backgroundColor: COLORS.bg },
   topBar: {
-    position: 'absolute', top: Platform.OS === 'ios' ? 52 : 44,
-    left: 16, right: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 10,
+    paddingTop: Platform.OS === 'ios' ? 52 : 44,
+    paddingHorizontal: 16, paddingBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.bg,
   },
   topCenter: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 20,
+    backgroundColor: COLORS.cardBg, borderRadius: 20,
     paddingHorizontal: 12, paddingVertical: 8, gap: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 4,
+    borderWidth: 1, borderColor: COLORS.border,
     ...CURVE,
   },
   locationText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
@@ -227,35 +304,28 @@ const styles = StyleSheet.create({
   notifIconContainer: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4,
   },
   notifBadgeMini: {
     position: 'absolute', top: 0, right: 0,
     backgroundColor: COLORS.danger, borderRadius: 9, minWidth: 18, height: 18,
-    justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff',
+    justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.white,
   },
-  notifBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
-  bottomSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingHorizontal: 20, paddingTop: 12,
-    paddingBottom: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.1, shadowRadius: 24, elevation: 20,
-  },
-  sheetHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  notifBadgeText: { color: COLORS.white, fontSize: 9, fontWeight: '700' },
+
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 12 },
 
   // Greeting
-  greetRow: { marginBottom: 14 },
-  greetName: { fontSize: 22, fontWeight: '900', color: COLORS.textPrimary },
-  greetSub: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
+  greetRow: { marginBottom: 16 },
+  greetName: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
+  greetSub: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
 
-  sheetTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
-
-  // Route card — white bg, subtle shadow
+  // Route card
   routeCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    borderWidth: 1, borderColor: COLORS.border,
     ...CURVE,
   },
   routeLeft: { alignItems: 'center', gap: 3 },
@@ -265,61 +335,66 @@ const styles = StyleSheet.create({
   routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
   routeInputs: { flex: 1 },
   routeInputTouch: { paddingVertical: 6 },
-  routeInput: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
   routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
 
-  // Swap button — circular, white, primary icon, subtle shadow
+  // Swap button
   swapBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
     ...CURVE,
   },
 
-  // Date pills — more pill-like
+  // Date pills
   dateRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   datePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 24, borderWidth: 1.5, borderColor: COLORS.border,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.cardBg,
     ...CURVE,
   },
   datePillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  datePillText: { fontSize: 13, fontWeight: '600', color: COLORS.gray },
-  datePillActiveText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  datePillText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  datePillActiveText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
 
-  // Find Ride button — taller, full-width, shadow on wrapper
-  findBtnShadow: {
-    marginBottom: 16,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-    ...CURVE,
-  },
+  // Find Ride button
   findBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    height: 52,
-    borderRadius: 16, gap: 8,
+    borderRadius: 12, overflow: 'hidden', marginBottom: 20,
     ...CURVE,
   },
-  findBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  findBtnGradient: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, gap: 6,
+  },
+  findBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '700' },
+
+  // Quick actions
+  quickRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 8 },
+  quickTile: { flex: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+  quickIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 6,
+  },
+  quickLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
+
+  // Popular rides
+  popularHeader: { marginBottom: 12 },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: '75%' },
+  modalSheet: { backgroundColor: COLORS.cardBg, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 12, maxHeight: '75%' },
   modalHandle: { width: 40, height: 4, backgroundColor: COLORS.border, borderRadius: 2, alignSelf: 'center', marginBottom: 8 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, marginBottom: 8 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
+  modalTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   modalClose: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
   dateItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  dateItemActive: { backgroundColor: '#eff6ff' },
-  dateIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  dateItemActive: { backgroundColor: COLORS.primaryLight },
+  dateIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   dateIconActive: { backgroundColor: COLORS.primary },
   dateLabelWrap: { flex: 1 },
-  dateLabel: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
-  dateValue: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  dateLabel: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  dateValue: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
 });

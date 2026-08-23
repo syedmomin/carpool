@@ -64,7 +64,7 @@ export async function pickMultipleImagesLocal() {
     mediaTypes: ['images'],
     allowsMultipleSelection: true,
     quality: 0.8,
-    selectionLimit: 6,
+    selectionLimit: 5, // matches the backend's upload.array('images', 5) cap
   });
   if (result.canceled) return { uris: [], cancelled: true };
   return { uris: result.assets.map(a => a.uri) };

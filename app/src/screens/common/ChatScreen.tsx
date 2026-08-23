@@ -2,15 +2,16 @@
 import {
   View, Text, StyleSheet, FlatList, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Keyboard, TouchableWithoutFeedback,
+  Keyboard, TouchableWithoutFeedback, Alert,
 } from 'react-native';
 
 const QUICK_EMOJIS = ['😊','😂','❤️','👍','🙏','😮','😢','🔥','👏','😎','✅','🎉'];
 const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🙏'];
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, Avatar, EmptyState } from '../../components';
+import { COLORS, CURVE, Avatar, EmptyState } from '../../components';
 import { useApp } from '../../context/AppContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { socketService } from '../../services/socket.service';
 import { chatApi } from '../../services/api';
@@ -18,6 +19,7 @@ import { chatApi } from '../../services/api';
 export default function ChatScreen({ route, navigation }) {
   const { bookingId, otherUser: initialOtherUser, rideInfo: initialRideInfo } = route.params || {};
   const { currentUser } = useApp();
+  const { showModal } = useGlobalModal();
   const { showToast } = useToast();
 
   const [messages, setMessages] = useState<any[]>([]);
@@ -151,14 +153,26 @@ export default function ChatScreen({ route, navigation }) {
     Keyboard.dismiss();
   };
 
-  const renderMessage = ({ item }) => {
+  const renderMessage = ({ item, index }) => {
     const isMe = item.senderId === currentUser?.id;
     const time = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     const isRead = !!item.readAt;
     const msgReaction = reactions[item.id];
     const isReacting = reactingTo === item.id;
 
+    const dayLabel = item.createdAt ? new Date(item.createdAt).toDateString() : null;
+    const prevDayLabel = index > 0 && messages[index - 1]?.createdAt ? new Date(messages[index - 1].createdAt).toDateString() : null;
+    const showDivider = dayLabel && dayLabel !== prevDayLabel;
+
     return (
+      <>
+      {showDivider && (
+        <View style={styles.dateDivider}>
+          <Text style={styles.dateDividerText}>
+            {new Date(item.createdAt).toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' })}
+          </Text>
+        </View>
+      )}
       <View style={[styles.messageRow, isMe ? styles.myRow : styles.otherRow]}>
         {!isMe && (
           <Avatar name={item.sender?.name} uri={item.sender?.avatar} size={30} style={styles.avatar} />
@@ -218,6 +232,7 @@ export default function ChatScreen({ route, navigation }) {
           )}
         </View>
       </View>
+      </>
     );
   };
 
@@ -234,15 +249,43 @@ export default function ChatScreen({ route, navigation }) {
       {/* Custom Header */}
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </Pressable>
         <Avatar name={otherUser?.name} uri={otherUser?.avatar} size={36} />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{otherUser?.name || 'User'}</Text>
           <Text style={styles.headerRide} numberOfLines={1}>
-            {isOtherTyping ? 'typing...' : (rideInfo?.label || 'Trip Details')}
+            {isOtherTyping ? 'typing...' : (rideInfo?.label || 'Online')}
           </Text>
         </View>
+        {otherUser?.phone && (
+          <Pressable
+            style={styles.headerIconBtn}
+            onPress={() => showModal({ type: 'info', title: 'Call', message: `Call ${otherUser?.name} at ${otherUser.phone}?`, confirmText: 'Call' })}
+          >
+            <Ionicons name="call-outline" size={20} color={COLORS.textPrimary} />
+          </Pressable>
+        )}
+        <Pressable
+          style={styles.headerIconBtn}
+          onPress={() => Alert.alert(
+            'Chat Options',
+            undefined,
+            [
+              { text: 'View Ride Details', onPress: () => showToast('Ride details coming soon', 'info') },
+              { text: 'Block/Report', style: 'destructive', onPress: () => showToast('Reporting is coming soon', 'info') },
+              { text: 'Cancel', style: 'cancel' },
+            ],
+          )}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={COLORS.textPrimary} />
+        </Pressable>
+      </View>
+
+      {/* Encryption notice */}
+      <View style={styles.encryptionBanner}>
+        <Ionicons name="lock-closed" size={12} color={COLORS.warning} />
+        <Text style={styles.encryptionText}>Messages and calls are end-to-end encrypted</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -287,6 +330,12 @@ export default function ChatScreen({ route, navigation }) {
         <View style={styles.inputArea}>
           <Pressable
             style={styles.emojiBtn}
+            onPress={() => showToast('Attachments are coming soon', 'info')}
+          >
+            <Ionicons name="add" size={22} color={COLORS.textSecondary} />
+          </Pressable>
+          <Pressable
+            style={styles.emojiBtn}
             onPress={() => { setEmojiOpen(v => !v); Keyboard.dismiss(); }}
           >
             <Text style={styles.emojiBtnIcon}>{emojiOpen ? '⌨️' : '😊'}</Text>
@@ -319,16 +368,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.bg,
   },
-  backBtn: { paddingRight: 12 },
+  backBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.lightGray },
   headerInfo: { flex: 1, marginLeft: 12 },
   headerName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   headerRide: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
-  
+  headerIconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.lightGray, marginLeft: 8 },
+
+  encryptionBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: COLORS.warningLight, paddingVertical: 8, paddingHorizontal: 16,
+  },
+  encryptionText: { fontSize: 11, color: '#92400e', fontWeight: '500', textAlign: 'center' },
+  dateDivider: { alignItems: 'center', marginVertical: 12 },
+  dateDividerText: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+
   listContent: { padding: 16, paddingBottom: 20 },
   messageRow: { flexDirection: 'row', marginBottom: 12, maxWidth: '85%' },
   myRow: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },

@@ -1,14 +1,16 @@
 ﻿import { Platform, StyleSheet } from 'react-native';
 
-// ─── FONTS (Poppins, loaded in App.tsx via @expo-google-fonts/poppins) ──────
+// ─── FONTS (Inter, loaded in App.tsx via @expo-google-fonts/inter) ──────────
 // Custom fonts don't respond to the `fontWeight` style prop — each weight is
 // its own font file, so use these fontFamily names instead of fontWeight.
+// (Everywhere else, App.tsx patches Text to map fontWeight -> the matching
+// Inter file automatically, so plain fontWeight styles also render in Inter.)
 export const FONTS = {
-  regular:   'Poppins_400Regular',
-  medium:    'Poppins_500Medium',
-  semiBold:  'Poppins_600SemiBold',
-  bold:      'Poppins_700Bold',
-  extraBold: 'Poppins_800ExtraBold',
+  regular:   'Inter_400Regular',
+  medium:    'Inter_500Medium',
+  semiBold:  'Inter_600SemiBold',
+  bold:      'Inter_700Bold',
+  extraBold: 'Inter_800ExtraBold',
 };
 
 // ─── ChalParo Brand Palette ───────────────────────────────────────────────

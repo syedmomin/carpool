@@ -115,14 +115,19 @@ export default function ReviewModal({
                 <Text style={styles.skipBtnText}>Skip</Text>
               </Pressable>
               <Pressable
-                style={[styles.submitBtn, { backgroundColor: targetRole === 'DRIVER' ? COLORS.primary : COLORS.teal }]}
+                style={styles.submitBtn}
                 onPress={handleRatingSubmit}
                 disabled={submitting}
               >
-                {submitting
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <Text style={styles.submitBtnText}>Submit Review</Text>
-                }
+                <LinearGradient
+                  colors={(targetRole === 'DRIVER' ? GRADIENTS.primary : GRADIENTS.teal) as any}
+                  style={styles.submitInner}
+                >
+                  {submitting
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.submitBtnText}>Submit Review</Text>
+                  }
+                </LinearGradient>
               </Pressable>
             </View>
           </View>
@@ -148,8 +153,9 @@ const styles = StyleSheet.create({
   ratingLabelText: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   commentInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, padding: 14, fontSize: 14, color: COLORS.textPrimary, minHeight: 90, textAlignVertical: 'top', marginBottom: 20 },
   btnRow: { flexDirection: 'row', gap: 12 },
-  skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border },
+  skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },
   skipBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.gray },
-  submitBtn: { flex: 2, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14 },
-  submitBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+  submitBtn: { flex: 2, borderRadius: 12, overflow: 'hidden' },
+  submitInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

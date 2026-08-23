@@ -1,11 +1,10 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator,
+  KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator, TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PrimaryButton, FormInput, SearchInput, GradientHeader } from '../../components';
+import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton } from '../../components';
 import { DatePickerInput, TimePickerInput } from '../../components/DateTimePicker';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
@@ -18,10 +17,37 @@ import { vehiclesApi, scheduleRequestsApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
 
 const TEXT_FIELDS = [
-  { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', icon: 'cash-outline', placeholder: 'e.g. 1500', type: 'numeric' },
-  { key: 'pickupPoint', label: 'Pickup Location', icon: 'location-outline', placeholder: 'e.g. Karachi Cantt Station' },
-  { key: 'dropPoint', label: 'Drop Location', icon: 'flag-outline', placeholder: 'e.g. Larkana Bus Stop' },
+  { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', placeholder: 'e.g. 1500', type: 'numeric' },
+  { key: 'pickupPoint', label: 'Pickup Location', placeholder: 'e.g. Karachi Cantt Station' },
+  { key: 'dropPoint', label: 'Drop Location', placeholder: 'e.g. Larkana Bus Stop' },
 ];
+
+// Boxed text field matching the Vehicle Setup screen's field style — label
+// inside the same bordered box as the value, so every form in the app reads
+// consistently instead of some fields having the label above the box.
+function BoxedField({ label, value, placeholder, onChangeText, keyboardType, multiline, numberOfLines }: any) {
+  return (
+    <View style={boxedStyles.field}>
+      <Text style={boxedStyles.label}>{label}</Text>
+      <TextInput
+        style={[boxedStyles.input, multiline && boxedStyles.multiline]}
+        placeholder={placeholder}
+        placeholderTextColor={COLORS.gray}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+      />
+    </View>
+  );
+}
+const boxedStyles = StyleSheet.create({
+  field: { backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
+  label: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
+  input: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, padding: 0, margin: 0 },
+  multiline: { minHeight: 60, textAlignVertical: 'top' },
+});
 
 
 export default function PostRideScreen({ navigation }) {
@@ -54,6 +80,7 @@ export default function PostRideScreen({ navigation }) {
     from: '', to: '', date: '', departureTime: '', arrivalTime: '',
     pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '',
   });
+  const [rideType, setRideType] = useState<'oneway' | 'roundtrip'>('oneway');
   const [isMultiStop, setIsMultiStop] = useState(false);
   const [stops, setStops] = useState([]); // [{ city, arrivalTime }]
   const [loading, setLoading] = useState(false);
@@ -211,17 +238,12 @@ export default function PostRideScreen({ navigation }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <GradientHeader
-          colors={GRADIENTS.teal as any}
-          title="Post a Ride"
-          subtitle="Share your route and find passengers"
-          onBack={() => navigation.goBack()}
-        />
+        <AppBar title="Post a Ride" onBack={() => navigation.goBack()} />
 
         <ScrollView contentContainerStyle={[styles.body, { paddingBottom: 32 }]} keyboardShouldPersistTaps="handled">
 
           {/* ── Vehicle Selector ─────────────────────────────────────────── */}
-          <Text style={styles.sectionTitle}>Vehicle</Text>
+          <SectionHeader title="Vehicle" />
           {vehiclesLoading && driverVehicles.length === 0 ? (
             <View style={styles.noVehicleCard}>
               <ActivityIndicator size="small" color={COLORS.primary} />
@@ -238,9 +260,9 @@ export default function PostRideScreen({ navigation }) {
               onPress={() => driverVehicles.length > 1 && setVehiclePickerOpen(true)}
 
             >
-              <LinearGradient colors={GRADIENTS.teal as any} style={styles.vehicleIconBox}>
-                <Ionicons name="car-sport" size={20} color="#fff" />
-              </LinearGradient>
+              <View style={styles.vehicleIconBox}>
+                <Ionicons name="car-sport" size={20} color={COLORS.primary} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.vehicleName}>{selectedVehicle?.brand || 'No vehicle'}</Text>
                 <Text style={styles.vehicleDetail}>
@@ -253,42 +275,54 @@ export default function PostRideScreen({ navigation }) {
           )}
 
           {/* ── Route ────────────────────────────────────────────────────── */}
-          <Text style={styles.sectionTitle}>Route</Text>
+          <SectionHeader title="Route" />
           <View style={styles.routeRow}>
             <Pressable style={styles.cityBtn} onPress={() => setCityModal('from')}>
-              <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
-              <Text style={[styles.cityBtnText, !form.from && styles.placeholder]}>{form.from || 'Leaving From?'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cityBtnLabel}>From</Text>
+                <View style={styles.cityBtnValueRow}>
+                  <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
+                  <Text style={[styles.cityBtnText, !form.from && styles.placeholder]} numberOfLines={1}>
+                    {form.from || 'Leaving From?'}
+                  </Text>
+                </View>
+              </View>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
             </Pressable>
             <Pressable onPress={() => { update('from', form.to); update('to', form.from); }} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
             </Pressable>
             <Pressable style={styles.cityBtn} onPress={() => setCityModal('to')}>
-              <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
-              <Text style={[styles.cityBtnText, !form.to && styles.placeholder]}>{form.to || 'Going To?'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cityBtnLabel}>To</Text>
+                <View style={styles.cityBtnValueRow}>
+                  <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
+                  <Text style={[styles.cityBtnText, !form.to && styles.placeholder]} numberOfLines={1}>
+                    {form.to || 'Going To?'}
+                  </Text>
+                </View>
+              </View>
               <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
             </Pressable>
           </View>
 
           {/* ── Route Matching Suggestions ────────────────────────────────── */}
           {matchCount > 0 && (
-            <Pressable 
-              style={styles.matchBanner} 
+            <Pressable
+              style={styles.matchBanner}
               onPress={() => navigation.navigate('DriverApp', {
                 screen: 'DriverRequestsTab',
                 params: { screen: 'OpenRequestsMain', params: { city: form.from, to: form.to } }
               })}
             >
-              <LinearGradient colors={['#f0fdf4', '#dcfce7']} style={styles.matchGrad}>
-                <View style={styles.matchIconBox}>
-                  <Ionicons name="people" size={18} color={COLORS.secondary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.matchTitle}>{matchCount} passengers waiting!</Text>
-                  <Text style={styles.matchSub}>Found requests matching your route. View & make offers?</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
-              </LinearGradient>
+              <View style={styles.matchIconBox}>
+                <Ionicons name="people" size={18} color={COLORS.secondary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.matchTitle}>{matchCount} passengers waiting!</Text>
+                <Text style={styles.matchSub}>Found requests matching your route. View & make offers?</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
             </Pressable>
           )}
 
@@ -356,7 +390,7 @@ export default function PostRideScreen({ navigation }) {
           )}
 
           {/* ── Schedule ─────────────────────────────────────────────────── */}
-          <Text style={styles.sectionTitle}>Schedule</Text>
+          <SectionHeader title="Schedule" />
           <DatePickerInput
             label="Travel Date *"
             value={form.date}
@@ -376,22 +410,38 @@ export default function PostRideScreen({ navigation }) {
           />
 
           {/* ── Fare & Locations ─────────────────────────────────────────── */}
-          <Text style={styles.sectionTitle}>Fare & Pickup</Text>
+          <SectionHeader title="Fare & Pickup" />
           {TEXT_FIELDS.map(field => (
-            <FormInput
+            <BoxedField
               key={field.key}
               label={field.label}
-              icon={field.icon as any}
               placeholder={field.placeholder}
               value={form[field.key]}
               onChangeText={v => update(field.key, v)}
-              keyboardType={(field.type || 'default') as any}
+              keyboardType={field.type || 'default'}
             />
           ))}
 
-          <FormInput
+          {/* ── Ride Type ────────────────────────────────────────────────── */}
+          <SectionHeader title="Ride Type" />
+          <View style={styles.rideTypeRow}>
+            <Pressable
+              style={[styles.rideTypeBtn, rideType === 'oneway' && styles.rideTypeBtnActive]}
+              onPress={() => setRideType('oneway')}
+            >
+              <Ionicons name="arrow-forward-circle-outline" size={16} color={rideType === 'oneway' ? COLORS.primary : COLORS.textSecondary} />
+              <Text style={[styles.rideTypeText, rideType === 'oneway' && styles.rideTypeTextActive]}>One Way</Text>
+            </Pressable>
+            <Pressable
+              style={styles.rideTypeBtn}
+              onPress={() => showToast('Round trip rides are coming soon', 'info')}
+            >
+              <Text style={styles.rideTypeText}>Round Trip</Text>
+            </Pressable>
+          </View>
+
+          <BoxedField
             label="Note / Description"
-            icon="document-text-outline"
             placeholder="e.g. 1 stop in Hyderabad, AC will be on..."
             value={form.description}
             onChangeText={v => update('description', v)}
@@ -399,14 +449,7 @@ export default function PostRideScreen({ navigation }) {
             numberOfLines={3}
           />
 
-          <PrimaryButton
-            title="Post Ride"
-            onPress={handlePost}
-            loading={loading}
-            icon="rocket-outline"
-            colors={GRADIENTS.teal as any}
-            style={{ marginTop: 24 }}
-          />
+          <PrimaryButton title="Post Ride" onPress={handlePost} loading={loading} style={styles.postBtn} />
           <View style={{ height: 24 }} />
         </ScrollView>
 
@@ -456,23 +499,24 @@ export default function PostRideScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   body: { padding: 20, paddingBottom: 40 },
-  sectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginTop: 16, marginBottom: 12 },
 
   // Vehicle selector
-  vehicleSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 14, gap: 12, marginBottom: 4, borderWidth: 1.5, borderColor: COLORS.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  vehicleIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  vehicleSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 14, gap: 12, marginBottom: 4, borderWidth: 1.5, borderColor: COLORS.border },
+  vehicleIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primaryLight },
   vehicleName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   vehicleDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   noVehicleCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1', borderRadius: 12, padding: 14, marginBottom: 4, gap: 10 },
-  noVehicleText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.accent },
+  noVehicleText: { flex: 1, fontSize: 14, fontWeight: '400', color: COLORS.accent },
 
   // Route
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  cityBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 13, gap: 8 },
+  cityBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
+  cityBtnLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
+  cityBtnValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cityDot: { width: 8, height: 8, borderRadius: 4 },
-  cityBtnText: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  cityBtnText: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   placeholder: { color: COLORS.gray, fontWeight: '400' },
-  swapBtn: { padding: 8, backgroundColor: COLORS.lightGray, borderRadius: 10 },
+  swapBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
 
   // Multi-stop toggle
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: COLORS.border, marginBottom: 4 },
@@ -507,9 +551,17 @@ const styles = StyleSheet.create({
   vehiclePickerDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
 
   // Match Banner
-  matchBanner: { borderRadius: 14, overflow: 'hidden', marginBottom: 16, borderWidth: 1, borderColor: COLORS.secondary + '30' },
-  matchGrad: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
+  matchBanner: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: COLORS.secondary + '30', backgroundColor: '#f0fdf4' },
   matchIconBox: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.secondary + '15', alignItems: 'center', justifyContent: 'center' },
-  matchTitle: { fontSize: 13, fontWeight: '800', color: COLORS.secondary },
+  matchTitle: { fontSize: 13, fontWeight: '700', color: COLORS.secondary },
   matchSub: { fontSize: 11, color: COLORS.secondary + 'CC', marginTop: 1 },
+
+  // Ride Type
+  rideTypeRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
+  rideTypeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 12, paddingVertical: 12, backgroundColor: COLORS.cardBg },
+  rideTypeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+  rideTypeText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  rideTypeTextActive: { color: COLORS.primary, fontWeight: '700' },
+
+  postBtn: { marginTop: 24 },
 });

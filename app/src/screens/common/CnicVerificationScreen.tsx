@@ -1,34 +1,47 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, FormInput, PrimaryButton, GradientHeader } from '../../components';
+import { COLORS, CURVE, FormInput, AppBar, PrimaryButton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
-import { showImagePickerOptions } from '../../utils/imagePicker';
+import { showImagePickerOptions, pickImageFromCamera } from '../../utils/imagePicker';
 import { verificationApi } from '../../services/api';
 
-// â”€â”€â”€ Image Upload Box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function UploadBox({ label, required, image, uploading, onPress }) {
+// ─── CNIC Illustration (decorative ID-card graphic) ─────────────────────────────
+function CnicIllustration() {
   return (
-    <View>
-      <Text style={styles.uploadLabel}>
-        {label}{required ? ' *' : ' (Optional)'}
-      </Text>
-      <Pressable style={styles.uploadBox} onPress={onPress} disabled={uploading}>
-        {uploading
-          ? <ActivityIndicator color={COLORS.primary} size="large" />
-          : image
-            ? <Image source={{ uri: image }} style={styles.uploadImg} resizeMode="cover" />
-            : (
-              <>
-                <Ionicons name="cloud-upload-outline" size={32} color={COLORS.primary} />
-                <Text style={styles.uploadText}>Tap to upload</Text>
-              </>
-            )
-        }
-      </Pressable>
+    <View style={styles.illustrationCard}>
+      <View style={styles.illustrationAvatar}>
+        <Ionicons name="person" size={28} color="rgba(17,24,39,0.25)" />
+      </View>
+      <View style={styles.illustrationLines}>
+        <View style={[styles.illustrationBar, { width: '70%' }]} />
+        <View style={[styles.illustrationBar, { width: '85%' }]} />
+        <View style={[styles.illustrationBar, { width: '55%' }]} />
+      </View>
+      <Ionicons name="person-outline" size={56} color="rgba(17,24,39,0.12)" style={styles.illustrationWatermark} />
     </View>
+  );
+}
+
+// ─── Upload Box ────────────────────────────────────────────────────────────────
+function UploadBox({ image, uploading, onPress }) {
+  return (
+    <Pressable style={styles.uploadBox} onPress={onPress} disabled={uploading}>
+      {uploading
+        ? <ActivityIndicator color={COLORS.primary} size="large" />
+        : image
+          ? <Image source={{ uri: image }} style={styles.uploadImg} resizeMode="cover" />
+          : (
+            <>
+              <Ionicons name="cloud-upload-outline" size={28} color={COLORS.primary} />
+              <Text style={styles.uploadText}>Tap to upload</Text>
+              <Text style={styles.uploadHint}>JPG, PNG up to 5MB</Text>
+            </>
+          )
+      }
+    </Pressable>
   );
 }
 
@@ -40,11 +53,23 @@ export default function CnicVerificationScreen({ navigation }) {
   const [cnic,        setCnic]        = useState('');
   const [frontImg,    setFrontImg]    = useState(null);
   const [backImg,     setBackImg]     = useState(null);
+  const [selfieImg,   setSelfieImg]   = useState(null);
   const [licenceImg,  setLicenceImg]  = useState(null);
   const [upFront,     setUpFront]     = useState(false);
   const [upBack,      setUpBack]      = useState(false);
+  const [upSelfie,    setUpSelfie]    = useState(false);
   const [upLicence,   setUpLicence]   = useState(false);
   const [loading,     setLoading]     = useState(false);
+  const [step,        setStep]        = useState(0);
+
+  const STEPS = useMemo(() => {
+    const base = [
+      { key: 'front', label: 'Front Side' },
+      { key: 'back', label: 'Back Side' },
+      { key: 'selfie', label: 'Selfie' },
+    ];
+    return isDriver ? [...base, { key: 'licence', label: 'Licence' }] : base;
+  }, [isDriver]);
 
   const pickImage = async (setter, setUploading) => {
     showImagePickerOptions(async (result) => {
@@ -54,6 +79,15 @@ export default function CnicVerificationScreen({ navigation }) {
       setter(result.url);
       setUploading(false);
     }, 'documents');
+  };
+
+  const pickSelfie = async () => {
+    setUpSelfie(true);
+    const result: any = await pickImageFromCamera({ aspect: [3, 4] }, 'documents');
+    setUpSelfie(false);
+    if (result.cancelled) return;
+    if (result.error) { showToast('Selfie upload failed. Please try again.', 'error'); return; }
+    setSelfieImg(result.url);
   };
 
   const validateCnic = (value) => /^\d{5}-\d{7}-\d$/.test(value) || /^\d{13}$/.test(value.replace(/-/g, ''));
@@ -69,7 +103,7 @@ export default function CnicVerificationScreen({ navigation }) {
 
   const handleSubmit = async () => {
     // For drivers: CNIC is required + licence required
-    // For passengers: CNIC is optional â€” but if they start filling, front image is required
+    // For passengers: CNIC is optional — but if they start filling, front image is required
     if (isDriver) {
       if (!cnic || !frontImg) {
         showToast('Drivers must provide CNIC number and front image.', 'error');
@@ -98,7 +132,7 @@ export default function CnicVerificationScreen({ navigation }) {
 
     // Submit CNIC if provided
     if (cnic && frontImg) {
-      const { error } = await verificationApi.submitCnic(cnic, frontImg, backImg || undefined);
+      const { error } = await verificationApi.submitCnic(cnic, frontImg, backImg || undefined, selfieImg || undefined);
       cnicError = error;
     }
 
@@ -132,158 +166,155 @@ export default function CnicVerificationScreen({ navigation }) {
     navigation.goBack();
   };
 
-  const cnicSteps = [
-    { n: '1', title: isDriver ? 'Enter CNIC Number *' : 'Enter CNIC Number (Optional)', done: !!cnic },
-    { n: '2', title: 'Upload CNIC Front',   done: !!frontImg },
-    { n: '3', title: 'Upload CNIC Back',    done: !!backImg },
-  ];
-  const driverSteps = isDriver ? [
-    { n: '4', title: 'Upload Driving Licence *', done: !!licenceImg },
-  ] : [];
-  const allSteps = [...cnicSteps, ...driverSteps, { n: String(cnicSteps.length + driverSteps.length + 1), title: 'Submit for Review', done: false }];
+  const isLastStep = step === STEPS.length - 1;
+
+  const handleContinue = () => {
+    const key = STEPS[step].key;
+    if (key === 'front' && isDriver && (!cnic || !frontImg)) {
+      showToast('Please enter your CNIC number and upload the front image.', 'error');
+      return;
+    }
+    if (key === 'front' && !isDriver && cnic && !frontImg) {
+      showToast('Please upload the CNIC front image.', 'error');
+      return;
+    }
+    if (key === 'licence' || isLastStep) { handleSubmit(); return; }
+    setStep(s => Math.min(STEPS.length - 1, s + 1));
+  };
+
+  const renderStepContent = () => {
+    const key = STEPS[step].key;
+    if (key === 'front') {
+      return (
+        <>
+          <CnicIllustration />
+          <Text style={styles.stepHeading}>Upload CNIC Front Side</Text>
+          <Text style={styles.stepSub}>Make sure the details are clear and visible</Text>
+          <UploadBox image={frontImg} uploading={upFront} onPress={() => pickImage(setFrontImg, setUpFront)} />
+          <FormInput
+            label={`CNIC Number${isDriver ? ' *' : ' (Optional)'}`}
+            icon="card-outline"
+            placeholder="42101-1234567-1"
+            value={cnic}
+            onChangeText={handleCnicChange}
+            keyboardType="numeric"
+            maxLength={15}
+            style={{ marginTop: 20 }}
+          />
+        </>
+      );
+    }
+    if (key === 'back') {
+      return (
+        <>
+          <CnicIllustration />
+          <Text style={styles.stepHeading}>Upload CNIC Back Side</Text>
+          <Text style={styles.stepSub}>Optional, but helps speed up verification</Text>
+          <UploadBox image={backImg} uploading={upBack} onPress={() => pickImage(setBackImg, setUpBack)} />
+        </>
+      );
+    }
+    if (key === 'selfie') {
+      return (
+        <>
+          <Text style={styles.stepHeading}>Take a Selfie</Text>
+          <Text style={styles.stepSub}>Optional — helps us confirm it's really you</Text>
+          <UploadBox image={selfieImg} uploading={upSelfie} onPress={pickSelfie} />
+        </>
+      );
+    }
+    // licence
+    return (
+      <>
+        <Text style={styles.stepHeading}>Upload Driving Licence *</Text>
+        <Text style={styles.stepSub}>Upload a clear photo of your driving licence (front side)</Text>
+        <UploadBox image={licenceImg} uploading={upLicence} onPress={() => pickImage(setLicenceImg, setUpLicence)} />
+      </>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.secondary as any}
-        title="Identity Verification"
-        subtitle={isDriver ? 'CNIC & Driving Licence required' : 'CNIC verification (optional)'}
-        onBack={() => navigation.goBack()}
-      />
+      <AppBar title="CNIC Verification" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.body}>
-
-        {/* Info Banner */}
-        <View style={[styles.infoBanner, isDriver ? styles.infoBannerDriver : styles.infoBannerPassenger]}>
-          <Ionicons name={(isDriver ? 'car-outline' : 'shield-checkmark') as any}
-            size={28}
-            color={isDriver ? COLORS.teal : COLORS.secondary}
-          />
-          <View style={styles.infoText}>
-            <Text style={styles.infoTitle}>
-              {isDriver ? 'Driver Verification' : 'Why verify?'}
-            </Text>
-            <Text style={styles.infoSub}>
-              {isDriver
-                ? 'Drivers must verify their CNIC and driving licence to post rides and build passenger trust.'
-                : 'Verified users get a trust badge and are more likely to get bookings. Your data is kept secure and private.'}
-            </Text>
-          </View>
-        </View>
-
-        {/* Steps */}
-        <View style={styles.stepsCard}>
-          {allSteps.map((step, i) => (
-            <View key={i} style={[styles.stepRow, i < allSteps.length - 1 && styles.stepRowBorder]}>
-              <View style={[styles.stepNum, step.done && styles.stepNumDone]}>
-                {step.done
-                  ? <Ionicons name="checkmark" size={14} color="#fff" />
-                  : <Text style={styles.stepNumText}>{step.n}</Text>
+      {/* Stepper */}
+      <View style={styles.stepperRow}>
+        {STEPS.map((s, i) => (
+          <React.Fragment key={s.key}>
+            <Pressable style={styles.stepperItem} onPress={() => i < step && setStep(i)} disabled={i >= step}>
+              <View style={[
+                styles.stepCircle,
+                i === step && styles.stepCircleActive,
+                i < step && styles.stepCircleDone,
+              ]}>
+                {i < step
+                  ? <Ionicons name="checkmark" size={13} color={COLORS.white} />
+                  : <Text style={[styles.stepCircleText, i === step && styles.stepCircleTextActive]}>{i + 1}</Text>
                 }
               </View>
-              <Text style={[styles.stepTitle, step.done && { color: COLORS.secondary }]}>{step.title}</Text>
-            </View>
-          ))}
-        </View>
+              <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]}>{s.label}</Text>
+            </Pressable>
+            {i < STEPS.length - 1 && <View style={[styles.stepConnector, i < step && styles.stepConnectorDone]} />}
+          </React.Fragment>
+        ))}
+      </View>
 
-        {/* â”€â”€ CNIC Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <Text style={styles.sectionHeader}>
-          <Ionicons name="card-outline" size={16} color={COLORS.textPrimary} /> CNIC Details{!isDriver && '  (Optional)'}
-        </Text>
-
-        <FormInput
-          label={`CNIC Number${isDriver ? ' *' : ' (Optional)'}`}
-          icon="card-outline"
-          placeholder="42101-1234567-1"
-          value={cnic}
-          onChangeText={handleCnicChange}
-          keyboardType="numeric"
-          maxLength={15}
-        />
-
-        <UploadBox
-          label="CNIC Front"
-          required={isDriver}
-          image={frontImg}
-          uploading={upFront}
-          onPress={() => pickImage(setFrontImg, setUpFront)}
-        />
-        <UploadBox
-          label="CNIC Back"
-          required={false}
-          image={backImg}
-          uploading={upBack}
-          onPress={() => pickImage(setBackImg, setUpBack)}
-        />
-
-        {/* â”€â”€ Driving Licence Section (Driver Only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        {isDriver && (
-          <>
-            <Text style={[styles.sectionHeader, { marginTop: 24 }]}>
-              <Ionicons name="document-text-outline" size={16} color={COLORS.textPrimary} /> Driving Licence *
-            </Text>
-            <View style={styles.licenceBanner}>
-              <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
-              <Text style={styles.licenceBannerText}>
-                Upload a clear photo of your driving licence (front side).
-              </Text>
-            </View>
-            <UploadBox
-              label="Driving Licence"
-              required={true}
-              image={licenceImg}
-              uploading={upLicence}
-              onPress={() => pickImage(setLicenceImg, setUpLicence)}
-            />
-          </>
-        )}
-
-        <PrimaryButton
-          title={isDriver ? 'Submit Verification' : (cnic || frontImg ? 'Submit Verification' : 'Skip for Now')}
-          onPress={handleSubmit}
-          loading={loading}
-          icon={isDriver ? 'shield-checkmark-outline' : (cnic || frontImg ? 'shield-checkmark-outline' : 'arrow-forward-outline')}
-          colors={GRADIENTS.secondary as any}
-          style={{ marginTop: 28 }}
-        />
+      <ScrollView contentContainerStyle={styles.body}>
+        {renderStepContent()}
       </ScrollView>
+
+      <View style={styles.bottomBar}>
+        <PrimaryButton
+          title={isLastStep ? 'Submit' : 'Continue'}
+          onPress={handleContinue}
+          loading={loading}
+          style={styles.continueBtn}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container:        { flex: 1, backgroundColor: COLORS.bg },
-  body:             { padding: 20 },
+  body:             { padding: 20, paddingBottom: 32 },
 
-  // Info Banner
-  infoBanner:       { flexDirection: 'row', alignItems: 'flex-start', borderRadius: 16, padding: 16, marginBottom: 20, gap: 14 },
-  infoBannerDriver: { backgroundColor: '#e0f7fa' },
-  infoBannerPassenger: { backgroundColor: '#e8f5e9' },
-  infoText:         { flex: 1 },
-  infoTitle:        { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
-  infoSub:          { fontSize: 12, color: COLORS.gray, lineHeight: 18 },
+  // Stepper
+  stepperRow:       { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 24, paddingBottom: 16 },
+  stepperItem:      { alignItems: 'center', width: 64 },
+  stepCircle:       { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.cardBg, alignItems: 'center', justifyContent: 'center' },
+  stepCircleActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
+  stepCircleDone:   { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
+  stepCircleText:   { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
+  stepCircleTextActive: { color: COLORS.white },
+  stepLabel:        { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginTop: 6, textAlign: 'center' },
+  stepLabelActive:  { color: COLORS.primary },
+  stepConnector:    { flex: 1, height: 1.5, backgroundColor: COLORS.border, marginTop: 13, marginHorizontal: -8 },
+  stepConnectorDone:{ backgroundColor: COLORS.primary },
 
-  // Steps
-  stepsCard:        { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
-  stepRow:          { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  stepRowBorder:    { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  stepNum:          { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
-  stepNumDone:      { backgroundColor: COLORS.secondary },
-  stepNumText:      { fontSize: 12, fontWeight: '700', color: COLORS.gray },
-  stepTitle:        { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
+  stepHeading:      { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 6 },
+  stepSub:          { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 20 },
 
-  // Section headers
-  sectionHeader:    { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 12 },
+  // Illustration
+  illustrationCard: {
+    height: 130, borderRadius: 16, backgroundColor: '#eefaf3',
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, gap: 14,
+    marginBottom: 24, overflow: 'hidden', position: 'relative',
+  },
+  illustrationAvatar: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(17,24,39,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  illustrationLines: { flex: 1, gap: 8 },
+  illustrationBar: { height: 8, borderRadius: 4, backgroundColor: 'rgba(17,24,39,0.12)' },
+  illustrationWatermark: { position: 'absolute', right: 16, top: '50%', marginTop: -28 },
 
   // Upload
-  uploadLabel:      { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginTop: 16, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  uploadBox:        { borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed', borderRadius: 16, height: 130, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', overflow: 'hidden' },
+  uploadBox:        { borderWidth: 1.5, borderColor: COLORS.primary + '60', borderStyle: 'dashed', borderRadius: 16, height: 150, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, overflow: 'hidden', ...CURVE },
   uploadImg:        { width: '100%', height: '100%' },
-  uploadText:       { fontSize: 13, color: COLORS.gray, marginTop: 8 },
+  uploadText:       { fontSize: 14, fontWeight: '700', color: COLORS.primary, marginTop: 8 },
+  uploadHint:       { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
 
-  // Licence banner
-  licenceBanner:    { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, gap: 8, marginBottom: 4 },
-  licenceBannerText:{ flex: 1, fontSize: 12, color: COLORS.primary, lineHeight: 18 },
+  bottomBar:        { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, backgroundColor: COLORS.bg },
+  continueBtn:      { borderRadius: 26 },
 });
-
-

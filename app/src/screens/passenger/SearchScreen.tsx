@@ -5,10 +5,11 @@ import {
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, RideCard, EmptyState, Chip, GradientHeader, RideCardSkeleton, RouteTag } from '../../components';
+import { COLORS, CURVE, RideCard, EmptyState, Chip, AppBar, RideCardSkeleton, RouteTag, DatePickerInput, TimePickerInput } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
-import { ridesApi } from '../../services/api';
+import { ridesApi, scheduleAlertsApi } from '../../services/api';
+import { parseApiError } from '../../utils/errorMessages';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -171,6 +172,8 @@ export default function SearchScreen({ navigation, route }) {
   const [from, setFrom] = useState(route.params?.from || '');
   const [to, setTo] = useState(route.params?.to || '');
   const [date, setDate] = useState(route.params?.date || '');
+  const [departTime, setDepartTime] = useState('');
+  const [passengers, setPassengers] = useState(1);
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState(false);
@@ -187,6 +190,7 @@ export default function SearchScreen({ navigation, route }) {
   const [showMaxPriceModal, setShowMaxPriceModal] = useState(false);
   const [cityModal, setCityModal] = useState(null);
   const [recentSearches, setRecentSearches] = useState<SearchEntry[]>([]);
+  const [alertState, setAlertState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const activeFilterCount = [filterAC, filterFemale, filterVehicle, filterBrand, filterTime !== null, !!filterMaxPrice].filter(Boolean).length;
 
@@ -196,7 +200,7 @@ export default function SearchScreen({ navigation, route }) {
       ? searchResults
       : (availableRides || []).filter(r => r.status === 'ACTIVE');
 
-    let list = base.filter(r => (r.totalSeats - r.bookedSeats) > 0);
+    let list = base.filter(r => (r.totalSeats - r.bookedSeats) >= passengers);
     if (filterAC) list = list.filter(r => r.vehicle?.ac);
     if (filterFemale) list = list.filter(r => r.femaleOnly || r.genderPreference === 'FEMALE');
     if (filterVehicle) list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
@@ -216,7 +220,7 @@ export default function SearchScreen({ navigation, route }) {
     if (sort === 3) list.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0));
 
     return list;
-  }, [searchResults, availableRides, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
+  }, [searchResults, availableRides, passengers, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
 
   useEffect(() => {
     if (searchResults !== null && availableRides.length > 0) {
@@ -292,6 +296,21 @@ export default function SearchScreen({ navigation, route }) {
     if (route.params?.from || route.params?.to) doSearch();
   }, [doSearch]);
 
+  useEffect(() => { setAlertState('idle'); }, [from, to, date]);
+
+  const handleSetAlert = async () => {
+    if (!from || !to || !date) return;
+    setAlertState('saving');
+    const { error } = await scheduleAlertsApi.create({ fromCity: from, toCity: to, date });
+    if (error) {
+      setAlertState('idle');
+      showToast(parseApiError(error), 'error');
+      return;
+    }
+    setAlertState('saved');
+    showToast("We'll notify you when a matching ride is posted", 'success');
+  };
+
   const swapCities = () => { setFrom(to); setTo(from); };
 
   const activeFilters = [
@@ -308,25 +327,25 @@ export default function SearchScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* ── Gradient Header ─────────────────────────────────────────── */}
-      <GradientHeader
-        colors={GRADIENTS.primary as any}
-        title={fromCity && toCity ? `${fromCity} > ${toCity}` : 'Find a Ride'}
-        subtitle={fromCity && toCity ? `${fromCity} to ${toCity}` : 'Search for your next journey'}
-        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
-      />
+      {/* ── App Bar ──────────────────────────────────────────────────── */}
+      <AppBar title="Search Rides" />
 
       {/* ── Search Form ──────────────────────────────────────────────── */}
       <View style={styles.searchContainer}>
         <View style={styles.searchCard}>
           <View style={styles.searchRow}>
             <Pressable style={styles.cityInput} onPress={() => setCityModal('from')}>
-              <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
-              <Text style={[styles.cityInputText, !from && styles.placeholder]} numberOfLines={1}>
-                {from || 'Leaving from?'}
-              </Text>
+              <View style={styles.cityInputInner}>
+                <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>From</Text>
+                  <Text style={[styles.cityInputText, !from && styles.placeholder]} numberOfLines={1}>
+                    {from || 'Leaving from?'}
+                  </Text>
+                </View>
+              </View>
               {from ? (
-                <Pressable onPress={() => setFrom('')}>
+                <Pressable onPress={() => setFrom('')} hitSlop={8}>
                   <Ionicons name="close-circle" size={16} color={COLORS.gray} />
                 </Pressable>
               ) : (
@@ -339,18 +358,57 @@ export default function SearchScreen({ navigation, route }) {
             </Pressable>
 
             <Pressable style={styles.cityInput} onPress={() => setCityModal('to')}>
-              <View style={[styles.dot, { backgroundColor: COLORS.secondary }]} />
-              <Text style={[styles.cityInputText, !to && styles.placeholder]} numberOfLines={1}>
-                {to || 'Going to?'}
-              </Text>
+              <View style={styles.cityInputInner}>
+                <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>To</Text>
+                  <Text style={[styles.cityInputText, !to && styles.placeholder]} numberOfLines={1}>
+                    {to || 'Going to?'}
+                  </Text>
+                </View>
+              </View>
               {to ? (
-                <Pressable onPress={() => setTo('')}>
+                <Pressable onPress={() => setTo('')} hitSlop={8}>
                   <Ionicons name="close-circle" size={16} color={COLORS.gray} />
                 </Pressable>
               ) : (
                 <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
               )}
             </Pressable>
+          </View>
+
+          {/* Date / Time */}
+          <View style={styles.dateTimeRow}>
+            <View style={{ flex: 1 }}>
+              <DatePickerInput label="Date" value={date || null} onChange={setDate} minDate={new Date()} placeholder="Any date" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <TimePickerInput label="Time" value={departTime || null} onChange={setDepartTime} placeholder="Any time" />
+            </View>
+          </View>
+
+          {/* Passengers */}
+          <View style={styles.passengersRow}>
+            <View>
+              <Text style={styles.fieldLabelStandalone}>Passengers</Text>
+              <Text style={styles.passengersValue}>{passengers} Seat{passengers !== 1 ? 's' : ''}</Text>
+            </View>
+            <View style={styles.stepperRow}>
+              <Pressable
+                style={[styles.stepperBtn, passengers <= 1 && styles.stepperBtnDisabled]}
+                disabled={passengers <= 1}
+                onPress={() => setPassengers(p => Math.max(1, p - 1))}
+              >
+                <Ionicons name="remove" size={18} color={passengers <= 1 ? COLORS.gray : COLORS.primary} />
+              </Pressable>
+              <Pressable
+                style={[styles.stepperBtn, passengers >= 8 && styles.stepperBtnDisabled]}
+                disabled={passengers >= 8}
+                onPress={() => setPassengers(p => Math.min(8, p + 1))}
+              >
+                <Ionicons name="add" size={18} color={passengers >= 8 ? COLORS.gray : COLORS.primary} />
+              </Pressable>
+            </View>
           </View>
 
           {/* Search Button */}
@@ -496,6 +554,28 @@ export default function SearchScreen({ navigation, route }) {
               </View>
               <Text style={styles.emptyTitle}>No rides found</Text>
               <Text style={styles.emptySubtitle}>Try different dates or cities</Text>
+              {from && to && date ? (
+                <Pressable
+                  style={[styles.notifyBtn, alertState === 'saved' && styles.notifyBtnSaved]}
+                  onPress={handleSetAlert}
+                  disabled={alertState !== 'idle'}
+                >
+                  {alertState === 'saving' ? (
+                    <ActivityIndicator color={COLORS.primary} size="small" />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={alertState === 'saved' ? 'checkmark-circle' : 'notifications-outline'}
+                        size={16}
+                        color={COLORS.primary}
+                      />
+                      <Text style={styles.notifyBtnText}>
+                        {alertState === 'saved' ? "We'll notify you" : 'Notify me when a ride is posted'}
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              ) : null}
             </View>
           )
         }
@@ -567,14 +647,38 @@ export default function SearchScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  searchContainer: { marginTop: 0, paddingHorizontal: 0 },
-  searchCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  cityInput: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
+  searchContainer: { marginTop: 0, paddingHorizontal: 16 },
+  searchCard: {
+    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: COLORS.border,
+    shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 2,
+    ...CURVE,
+  },
+  searchRow: { flexDirection: 'column', marginBottom: 12, gap: 8, position: 'relative' },
+  cityInput: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  cityInputInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  cityInputText: { flex: 1, fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
+  fieldLabelStandalone: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
+  cityInputText: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   placeholder: { color: COLORS.gray, fontWeight: '400' },
-  swapBtn: { paddingHorizontal: 4 },
+  dateTimeRow: { flexDirection: 'row', gap: 12, marginBottom: 0 },
+  passengersRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16,
+  },
+  passengersValue: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepperBtn: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white,
+    borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
+  },
+  stepperBtnDisabled: { opacity: 0.5 },
+  swapBtn: {
+    position: 'absolute', right: 8, top: '50%', marginTop: -18, zIndex: 5,
+    width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight,
+    alignItems: 'center', justifyContent: 'center',
+  },
   searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 16 },
   searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   filtersScroll: { flexDirection: 'row' },
@@ -666,4 +770,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  notifyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginTop: 8, paddingHorizontal: 18, paddingVertical: 12,
+    borderRadius: 24, borderWidth: 1.5, borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
+  },
+  notifyBtnSaved: { borderColor: COLORS.secondary, backgroundColor: '#e8f5e9' },
+  notifyBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
 });

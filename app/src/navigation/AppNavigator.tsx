@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Platform, Pressable, Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { NavigationContainer, StackActions } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -21,6 +21,8 @@ import PassengerHomeScreen from '../screens/passenger/HomeScreen';
 import SearchScreen from '../screens/passenger/SearchScreen';
 import RideDetailScreen from '../screens/passenger/RideDetailScreen';
 import BookingConfirmScreen from '../screens/passenger/BookingConfirmScreen';
+import BookingSuccessScreen from '../screens/passenger/BookingSuccessScreen';
+import PastBookingDetailScreen from '../screens/passenger/PastBookingDetailScreen';
 import BookingHistoryScreen from '../screens/passenger/BookingHistoryScreen';
 import PastBookingsScreen from '../screens/passenger/PastBookingsScreen';
 import PostRequestScreen from '../screens/passenger/PostRequestScreen';
@@ -35,16 +37,19 @@ import MyVehiclesScreen from '../screens/driver/MyVehiclesScreen';
 import VehicleSetupScreen from '../screens/driver/VehicleSetupScreen';
 import EarningsScreen from '../screens/driver/EarningsScreen';
 import RideBookingsScreen from '../screens/driver/RideBookingsScreen';
+import DriverBookingDetailScreen from '../screens/driver/DriverBookingDetailScreen';
 import RideTrackingScreen from '../screens/driver/RideTrackingScreen';
 import OpenRequestsScreen from '../screens/driver/OpenRequestsScreen';
 
 // Common
 import ProfileScreen from '../screens/common/ProfileScreen';
 import NotificationsScreen from '../screens/common/NotificationsScreen';
+import NotificationDetailScreen from '../screens/common/NotificationDetailScreen';
 import EditProfileScreen from '../screens/common/EditProfileScreen';
 import CnicVerificationScreen from '../screens/common/CnicVerificationScreen';
 import ChangePasswordScreen from '../screens/common/ChangePasswordScreen';
 import SupportScreen from '../screens/common/SupportScreen';
+import ReportIssueScreen from '../screens/common/ReportIssueScreen';
 import TermsScreen from '../screens/common/TermsScreen';
 import PrivacyScreen from '../screens/common/PrivacyScreen';
 import AboutScreen from '../screens/common/AboutScreen';
@@ -70,6 +75,7 @@ const STACK_SCREEN_OPTIONS = {
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
 const { width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 65;
+
 
 
 export function CustomTabBar({ state, descriptors, navigation }: any) {
@@ -121,20 +127,7 @@ export function CustomTabBar({ state, descriptors, navigation }: any) {
               target: route.key,
               canPreventDefault: true,
             });
-            if (isFocused) {
-              try {
-                const routeState = route.state as any;
-                // Re-tapping the active tab resets its stack to the root. Target
-                // the nested stack explicitly (via its state key) so the action
-                // is always handled — dispatching untargeted can bubble to the
-                // root and log "POP_TO_TOP was not handled by any navigator".
-                if (routeState && routeState.index > 0 && routeState.key) {
-                  navigation.dispatch({ ...StackActions.popToTop(), target: routeState.key });
-                }
-              } catch (e) {
-                // Ignore if popToTop is not supported or fails
-              }
-            } else if (!event.defaultPrevented) {
+            if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
           };
@@ -272,9 +265,11 @@ function DriverDashboardStack() {
       <UserDashboardStack.Screen name="PostRide"     component={PostRideScreen} />
       <UserDashboardStack.Screen name="MyRides"      component={ActiveRidesScreen} />
       <UserDashboardStack.Screen name="RideBookings" component={RideBookingsScreen} />
+      <UserDashboardStack.Screen name="DriverBookingDetail" component={DriverBookingDetailScreen} />
       <UserDashboardStack.Screen name="RideHistory"  component={RideHistoryScreen} />
       <UserDashboardStack.Screen name="MyVehicles"   component={MyVehiclesScreen} />
       <UserDashboardStack.Screen name="Notifications" component={NotificationsScreen} />
+      <UserDashboardStack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
       <UserDashboardStack.Screen name="Earnings"     component={EarningsScreen} />
       <UserDashboardStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
       <UserDashboardStack.Screen name="OpenRequests" component={OpenRequestsScreen} />
@@ -291,6 +286,7 @@ function DriverRidesStack() {
       <UserRidesStack.Screen name="MyRides"      component={ActiveRidesScreen} />
       <UserRidesStack.Screen name="PostRide"     component={PostRideScreen} />
       <UserRidesStack.Screen name="RideBookings" component={RideBookingsScreen} />
+      <UserRidesStack.Screen name="DriverBookingDetail" component={DriverBookingDetailScreen} />
       <UserRidesStack.Screen name="RideHistory"  component={RideHistoryScreen} />
       <UserRidesStack.Screen name="VehicleSetup" component={VehicleSetupScreen} />
     </UserRidesStack.Navigator>
@@ -317,12 +313,14 @@ function CommonProfileStack() {
       <UserProfileStack.Screen name="CnicVerify" component={CnicVerificationScreen} />
       <UserProfileStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <UserProfileStack.Screen name="Support" component={SupportScreen} />
+      <UserProfileStack.Screen name="ReportIssue" component={ReportIssueScreen} />
       <UserProfileStack.Screen name="Terms" component={TermsScreen} />
       <UserProfileStack.Screen name="Privacy" component={PrivacyScreen} />
       <UserProfileStack.Screen name="About" component={AboutScreen} />
       <UserProfileStack.Screen name="Reviews" component={ReviewsScreen} />
       <UserProfileStack.Screen name="RideHistory" component={RideHistoryScreen} />
       <UserProfileStack.Screen name="PastBookings" component={PastBookingsScreen} />
+      <UserProfileStack.Screen name="PastBookingDetail" component={PastBookingDetailScreen} />
       <UserProfileStack.Screen name="BookingHistory" component={BookingHistoryScreen} />
     </UserProfileStack.Navigator>
 
@@ -337,9 +335,12 @@ function PassengerRidesStack() {
     <PassengerActivityStack.Navigator id="PassengerActivity" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerActivityStack.Screen name="PassengerHomeMain" component={PassengerHomeScreen} />
       <PassengerActivityStack.Screen name="Notifications"     component={NotificationsScreen} />
+      <PassengerActivityStack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
       <PassengerActivityStack.Screen name="Search"            component={SearchScreen} />
       <PassengerActivityStack.Screen name="RideDetail"        component={RideDetailScreen} />
+      <PassengerActivityStack.Screen name="Reviews"           component={ReviewsScreen} />
       <PassengerActivityStack.Screen name="BookingConfirm"    component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
+      <PassengerActivityStack.Screen name="BookingSuccess"    component={BookingSuccessScreen} options={{ animation: 'slide_from_bottom' }} />
     </PassengerActivityStack.Navigator>
   );
 }
@@ -352,6 +353,7 @@ function PassengerRequestsStack() {
       <PassengerScheduleStack.Screen name="MyRequests"   component={MyRequestsScreen} />
       <PassengerScheduleStack.Screen name="PostRequest"  component={PostRequestScreen} />
       <PassengerScheduleStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
+      <PassengerScheduleStack.Screen name="BookingSuccess" component={BookingSuccessScreen} options={{ animation: 'slide_from_bottom' }} />
     </PassengerScheduleStack.Navigator>
   );
 }
@@ -362,8 +364,11 @@ function PassengerSearchStack() {
     <PassengerSearchActivityStack.Navigator id="PassengerSearch" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerSearchActivityStack.Screen name="SearchMain" component={SearchScreen} />
       <PassengerSearchActivityStack.Screen name="Notifications" component={NotificationsScreen} />
+      <PassengerSearchActivityStack.Screen name="NotificationDetail" component={NotificationDetailScreen} />
       <PassengerSearchActivityStack.Screen name="RideDetail" component={RideDetailScreen} />
+      <PassengerSearchActivityStack.Screen name="Reviews" component={ReviewsScreen} />
       <PassengerSearchActivityStack.Screen name="BookingConfirm" component={BookingConfirmScreen} options={{ animation: 'slide_from_bottom' }} />
+      <PassengerSearchActivityStack.Screen name="BookingSuccess" component={BookingSuccessScreen} options={{ animation: 'slide_from_bottom' }} />
     </PassengerSearchActivityStack.Navigator>
   );
 }
@@ -374,7 +379,9 @@ function PassengerBookingsStack() {
     <PassengerBookingsStackNav.Navigator id="PassengerBookings" screenOptions={STACK_SCREEN_OPTIONS}>
       <PassengerBookingsStackNav.Screen name="BookingHistoryMain" component={BookingHistoryScreen} />
       <PassengerBookingsStackNav.Screen name="PastBookings"       component={PastBookingsScreen} />
+      <PassengerBookingsStackNav.Screen name="PastBookingDetail"  component={PastBookingDetailScreen} />
       <PassengerBookingsStackNav.Screen name="RideDetail"         component={RideDetailScreen} />
+      <PassengerBookingsStackNav.Screen name="Reviews"            component={ReviewsScreen} />
     </PassengerBookingsStackNav.Navigator>
   );
 }
@@ -411,14 +418,19 @@ function PassengerTabNav() {
     <Tab.Navigator
       id="PassengerTab"
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ 
-        headerShown: false, 
-        tabBarStyle: { 
+      screenOptions={{
+        headerShown: false,
+        // Pop each tab's nested stack back to its root screen whenever you
+        // navigate away from it, so returning to that tab always shows its
+        // main screen instead of resuming wherever you'd drilled into
+        // (e.g. a ride detail page).
+        popToTopOnBlur: true,
+        tabBarStyle: {
           height: TAB_BAR_HEIGHT + insets.bottom,
           borderTopWidth: 0,
           elevation: 0,
           backgroundColor: 'transparent',
-        } 
+        }
       }}
     >
       {PASSENGER_TABS.map(t => (
@@ -439,14 +451,19 @@ function DriverTabNav() {
     <Tab.Navigator
       id="DriverTab"
       tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{ 
-        headerShown: false, 
-        tabBarStyle: { 
+      screenOptions={{
+        headerShown: false,
+        // Pop each tab's nested stack back to its root screen whenever you
+        // navigate away from it, so returning to that tab always shows its
+        // main screen instead of resuming wherever you'd drilled into
+        // (e.g. a ride detail page).
+        popToTopOnBlur: true,
+        tabBarStyle: {
           height: TAB_BAR_HEIGHT + insets.bottom,
           borderTopWidth: 0,
           elevation: 0,
           backgroundColor: 'transparent',
-        } 
+        }
       }}
     >
       {DRIVER_TABS.map(t => (

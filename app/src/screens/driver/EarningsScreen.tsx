@@ -1,123 +1,65 @@
-﻿import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, GradientHeader, EmptyState, RideCardSkeleton, Skeleton, AnimatedNumber } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, RideCardSkeleton, AnimatedNumber, TabPills, SectionHeader } from '../../components';
 import { ridesApi } from '../../services/api';
+import { formatLocalDate, getTodayStr } from '../../utils/date';
 
-const TABS = ['All Time', 'This Month', 'This Week'];
+const TABS = ['Daily', 'Weekly', 'Monthly'];
 
-function filterByTab(rides: any[], tab: number) {
-  if (tab === 0) return rides;
-  const now = new Date();
+function getWeekRange(now: Date) {
+  const day = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0
+  const monday = new Date(now); monday.setDate(now.getDate() - day); monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23, 59, 59, 999);
+  return { monday, sunday };
+}
+
+// tab 0 = Daily (today), 1 = Weekly (this week), 2 = Monthly (this month)
+function filterByTab(rides: any[], tab: number, now: Date) {
+  const todayStr = formatLocalDate(now);
+  if (tab === 0) return rides.filter(r => r.date === todayStr);
+  if (tab === 1) {
+    const { monday, sunday } = getWeekRange(now);
+    return rides.filter(r => { const d = new Date(r.date); return d >= monday && d <= sunday; });
+  }
   return rides.filter(r => {
     const d = new Date(r.date);
-    if (tab === 1) {
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    }
-    // This week: Monâ€“Sun of current week
-    const day = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0
-    const monday = new Date(now); monday.setDate(now.getDate() - day); monday.setHours(0, 0, 0, 0);
-    const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6); sunday.setHours(23, 59, 59, 999);
-    return d >= monday && d <= sunday;
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   });
 }
 
-function getWeeklyChartData(rides: any[]) {
-  const chart = [];
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const now = new Date();
-  const day = now.getDay() === 0 ? 6 : now.getDay() - 1;
-  const monday = new Date(now); monday.setDate(now.getDate() - day); monday.setHours(0, 0, 0, 0);
-
-  for (let i = 0; i < 7; i++) {
-    const targetDate = new Date(monday);
-    targetDate.setDate(monday.getDate() + i);
-    const dateStr = targetDate.toISOString().split('T')[0];
-    
-    const dayTotal = rides
-      .filter(r => r.date === dateStr)
-      .reduce((s, r) => s + (confirmedSeats(r) * r.pricePerSeat || 0), 0);
-    
-    chart.push({ label: days[i], value: dayTotal, isToday: i === day });
+// Same window, shifted back one period — used for the "vs previous period" delta.
+function filterByPreviousTab(rides: any[], tab: number, now: Date) {
+  if (tab === 0) {
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+    const yStr = formatLocalDate(yesterday);
+    return rides.filter(r => r.date === yStr);
   }
-  return chart;
+  if (tab === 1) {
+    const { monday } = getWeekRange(now);
+    const prevMonday = new Date(monday); prevMonday.setDate(monday.getDate() - 7);
+    const prevSunday = new Date(monday); prevSunday.setDate(monday.getDate() - 1); prevSunday.setHours(23, 59, 59, 999);
+    return rides.filter(r => { const d = new Date(r.date); return d >= prevMonday && d <= prevSunday; });
+  }
+  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return rides.filter(r => {
+    const d = new Date(r.date);
+    return d.getFullYear() === prevMonth.getFullYear() && d.getMonth() === prevMonth.getMonth();
+  });
 }
 
-// â”€â”€â”€ Chart Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function EarningsChart({ data }: { data: any[] }) {
-  const maxVal = Math.max(...data.map(d => d.value), 1000); // Floor of 1k for scale
-  
-  return (
-    <View style={chartStyles.container}>
-      <View style={chartStyles.chartArea}>
-        {data.map((d, i) => {
-          const height = (d.value / maxVal) * 100;
-          return (
-            <View key={i} style={chartStyles.barCol}>
-              <View style={chartStyles.barGhost}>
-                <LinearGradient
-                  colors={(d.isToday ? GRADIENTS.primary : [COLORS.bg, COLORS.bg]) as any}
-                  style={[chartStyles.barFill, { height: `${height}%` }]}
-                />
-              </View>
-              <Text style={[chartStyles.barLabel, d.isToday && chartStyles.barLabelActive]}>{d.label}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-const chartStyles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-    ...CURVE,
-  },
-  chartArea: {
-    flexDirection: 'row',
-    height: 140,
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 5,
-  },
-  barCol: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  barGhost: {
-    width: 18,
-    height: 100,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 9,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  barFill: {
-    width: '100%',
-    borderRadius: 9,
-  },
-  barLabel: {
-    fontSize: 10,
-    color: COLORS.gray,
-    fontWeight: '600',
-  },
-  barLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '800',
+function getDateRowLabel(tab: number, now: Date): string {
+  if (tab === 0) {
+    return `Today, ${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`;
   }
-});
+  if (tab === 1) {
+    const { monday, sunday } = getWeekRange(now);
+    const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return `${fmt(monday)} - ${fmt(sunday)}`;
+  }
+  return now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
 
 // Compute confirmed seats from bookings array (same logic as MyRidesScreen)
 function confirmedSeats(ride: any): number {
@@ -126,10 +68,15 @@ function confirmedSeats(ride: any): number {
     .reduce((s: number, b: any) => s + (b.seats || 1), 0);
 }
 
+function earningsOf(rides: any[]) {
+  return rides.reduce((s, r) => s + (confirmedSeats(r) * r.pricePerSeat || 0), 0);
+}
+
 export default function EarningsScreen({ navigation }) {
   const [myRides, setMyRides] = useState([]);
   const [tab,     setTab]     = useState(0);
   const [loading, setLoading] = useState(true);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const normalize = r => ({ ...r, from: r.fromCity || r.from, to: r.toCity || r.to });
 
@@ -141,47 +88,71 @@ export default function EarningsScreen({ navigation }) {
     }).catch(() => setLoading(false));
   }, []));
 
-  const filtered = filterByTab(myRides.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS'), tab);
+  const now = new Date();
+  const completedOrActive = myRides.filter(r => r.status === 'COMPLETED' || r.status === 'IN_PROGRESS');
+  const filtered      = filterByTab(completedOrActive, tab, now);
+  const prevFiltered   = filterByPreviousTab(completedOrActive, tab, now);
 
-  const total           = filtered.reduce((s, r) => s + (confirmedSeats(r) * r.pricePerSeat || 0), 0);
+  const total           = earningsOf(filtered);
+  const prevTotal        = earningsOf(prevFiltered);
   const totalPassengers = filtered.reduce((s, r) => s + confirmedSeats(r), 0);
   const avgPerRide      = filtered.length > 0 ? Math.round(total / filtered.length) : 0;
 
+  const deltaPct = prevTotal > 0
+    ? Math.round(((total - prevTotal) / prevTotal) * 100)
+    : (total > 0 ? 100 : 0);
+  const deltaCompareLabel = tab === 0 ? 'vs yesterday' : tab === 1 ? 'vs last week' : 'vs last month';
+
+  // NOTE: no session/presence tracking exists in the backend, so there is no
+  // real online-time figure to show here — static placeholder (see report).
+  const onlineTime = '--';
+
   return (
     <View style={styles.container}>
-      <GradientHeader
-        colors={GRADIENTS.primary as any}
-        title="My Earnings"
-        subtitle="Track your performance"
+      <AppBar
+        title="Earnings"
         onBack={() => navigation.goBack()}
-      >
-        {/* Big total */}
-        <View style={styles.totalBox}>
-          <Text style={styles.totalLabel}>
-            {tab === 0 ? 'Total Earned' : tab === 1 ? 'This Month' : 'This Week'}
-          </Text>
-          <AnimatedNumber value={total} prefix="Rs " style={styles.totalAmount} />
-        </View>
-        
-        {/* Weekly Goal */}
-        <View style={styles.goalBox}>
-          <View style={styles.goalLine}>
-            <Text style={styles.goalLabel}>Weekly Target (Rs 15k)</Text>
-            <Text style={styles.goalPercent}>{Math.min(100, Math.round((total / 15000) * 100))}%</Text>
-          </View>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${Math.min(100, (total / 15000) * 100)}%` }]} />
-          </View>
-        </View>
-      </GradientHeader>
+        rightIcon="calendar-outline"
+        onRightPress={() => setPickerOpen(true)}
+      />
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+        {/* Segmented control */}
+        <TabPills
+          tabs={TABS.map((t, i) => ({ label: t, value: i }))}
+          activeTab={tab}
+          onSelect={setTab}
+          style={{ marginBottom: 16 }}
+        />
+
+        {/* Date row */}
+        <Pressable style={styles.dateRow} onPress={() => setPickerOpen(true)}>
+          <Ionicons name="calendar-outline" size={15} color={COLORS.textSecondary} />
+          <Text style={styles.dateRowText}>{getDateRowLabel(tab, now)}</Text>
+          <Ionicons name="chevron-down" size={15} color={COLORS.textSecondary} />
+        </Pressable>
+
+        {/* Hero card */}
+        <View style={styles.heroCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.totalLabel}>Total Earnings</Text>
+            <AnimatedNumber value={total} prefix="Rs. " style={styles.totalAmount} />
+            <View style={styles.deltaRow}>
+              <Ionicons name={deltaPct >= 0 ? 'arrow-up' : 'arrow-down'} size={12} color={COLORS.white} />
+              <Text style={styles.deltaText}>{Math.abs(deltaPct)}% {deltaCompareLabel}</Text>
+            </View>
+          </View>
+          <View style={styles.heroIconChip}>
+            <Ionicons name="wallet" size={26} color={COLORS.white} />
+          </View>
+        </View>
+
         {/* Stats Row */}
         <View style={styles.statsRow}>
           {[
-            { icon: 'car-sport-outline', label: 'Rides',       value: filtered.length,                           color: COLORS.primary },
-            { icon: 'people-outline',    label: 'Passengers',  value: totalPassengers,                           color: COLORS.teal },
-            { icon: 'trending-up',       label: 'Avg / Ride',  value: `Rs ${avgPerRide.toLocaleString()}`,       color: COLORS.secondary },
+            { icon: 'car-sport-outline', label: 'Rides',      value: filtered.length,                     color: COLORS.primary },
+            { icon: 'time-outline',      label: 'Online Time', value: onlineTime,                          color: COLORS.primary },
+            { icon: 'trending-up',       label: 'Avg / Ride',  value: `Rs ${avgPerRide.toLocaleString()}`, color: COLORS.secondary },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
               <View style={[styles.statIcon, { backgroundColor: s.color + '15' }]}>
@@ -193,30 +164,35 @@ export default function EarningsScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Tab Pills */}
-        <View style={styles.tabRow}>
-          {TABS.map((t, i) => (
-            <Pressable key={i} style={[styles.tab, tab === i && styles.tabActive]} onPress={() => setTab(i)}>
-              <Text style={[styles.tabText, tab === i && styles.tabTextActive]}>{t}</Text>
-            </Pressable>
+        {/* Earnings Breakdown */}
+        <SectionHeader title="Earnings Breakdown" />
+        <View style={styles.breakdownCard}>
+          {[
+            { icon: 'car-sport',       label: 'Ride Earnings', value: total, color: COLORS.secondary, bg: '#e8f5e9' },
+            { icon: 'cash-outline',    label: 'Tips',          value: 0,     color: COLORS.warning,   bg: COLORS.warningLight },
+            { icon: 'gift-outline',    label: 'Incentives',    value: 0,     color: COLORS.primary,   bg: COLORS.primaryLight },
+            { icon: 'remove-circle-outline', label: 'Deductions', value: 0,  color: COLORS.danger,    bg: COLORS.dangerLight },
+          ].map((row, i) => (
+            <View key={i} style={[styles.breakdownRow, i === 3 && { borderBottomWidth: 0 }]}>
+              <View style={styles.breakdownLeft}>
+                <View style={[styles.breakdownIcon, { backgroundColor: row.bg }]}>
+                  <Ionicons name={row.icon as any} size={16} color={row.color} />
+                </View>
+                <Text style={styles.breakdownLabel}>{row.label}</Text>
+              </View>
+              <Text style={styles.breakdownValue}>Rs {row.value.toLocaleString()}</Text>
+            </View>
           ))}
         </View>
 
-        {/* Analytics Section */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Weekly Trend</Text>
-          <Ionicons name="stats-chart" size={16} color={COLORS.primary} />
-        </View>
-        <EarningsChart data={getWeeklyChartData(myRides)} />
-
-        {/* Ride Earnings List */}
-        <Text style={styles.sectionTitle}>Ride Breakdown</Text>
+        {/* Recent Transactions */}
+        <SectionHeader title="Recent Transactions" />
         {loading ? (
           <View style={{ gap: 10 }}>
             {[1, 2, 3].map(i => <RideCardSkeleton key={i} />)}
           </View>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="wallet-outline" title="No Earnings Yet" subtitle={tab === 0 ? 'Post your first ride to start earning.' : 'No completed rides in this period.'} />
+          <EmptyState icon="wallet-outline" title="No Earnings Yet" subtitle={tab === 0 ? 'No completed rides today.' : tab === 1 ? 'No completed rides this week.' : 'No completed rides this month.'} />
         ) : (
           filtered.map(ride => {
             const seats  = confirmedSeats(ride);
@@ -224,12 +200,12 @@ export default function EarningsScreen({ navigation }) {
             return (
               <View key={ride.id} style={styles.rideCard}>
                 <View style={styles.rideLeft}>
-                  <LinearGradient colors={GRADIENTS.secondary as any} style={styles.rideIconBox}>
-                    <Ionicons name="car-sport" size={18} color="#fff" />
-                  </LinearGradient>
+                  <View style={styles.rideIconBox}>
+                    <Ionicons name="car-sport" size={18} color={COLORS.secondary} />
+                  </View>
                   <View>
-                    <Text style={styles.rideRoute}>{ride.from} â†’ {ride.to}</Text>
-                    <Text style={styles.rideDate}>{ride.date} â€¢ {ride.departureTime}</Text>
+                    <Text style={styles.rideRoute}>{ride.from} {'>'} {ride.to}</Text>
+                    <Text style={styles.rideDate}>{ride.date} · {ride.departureTime}</Text>
                     <View style={styles.rideMeta}>
                       <Ionicons name="people-outline" size={12} color={COLORS.gray} />
                       <Text style={styles.rideMetaText}>{seats} confirmed passenger{seats !== 1 ? 's' : ''}</Text>
@@ -237,7 +213,7 @@ export default function EarningsScreen({ navigation }) {
                   </View>
                 </View>
                 <View style={styles.rideRight}>
-                  <Text style={styles.rideEarned}>Rs {earned.toLocaleString()}</Text>
+                  <Text style={styles.rideEarned}>+Rs {earned.toLocaleString()}</Text>
                   <Text style={styles.ridePerSeat}>Rs {ride.pricePerSeat}/seat</Text>
                 </View>
               </View>
@@ -246,44 +222,66 @@ export default function EarningsScreen({ navigation }) {
         )}
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      {/* Period picker */}
+      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Select Period</Text>
+            {TABS.map((t, i) => (
+              <Pressable
+                key={i}
+                style={[styles.modalOption, tab === i && styles.modalOptionActive]}
+                onPress={() => { setTab(i); setPickerOpen(false); }}
+              >
+                <Text style={[styles.modalOptionText, tab === i && styles.modalOptionTextActive]}>{t}</Text>
+                {tab === i && <Ionicons name="checkmark" size={18} color={COLORS.primary} />}
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container:   { flex: 1, backgroundColor: COLORS.bg },
-  totalBox:    { marginTop: 16, alignItems: 'center' },
-  totalLabel:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
-  totalAmount: { fontSize: 36, fontWeight: '900', color: '#fff' },
-  goalBox:     { width: '100%', marginTop: 24, paddingHorizontal: 10 },
-  goalLine:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  goalLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
-  goalPercent: { fontSize: 11, color: '#fff', fontWeight: '800' },
-  progressBar: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: '#fff', borderRadius: 3 },
-  body:        { flex: 1, padding: 20 },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  statsRow:    { flexDirection: 'row', gap: 12, marginBottom: 24, marginTop: 4 },
-  statCard:    { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2, ...CURVE },
-  statIcon:    { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8, ...CURVE },
-  statVal:     { fontSize: 16, fontWeight: '800', marginBottom: 2 },
-  statLabel:   { fontSize: 10, color: COLORS.gray, textAlign: 'center' },
-  tabRow:      { flexDirection: 'row', backgroundColor: COLORS.lightGray, borderRadius: 14, padding: 4, marginBottom: 20, ...CURVE },
-  tab:         { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', ...CURVE },
-  tabActive:   { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2, ...CURVE },
-  tabText:     { fontSize: 13, fontWeight: '600', color: COLORS.gray },
-  tabTextActive:  { color: COLORS.primary },
-  sectionTitle:   { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 12, letterSpacing: -0.2 },
-  rideCard:    { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2, ...CURVE },
+  heroCard:    { backgroundColor: COLORS.primary, borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 20, ...CURVE },
+  heroIconChip:{ width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  totalLabel:  { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginBottom: 4 },
+  totalAmount: { fontSize: 30, fontWeight: '700', color: COLORS.white },
+  deltaRow:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  deltaText:   { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.95)' },
+  body:        { flex: 1, padding: 20, paddingTop: 0 },
+  dateRow:     { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 16 },
+  dateRowText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  statsRow:    { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  statCard:    { flex: 1, backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+  statIcon:    { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8, ...CURVE },
+  statVal:     { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  statLabel:   { fontSize: 10, color: COLORS.textSecondary, textAlign: 'center' },
+  breakdownCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, paddingHorizontal: 16, marginBottom: 24, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
+  breakdownRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  breakdownLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  breakdownIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  breakdownLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  breakdownValue: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  rideCard:    { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   rideLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  rideIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', ...CURVE },
-  rideRoute:   { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary, letterSpacing: -0.1 },
-  rideDate:    { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+  rideIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', ...CURVE },
+  rideRoute:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  rideDate:    { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   rideMeta:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  rideMetaText:{ fontSize: 11, color: COLORS.gray },
+  rideMetaText:{ fontSize: 11, color: COLORS.textSecondary },
   rideRight:   { alignItems: 'flex-end' },
-  rideEarned:  { fontSize: 17, fontWeight: '900', color: COLORS.secondary },
-  ridePerSeat: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+  rideEarned:  { fontSize: 14, fontWeight: '700', color: COLORS.secondary },
+  ridePerSeat: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 32 },
+  modalCard:   { backgroundColor: COLORS.white, borderRadius: 16, padding: 16, width: '100%', ...CURVE },
+  modalTitle:  { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 8, paddingHorizontal: 4 },
+  modalOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 13, paddingHorizontal: 8, borderRadius: 10 },
+  modalOptionActive: { backgroundColor: COLORS.primaryLight },
+  modalOptionText: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  modalOptionTextActive: { color: COLORS.primary, fontWeight: '700' },
 });
-
-

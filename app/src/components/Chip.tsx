@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SPACING, CURVE } from './theme';
+import { COLORS, RADIUS, SPACING, CURVE, GRADIENTS } from './theme';
 
 // ─── Filter Chip (toggle) ────────────────────────────────────────────────────
 interface ChipProps {
@@ -86,19 +87,27 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onSelect, c
   <View style={[styles.tabRow, style]}>
     {tabs.map(tab => {
       const isActive = activeTab === tab.value;
-      const activeColor = color || COLORS.primary;
+      const activeColors = color ? [color, color] : GRADIENTS.primary;
       return (
         <Pressable
           key={tab.value}
           onPress={() => onSelect(tab.value)}
-          style={[
-            styles.tabPill,
-            isActive && { backgroundColor: activeColor },
-          ]}
+          style={styles.tabPillWrap}
         >
-          <Text style={[styles.tabText, { color: isActive ? '#fff' : COLORS.gray }]}>
-            {tab.label}
-          </Text>
+          {isActive ? (
+            <LinearGradient
+              colors={activeColors as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.tabPill}
+            >
+              <Text style={[styles.tabText, styles.tabTextActive]}>{tab.label}</Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.tabPill}>
+              <Text style={styles.tabText}>{tab.label}</Text>
+            </View>
+          )}
         </Pressable>
       );
     })}
@@ -123,16 +132,18 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     backgroundColor: COLORS.lightGray,
-    borderRadius: RADIUS.full,
-    padding: 3,
+    borderRadius: RADIUS.md,
+    padding: 4,
+    gap: 4,
     ...CURVE,
   },
+  tabPillWrap: { flex: 1 },
   tabPill: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: RADIUS.full,
+    paddingVertical: 9,
+    borderRadius: RADIUS.md - 2,
     alignItems: 'center',
     ...CURVE,
   },
-  tabText: { fontSize: 14, fontWeight: '600' },
+  tabText: { fontSize: 14, fontWeight: '600', color: COLORS.gray },
+  tabTextActive: { color: '#fff', fontWeight: '700' },
 });

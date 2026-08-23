@@ -3,116 +3,42 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-nati
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, TrustBadgesRow, PressableScale } from '../../components';
-import { reviewsApi } from '../../services/api';
+import { COLORS, GRADIENTS, CURVE, PressableScale } from '../../components';
+import { reviewsApi, ridesApi, bookingsApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { useToast } from '../../context/ToastContext';
 
-const getMenuItems = (userRole: string) => [
-  {
-    section: 'Account', items: [
-      { icon: 'person-outline', label: 'Edit Profile', screen: 'EditProfile', color: COLORS.primary },
-      { icon: 'card-outline', label: 'CNIC Verification', screen: 'CnicVerify', color: COLORS.secondary },
-      { icon: 'lock-closed-outline', label: 'Change Password', screen: 'ChangePassword', color: COLORS.purple },
-    ]
-  },
-  {
-    section: 'Activity', items: [
-      {
-        icon: 'receipt-outline',
-        label: userRole === 'driver' ? 'Ride History' : 'Booking History',
-        screen: userRole === 'driver' ? 'RideHistory' : 'PastBookings',
-        color: COLORS.primary
-      },
-
-      { icon: 'star-outline', label: 'My Reviews', screen: 'Reviews', color: COLORS.accent },
-      { icon: 'notifications-outline', label: 'Notifications', screen: 'Notifications', color: COLORS.warning },
-    ]
-  },
-
-  {
-    section: 'Support', items: [
-      { icon: 'help-circle-outline', label: 'Help & Support', screen: 'Support', color: COLORS.gray },
-      { icon: 'document-text-outline', label: 'Terms & Conditions', screen: 'Terms', color: COLORS.gray },
-      { icon: 'shield-outline', label: 'Privacy Policy', screen: 'Privacy', color: COLORS.gray },
-      { icon: 'information-circle-outline', label: 'About App', screen: 'About', color: COLORS.gray },
-    ]
-  },
-];
-
-
-// ─── Verification Progress Section ────────────────────────────────────────────
-function VerificationProgress({ user, userRole, onNavigate }) {
-  const isDriver = userRole === 'driver';
-  const cnicStatus = user?.cnicStatus ?? user?.verification?.cnicStatus;
-  const cnicUploaded = !!cnicStatus;
-  const cnicApproved = cnicStatus === 'APPROVED';
-  const licenceStatus = user?.licenceStatus ?? user?.verification?.licenceStatus;
-  const licenceUploaded = !!licenceStatus && licenceStatus !== 'NONE';
-  const licenceApproved = licenceStatus === 'APPROVED';
-  const fullyVerified = isDriver ? (cnicApproved && licenceApproved) : cnicApproved;
-
-  const steps = [
-    { label: 'CNIC Submitted',   done: cnicUploaded,    icon: 'card-outline',            color: COLORS.secondary, screen: 'CnicVerify' },
-    { label: 'CNIC Approved',    done: cnicApproved,    icon: 'shield-checkmark-outline', color: COLORS.purple },
-    ...(isDriver ? [
-      { label: 'Licence Submitted', done: licenceUploaded, icon: 'document-text-outline', color: COLORS.primary,   screen: 'CnicVerify' },
-      { label: 'Licence Approved',  done: licenceApproved, icon: 'car-sport-outline',      color: COLORS.teal },
-    ] : []),
+const getMenuItems = (userRole: string, docsBadge?: { label: string; color: string; bg: string }) => {
+  const items: any[] = [
+    ...(userRole === 'driver' ? [{ icon: 'car-sport-outline', label: 'My Vehicles', screen: 'MyVehiclesTab' }] : []),
+    ...(userRole === 'driver' ? [{ icon: 'card-outline', label: 'Documents', screen: 'CnicVerify', badge: docsBadge }] : []),
+    { icon: 'help-circle-outline', label: 'Help & Support', screen: 'Support' },
+    { icon: 'flag-outline', label: 'Report Suspicious Activity', screen: 'ReportIssue' },
+    { icon: 'lock-closed-outline', label: 'Change Password', screen: 'ChangePassword' },
+    {
+      icon: 'receipt-outline',
+      label: userRole === 'driver' ? 'Ride History' : 'Booking History',
+      screen: userRole === 'driver' ? 'RideHistory' : 'PastBookings',
+    },
+    { icon: 'star-outline', label: 'My Reviews', screen: 'Reviews' },
+    { icon: 'notifications-outline', label: 'Notifications', screen: 'Notifications' },
+    { icon: 'document-text-outline', label: 'Terms & Conditions', screen: 'Terms' },
+    { icon: 'shield-outline', label: 'Privacy Policy', screen: 'Privacy' },
+    { icon: 'information-circle-outline', label: 'About App', screen: 'About' },
   ];
-
-  const doneCount = steps.filter(s => s.done).length;
-  const progress = doneCount / steps.length;
-
-  return (
-    <View style={[vStyles.card, CURVE]}>
-      <View style={vStyles.header}>
-        <View style={vStyles.headerLeft}>
-          <Ionicons name={(fullyVerified ? 'shield-checkmark' : 'shield-outline') as any} size={22} color={fullyVerified ? COLORS.secondary : COLORS.warning} />
-          <Text style={vStyles.title}>Identity Verification</Text>
-        </View>
-        {fullyVerified && (
-          <View style={vStyles.verifiedPill}>
-            <Ionicons name="checkmark-circle" size={13} color={COLORS.secondary} />
-            <Text style={vStyles.verifiedText}>Verified</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Progress bar */}
-      <View style={vStyles.progressTrack}>
-        <View style={[vStyles.progressFill, { width: `${progress * 100}%` }]} />
-      </View>
-      <Text style={vStyles.progressLabel}>{doneCount} of {steps.length} steps completed</Text>
-
-      {/* Steps */}
-      <View style={vStyles.stepsGrid}>
-        {steps.map((s, i) => (
-          <Pressable
-            key={i}
-            style={[vStyles.stepChip, s.done && vStyles.stepChipDone]}
-            onPress={() => s.screen && !s.done ? onNavigate(s.screen) : null}
-          >
-            <View style={[vStyles.stepIcon, { backgroundColor: s.done ? s.color + '20' : COLORS.lightGray }]}>
-              <Ionicons name={(s.done ? 'checkmark-circle' : s.icon) as any} size={16} color={s.done ? s.color : COLORS.gray} />
-            </View>
-            <Text style={[vStyles.stepLabel, s.done && { color: s.color }]}>{s.label}</Text>
-            {!s.done && s.screen && <Ionicons name="chevron-forward" size={12} color={COLORS.gray} />}
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
+  return items;
+};
 
 export default function ProfileScreen({ navigation }) {
   const { currentUser, userRole, logout } = useApp();
   const { showModal } = useGlobalModal();
-  const headerColors = userRole === 'driver' ? GRADIENTS.teal : GRADIENTS.primary;
+  const { showToast } = useToast();
 
   // Rating isn't part of the /auth/me payload — pull it from the reviews endpoint.
   const [reviewStats, setReviewStats] = useState<any>(null);
   const [ratingLoading, setRatingLoading] = useState(true);
+  const [totalRides, setTotalRides] = useState<number | null>(null);
 
   const fetchRating = useCallback(async () => {
     if (!currentUser?.id) { setRatingLoading(false); return; }
@@ -126,25 +52,41 @@ export default function ProfileScreen({ navigation }) {
     }
   }, [currentUser?.id]);
 
+  const fetchTotalRides = useCallback(async () => {
+    const { data } = userRole === 'driver'
+      ? await ridesApi.myRides(1, 1)
+      : await bookingsApi.myBookings(1, 1);
+    const total = data?.meta?.total;
+    if (typeof total === 'number') setTotalRides(total);
+  }, [userRole]);
+
   useFocusEffect(useCallback(() => {
     fetchRating();
-  }, [fetchRating]));
+    fetchTotalRides();
+  }, [fetchRating, fetchTotalRides]));
 
   const ratingValue = reviewStats?.total ? reviewStats.averageRating : currentUser?.rating;
+
+  const handleComingSoon = (label: string) => showToast(`${label} is coming soon`, 'info');
+
+  const docsBadge = (() => {
+    const cnicStatus = currentUser?.cnicStatus ?? currentUser?.verification?.cnicStatus;
+    if (cnicStatus === 'APPROVED') return { label: 'Verified', color: COLORS.secondary, bg: '#e8f5e9' };
+    if (cnicStatus) return { label: 'Pending', color: '#b45309', bg: '#fffbeb' };
+    return undefined;
+  })();
 
   const handleLogout = async () => {
     await logout();
   };
 
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
+  const menuItems = getMenuItems(userRole, docsBadge);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <LinearGradient colors={headerColors as any} style={styles.header}>
-        <View style={styles.bgCircle} />
-
-        {/* Avatar left, text right — single row */}
+      <LinearGradient colors={GRADIENTS.primary as any} style={styles.header}>
         <View style={styles.headerRow}>
           <Pressable style={styles.avatarWrap} onPress={() => navigation.navigate('EditProfile')}>
             {currentUser?.avatar ? (
@@ -154,78 +96,74 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.avatarInitials}>{initials}</Text>
               </View>
             )}
-            <View style={styles.editBadge}>
-              <Ionicons name="camera" size={10} color="#fff" />
-            </View>
           </Pressable>
 
           <View style={styles.headerTextCol}>
             <Text style={styles.userName} numberOfLines={1}>{currentUser?.name}</Text>
             <Text style={styles.userPhone}>{currentUser?.phone}</Text>
-            <View style={styles.profileBadges}>
-              <View style={styles.badge}>
-                <Ionicons name={(userRole === 'driver' ? 'car-outline' : 'person-outline') as any} size={11} color="#fff" />
-                <Text style={styles.badgeText}>{userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
+            {currentUser?.isVerified && (
+              <View style={styles.verifiedPill}>
+                <Ionicons name="checkmark-circle" size={12} color={COLORS.white} />
+                <Text style={styles.verifiedPillText}>Verified {userRole === 'driver' ? 'Driver' : 'Passenger'}</Text>
               </View>
-            </View>
-            <TrustBadgesRow user={currentUser} style={{ marginTop: 6 }} />
+            )}
           </View>
+
+          <Pressable style={styles.editBtn} onPress={() => navigation.navigate('EditProfile')}>
+            <Ionicons name="pencil" size={13} color={COLORS.white} />
+            <Text style={styles.editBtnText}>Edit</Text>
+          </Pressable>
         </View>
       </LinearGradient>
 
-      {/* Floating Stats Card — overlaps gradient */}
+      {/* Floating Stats Card — overlaps header */}
       <View style={styles.statsCard}>
         <View style={styles.stat}>
-          <Text style={styles.statValue} numberOfLines={1}>{currentUser?.city || '-'}</Text>
-          <Text style={styles.statLabel}>City</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>
-            {ratingLoading && !reviewStats ? '…' : ratingValue ? `${Number(ratingValue).toFixed(1)} ★` : 'New'}
-          </Text>
           <Text style={styles.statLabel}>Rating</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.stat}>
-          <Text style={styles.statValue}>
-            {currentUser?.createdAt ? new Date(currentUser.createdAt).getFullYear() : '-'}
-          </Text>
-          <Text style={styles.statLabel}>Member</Text>
-        </View>
-      </View>
-
-      {/* Verification Progress */}
-      <View style={styles.section}>
-        <VerificationProgress user={currentUser} userRole={userRole} onNavigate={screen => navigation.navigate(screen)} />
-      </View>
-
-      {/* Menu */}
-      {getMenuItems(userRole).map((section, si) => (
-
-        <View key={si} style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>{section.section}</Text>
-          <View style={[styles.menuGroup, CURVE]}>
-            {section.items.map((item, ii) => (
-              <Pressable
-                key={ii}
-                style={({ pressed }) => [styles.menuItem, CURVE, ii > 0 && styles.menuItemBorder, pressed && { backgroundColor: COLORS.lightGray }]}
-                onPress={() => item.screen ? navigation.navigate(item.screen) : null}
-              >
-                <View style={[styles.menuItemIcon, { backgroundColor: item.color + '15' }]}>
-                  <Ionicons name={(item.icon) as any} size={18} color={item.color} />
-                </View>
-                <Text style={styles.menuItemLabel}>{item.label}</Text>
-                <Ionicons name="chevron-forward" size={16} color={COLORS.border} />
-              </Pressable>
-            ))}
+          <View style={styles.ratingRow}>
+            <Text style={styles.statValue}>
+              {ratingLoading && !reviewStats ? '…' : ratingValue ? Number(ratingValue).toFixed(1) : 'New'}
+            </Text>
+            {!!ratingValue && <Ionicons name="star" size={13} color={COLORS.warning} style={{ marginLeft: 3 }} />}
           </View>
         </View>
-      ))}
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={styles.statLabel}>Total {userRole === 'driver' ? 'Rides' : 'Bookings'}</Text>
+          <Text style={styles.statValue}>{totalRides ?? '-'}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.stat}>
+          <Text style={styles.statLabel}>Member Since</Text>
+          <Text style={styles.statValue}>
+            {currentUser?.createdAt ? new Date(currentUser.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '-'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Menu — one flat list, matching the reference exactly */}
+      <View style={styles.menuGroup}>
+        {menuItems.map((item: any, ii) => (
+          <Pressable
+            key={ii}
+            style={({ pressed }) => [styles.menuItem, ii > 0 && styles.menuItemBorder, pressed && { backgroundColor: COLORS.lightGray }]}
+            onPress={() => item.comingSoon ? handleComingSoon(item.label) : item.screen ? navigation.navigate(item.screen) : null}
+          >
+            <Ionicons name={item.icon as any} size={19} color={COLORS.textPrimary} style={styles.menuItemIcon} />
+            <Text style={styles.menuItemLabel}>{item.label}</Text>
+            {item.badge && (
+              <View style={[styles.menuBadge, { backgroundColor: item.badge.bg }]}>
+                <Text style={[styles.menuBadgeText, { color: item.badge.color }]}>{item.badge.label}</Text>
+              </View>
+            )}
+            <Ionicons name="chevron-forward" size={16} color={COLORS.border} />
+          </Pressable>
+        ))}
+      </View>
 
       {/* Logout */}
       <PressableScale
-        style={[styles.logoutBtn, CURVE]}
+        style={styles.logoutRow}
         onPress={() => showModal({
           type: 'danger',
           title: 'Logout?',
@@ -236,7 +174,7 @@ export default function ProfileScreen({ navigation }) {
           onConfirm: handleLogout,
         })}
       >
-        <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
+        <Ionicons name="exit-outline" size={19} color={COLORS.danger} style={styles.menuItemIcon} />
         <Text style={styles.logoutText}>Logout</Text>
       </PressableScale>
 
@@ -245,74 +183,64 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-// ─── Verification styles ──────────────────────────────────────────────────────
-const vStyles = StyleSheet.create({
-  card: { backgroundColor: '#fff', borderRadius: 18, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  verifiedPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8f5e9', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, gap: 4 },
-  verifiedText: { fontSize: 12, fontWeight: '700', color: COLORS.secondary },
-  progressTrack: { height: 6, backgroundColor: COLORS.lightGray, borderRadius: 3, overflow: 'hidden', marginBottom: 6 },
-  progressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 3 },
-  progressLabel: { fontSize: 12, color: COLORS.gray, marginBottom: 14 },
-  stepsGrid: { gap: 8 },
-  stepChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 10, padding: 10, gap: 10 },
-  stepChipDone: { backgroundColor: '#f0fdf4' },
-  stepIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  stepLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: COLORS.gray },
-});
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20, position: 'relative', overflow: 'hidden' },
-  bgCircle: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)', top: -50, right: -30 },
+  header: { backgroundColor: COLORS.primary, paddingTop: 52, paddingBottom: 28, paddingHorizontal: 20 },
 
-  // Avatar left, text right layout
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerTextCol: { flex: 1, gap: 3 },
   avatarWrap: { position: 'relative' },
-  avatarImg: { width: 76, height: 76, borderRadius: 38, borderWidth: 2.5, borderColor: '#fff' },
-  avatarInitBox: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: '#fff' },
-  avatarInitials: { fontSize: 26, fontWeight: '900', color: '#fff' },
-  editBadge: { position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#fff' },
+  avatarImg: { width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: COLORS.white },
+  avatarInitBox: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.white },
+  avatarInitials: { fontSize: 22, fontWeight: '700', color: COLORS.white },
 
-  userName: { fontSize: 20, fontWeight: '900', color: '#fff' },
-  userPhone: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
-  profileBadges: { flexDirection: 'row', gap: 6 },
-  badge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, gap: 4 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  userName: { fontSize: 17, fontWeight: '700', color: COLORS.white },
+  userPhone: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
 
-  // Floating stats card — overlaps gradient with negative marginTop
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  editBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+
+  verifiedPill: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, marginTop: 8,
+  },
+  verifiedPillText: { color: COLORS.white, fontSize: 12, fontWeight: '600' },
+
+  // Floating stats card — overlaps header with negative marginTop
   statsCard: {
     flexDirection: 'row',
-    marginTop: -24,
-    marginHorizontal: 20,
-    backgroundColor: '#fff',
+    marginTop: -20,
+    marginHorizontal: 0,
+    backgroundColor: COLORS.cardBg,
     borderRadius: 16,
-    paddingVertical: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 0,
+    ...CURVE,
   },
-  stat: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
-  statLabel: { fontSize: 10, color: COLORS.gray, marginTop: 2 },
-  statDivider: { width: 1, backgroundColor: COLORS.border, marginVertical: 4 },
+  stat: { flex: 1, alignItems: 'center', gap: 5 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center' },
+  statValue: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  statLabel: { fontSize: 11, color: COLORS.textSecondary },
+  statDivider: { width: 1, backgroundColor: COLORS.border, marginVertical: 2 },
 
-  section: { paddingHorizontal: 20, marginTop: 12 },
-  menuSection: { paddingHorizontal: 20, marginTop: 20 },
-  menuSectionTitle: { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-  menuGroup: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
+  menuGroup: {
+    backgroundColor: COLORS.cardBg, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border,
+    marginHorizontal: 0, marginTop: 0,
+    borderTopLeftRadius: 0, borderTopRightRadius: 0,
+    borderBottomLeftRadius: 16, borderBottomRightRadius: 16,
+  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, gap: 14 },
   menuItemBorder: { borderTopWidth: 1, borderTopColor: COLORS.border },
-  menuItemIcon: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  menuItemLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  menuItemIcon: { width: 20 },
+  menuItemLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  menuBadge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 10, marginRight: 4 },
+  menuBadgeText: { fontSize: 11, fontWeight: '700' },
 
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', margin: 20, marginTop: 24, backgroundColor: '#fff', borderRadius: 16, paddingVertical: 14, borderWidth: 1.5, borderColor: COLORS.danger + '30', gap: 8 },
-  logoutText: { fontSize: 15, fontWeight: '700', color: COLORS.danger },
+  logoutRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 0, paddingHorizontal: 16, paddingVertical: 16, gap: 14 },
+  logoutText: { fontSize: 14, fontWeight: '600', color: COLORS.danger },
 
-  versionText: { textAlign: 'center', fontSize: 12, color: COLORS.gray, marginTop: 4 },
+  versionText: { textAlign: 'center', fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
 });

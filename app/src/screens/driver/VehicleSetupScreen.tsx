@@ -1,29 +1,28 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   Image, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Modal, FlatList,
+  Modal, FlatList, TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, PrimaryButton, FormInput, GradientHeader } from '../../components';
+import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
-import { pickMultipleImagesLocal, pickImageFromCameraLocal, uploadImages } from '../../utils/imagePicker';
-import { vehiclesApi, uploadApi } from '../../services/api';
+import { pickMultipleImagesLocal, pickImageFromCameraLocal } from '../../utils/imagePicker';
+import { vehiclesApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
 
-// â”€â”€â”€ Vehicle types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Vehicle types ────────────────────────────────────────────────────────────
 const VEHICLE_TYPES = [
-  { label: 'Car',     value: 'CAR',     icon: 'car-outline'       },
-  { label: 'Van',     value: 'VAN',     icon: 'car-sport-outline' },
-  { label: 'Hiace',   value: 'HIACE',   icon: 'bus-outline'       },
-  { label: 'Coaster', value: 'COASTER', icon: 'bus-outline'       },
-  { label: 'Bus',     value: 'BUS',     icon: 'bus-outline'       },
+  { label: 'Car',     value: 'CAR' },
+  { label: 'Van',     value: 'VAN' },
+  { label: 'Hiace',   value: 'HIACE' },
+  { label: 'Coaster', value: 'COASTER' },
+  { label: 'Bus',     value: 'BUS' },
 ];
 
-// â”€â”€â”€ All vehicle features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── All vehicle features ─────────────────────────────────────────────────────
 const ALL_FEATURES = [
   { key: 'ac',         label: 'Air Conditioning', icon: 'snow-outline' },
   { key: 'wifi',       label: 'WiFi',             icon: 'wifi-outline' },
@@ -35,27 +34,87 @@ const ALL_FEATURES = [
   { key: 'luggageRack',label: 'Luggage Rack',     icon: 'briefcase-outline' },
 ];
 
-const STEPS = ['Vehicle Type', 'Details & Photos'];
+const STEPS = ['Basic Info', 'Documents', 'Verification'];
 
-// â”€â”€â”€ Car brands available in Pakistan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Car brands available in Pakistan ─────────────────────────────────────────
 const VEHICLE_BRANDS = [
-  // Japanese
   'Toyota', 'Suzuki', 'Honda', 'Daihatsu', 'Mitsubishi', 'Nissan', 'Mazda', 'Subaru',
-  // Korean
   'Hyundai', 'Kia',
-  // Chinese
   'Changan', 'MG', 'Proton', 'FAW', 'DFSK', 'Haval', 'Chery', 'BYD', 'JAC', 'Jinbei', 'Joylong', 'Foton',
-  // Heavy / Commercial / Bus
   'Hino', 'Daewoo', 'Isuzu', 'Master', 'Yutong', 'King Long', 'Ankai', 'Zhongtong',
-  // European / American
   'Mercedes', 'BMW', 'Audi', 'Land Rover',
-  // Other
   'Other',
 ];
 
-// â”€â”€â”€ Year picker: 1980 to current year + 1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: CURRENT_YEAR - 1979 }, (_, i) => String(CURRENT_YEAR - i));
+
+const COMMON_COLORS = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Beige', 'Gold', 'Other'];
+
+// ─── Picker Modal (shared list picker) ────────────────────────────────────────
+function PickerModal({ visible, title, data, selected, onSelect, onClose }: any) {
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.pickerModal}>
+        <View style={styles.pickerModalHeader}>
+          <Text style={styles.pickerModalTitle}>{title}</Text>
+          <Pressable onPress={onClose}>
+            <Ionicons name="close" size={24} color={COLORS.textPrimary} />
+          </Pressable>
+        </View>
+        <FlatList
+          data={data}
+          keyExtractor={item => item}
+          contentContainerStyle={{ paddingVertical: 8 }}
+          renderItem={({ item }) => (
+            <Pressable
+              style={[styles.pickerItem, selected === item && styles.pickerItemActive]}
+              onPress={() => { onSelect(item); onClose(); }}
+            >
+              <Text style={[styles.pickerItemText, selected === item && styles.pickerItemTextActive]}>{item}</Text>
+              {selected === item && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
+            </Pressable>
+          )}
+        />
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Field row (picker-style) ─────────────────────────────────────────────────
+function FieldPicker({ icon, label, value, placeholder, error, onPress }: any) {
+  return (
+    <Pressable style={[styles.fieldBtn, error && { borderColor: COLORS.danger }]} onPress={onPress}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.fieldLabel, error && { color: COLORS.danger }]}>{label}</Text>
+        <Text style={[styles.fieldValue, !value && { color: COLORS.gray, fontWeight: '400' }]}>
+          {value || placeholder}
+        </Text>
+      </View>
+      <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
+    </Pressable>
+  );
+}
+
+// Boxed text field matching FieldPicker's look — label inside the same
+// bordered box as the value, so typed fields read identically to pickers.
+function FieldInput({ label, value, placeholder, error, onChangeText, autoCapitalize, style }: any) {
+  return (
+    <View style={[styles.fieldBtn, error && { borderColor: COLORS.danger }, style]}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.fieldLabel, error && { color: COLORS.danger }]}>{label}</Text>
+        <TextInput
+          style={styles.fieldInput}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.gray}
+          value={value}
+          onChangeText={onChangeText}
+          autoCapitalize={autoCapitalize}
+        />
+      </View>
+    </View>
+  );
+}
 
 export default function VehicleSetupScreen({ navigation, route }) {
   const { registerVehicle, updateVehicle } = useApp();
@@ -65,6 +124,22 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const [step,         setStep]         = useState(0);
   const [fetchLoading, setFetchLoading] = useState(!!vehicleId);
   const [existing,     setExisting]     = useState(null);
+
+  const [images, setImages]             = useState([]);
+  const [imgUploading, setImgUploading] = useState(false);
+  const [form, setForm] = useState({
+    type: '', brand: '', model: '', year: '', color: '', plateNumber: '', totalSeats: '4',
+  });
+  const [features, setFeatures] = useState({
+    ac: false, wifi: false, music: false, usbCharging: false,
+    waterCooler: false, blanket: false, firstAid: false, luggageRack: false,
+  });
+  const [typeModal, setTypeModal]   = useState(false);
+  const [brandModal, setBrandModal] = useState(false);
+  const [yearModal,  setYearModal]  = useState(false);
+  const [colorModal, setColorModal] = useState(false);
+  const [loading,    setLoading]    = useState(false);
+  const [errors,     setErrors]     = useState<any>({});
 
   // Fetch existing vehicle from API when editing
   useEffect(() => {
@@ -77,14 +152,15 @@ export default function VehicleSetupScreen({ navigation, route }) {
       }
       const v = data.data;
       setExisting(v);
-      setSelectedType(v.type || '');
       setImages(v.images || []);
       setForm({
+        type:        v.type        || '',
         brand:       v.brand       || '',
         model:       v.model       || '',
+        year:        v.year?.toString() || '',
         color:       v.color       || '',
         plateNumber: v.plateNumber || '',
-        totalSeats:  v.totalSeats?.toString() || '',
+        totalSeats:  v.totalSeats?.toString() || '4',
       });
       setFeatures({
         ac:          !!v.ac,
@@ -100,106 +176,89 @@ export default function VehicleSetupScreen({ navigation, route }) {
     });
   }, [vehicleId]);
 
-  // Step 1
-  const [selectedType, setSelectedType] = useState('');
-
-  // Step 2
-  const [images, setImages]             = useState([]);
-  const [imgUploading, setImgUploading] = useState(false);
-  const [form, setForm] = useState({
-    brand: '', model: '', color: '', plateNumber: '', totalSeats: '',
-  });
-  const [features, setFeatures] = useState({
-    ac: false, wifi: false, music: false, usbCharging: false,
-    waterCooler: false, blanket: false, firstAid: false, luggageRack: false,
-  });
-  const [yearModal,  setYearModal]  = useState(false);
-  const [brandModal, setBrandModal] = useState(false);
-  const [loading,    setLoading]    = useState(false);
-  const [errors,     setErrors]     = useState<any>({});
-
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
+  const typeLabel = VEHICLE_TYPES.find(t => t.value === form.type)?.label;
 
-  // â”€â”€â”€ Multi-image picker (local only, no upload yet) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Multi-image picker (local only, no upload yet) ──────────────────────
   const addVehicleImages = async () => {
-    const { uris, error, cancelled } = await pickMultipleImagesLocal();
-    if (cancelled) return;
-    if (error) { showToast('Photo library permission denied. Please allow in settings.', 'error'); return; }
-    setImages(prev => [...prev, ...uris]);
+    try {
+      const { uris, error, cancelled } = await pickMultipleImagesLocal();
+      if (cancelled) return;
+      if (error) { showToast('Photo library permission denied. Please allow in settings.', 'error'); return; }
+      setImages(prev => [...prev, ...uris]);
+    } catch (e) {
+      showToast('Could not open photo library. Please try again.', 'error');
+    }
   };
 
   const addFromCamera = async () => {
-    const result = await pickImageFromCameraLocal({ aspect: [4, 3] });
-    if (result.error) { showToast('Camera access denied. Please allow in settings.', 'error'); return; }
-    if (!result.cancelled) setImages(prev => [...prev, result.uri]);
+    try {
+      const result: any = await pickImageFromCameraLocal({ aspect: [4, 3] });
+      if (result.error) { showToast('Camera access denied. Please allow in settings.', 'error'); return; }
+      if (!result.cancelled) setImages(prev => [...prev, result.uri]);
+    } catch (e) {
+      showToast('Could not open camera. Please try again.', 'error');
+    }
   };
 
-  // â”€â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Validation ────────────────────────────────────────────────────────────
+  const validateBasicInfo = () => {
+    const newErrors: any = {};
+    if (!form.type) newErrors.type = true;
+    if (!form.brand?.trim()) newErrors.brand = true;
+    if (!form.plateNumber?.trim()) newErrors.plateNumber = true;
+    const seats = parseInt(form.totalSeats);
+    if (isNaN(seats) || seats < 1 || seats > 60) newErrors.totalSeats = true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ─── Navigation ────────────────────────────────────────────────────────────
   const goNext = () => {
     if (step === 0) {
-      if (!selectedType) {
-        showToast('Please choose a vehicle type to continue.', 'warning');
+      if (!validateBasicInfo()) {
+        showToast('Please fill all required fields correctly.', 'error');
         return;
       }
       setStep(1);
+    } else if (step === 1) {
+      if (images.length === 0) {
+        showToast('Please add at least one vehicle photo.', 'error');
+        return;
+      }
+      setStep(2);
     } else {
       handleSave();
     }
   };
 
-  const validate = () => {
-    const newErrors: any = {};
-    if (!form.brand?.trim()) newErrors.brand = true;
-    if (!form.plateNumber?.trim()) newErrors.plateNumber = true;
-    if (!form.totalSeats) newErrors.totalSeats = true;
-    
-    const seats = parseInt(form.totalSeats);
-    if (isNaN(seats) || seats < 1 || seats > 60) newErrors.totalSeats = true;
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const goBack = () => {
     if (step === 0) navigation.goBack();
-    else setStep(0);
+    else setStep(s => s - 1);
   };
 
-  // â”€â”€â”€ Save â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!validate()) {
-      showToast('Please fill all required fields correctly.', 'error');
-      return;
-    }
-
-    if (images.length === 0) {
-      showToast('Please add at least one vehicle photo.', 'error'); return;
-    }
-
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('type', selectedType);
+      formData.append('type', form.type);
       formData.append('brand', form.brand.trim());
       formData.append('model', form.model?.trim() || '');
+      if (form.year) formData.append('year', form.year);
       formData.append('color', form.color?.trim() || '');
       formData.append('plateNumber', form.plateNumber.trim().toUpperCase());
       formData.append('totalSeats', form.totalSeats);
 
-      // Append feature booleans
       Object.keys(features).forEach(key => {
         formData.append(key, features[key] ? 'true' : 'false');
       });
 
-      // Handle images
       const localUris = images.filter(i => !i.startsWith('http'));
       const existingUrls = images.filter(i => i.startsWith('http'));
-
-      // Append existing URLs to body
       existingUrls.forEach(url => formData.append('existingImages', url));
 
-      // Append new local files
       await Promise.all(localUris.map(async (uri, index) => {
         const filename = uri.split('/').pop() || `image_${index}.jpg`;
         const match = /\.(\w+)$/.exec(filename);
@@ -229,42 +288,75 @@ export default function VehicleSetupScreen({ navigation, route }) {
     }
   };
 
-  // â”€â”€â”€ Step 1: Type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const renderStep1 = () => (
+  // ─── Step 1: Basic Info ────────────────────────────────────────────────────
+  const renderBasicInfo = () => (
     <View>
-      <Text style={styles.stepTitle}>Choose Vehicle Type</Text>
-      <Text style={styles.stepSub}>Select the type that best matches your vehicle</Text>
-      <View style={styles.typeGrid}>
-        {VEHICLE_TYPES.map(vt => {
-          const active = selectedType === vt.value;
-          return (
-            <Pressable
-              key={vt.value}
-              style={[styles.typeCard, active && styles.typeCardSelected]}
-              onPress={() => setSelectedType(vt.value)}
+      <SectionHeader title="Vehicle Type" />
+      <FieldPicker
+        icon="car-outline" label="Vehicle Type" value={typeLabel} placeholder="Select vehicle type"
+        error={errors.type} onPress={() => setTypeModal(true)}
+      />
 
-            >
-              <LinearGradient colors={(active ? GRADIENTS.primary : ['#f8f9fa', '#f0f0f0']) as any} style={styles.typeCardInner}>
-                <View style={[styles.typeIconBox, { backgroundColor: active ? 'rgba(255,255,255,0.25)' : COLORS.lightGray }]}>
-                  <Ionicons name={(vt.icon) as any} size={26} color={active ? '#fff' : COLORS.gray} />
-                </View>
-                <Text style={[styles.typeLabel, { color: active ? '#fff' : COLORS.textPrimary }]}>{vt.label}</Text>
-                <View style={[styles.typeRadio, active && styles.typeRadioActive]}>
-                  {active && <View style={styles.typeRadioDot} />}
-                </View>
-              </LinearGradient>
-            </Pressable>
-          );
-        })}
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <FieldPicker
+            label="Make" value={form.brand} placeholder="Select make"
+            error={errors.brand} onPress={() => setBrandModal(true)}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <FieldInput
+            label="Model"
+            placeholder="e.g. Corolla Altis"
+            value={form.model}
+            onChangeText={v => update('model', v)}
+          />
+        </View>
+      </View>
+
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <FieldPicker label="Year" value={form.year} placeholder="Select year" onPress={() => setYearModal(true)} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <FieldPicker label="Color" value={form.color} placeholder="Select color" onPress={() => setColorModal(true)} />
+        </View>
+      </View>
+
+      <FieldInput
+        label="Registration Number *"
+        placeholder="e.g. LEA 2021"
+        value={form.plateNumber}
+        onChangeText={v => { update('plateNumber', v); if (errors.plateNumber) setErrors(prev => ({ ...prev, plateNumber: false })); }}
+        autoCapitalize="characters"
+        error={errors.plateNumber}
+      />
+
+      <View style={[styles.seatsRow, errors.totalSeats && { borderColor: COLORS.danger }]}>
+        <Text style={styles.fieldLabelStandalone}>Seats Available</Text>
+        <View style={styles.stepperRow}>
+          <Pressable
+            style={styles.stepperBtn}
+            onPress={() => update('totalSeats', String(Math.max(1, parseInt(form.totalSeats || '1') - 1)))}
+          >
+            <Ionicons name="remove" size={18} color={COLORS.primary} />
+          </Pressable>
+          <Text style={styles.seatsValue}>{form.totalSeats || '1'}</Text>
+          <Pressable
+            style={styles.stepperBtn}
+            onPress={() => update('totalSeats', String(Math.min(60, parseInt(form.totalSeats || '1') + 1)))}
+          >
+            <Ionicons name="add" size={18} color={COLORS.primary} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
 
-  // â”€â”€â”€ Step 2: Details + Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const renderStep2 = () => (
+  // ─── Step 2: Documents (Photos + Features) ─────────────────────────────────
+  const renderDocuments = () => (
     <View>
-      {/* â”€â”€ Vehicle Photos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Text style={styles.sectionLabel}>Photos (add at least one)</Text>
+      <SectionHeader title="Vehicle Photos (add at least one)" />
       <View style={styles.photosRow}>
         {images.map((img, i) => (
           <View key={i} style={styles.photoWrapper}>
@@ -281,80 +373,19 @@ export default function VehicleSetupScreen({ navigation, route }) {
         ) : (
           <View style={styles.photoAddGroup}>
             <Pressable style={styles.addPhotoBtn} onPress={addVehicleImages}>
-              <Ionicons name="images-outline" size={26} color={COLORS.primary} />
+              <Ionicons name="images-outline" size={24} color={COLORS.primary} />
               <Text style={styles.addPhotoText}>Gallery</Text>
             </Pressable>
             <Pressable style={styles.addPhotoBtn} onPress={addFromCamera}>
-              <Ionicons name="camera-outline" size={26} color={COLORS.teal} />
-              <Text style={[styles.addPhotoText, { color: COLORS.teal }]}>Camera</Text>
+              <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
+              <Text style={styles.addPhotoText}>Camera</Text>
             </Pressable>
           </View>
         )}
       </View>
 
-      {/* â”€â”€ Vehicle Details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Text style={styles.sectionLabel}>Vehicle Details</Text>
-
-      {/* Brand Picker */}
-      <Pressable 
-        style={[styles.yearPickerBtn, errors.brand && { borderColor: COLORS.danger }]}
-        onPress={() => setBrandModal(true)}
-      >
-        <View style={[styles.yearPickerIcon, { backgroundColor: errors.brand ? COLORS.danger + '12' : COLORS.lightGray }]}>
-          <Ionicons name="car-outline" size={18} color={errors.brand ? COLORS.danger : COLORS.gray} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.yearPickerLabel, errors.brand && { color: COLORS.danger }]}>Brand *</Text>
-          <Text style={[styles.yearPickerValue, !form.brand && { color: COLORS.gray }]}>
-            {form.brand || 'Select brand'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-      </Pressable>
-
-      {/* Year picker */}
-      <Pressable style={styles.yearPickerBtn} onPress={() => setYearModal(true)}>
-        <View style={[styles.yearPickerIcon, { backgroundColor: COLORS.lightGray }]}>
-          <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.yearPickerLabel}>Manufacturing Year</Text>
-          <Text style={[styles.yearPickerValue, !form.model && { color: COLORS.gray }]}>
-            {form.model || 'Select year'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-      </Pressable>
-
-      <FormInput
-        label="Color"
-        icon="color-palette-outline"
-        placeholder="e.g. White"
-        value={form.color}
-        onChangeText={v => update('color', v)}
-      />
-      <FormInput
-        label="Number Plate *"
-        icon="card-outline"
-        placeholder="e.g. KHI-2022"
-        value={form.plateNumber}
-        onChangeText={v => { update('plateNumber', v); if (errors.plateNumber) setErrors(prev => ({...prev, plateNumber: false})); }}
-        autoCapitalize={"characters" as any}
-        error={errors.plateNumber}
-      />
-      <FormInput
-        label="Total Seats *"
-        icon="people-outline"
-        placeholder="e.g. 4"
-        value={form.totalSeats}
-        onChangeText={v => { update('totalSeats', v.replace(/[^0-9]/g, '')); if (errors.totalSeats) setErrors(prev => ({...prev, totalSeats: false})); }}
-        keyboardType="numeric"
-        error={errors.totalSeats}
-      />
-
-      {/* â”€â”€ Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <Text style={styles.sectionLabel}>Amenities & Features</Text>
-      <Text style={styles.featureHint}>Select all that apply â€” passengers can filter by these</Text>
+      <SectionHeader title="Amenities & Features" style={{ marginTop: 8 }} />
+      <Text style={styles.featureHint}>Select all that apply — passengers can filter by these</Text>
       <View style={styles.featuresGrid}>
         {ALL_FEATURES.map(feat => {
           const active = features[feat.key];
@@ -365,7 +396,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
               onPress={() => toggleFeature(feat.key)}
             >
               <View style={[styles.featureIconBox, active && styles.featureIconBoxActive]}>
-                <Ionicons name={(feat.icon) as any} size={16} color={active ? '#fff' : COLORS.gray} />
+                <Ionicons name={(feat.icon) as any} size={16} color={active ? COLORS.white : COLORS.gray} />
               </View>
               <Text style={[styles.featureLabel, active && styles.featureLabelActive]}>{feat.label}</Text>
               {active && <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} style={{ marginLeft: 'auto' }} />}
@@ -376,7 +407,38 @@ export default function VehicleSetupScreen({ navigation, route }) {
     </View>
   );
 
-  const headerGradient = GRADIENTS.primary;
+  // ─── Step 3: Verification (review + submit) ────────────────────────────────
+  const renderVerification = () => {
+    const SUMMARY_ROWS = [
+      { label: 'Vehicle Type', value: typeLabel || '—' },
+      { label: 'Make & Model', value: `${form.brand} ${form.model}`.trim() || '—' },
+      { label: 'Year', value: form.year || '—' },
+      { label: 'Color', value: form.color || '—' },
+      { label: 'Registration Number', value: form.plateNumber.toUpperCase() || '—' },
+      { label: 'Seats Available', value: form.totalSeats || '—' },
+      { label: 'Photos', value: `${images.length} uploaded` },
+      { label: 'Features', value: `${Object.values(features).filter(Boolean).length} selected` },
+    ];
+    return (
+      <View>
+        <SectionHeader title="Review & Submit" />
+        <View style={styles.summaryCard}>
+          {SUMMARY_ROWS.map((row, i) => (
+            <View key={row.label} style={[styles.summaryRow, i === SUMMARY_ROWS.length - 1 && { borderBottomWidth: 0 }]}>
+              <Text style={styles.summaryLabel}>{row.label}</Text>
+              <Text style={styles.summaryValue} numberOfLines={1}>{row.value}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.verifyNotice}>
+          <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.verifyNoticeText}>
+            Your vehicle will be reviewed and approved within 24 hours before you can post rides.
+          </Text>
+        </View>
+      </View>
+    );
+  };
 
   if (fetchLoading) {
     return (
@@ -390,163 +452,127 @@ export default function VehicleSetupScreen({ navigation, route }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
-        <GradientHeader
-          colors={headerGradient as any}
-          title={existing ? 'Edit Vehicle' : 'Register Vehicle'}
-          subtitle={`Step ${step + 1} of 2 â€” ${STEPS[step]}`}
-          onBack={goBack}
-        />
+        <AppBar title={existing ? 'Edit Vehicle' : 'Vehicle Setup'} onBack={goBack} />
 
-        {/* Progress */}
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: step === 0 ? '50%' : '100%' }]} />
-        </View>
-
-        {/* Step dots */}
+        {/* Step indicator */}
         <View style={styles.stepDotsRow}>
           {STEPS.map((s, i) => (
-            <View key={i} style={styles.stepDotWrap}>
-              <View style={[styles.stepDot, i <= step && styles.stepDotActive]}>
-                {i < step
-                  ? <Ionicons name="checkmark" size={12} color="#fff" />
-                  : <Text style={[styles.stepDotText, i <= step && { color: '#fff' }]}>{i + 1}</Text>
-                }
+            <React.Fragment key={s}>
+              <View style={styles.stepperItem}>
+                <View style={[styles.stepDot, i === step && styles.stepDotActive, i < step && styles.stepDotDone]}>
+                  {i < step
+                    ? <Ionicons name="checkmark" size={13} color={COLORS.white} />
+                    : <Text style={[styles.stepDotText, i === step && { color: COLORS.white }]}>{i + 1}</Text>
+                  }
+                </View>
+                <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]}>{s}</Text>
               </View>
               {i < STEPS.length - 1 && <View style={[styles.stepLine, i < step && styles.stepLineActive]} />}
-            </View>
+            </React.Fragment>
           ))}
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-          {step === 0 ? renderStep1() : renderStep2()}
+          {step === 0 ? renderBasicInfo() : step === 1 ? renderDocuments() : renderVerification()}
+        </ScrollView>
 
+        <View style={styles.bottomBar}>
           <PrimaryButton
-            title={step === 0 ? 'Continue' : (existing ? 'Save Changes' : 'Register Vehicle')}
+            title={step === 0 ? 'Next: Documents' : step === 1 ? 'Next: Verification' : (existing ? 'Save Changes' : 'Register Vehicle')}
             onPress={goNext}
             loading={loading}
-            icon={step === 0 ? 'arrow-forward-outline' : 'checkmark-circle-outline'}
-            colors={headerGradient as any}
-            style={{ marginTop: 28 }}
+            style={styles.continueBtn}
           />
-        </ScrollView>
+        </View>
       </View>
 
-      {/* Brand Picker Modal */}
-      <Modal visible={brandModal} animationType="slide" onRequestClose={() => setBrandModal(false)}>
-        <View style={styles.yearModal}>
-          <View style={styles.yearModalHeader}>
-            <Text style={styles.yearModalTitle}>Select Brand</Text>
-            <Pressable onPress={() => setBrandModal(false)}>
-              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-            </Pressable>
-          </View>
-          <FlatList
-            data={VEHICLE_BRANDS}
-            keyExtractor={item => item}
-            contentContainerStyle={{ paddingVertical: 8 }}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[styles.yearItem, form.brand === item && styles.yearItemActive]}
-                onPress={() => { update('brand', item); setBrandModal(false); }}
-              >
-                <Text style={[styles.yearItemText, form.brand === item && styles.yearItemTextActive]}>{item}</Text>
-                {form.brand === item && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
-              </Pressable>
-            )}
-          />
-        </View>
-      </Modal>
-
-      {/* Year Picker Modal */}
-      <Modal visible={yearModal} animationType="slide" onRequestClose={() => setYearModal(false)}>
-        <View style={styles.yearModal}>
-          <View style={styles.yearModalHeader}>
-            <Text style={styles.yearModalTitle}>Select Year</Text>
-            <Pressable onPress={() => setYearModal(false)}>
-              <Ionicons name="close" size={24} color={COLORS.textPrimary} />
-            </Pressable>
-          </View>
-          <FlatList
-            data={YEARS}
-            keyExtractor={item => item}
-            contentContainerStyle={{ paddingVertical: 8 }}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[styles.yearItem, form.model === item && styles.yearItemActive]}
-                onPress={() => { update('model', item); setYearModal(false); }}
-              >
-                <Text style={[styles.yearItemText, form.model === item && styles.yearItemTextActive]}>{item}</Text>
-                {form.model === item && <Ionicons name="checkmark-circle" size={22} color={COLORS.primary} />}
-              </Pressable>
-            )}
-          />
-        </View>
-      </Modal>
+      <PickerModal
+        visible={typeModal} title="Select Vehicle Type"
+        data={VEHICLE_TYPES.map(t => t.label)}
+        selected={typeLabel}
+        onSelect={(label) => { update('type', VEHICLE_TYPES.find(t => t.label === label)?.value || ''); if (errors.type) setErrors(prev => ({ ...prev, type: false })); }}
+        onClose={() => setTypeModal(false)}
+      />
+      <PickerModal
+        visible={brandModal} title="Select Make" data={VEHICLE_BRANDS} selected={form.brand}
+        onSelect={(v) => { update('brand', v); if (errors.brand) setErrors(prev => ({ ...prev, brand: false })); }}
+        onClose={() => setBrandModal(false)}
+      />
+      <PickerModal
+        visible={yearModal} title="Select Year" data={YEARS} selected={form.year}
+        onSelect={(v) => update('year', v)} onClose={() => setYearModal(false)}
+      />
+      <PickerModal
+        visible={colorModal} title="Select Color" data={COMMON_COLORS} selected={form.color}
+        onSelect={(v) => update('color', v)} onClose={() => setColorModal(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: COLORS.bg },
-  progressBar:  { height: 4, backgroundColor: COLORS.border },
-  progressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 2 },
-  stepDotsRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
-  stepDotWrap:  { flexDirection: 'row', alignItems: 'center' },
-  stepDot:      { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.lightGray, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+  stepDotsRow:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', paddingHorizontal: 16, paddingBottom: 16 },
+  stepperItem:  { alignItems: 'center', width: 84 },
+  stepDot:      { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.cardBg, borderWidth: 1.5, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
   stepDotActive:{ backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  stepDotText:  { fontSize: 12, fontWeight: '700', color: COLORS.gray },
-  stepLine:     { width: 60, height: 2, backgroundColor: COLORS.border, marginHorizontal: 4 },
-  stepLineActive:{ backgroundColor: COLORS.primary },
-  body:         { padding: 20, paddingBottom: 32 },
-  stepTitle:    { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 6 },
-  stepSub:      { fontSize: 13, color: COLORS.gray, marginBottom: 20, lineHeight: 19 },
+  stepDotDone:  { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  stepDotText:  { fontSize: 12, fontWeight: '700', color: COLORS.textSecondary },
+  stepLabel:    { fontSize: 10, fontWeight: '600', color: COLORS.textSecondary, marginTop: 6, textAlign: 'center' },
+  stepLabelActive: { color: COLORS.primary },
+  stepLine:     { flex: 1, height: 1.5, backgroundColor: COLORS.border, marginTop: 13, marginHorizontal: -8 },
+  stepLineActive: { backgroundColor: COLORS.primary },
 
-  // Type cards
-  typeGrid:      { gap: 12 },
-  typeCard:      { borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
-  typeCardSelected: { borderColor: COLORS.primary },
-  typeCardInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
-  typeIconBox:   { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  typeLabel:     { flex: 1, fontSize: 17, fontWeight: '700' },
-  typeRadio:     { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
-  typeRadioActive: { borderColor: '#fff' },
-  typeRadioDot:  { width: 10, height: 10, borderRadius: 5, backgroundColor: '#fff' },
+  body:         { padding: 16, paddingBottom: 32 },
+  row:          { flexDirection: 'row', gap: 12 },
 
-  // Step 2
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: COLORS.textSecondary, marginTop: 4, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.6 },
+  fieldBtn:     { backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  fieldLabel:   { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
+  fieldValue:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  fieldInput:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, padding: 0, margin: 0 },
+
+  seatsRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 12 },
+  fieldLabelStandalone: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  stepperRow:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepperBtn:   { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
+  seatsValue:   { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, minWidth: 20, textAlign: 'center' },
 
   // Photos
-  photosRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  photosRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   photoWrapper:  { position: 'relative' },
   photo:         { width: 90, height: 80, borderRadius: 12 },
   photoDeleteBtn:{ position: 'absolute', top: -8, right: -8 },
   photoAddGroup: { flexDirection: 'row', gap: 8 },
-  addPhotoBtn:   { width: 90, height: 80, borderRadius: 12, borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', gap: 4 },
+  addPhotoBtn:   { width: 90, height: 80, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, gap: 4 },
   addPhotoText:  { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
 
-  // Year picker
-  yearPickerBtn:  { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 14, paddingVertical: 14, gap: 12, marginBottom: 12 },
-  yearPickerIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primary + '12', alignItems: 'center', justifyContent: 'center' },
-  yearPickerLabel:{ fontSize: 11, color: COLORS.textSecondary, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  yearPickerValue:{ fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 2 },
-
   // Features
-  featureHint:    { fontSize: 12, color: COLORS.gray, marginBottom: 12, marginTop: -6, lineHeight: 18 },
+  featureHint:    { fontSize: 12, color: COLORS.gray, marginBottom: 12, lineHeight: 18 },
   featuresGrid:   { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
-  featureChip:    { width: '48%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  featureChipActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
+  featureChip:    { width: '48%', flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
+  featureChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   featureIconBox:    { width: 28, height: 28, borderRadius: 8, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center' },
   featureIconBoxActive: { backgroundColor: COLORS.primary },
   featureLabel:      { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
   featureLabelActive: { color: COLORS.primary },
 
-  // Year modal
-  yearModal:       { flex: 1, backgroundColor: '#fff' },
-  yearModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  yearModalTitle:  { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
-  yearItem:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  yearItemActive:  { backgroundColor: '#eff6ff' },
-  yearItemText:    { flex: 1, fontSize: 18, color: COLORS.textPrimary, fontWeight: '500' },
-  yearItemTextActive: { color: COLORS.primary, fontWeight: '700' },
-});
+  // Verification summary
+  summaryCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, marginBottom: 16, ...CURVE },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  summaryLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  summaryValue: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, maxWidth: '55%', textAlign: 'right' },
+  verifyNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: COLORS.primaryLight, borderRadius: 12, padding: 14 },
+  verifyNoticeText: { flex: 1, fontSize: 12, color: COLORS.primaryDark, lineHeight: 18 },
 
+  bottomBar: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, backgroundColor: COLORS.bg },
+  continueBtn: { marginTop: 0 },
+
+  // Picker modal
+  pickerModal:       { flex: 1, backgroundColor: COLORS.cardBg },
+  pickerModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 55, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  pickerModalTitle:  { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  pickerItem:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 24, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  pickerItemActive:  { backgroundColor: COLORS.primaryLight },
+  pickerItemText:    { fontSize: 16, color: COLORS.textPrimary, fontWeight: '500' },
+  pickerItemTextActive: { color: COLORS.primary, fontWeight: '700' },
+});

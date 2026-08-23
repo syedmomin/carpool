@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, GradientHeader } from '../../components';
+import { COLORS, AppBar } from '../../components';
 import Logo from '../../components/Logo';
 
 export default function AboutScreen({ navigation }) {
@@ -25,7 +25,7 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <GradientHeader colors={GRADIENTS.primary as any} title="About ChalParo" onBack={() => navigation.goBack()} />
+      <AppBar title="About ChalParo" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
@@ -38,6 +38,25 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
           <Text style={styles.cardText}>ChalParo connects drivers with empty seats to passengers who need affordable travel across Pakistan. We believe travel should be safe, affordable, and accessible to everyone.</Text>
+        </View>
+
+        {/* Contact */}
+        <View style={styles.card}>
+          <Pressable style={styles.contactRow} onPress={() => Linking.openURL('mailto:support@chalparo.com')}>
+            <Ionicons name="mail-outline" size={18} color={COLORS.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.contactLabel}>Support Email</Text>
+              <Text style={styles.contactValue}>support@chalparo.com</Text>
+            </View>
+          </Pressable>
+          <View style={styles.contactDivider} />
+          <Pressable style={styles.contactRow} onPress={() => Linking.openURL('https://www.chalparo.com')}>
+            <Ionicons name="globe-outline" size={18} color={COLORS.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.contactLabel}>Website</Text>
+              <Text style={styles.contactValue}>www.chalparo.com</Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* How it works */}
@@ -87,13 +106,18 @@ const styles = StyleSheet.create({
   appName: { fontSize: 28, fontWeight: '900', color: COLORS.textPrimary },
   version: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
   tagline: { fontSize: 14, color: COLORS.gray, marginTop: 8, textAlign: 'center' },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
-  cardText: { fontSize: 13, color: COLORS.gray, lineHeight: 21 },
+  card: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
+  cardText: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 21 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
-  featureIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+  featureIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   stepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  stepNumText: { color: COLORS.white, fontWeight: '700', fontSize: 13 },
   featureText: { fontSize: 13, color: COLORS.textPrimary, flex: 1 },
-  copyright: { textAlign: 'center', fontSize: 12, color: COLORS.gray, marginTop: 8 },
+  copyright: { textAlign: 'center', fontSize: 12, color: COLORS.textSecondary, marginTop: 8 },
+
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 },
+  contactLabel: { fontSize: 12, color: COLORS.textSecondary },
+  contactValue: { fontSize: 14, fontWeight: '700', color: COLORS.primary, marginTop: 2 },
+  contactDivider: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
 });
