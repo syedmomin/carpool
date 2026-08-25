@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:98624049637:android:04c27be3669153d14c1f0c",
+        "android_client_info": {
+          "package_name": "com.chalparo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXzN45Qg-_bcH3RTT0wNCd16rJS7K_Gms"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:98624049637:android:f956ed2e9eb1412c4c1f0c",
         "android_client_info": {
           "package_name": "com.safarishare.app"
