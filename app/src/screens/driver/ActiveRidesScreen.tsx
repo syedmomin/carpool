@@ -110,7 +110,15 @@ export default function ActiveRidesScreen({ navigation }) {
           <RouteTag from={item.from} to={item.to} textStyle={styles.route} />
           <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
         </View>
-        <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
+        <View style={styles.dateRow}>
+          <Text style={styles.date}>{item.date} • {item.departureTime}</Text>
+          {!!item.roundTripGroupId && (
+            <View style={styles.roundTripBadge}>
+              <Ionicons name="swap-horizontal" size={11} color={COLORS.primary} />
+              <Text style={styles.roundTripBadgeText}>Round Trip</Text>
+            </View>
+          )}
+        </View>
 
         {firstPassenger ? (
           <View style={styles.passengerRow}>
@@ -290,9 +298,12 @@ const styles = StyleSheet.create({
   card: { backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   historyCard: { opacity: 0.9 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16 },
-  route: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  route: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   statusLabel: { fontSize: 12, fontWeight: '700' },
-  date: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3, paddingHorizontal: 16 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, marginTop: 3 },
+  date: { fontSize: 12, color: COLORS.textSecondary },
+  roundTripBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  roundTripBadgeText: { fontSize: 10, fontWeight: '700', color: COLORS.primary },
 
   passengerRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, marginTop: 12 },
   passengerName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, flexShrink: 1 },

@@ -6,10 +6,11 @@ import {
 import { MapView, Marker, Polyline } from '../../components/Map';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY } from '../../tasks/locationTask';
+import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY, flushPendingTrackingPoints } from '../../tasks/locationTask';
+import { haversineKm } from '../../utils/geo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, Avatar, SectionHeader, PrimaryButton } from '../../components';
+import { COLORS, GRADIENTS, Avatar, SectionHeader, PrimaryButton, DetailSkeleton, RouteTag } from '../../components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ridesApi, trackingApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
@@ -22,15 +23,7 @@ const { width } = Dimensions.get('window');
 const isDriverRole = (role?: string) => role === 'DRIVER';
 
 // ─── Haversine distance (km) + rough ETA ───────────────────────────────────────
-function distanceKm(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
-  const R = 6371;
-  const dLat = (b.latitude - a.latitude) * Math.PI / 180;
-  const dLon = (b.longitude - a.longitude) * Math.PI / 180;
-  const lat1 = a.latitude * Math.PI / 180;
-  const lat2 = b.latitude * Math.PI / 180;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
+const distanceKm = haversineKm;
 
 // ─── Elapsed timer ────────────────────────────────────────────────────────────
 function useElapsed(active: boolean) {
@@ -127,6 +120,9 @@ export default function RideTrackingScreen({ route, navigation }) {
   const [ratingIndex, setRatingIndex]         = useState(-1);
   const [mapReady, setMapReady]               = useState(false);
   const [recentering, setRecentering]         = useState(false);
+  const [placeName, setPlaceName]             = useState('');
+  const lastGeocodedAt                        = useRef(0);
+  const lastGeocodedAtCoord                   = useRef<{ latitude: number; longitude: number } | null>(null);
 
   const locationSub = useRef<any>(null);
   const mapRef      = useRef<any>(null);
@@ -188,6 +184,35 @@ export default function RideTrackingScreen({ route, navigation }) {
       );
     }
   }, [mapReady]);
+
+  // Reverse-geocode the live position into a readable place name (free,
+  // on-device via expo-location) so both driver and passenger see something
+  // like "Near Shahrah-e-Faisal, Karachi" instead of just a dot on the map.
+  // Throttled — only re-geocode after 250m of movement and at most every
+  // 20s, since this walks the device's own geocoder each call.
+  useEffect(() => {
+    if (!driverLocation) return;
+    const now = Date.now();
+    const last = lastGeocodedAtCoord.current;
+    const moved = last ? distanceKm(driverLocation, last) * 1000 : Infinity;
+    if (now - lastGeocodedAt.current < 20000 && moved < 250) return;
+    lastGeocodedAt.current = now;
+    lastGeocodedAtCoord.current = driverLocation;
+    (async () => {
+      try {
+        const results = await Location.reverseGeocodeAsync({
+          latitude: driverLocation.latitude,
+          longitude: driverLocation.longitude,
+        });
+        const r = results?.[0];
+        if (!r) return;
+        const parts = [r.street, r.district || r.city].filter(Boolean);
+        if (mountedRef.current && parts.length) setPlaceName(parts.join(', '));
+      } catch {
+        // Reverse geocoding is a nice-to-have — never let it disrupt tracking.
+      }
+    })();
+  }, [driverLocation]);
 
   // Fetch the road-following route (falls back to a straight stub server-side
   // when no routing API key is configured) and render it as a polyline.
@@ -300,7 +325,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         pausesUpdatesAutomatically: false,
         showsBackgroundLocationIndicator: true,
         foregroundService: {
-          notificationTitle: 'ChalParo — trip in progress',
+          notificationTitle: 'ChalParo: Trip in Progress',
           notificationBody:  'Sharing your live location with passengers.',
           notificationColor: '#0d1b4b',
         },
@@ -318,6 +343,10 @@ export default function RideTrackingScreen({ route, navigation }) {
 
   const stopBackgroundTracking = async () => {
     try {
+      // Flush any points buffered locally (e.g. from a dead zone) before
+      // tearing down tracking, so they aren't stranded once the ride id is
+      // cleared — after that, the batch endpoint has nothing to attach them to.
+      await flushPendingTrackingPoints();
       await AsyncStorage.removeItem(TRACKING_RIDE_ID_KEY);
       const running = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
       if (running) await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
@@ -376,14 +405,9 @@ export default function RideTrackingScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={s.loadingWrap}>
-        <StatusBar barStyle="light-content" backgroundColor="#0d1b4b" />
-        <LinearGradient colors={['#0d1b4b', '#1d4ed8']} style={StyleSheet.absoluteFill} />
-        <View style={s.loadingInner}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={s.loadingText}>Starting tracking session...</Text>
-          <Text style={s.loadingSubText}>Getting GPS signal</Text>
-        </View>
+      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.bg} />
+        <DetailSkeleton />
       </View>
     );
   }
@@ -498,9 +522,7 @@ export default function RideTrackingScreen({ route, navigation }) {
           <Ionicons name={driver ? 'chevron-down' : 'arrow-back'} size={22} color={COLORS.textPrimary} />
         </Pressable>
         <View style={s.headerCenter}>
-          <Text style={s.headerRoute} numberOfLines={1}>
-            {ride?.fromCity} {'>'} {ride?.toCity}
-          </Text>
+          <RouteTag from={ride?.fromCity} to={ride?.toCity} textStyle={s.headerRoute} />
           <Text style={s.headerSub}>
             {driver ? `${ride?.date} · ${ride?.departureTime}` : 'Live Ride Tracking'}
           </Text>
@@ -512,6 +534,16 @@ export default function RideTrackingScreen({ route, navigation }) {
           <Ionicons name="call" size={18} color={COLORS.primary} />
         </Pressable>
       </View>
+
+      {/* ── Live place-name pill ─────────────────────────────────────── */}
+      {!!placeName && (
+        <View style={[s.placePill, { top: insets.top + 68 }]}>
+          <Ionicons name="location" size={13} color={COLORS.primary} />
+          <Text style={s.placePillText} numberOfLines={1}>
+            {driver ? placeName : `Driver near ${placeName}`}
+          </Text>
+        </View>
+      )}
 
       {/* ── Bottom Panel ─────────────────────────────────────────────── */}
       <View style={[s.panel, { paddingBottom: insets.bottom + 16 }]}>
@@ -716,7 +748,7 @@ const s = StyleSheet.create({
 
   // Header
   header: {
-    position: 'absolute', top: Platform.OS === 'ios' ? 56 : 28,
+    position: 'absolute',
     left: 16, right: 16,
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: COLORS.cardBg, borderRadius: 16,
@@ -729,19 +761,30 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center',
   },
   headerCenter: { flex: 1 },
-  headerRoute:  { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  headerRoute:  { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   headerSub:    { fontSize: 11, color: COLORS.textSecondary, marginTop: 1, fontWeight: '500' },
   headerCallBtn: {
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
   },
 
+  // Live place-name pill
+  placePill: {
+    position: 'absolute',
+    left: 16, maxWidth: '75%',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6,
+    elevation: 4, zIndex: 9,
+  },
+  placePillText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary, flexShrink: 1 },
+
   // Panel
   panel: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: COLORS.cardBg,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 22,
     borderWidth: 1, borderColor: COLORS.border, borderBottomWidth: 0,
     overflow: 'hidden',
   },
@@ -807,7 +850,7 @@ const s = StyleSheet.create({
   routeDot:  { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
     shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
   routeLine: { flex: 1, height: 2, backgroundColor: '#e2e8f0', borderRadius: 1 },
-  routeCity: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
+  routeCity: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
 
   tripInfoRow: {
     flexDirection: 'row', marginHorizontal: 20,

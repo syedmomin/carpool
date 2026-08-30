@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, Avatar, StarRating, RouteTag, PrimaryButton } from '../../components';
+import { COLORS, CURVE, AppBar, Avatar, StarRating, RouteTag, PrimaryButton, SectionHeader, PickupPinPicker } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -19,12 +19,21 @@ export default function BookingConfirmScreen({ navigation, route }) {
   const [seats, setSeats] = useState(Math.min(initialSeats || 1, Math.max(available, 1)));
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
+  const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
+
+  // Seed the pin near the boarding city's known coordinates when the ride's
+  // route matches it (avoids opening the picker centered somewhere random
+  // before GPS resolves); otherwise the picker falls back to device location.
+  const boardingMatchesFrom = !boardingCity || boardingCity.toLowerCase() === (ride?.from || '').toLowerCase();
+  const seedLat = boardingMatchesFrom ? ride?.fromLat : undefined;
+  const seedLng = boardingMatchesFrom ? ride?.fromLng : undefined;
 
   const totalFare = seats * (ride?.pricePerSeat || 0);
 
   const handleConfirm = async () => {
     setSubmitting(true);
-    const { data, error } = await bookRide(rideId, seats, boardingCity, exitCity, note.trim() || undefined);
+    const { data, error } = await bookRide(rideId, seats, boardingCity, exitCity, note.trim() || undefined, pickupLat, pickupLng);
     setSubmitting(false);
     if (error) {
       showToast(parseApiError(error), 'error');
@@ -117,6 +126,18 @@ export default function BookingConfirmScreen({ navigation, route }) {
             <Text style={styles.paymentValue}>Cash on Ride</Text>
           </View>
 
+          <View style={styles.divider} />
+
+          <SectionHeader title="Exact Pickup Point" style={{ marginBottom: 8 }} />
+          <Text style={styles.pickupHelper}>
+            Optional. Pin your exact spot so your driver can find you more easily. If you skip this, we'll use the boarding city instead.
+          </Text>
+          <PickupPinPicker
+            initialLat={seedLat}
+            initialLng={seedLng}
+            onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+          />
+
           <Text style={[styles.fieldLabel, { marginTop: 14, marginBottom: 8 }]}>Note to Driver (Optional)</Text>
           <TextInput
             style={styles.noteInput}
@@ -154,7 +175,7 @@ const styles = StyleSheet.create({
   },
   cardLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.3 },
   summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  routeText: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  routeText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   priceValue: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   dateRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   dateText: { fontSize: 12, color: COLORS.textSecondary },
@@ -170,6 +191,7 @@ const styles = StyleSheet.create({
   vehicleMeta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   fieldRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   fieldLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  pickupHelper: { fontSize: 11.5, color: COLORS.textSecondary, marginBottom: 10, lineHeight: 16 },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   stepperBtnDisabled: { backgroundColor: COLORS.lightGray },

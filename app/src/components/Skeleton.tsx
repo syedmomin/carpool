@@ -149,6 +149,29 @@ export const RequestCardSkeleton = () => (
   </View>
 );
 
+// Generic detail/profile-page skeleton — avatar + a few text blocks + a
+// couple of content sections. Used by any single-record screen (profile,
+// ride detail, booking detail, vehicle detail...) instead of a bare spinner,
+// so the layout shape is visible while its API call is in flight.
+export const DetailSkeleton = () => (
+  <View style={{ padding: 20 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+      <Skeleton width={64} height={64} borderRadius={32} />
+      <View style={{ marginLeft: 14, flex: 1, gap: 8 }}>
+        <Skeleton width="55%" height={16} />
+        <Skeleton width="35%" height={12} />
+      </View>
+    </View>
+    <Skeleton width="100%" height={120} borderRadius={16} style={{ marginBottom: 16 }} />
+    <View style={{ gap: 10, marginBottom: 16 }}>
+      <Skeleton width="90%" height={14} />
+      <Skeleton width="75%" height={14} />
+      <Skeleton width="60%" height={14} />
+    </View>
+    <Skeleton width="100%" height={48} borderRadius={12} />
+  </View>
+);
+
 const cardStyles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',

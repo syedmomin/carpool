@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar } from '../../components';
+import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar, RouteTag } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -62,7 +62,7 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
               <View style={bm.routeBox}>
                 <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
                 <View style={{ flex: 1 }}>
-                  <Text style={bm.routeText}>{request.fromCity} → {request.toCity}</Text>
+                  <RouteTag from={request.fromCity} to={request.toCity} textStyle={bm.routeText} />
                   <Text style={bm.dateText}>{request.date} · {request.seats} seat{request.seats > 1 ? 's' : ''}</Text>
                   {request.departureTime && request.departureTime !== '00:00' && (
                     <View style={bm.timeTag}>
@@ -256,7 +256,7 @@ export default function OpenRequestsScreen({ navigation }) {
           </View>
         </View>
 
-        <Text style={styles.route}>{item.fromCity} → {item.toCity}</Text>
+        <RouteTag from={item.fromCity} to={item.toCity} textStyle={styles.route} />
 
         {/* Passenger */}
         <View style={styles.passengerRow}>
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
 
   card:         { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
   cardHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  route:        { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
+  route:        { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
   metaRow:      { flexDirection: 'row', alignItems: 'center', gap: 2 },
   metaText:     { fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' },
   badge:        { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
@@ -489,7 +489,7 @@ const bm = StyleSheet.create({
   handle:     { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: 'center', marginBottom: 16 },
   title:      { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 16 },
   routeBox:   { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, marginBottom: 16 },
-  routeText:  { fontSize: 15, fontWeight: '700', color: COLORS.primary },
+  routeText:  { fontSize: 14, fontWeight: '700', color: COLORS.primary },
   dateText:   { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   timeTag:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   timeTagText:{ fontSize: 12, fontWeight: '700', color: COLORS.primary },

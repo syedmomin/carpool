@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-nati
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, PressableScale } from '../../components';
+import { COLORS, GRADIENTS, CURVE, PressableScale, DetailSkeleton } from '../../components';
 import { reviewsApi, ridesApi, bookingsApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -39,6 +39,7 @@ export default function ProfileScreen({ navigation }) {
   const [reviewStats, setReviewStats] = useState<any>(null);
   const [ratingLoading, setRatingLoading] = useState(true);
   const [totalRides, setTotalRides] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const fetchRating = useCallback(async () => {
     if (!currentUser?.id) { setRatingLoading(false); return; }
@@ -61,8 +62,7 @@ export default function ProfileScreen({ navigation }) {
   }, [userRole]);
 
   useFocusEffect(useCallback(() => {
-    fetchRating();
-    fetchTotalRides();
+    Promise.all([fetchRating(), fetchTotalRides()]).finally(() => setLoaded(true));
   }, [fetchRating, fetchTotalRides]));
 
   const ratingValue = reviewStats?.total ? reviewStats.averageRating : currentUser?.rating;
@@ -82,6 +82,14 @@ export default function ProfileScreen({ navigation }) {
 
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
   const menuItems = getMenuItems(userRole, docsBadge);
+
+  if (!loaded) {
+    return (
+      <View style={styles.container}>
+        <DetailSkeleton />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>

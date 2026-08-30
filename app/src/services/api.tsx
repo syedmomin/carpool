@@ -206,12 +206,13 @@ export const ridesApi = {
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
 export const bookingsApi = {
-  book: (rideId, seats, boardingCity, exitCity, note) =>
+  book: (rideId, seats, boardingCity, exitCity, note, pickupLat?: number, pickupLng?: number) =>
     request('POST', '/bookings', {
       rideId, seats,
       ...(boardingCity ? { boardingCity } : {}),
       ...(exitCity ? { exitCity } : {}),
       ...(note ? { note } : {}),
+      ...(pickupLat != null && pickupLng != null ? { pickupLat, pickupLng } : {}),
     }),
   cancel: (bookingId, reason) => request('DELETE', `/bookings/${bookingId}`, { reason }),
   accept: (bookingId) => request('POST', `/bookings/accept/${bookingId}`),
@@ -275,7 +276,7 @@ export const verificationApi = {
 // ─── Schedule Requests (Passenger ↔ Driver Bidding) ──────────────────────────
 export const scheduleRequestsApi = {
   // Passenger
-  create:        (data: { fromCity: string; toCity: string; date: string; departureTime: string; seats: number; note?: string }) =>
+  create:        (data: { fromCity: string; toCity: string; date: string; departureTime: string; seats: number; note?: string; roundTripGroupId?: string; fromLat?: number; fromLng?: number }) =>
                    request('POST', '/schedule-requests', data),
   getMine:       (page = 1, limit = 20) => request('GET', `/schedule-requests/mine?page=${page}&limit=${limit}`),
   cancel:        (requestId: string)    => request('DELETE', `/schedule-requests/${requestId}`),

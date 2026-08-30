@@ -5,7 +5,7 @@ import {
   Modal, FlatList, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton } from '../../components';
+import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton, DetailSkeleton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -385,7 +385,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
       </View>
 
       <SectionHeader title="Amenities & Features" style={{ marginTop: 8 }} />
-      <Text style={styles.featureHint}>Select all that apply — passengers can filter by these</Text>
+      <Text style={styles.featureHint}>Select all that apply. Passengers can filter rides by these.</Text>
       <View style={styles.featuresGrid}>
         {ALL_FEATURES.map(feat => {
           const active = features[feat.key];
@@ -442,9 +442,9 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
   if (fetchLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ fontSize: 14, color: COLORS.gray }}>Loading vehicle details...</Text>
+      <View style={styles.container}>
+        <AppBar title="Edit Vehicle" onBack={() => navigation.goBack()} />
+        <DetailSkeleton />
       </View>
     );
   }

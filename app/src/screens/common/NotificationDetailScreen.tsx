@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURVE, AppBar, SectionHeader } from '../../components';
+import { Skeleton } from '../../components/Skeleton';
 import { getNotificationStyle } from '../../utils/notificationStyle';
 import { ridesApi, notificationsApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
@@ -58,7 +59,17 @@ export default function NotificationDetailScreen({ navigation, route }) {
         <Text style={styles.message}>{notification.message}</Text>
 
         {loadingRide && (
-          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 20 }} />
+          <View style={{ width: '100%', marginTop: 28 }}>
+            <Skeleton width="45%" height={13} style={{ marginBottom: 10 }} />
+            <View style={styles.summaryCard}>
+              {[1, 2, 3, 4].map(i => (
+                <View key={i} style={[styles.summaryRow, i === 4 && { borderBottomWidth: 0 }]}>
+                  <Skeleton width={60} height={12} />
+                  <Skeleton width={110} height={12} />
+                </View>
+              ))}
+            </View>
+          </View>
         )}
 
         {ride && (
@@ -85,13 +96,6 @@ export default function NotificationDetailScreen({ navigation, route }) {
                 <Text style={styles.summaryValue}>Cash</Text>
               </View>
             </View>
-
-            <Pressable
-              style={styles.receiptBtn}
-              onPress={() => showToast('Receipts are coming soon', 'info')}
-            >
-              <Text style={styles.receiptBtnText}>View Receipt</Text>
-            </Pressable>
           </>
         )}
       </ScrollView>
@@ -115,6 +119,4 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   summaryLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
   summaryValue: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, maxWidth: '60%', textAlign: 'right' },
-  receiptBtn: { width: '100%', borderWidth: 1.5, borderColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 20, ...CURVE },
-  receiptBtnText: { color: COLORS.primaryDark, fontSize: 15, fontWeight: '700' },
 });

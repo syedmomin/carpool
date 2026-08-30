@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, CURVE } from './theme';
+import { EmptyIllustration } from './EmptyIllustration';
 
 interface EmptyStateProps {
+  /** @deprecated no longer rendered — every empty state now shares one illustration */
   icon?: string;
   title: string;
   subtitle?: string;
@@ -12,14 +13,10 @@ interface EmptyStateProps {
   action?: { label: string; onPress: () => void };
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ icon = 'document-outline', title, subtitle, style, action }) => {
+export const EmptyState: React.FC<EmptyStateProps> = ({ title, subtitle, style, action }) => {
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.iconOuter}>
-        <View style={styles.iconWrap}>
-          <Ionicons name={icon as any} size={36} color={COLORS.primary} />
-        </View>
-      </View>
+      <EmptyIllustration size={92} />
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {action ? (
@@ -44,57 +41,40 @@ const styles = StyleSheet.create({
     paddingVertical: 64,
     paddingHorizontal: 32,
   },
-  iconOuter: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: COLORS.primary + '08',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.primary + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...CURVE,
-  },
   title: {
-    fontSize: 20,
-    fontWeight: '900',
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '800',
     color: COLORS.textPrimary,
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12.5,
     color: COLORS.gray,
-    marginTop: 8,
+    marginTop: 6,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 18,
     maxWidth: 240,
   },
   actionBtnWrap: {
-    marginTop: 24,
-    borderRadius: 16,
+    marginTop: 20,
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
     ...CURVE,
   },
   actionBtn: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
     alignItems: 'center',
   },
   actionText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.2,

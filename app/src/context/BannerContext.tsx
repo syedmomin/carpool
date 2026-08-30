@@ -121,6 +121,6 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingRight: 6 },
   title: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 2 },
   message: { fontSize: 13, color: COLORS.gray, lineHeight: 18 },
-  grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.7)', marginTop: 6 },
+  grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginTop: 6 },
 });
 

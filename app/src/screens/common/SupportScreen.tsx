@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   topicRowBorder: { borderTopWidth: 1, borderTopColor: COLORS.border },
   topicIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   topicTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  topicSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  topicSub: { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
   faqWrap: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
   faqItem: { backgroundColor: COLORS.lightGray, borderRadius: 10, padding: 12 },
   faqQ: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
 
   chatCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, marginBottom: 20, gap: 12, ...CURVE },
   chatTitle: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  chatSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  chatSub: { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
   chatBtn: { backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 11 },
   chatBtnText: { color: COLORS.white, fontSize: 13, fontWeight: '700' },
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   contactIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   contactInfo: { flex: 1 },
   contactLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  contactSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  contactSub: { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
 
   linkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 14, marginBottom: 8, gap: 12, borderWidth: 1, borderColor: COLORS.border },
   linkLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },

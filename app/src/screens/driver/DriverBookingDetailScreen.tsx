@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader } from '../../components';
 import { useToast } from '../../context/ToastContext';
+import { estimateRideDistanceKm } from '../../utils/geo';
 
 export default function DriverBookingDetailScreen({ navigation, route }) {
   const { booking } = route.params;
@@ -20,7 +21,8 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
 
   const vehicle = ride?.vehicle;
   const vehicleLabel = vehicle ? `${[vehicle.brand, vehicle.model].filter(Boolean).join(' ')}${vehicle.plateNumber ? ` • ${vehicle.plateNumber}` : ''}` : '—';
-  const distanceLabel = ride?.route?.distance ? `${ride.route.distance} km` : '—';
+  const distanceKm = estimateRideDistanceKm(ride);
+  const distanceLabel = distanceKm != null ? `${distanceKm} km` : '—';
 
   const RIDE_ROWS = [
     { label: 'Route', value: `${ride?.fromCity || ride?.from || '—'} → ${ride?.toCity || ride?.to || '—'}`, icon: 'navigate-outline' },
@@ -143,5 +145,5 @@ const styles = StyleSheet.create({
   },
   tripSummaryIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   tripSummaryTitle: { fontSize: 14, fontWeight: '700', color: COLORS.secondaryDark },
-  tripSummarySubtitle: { fontSize: 12, color: COLORS.secondaryDark, marginTop: 2, opacity: 0.8 },
+  tripSummarySubtitle: { fontSize: 12.5, color: COLORS.secondaryDark, marginTop: 2, opacity: 0.8 },
 });

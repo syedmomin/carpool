@@ -184,8 +184,8 @@ const styles = StyleSheet.create({
 
   infoCol:    { flex: 1, minWidth: 0, justifyContent: 'center', gap: 4 },
   nameRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  vehicleName:{ flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleSub: { fontSize: 12, color: COLORS.textSecondary },
+  vehicleName:{ flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  vehicleSub: { fontSize: 12.5, color: COLORS.textSecondary },
 
   statusPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999 },
   statusPillActive: { backgroundColor: '#e8f5e9' },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   statusTextInactive: { color: COLORS.textSecondary },
 
   specRow:     { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  specText:    { fontSize: 12, color: COLORS.textSecondary, fontWeight: '500' },
+  specText:    { fontSize: 11.5, color: COLORS.textSecondary, fontWeight: '500' },
 
   actionRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   editBtn: {

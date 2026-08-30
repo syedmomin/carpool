@@ -9,7 +9,11 @@ import { COLORS, GRADIENTS } from '../components/theme';
 export type NotificationKind =
   | 'BOOKING' | 'RIDE' | 'NEW_RIDE' | 'RIDE_STARTED' | 'RIDE_COMPLETED'
   | 'RIDE_CANCELLED' | 'RIDE_EXPIRED' | 'SCHEDULE_REQUEST' | 'RIDE_BID'
-  | 'BID_ACCEPTED' | 'BID_REJECTED' | 'REMINDER' | 'SYSTEM' | 'default';
+  | 'BID_ACCEPTED' | 'BID_REJECTED' | 'REMINDER' | 'SYSTEM' | 'default'
+  // Plain toast kinds (from useToast().showToast(message, kind)) — these are
+  // NOT server notification types, but the banner is the single shared UI
+  // for both, so it needs a style for each of these too.
+  | 'success' | 'error' | 'warning' | 'info';
 
 export interface NotificationStyle {
   icon:     string;            // Ionicons name
@@ -33,6 +37,12 @@ const STYLES: Record<NotificationKind, NotificationStyle> = {
   REMINDER:         { icon: 'alarm',                 color: COLORS.accent,    bg: COLORS.warningLight, gradient: GRADIENTS.accent },
   SYSTEM:           { icon: 'notifications',         color: COLORS.gray,      bg: COLORS.lightGray,   gradient: GRADIENTS.primary },
   default:          { icon: 'notifications',         color: COLORS.gray,      bg: COLORS.lightGray,   gradient: GRADIENTS.primary },
+
+  // Plain toast kinds
+  success:          { icon: 'checkmark-circle',      color: COLORS.secondary, bg: '#e8f5e9',          gradient: GRADIENTS.secondary },
+  error:            { icon: 'close-circle',          color: COLORS.danger,    bg: COLORS.dangerLight, gradient: ['#e53935', '#c62828'] },
+  warning:          { icon: 'warning',                color: COLORS.accent,    bg: COLORS.warningLight, gradient: GRADIENTS.accent },
+  info:             { icon: 'information-circle',    color: COLORS.primary,   bg: COLORS.primaryLight, gradient: GRADIENTS.primary },
 };
 
 export function getNotificationStyle(kind?: string): NotificationStyle {

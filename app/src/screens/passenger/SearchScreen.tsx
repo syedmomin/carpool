@@ -14,6 +14,7 @@ import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { searchHistory, SearchEntry } from '../../utils/searchHistory';
+import { getNiceDate } from '../../utils/date';
 
 const SORT_OPTIONS = ['Price: Low to High', 'Price: High to Low', 'Earliest Departure', 'Highest Rated'];
 
@@ -189,6 +190,8 @@ export default function SearchScreen({ navigation, route }) {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [showMaxPriceModal, setShowMaxPriceModal] = useState(false);
   const [cityModal, setCityModal] = useState(null);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [showDepartTimeModal, setShowDepartTimeModal] = useState(false);
   const [recentSearches, setRecentSearches] = useState<SearchEntry[]>([]);
   const [alertState, setAlertState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
@@ -333,82 +336,29 @@ export default function SearchScreen({ navigation, route }) {
       {/* ── Search Form ──────────────────────────────────────────────── */}
       <View style={styles.searchContainer}>
         <View style={styles.searchCard}>
-          <View style={styles.searchRow}>
-            <Pressable style={styles.cityInput} onPress={() => setCityModal('from')}>
-              <View style={styles.cityInputInner}>
-                <View style={[styles.dot, { backgroundColor: COLORS.primary }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>From</Text>
-                  <Text style={[styles.cityInputText, !from && styles.placeholder]} numberOfLines={1}>
-                    {from || 'Leaving from?'}
-                  </Text>
-                </View>
-              </View>
-              {from ? (
-                <Pressable onPress={() => setFrom('')} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-                </Pressable>
-              ) : (
-                <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-              )}
-            </Pressable>
-
+          {/* From / To — matches the Home screen's route card */}
+          <View style={styles.routeCard}>
+            <View style={styles.routeLeft}>
+              <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
+              <View style={styles.routeVertLine} />
+              <View style={[styles.routeDot, { backgroundColor: COLORS.danger }]} />
+            </View>
+            <View style={styles.routeInputs}>
+              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
+                <Text style={[styles.routeInput, !from && styles.routeInputPlaceholder]} numberOfLines={1}>
+                  {from || 'Leaving From'}
+                </Text>
+              </Pressable>
+              <View style={styles.routeInputDivider} />
+              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
+                <Text style={[styles.routeInput, !to && styles.routeInputPlaceholder]} numberOfLines={1}>
+                  {to || 'Where to?'}
+                </Text>
+              </Pressable>
+            </View>
             <Pressable onPress={swapCities} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
             </Pressable>
-
-            <Pressable style={styles.cityInput} onPress={() => setCityModal('to')}>
-              <View style={styles.cityInputInner}>
-                <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>To</Text>
-                  <Text style={[styles.cityInputText, !to && styles.placeholder]} numberOfLines={1}>
-                    {to || 'Going to?'}
-                  </Text>
-                </View>
-              </View>
-              {to ? (
-                <Pressable onPress={() => setTo('')} hitSlop={8}>
-                  <Ionicons name="close-circle" size={16} color={COLORS.gray} />
-                </Pressable>
-              ) : (
-                <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-              )}
-            </Pressable>
-          </View>
-
-          {/* Date / Time */}
-          <View style={styles.dateTimeRow}>
-            <View style={{ flex: 1 }}>
-              <DatePickerInput label="Date" value={date || null} onChange={setDate} minDate={new Date()} placeholder="Any date" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TimePickerInput label="Time" value={departTime || null} onChange={setDepartTime} placeholder="Any time" />
-            </View>
-          </View>
-
-          {/* Passengers */}
-          <View style={styles.passengersRow}>
-            <View>
-              <Text style={styles.fieldLabelStandalone}>Passengers</Text>
-              <Text style={styles.passengersValue}>{passengers} Seat{passengers !== 1 ? 's' : ''}</Text>
-            </View>
-            <View style={styles.stepperRow}>
-              <Pressable
-                style={[styles.stepperBtn, passengers <= 1 && styles.stepperBtnDisabled]}
-                disabled={passengers <= 1}
-                onPress={() => setPassengers(p => Math.max(1, p - 1))}
-              >
-                <Ionicons name="remove" size={18} color={passengers <= 1 ? COLORS.gray : COLORS.primary} />
-              </Pressable>
-              <Pressable
-                style={[styles.stepperBtn, passengers >= 8 && styles.stepperBtnDisabled]}
-                disabled={passengers >= 8}
-                onPress={() => setPassengers(p => Math.min(8, p + 1))}
-              >
-                <Ionicons name="add" size={18} color={passengers >= 8 ? COLORS.gray : COLORS.primary} />
-              </Pressable>
-            </View>
           </View>
 
           {/* Search Button */}
@@ -430,6 +380,20 @@ export default function SearchScreen({ navigation, route }) {
             style={styles.filtersScroll}
             contentContainerStyle={styles.filtersScrollContent}
           >
+            <Chip
+              label={date ? getNiceDate(date) : 'Any Date'}
+              icon="calendar-outline"
+              active={!!date}
+              onPress={() => setShowDateModal(true)}
+              style={styles.filterChip}
+            />
+            <Chip
+              label={departTime || 'Any Time'}
+              icon="time-outline"
+              active={!!departTime}
+              onPress={() => setShowDepartTimeModal(true)}
+              style={styles.filterChip}
+            />
             <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
             <Chip label="Female Only" icon="woman-outline" active={filterFemale} onPress={() => setFilterFemale(!filterFemale)} style={styles.filterChip} />
 
@@ -549,11 +513,7 @@ export default function SearchScreen({ navigation, route }) {
             />
           ) : (
             <View style={styles.emptyStateWrapper}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="search-outline" size={64} color={COLORS.primary} />
-              </View>
-              <Text style={styles.emptyTitle}>No rides found</Text>
-              <Text style={styles.emptySubtitle}>Try different dates or cities</Text>
+              <EmptyState title="No rides found" subtitle="Try different dates or cities" style={{ paddingVertical: 0 }} />
               {from && to && date ? (
                 <Pressable
                   style={[styles.notifyBtn, alertState === 'saved' && styles.notifyBtnSaved]}
@@ -592,6 +552,40 @@ export default function SearchScreen({ navigation, route }) {
         }}
         onClose={() => setCityModal(null)}
       />
+
+      {/* Departure Date Modal */}
+      <Modal visible={showDateModal} transparent animationType="slide" onRequestClose={() => setShowDateModal(false)}>
+        <Pressable style={styles.sortOverlay} onPress={() => setShowDateModal(false)}>
+          <View style={styles.sortSheet}>
+            <View style={styles.sheetHandleRow}>
+              <Text style={styles.sortTitle}>Departure Date</Text>
+              {date ? (
+                <Pressable onPress={() => setDate('')}>
+                  <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <DatePickerInput value={date || null} onChange={v => { setDate(v); setShowDateModal(false); }} minDate={new Date()} placeholder="Any date" />
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Departure Time Modal */}
+      <Modal visible={showDepartTimeModal} transparent animationType="slide" onRequestClose={() => setShowDepartTimeModal(false)}>
+        <Pressable style={styles.sortOverlay} onPress={() => setShowDepartTimeModal(false)}>
+          <View style={styles.sortSheet}>
+            <View style={styles.sheetHandleRow}>
+              <Text style={styles.sortTitle}>Departure Time</Text>
+              {departTime ? (
+                <Pressable onPress={() => setDepartTime('')}>
+                  <Text style={{ color: COLORS.primary, fontWeight: '700', fontSize: 14 }}>Clear</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <TimePickerInput value={departTime || null} onChange={v => { setDepartTime(v); setShowDepartTimeModal(false); }} placeholder="Any time" />
+          </View>
+        </Pressable>
+      </Modal>
 
       <BrandModal
         visible={showBrandModal}
@@ -654,30 +648,26 @@ const styles = StyleSheet.create({
     shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 2,
     ...CURVE,
   },
-  searchRow: { flexDirection: 'column', marginBottom: 12, gap: 8, position: 'relative' },
-  cityInput: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
-  cityInputInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
-  fieldLabelStandalone: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
-  cityInputText: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  placeholder: { color: COLORS.gray, fontWeight: '400' },
-  dateTimeRow: { flexDirection: 'row', gap: 12, marginBottom: 0 },
-  passengersRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16,
+  // Route card (matches HomeScreen)
+  routeCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
+    borderWidth: 1, borderColor: COLORS.border,
+    ...CURVE,
   },
-  passengersValue: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  stepperBtn: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.white,
-    borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
-  },
-  stepperBtnDisabled: { opacity: 0.5 },
+  routeLeft: { alignItems: 'center', gap: 3 },
+  routeDot: { width: 8, height: 8, borderRadius: 4 },
+  routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
+  routeInputs: { flex: 1 },
+  routeInputTouch: { paddingVertical: 6 },
+  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
+  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
   swapBtn: {
-    position: 'absolute', right: 8, top: '50%', marginTop: -18, zIndex: 5,
-    width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight,
-    alignItems: 'center', justifyContent: 'center',
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
+    ...CURVE,
   },
   searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 16 },
   searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
@@ -685,9 +675,9 @@ const styles = StyleSheet.create({
   filtersScrollContent: { paddingHorizontal: 0, paddingBottom: 12 },
   filterChip: {
     marginRight: 8,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     fontWeight: '700',
     ...CURVE,
   },
@@ -698,7 +688,7 @@ const styles = StyleSheet.create({
   clearAllText: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
   resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
   resultsCount: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
-  resultsRoute: { fontSize: 13, color: COLORS.gray },
+  resultsRoute: { fontSize: 12, color: COLORS.gray },
   sortLabel: { fontSize: 12, color: COLORS.gray },
   listContent: { paddingHorizontal: 20, paddingBottom: 24 },
   sortOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -731,7 +721,7 @@ const styles = StyleSheet.create({
   recentTitle: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
   clearHistory: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
   recentCard: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 10 },
-  recentText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
+  recentText: { fontSize: 12, fontWeight: '600', color: COLORS.textPrimary },
   loadingContainer: {
     paddingTop: 80,
     alignItems: 'center',
@@ -748,27 +738,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 32,
     gap: 12,
-  },
-  emptyIconCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: COLORS.primary + '30',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   notifyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

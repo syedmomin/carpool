@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, View, Pressable, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 const CONFIGS = {
@@ -17,6 +18,7 @@ interface ToastProps {
 }
 
 export default function Toast({ visible, message, type = 'info', onHide }: ToastProps) {
+  const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity    = useRef(new Animated.Value(0)).current;
 
@@ -40,7 +42,7 @@ export default function Toast({ visible, message, type = 'info', onHide }: Toast
 
   return (
     <Animated.View
-      style={[styles.container, { backgroundColor: cfg.bg, transform: [{ translateY }], opacity, pointerEvents: visible ? 'auto' : 'none' }]}
+      style={[styles.container, { top: insets.top + 8, backgroundColor: cfg.bg, transform: [{ translateY }], opacity, pointerEvents: visible ? 'auto' : 'none' }]}
     >
       <Ionicons name={cfg.icon as any} size={20} color={cfg.text} />
       <Text style={[styles.message, { color: cfg.text }]} numberOfLines={2}>{message}</Text>
@@ -54,7 +56,6 @@ export default function Toast({ visible, message, type = 'info', onHide }: Toast
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 40,
     left: 16,
     right: 16,
     flexDirection: 'row',

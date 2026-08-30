@@ -218,7 +218,7 @@ export default function CnicVerificationScreen({ navigation }) {
       return (
         <>
           <Text style={styles.stepHeading}>Take a Selfie</Text>
-          <Text style={styles.stepSub}>Optional — helps us confirm it's really you</Text>
+          <Text style={styles.stepSub}>Optional. Helps us confirm it's really you.</Text>
           <UploadBox image={selfieImg} uploading={upSelfie} onPress={pickSelfie} />
         </>
       );

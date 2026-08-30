@@ -121,7 +121,14 @@ function navigateTo(navRef, data) {
     case 'RideBookings':
         navigation.navigate('RideBookings', { rideId: data.rideId });
         break;
-    case 'Notifications':  navigation.navigate('Notifications');                         break;
+    case 'Notifications': {
+      const isDriver = data.role === 'DRIVER';
+      navigation.navigate(isDriver ? 'DriverApp' : 'PassengerApp', {
+        screen: isDriver ? 'DriverHomeTab' : 'PassengerHomeTab',
+        params: { screen: 'Notifications' },
+      });
+      break;
+    }
     default: break;
   }
 }

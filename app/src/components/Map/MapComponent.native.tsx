@@ -164,13 +164,22 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
 
   document.addEventListener('message', function(e) { handleMsg(e.data); });
   window.addEventListener('message',   function(e) { handleMsg(e.data); });
+
+  // Pin-drop picker support: report the map's center whenever a drag/zoom
+  // settles, so the consumer can treat "wherever the fixed center pin is
+  // pointing" as the selected location (Uber/InDrive-style picker).
+  map.on('moveend', function() {
+    if (!window.ReactNativeWebView) return;
+    var c = map.getCenter();
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'CENTER_CHANGED', lat: c.lat, lng: c.lng }));
+  });
 </script>
 </body>
 </html>`;
 }
 
 // ─── MapView ──────────────────────────────────────────────────────────────────
-export const MapView = forwardRef<any, any>(({ style, initialRegion, children }, ref) => {
+export const MapView = forwardRef<any, any>(({ style, initialRegion, children, onCenterChange }, ref) => {
   const webViewRef = useRef<any>(null);
 
   const send = (obj: object) => {
@@ -215,6 +224,12 @@ export const MapView = forwardRef<any, any>(({ style, initialRegion, children },
         mixedContentMode="always"
         originWhitelist={['*']}
         startInLoadingState={false}
+        onMessage={onCenterChange ? (e: any) => {
+          try {
+            const msg = JSON.parse(e.nativeEvent.data);
+            if (msg.type === 'CENTER_CHANGED') onCenterChange(msg.lat, msg.lng);
+          } catch {}
+        } : undefined}
       />
     </View>
   );

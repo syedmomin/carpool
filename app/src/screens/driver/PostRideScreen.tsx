@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton } from '../../components';
+import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton, PickupPinPicker } from '../../components';
 import { DatePickerInput, TimePickerInput } from '../../components/DateTimePicker';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
@@ -15,12 +15,35 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { vehiclesApi, scheduleRequestsApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
+import { generateLocalId } from '../../utils/id';
+import { formatLocalDate } from '../../utils/date';
 
 const TEXT_FIELDS = [
   { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', placeholder: 'e.g. 1500', type: 'numeric' },
   { key: 'pickupPoint', label: 'Pickup Location', placeholder: 'e.g. Karachi Cantt Station' },
   { key: 'dropPoint', label: 'Drop Location', placeholder: 'e.g. Larkana Bus Stop' },
 ];
+
+// Adds N days to a YYYY-MM-DD string, returning the same format.
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return formatLocalDate(dt);
+}
+
+// Parses this app's "h:mm am/pm" time strings (from TimePickerInput) into
+// minutes-since-midnight for same-day ordering checks. Returns null for any
+// unrecognized format rather than guessing.
+function timeToMinutes(t: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})\s*(am|pm)$/i.exec((t || '').trim());
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (m[3].toLowerCase() === 'pm' && h !== 12) h += 12;
+  if (m[3].toLowerCase() === 'am' && h === 12) h = 0;
+  return h * 60 + min;
+}
 
 // Boxed text field matching the Vehicle Setup screen's field style — label
 // inside the same bordered box as the value, so every form in the app reads
@@ -79,7 +102,10 @@ export default function PostRideScreen({ navigation }) {
   const [form, setForm] = useState({
     from: '', to: '', date: '', departureTime: '', arrivalTime: '',
     pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '',
+    returnDate: '', returnDepartureTime: '',
   });
+  const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
+  const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
   const [rideType, setRideType] = useState<'oneway' | 'roundtrip'>('oneway');
   const [isMultiStop, setIsMultiStop] = useState(false);
   const [stops, setStops] = useState([]); // [{ city, arrivalTime }]
@@ -179,6 +205,25 @@ export default function PostRideScreen({ navigation }) {
       }
     }
 
+    if (rideType === 'roundtrip') {
+      if (!form.returnDate || !form.returnDepartureTime) {
+        showToast('Please set the return date and time.', 'error');
+        return;
+      }
+      if (form.returnDate < form.date) {
+        showToast('Return date cannot be before the departure date.', 'error');
+        return;
+      }
+      if (form.returnDate === form.date) {
+        const outMins = timeToMinutes(form.departureTime);
+        const retMins = timeToMinutes(form.returnDepartureTime);
+        if (outMins != null && retMins != null && retMins <= outMins) {
+          showToast('Return time must be after the outbound departure time on the same day.', 'error');
+          return;
+        }
+      }
+    }
+
     if (vehiclesLoading) {
       showToast('Loading your vehicles, please wait a moment.', 'info');
       return;
@@ -194,6 +239,27 @@ export default function PostRideScreen({ navigation }) {
       });
       return;
     }
+
+    if (rideType === 'roundtrip') {
+      showModal({
+        type: 'primary',
+        title: 'Confirm Both Legs',
+        message:
+          `Outbound: ${form.from} → ${form.to}\n${form.date}, ${form.departureTime}\n\n` +
+          `Return: ${form.to} → ${form.from}\n${form.returnDate}, ${form.returnDepartureTime}\n\n` +
+          `Rs ${form.pricePerSeat}/seat on both legs.`,
+        confirmText: 'Post Both Rides',
+        cancelText: 'Edit',
+        icon: 'swap-horizontal-outline',
+        onConfirm: () => doPost(),
+      });
+      return;
+    }
+
+    doPost();
+  };
+
+  const doPost = async () => {
     haptics.impact();
     try {
       setLoading(true);
@@ -201,30 +267,75 @@ export default function PostRideScreen({ navigation }) {
         ? stops.map((s, i) => ({ city: s.city, order: i + 1, arrivalTime: s.arrivalTime || '' }))
         : [];
 
-      const payload = {
-        ...form,
+      // returnDate/returnDepartureTime are form-only fields — the Ride model
+      // has no such columns, so they must never reach the create payload.
+      const { returnDate, returnDepartureTime, ...outboundForm } = form;
+      const roundTripGroupId = rideType === 'roundtrip' ? generateLocalId() : undefined;
+
+      const basePayload = {
         driverId: currentUser?.id,
         vehicleId: selectedVehicle.id,
         pricePerSeat: parseInt(form.pricePerSeat),
         totalSeats: selectedVehicle.totalSeats,
         amenities: vehicleAmenities,
-        isMultiStop,
-        stops: stopsPayload,
       };
 
-      const { data, error } = await postRide(payload);
+      const outboundPayload = {
+        ...outboundForm,
+        ...basePayload,
+        isMultiStop,
+        stops: stopsPayload,
+        ...(roundTripGroupId ? { roundTripGroupId } : {}),
+        // A dropped pin is more precise than the city-center auto-fill, so it
+        // overrides fromLat/fromLng when the driver set one.
+        ...(pickupLat != null && pickupLng != null ? { fromLat: pickupLat, fromLng: pickupLng } : {}),
+      };
+
+      const { data, error } = await postRide(outboundPayload);
 
       if (error) {
         showToast(parseApiError(error), 'error');
-      } else {
-        haptics.success();
-        showToast('Ride posted successfully', 'success');
-        // Reset form
-        setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '' });
-        navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
+        return;
       }
+
+      if (rideType === 'roundtrip') {
+        // Same stops set, reversed order — the return leg passes through the
+        // same intermediate cities in the opposite direction.
+        const returnStopsPayload = isMultiStop
+          ? [...stopsPayload].reverse().map((s, i) => ({ ...s, order: i + 1 }))
+          : [];
+
+        const returnPayload = {
+          ...basePayload,
+          from: form.to,
+          to: form.from,
+          date: returnDate,
+          departureTime: returnDepartureTime,
+          arrivalTime: '',
+          pickupPoint: form.dropPoint,
+          dropPoint: form.pickupPoint,
+          description: form.description,
+          isMultiStop,
+          stops: returnStopsPayload,
+          roundTripGroupId,
+        };
+
+        const returnResult = await postRide(returnPayload);
+        if (returnResult.error) {
+          haptics.success();
+          showToast(`Outbound ride posted, but the return leg failed: ${parseApiError(returnResult.error)}`, 'warning');
+          setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+          navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
+          return;
+        }
+      }
+
+      haptics.success();
+      showToast(rideType === 'roundtrip' ? 'Both rides posted successfully' : 'Ride posted successfully', 'success');
+      setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+      navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
     } catch (err) {
-      showToast('An unexpected error occurred. Please try again.', 'error');
+      showToast('Something went wrong while posting your ride. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -276,35 +387,43 @@ export default function PostRideScreen({ navigation }) {
 
           {/* ── Route ────────────────────────────────────────────────────── */}
           <SectionHeader title="Route" />
-          <View style={styles.routeRow}>
-            <Pressable style={styles.cityBtn} onPress={() => setCityModal('from')}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cityBtnLabel}>From</Text>
-                <View style={styles.cityBtnValueRow}>
-                  <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
-                  <Text style={[styles.cityBtnText, !form.from && styles.placeholder]} numberOfLines={1}>
-                    {form.from || 'Leaving From?'}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-            </Pressable>
+          <View style={styles.routeCard}>
+            <View style={styles.routeLeft}>
+              <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
+              <View style={styles.routeVertLine} />
+              <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
+            </View>
+            <View style={styles.routeInputs}>
+              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
+                <Text style={[styles.routeInput, !form.from && styles.placeholder]} numberOfLines={1}>
+                  {form.from || 'Leaving From?'}
+                </Text>
+              </Pressable>
+              <View style={styles.routeInputDivider} />
+              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
+                <Text style={[styles.routeInput, !form.to && styles.placeholder]} numberOfLines={1}>
+                  {form.to || 'Going To?'}
+                </Text>
+              </Pressable>
+            </View>
             <Pressable onPress={() => { update('from', form.to); update('to', form.from); }} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
             </Pressable>
-            <Pressable style={styles.cityBtn} onPress={() => setCityModal('to')}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cityBtnLabel}>To</Text>
-                <View style={styles.cityBtnValueRow}>
-                  <View style={[styles.cityDot, { backgroundColor: COLORS.secondary }]} />
-                  <Text style={[styles.cityBtnText, !form.to && styles.placeholder]} numberOfLines={1}>
-                    {form.to || 'Going To?'}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-down" size={16} color={COLORS.gray} />
-            </Pressable>
           </View>
+
+          {/* ── Exact Pickup Point (optional) ───────────────────────────────── */}
+          {!!form.from && (
+            <>
+              <Text style={styles.pinHint}>
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact starting point in {form.from} so passengers can find you easily. This step is optional.
+              </Text>
+              <View style={{ marginBottom: 16 }}>
+                <PickupPinPicker
+                  onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+                />
+              </View>
+            </>
+          )}
 
           {/* ── Route Matching Suggestions ────────────────────────────────── */}
           {matchCount > 0 && (
@@ -433,12 +552,48 @@ export default function PostRideScreen({ navigation }) {
               <Text style={[styles.rideTypeText, rideType === 'oneway' && styles.rideTypeTextActive]}>One Way</Text>
             </Pressable>
             <Pressable
-              style={styles.rideTypeBtn}
-              onPress={() => showToast('Round trip rides are coming soon', 'info')}
+              style={[styles.rideTypeBtn, rideType === 'roundtrip' && styles.rideTypeBtnActive]}
+              onPress={() => setRideType('roundtrip')}
             >
-              <Text style={styles.rideTypeText}>Round Trip</Text>
+              <Ionicons name="swap-horizontal-outline" size={16} color={rideType === 'roundtrip' ? COLORS.primary : COLORS.textSecondary} />
+              <Text style={[styles.rideTypeText, rideType === 'roundtrip' && styles.rideTypeTextActive]}>Round Trip</Text>
             </Pressable>
           </View>
+
+          {rideType === 'roundtrip' && (
+            <View style={styles.returnLegBox}>
+              <Text style={styles.returnLegHint}>
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> This posts a second ride for the return leg ({form.to || 'destination'} → {form.from || 'origin'}).
+              </Text>
+
+              {!!form.date && (
+                <View style={styles.quickChipsRow}>
+                  <Pressable style={styles.quickChip} onPress={() => update('returnDate', form.date)}>
+                    <Text style={styles.quickChipText}>Same day</Text>
+                  </Pressable>
+                  <Pressable style={styles.quickChip} onPress={() => update('returnDate', addDays(form.date, 1))}>
+                    <Text style={styles.quickChipText}>Next day</Text>
+                  </Pressable>
+                  <Pressable style={styles.quickChip} onPress={() => update('returnDate', addDays(form.date, 7))}>
+                    <Text style={styles.quickChipText}>In a week</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              <DatePickerInput
+                label="Return Date *"
+                value={form.returnDate}
+                onChange={v => update('returnDate', v)}
+                minDate={form.date ? new Date(form.date) : new Date()}
+                maxDate={maxRideDate}
+              />
+              <TimePickerInput
+                label="Return Departure Time *"
+                value={form.returnDepartureTime}
+                onChange={v => update('returnDepartureTime', v)}
+              />
+            </View>
+          )}
 
           <BoxedField
             label="Note / Description"
@@ -503,20 +658,33 @@ const styles = StyleSheet.create({
   // Vehicle selector
   vehicleSelector: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 14, gap: 12, marginBottom: 4, borderWidth: 1.5, borderColor: COLORS.border },
   vehicleIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primaryLight },
-  vehicleName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  vehicleName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  vehicleDetail: { fontSize: 12.5, color: COLORS.gray, marginTop: 2 },
   noVehicleCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1', borderRadius: 12, padding: 14, marginBottom: 4, gap: 10 },
   noVehicleText: { flex: 1, fontSize: 14, fontWeight: '400', color: COLORS.accent },
 
-  // Route
-  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  cityBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-  cityBtnLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
-  cityBtnValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cityDot: { width: 8, height: 8, borderRadius: 4 },
-  cityBtnText: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  // Route card (matches HomeScreen / SearchScreen)
+  routeCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
+    borderWidth: 1, borderColor: COLORS.border,
+    ...CURVE,
+  },
+  routeLeft: { alignItems: 'center', gap: 3 },
+  routeDot: { width: 8, height: 8, borderRadius: 4 },
+  routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
+  routeInputs: { flex: 1 },
+  routeInputTouch: { paddingVertical: 6 },
+  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   placeholder: { color: COLORS.gray, fontWeight: '400' },
-  swapBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
+  swapBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
+    ...CURVE,
+  },
+  pinHint: { fontSize: 11.5, color: COLORS.gray, marginBottom: 8, lineHeight: 16 },
 
   // Multi-stop toggle
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: COLORS.border, marginBottom: 4 },
@@ -547,8 +715,8 @@ const styles = StyleSheet.create({
   // Vehicle picker items
   vehiclePickerItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: COLORS.border, gap: 12 },
   vehiclePickerItemActive: { borderColor: COLORS.primary, backgroundColor: '#eff6ff' },
-  vehiclePickerName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  vehiclePickerDetail: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  vehiclePickerName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  vehiclePickerDetail: { fontSize: 12.5, color: COLORS.gray, marginTop: 2 },
 
   // Match Banner
   matchBanner: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: COLORS.secondary + '30', backgroundColor: '#f0fdf4' },
@@ -562,6 +730,12 @@ const styles = StyleSheet.create({
   rideTypeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   rideTypeText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   rideTypeTextActive: { color: COLORS.primary, fontWeight: '700' },
+
+  returnLegBox: { backgroundColor: '#f8faff', borderRadius: 14, padding: 14, marginTop: 10, marginBottom: 4, borderWidth: 1, borderColor: COLORS.border },
+  returnLegHint: { fontSize: 12, color: COLORS.gray, marginBottom: 12, lineHeight: 18 },
+  quickChipsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  quickChip: { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
+  quickChipText: { fontSize: 11.5, fontWeight: '700', color: COLORS.primary },
 
   postBtn: { marginTop: 24 },
 });

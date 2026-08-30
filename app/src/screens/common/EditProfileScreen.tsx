@@ -89,7 +89,7 @@ export default function EditProfileScreen({ navigation }) {
     showModal({
       type: 'danger',
       title: 'Delete Account?',
-      message: 'This will permanently delete and anonymize all your data — profile, rides, bookings, and history. This action cannot be undone.',
+      message: 'This will permanently delete and anonymize all your data, including your profile, rides, bookings, and history. This action cannot be undone.',
       confirmText: 'Yes, Delete',
       cancelText: 'Cancel',
       icon: 'trash-outline',

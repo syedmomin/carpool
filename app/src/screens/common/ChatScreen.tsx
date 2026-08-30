@@ -2,14 +2,15 @@
 import {
   View, Text, StyleSheet, FlatList, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Keyboard, TouchableWithoutFeedback, Alert,
+  Keyboard, TouchableWithoutFeedback, Alert, Image,
 } from 'react-native';
+import { showImagePickerOptions } from '../../utils/imagePicker';
 
 const QUICK_EMOJIS = ['😊','😂','❤️','👍','🙏','😮','😢','🔥','👏','😎','✅','🎉'];
 const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🙏'];
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, Avatar, EmptyState } from '../../components';
+import { COLORS, CURVE, Avatar, EmptyState, DetailSkeleton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -28,7 +29,10 @@ export default function ChatScreen({ route, navigation }) {
   const [fetchingInfo, setFetchingInfo] = useState(!initialOtherUser);
   const [otherUser, setOtherUser] = useState(initialOtherUser);
   const [rideInfo, setRideInfo] = useState(initialRideInfo);
+  const [bookingDetail, setBookingDetail] = useState<any>(null);
+  const [isDriverView, setIsDriverView] = useState<boolean | null>(null);
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [reactions, setReactions] = useState<Record<string, string>>({});
@@ -36,10 +40,11 @@ export default function ChatScreen({ route, navigation }) {
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
 
+  // Always fetch the full booking (not just when otherUser/rideInfo are
+  // missing) — "View Ride Details" and "Report" need the ride/passenger
+  // data even when the caller already passed a display-only otherUser.
   useEffect(() => {
-    if (!initialOtherUser) {
-      fetchBookingInfo();
-    }
+    fetchBookingInfo();
   }, [bookingId]);
 
   const fetchBookingInfo = async () => {
@@ -49,14 +54,43 @@ export default function ChatScreen({ route, navigation }) {
       if (data?.data) {
         const b = data.data;
         const isDriver = b.ride.driverId === currentUser.id;
-        setOtherUser(isDriver ? b.passenger : b.ride.driver);
-        setRideInfo({ label: `${b.ride.fromCity} > ${b.ride.toCity}` });
+        setBookingDetail(b);
+        setIsDriverView(isDriver);
+        if (!initialOtherUser) {
+          setOtherUser(isDriver ? b.passenger : b.ride.driver);
+          setRideInfo({ label: `${b.ride.fromCity} > ${b.ride.toCity}` });
+        }
       }
     } catch (err) {
       console.error('[ChatScreen] Failed to fetch booking info:', err);
     } finally {
       setFetchingInfo(false);
     }
+  };
+
+  const handleViewRideDetails = () => {
+    if (!bookingDetail || isDriverView == null) {
+      showToast('Ride details are still loading, try again in a moment', 'info');
+      return;
+    }
+    navigation.navigate(isDriverView ? 'DriverApp' : 'PassengerApp', {
+      screen: isDriverView ? 'DriverProfileTab' : 'PassengerProfileTab',
+      params: {
+        screen: isDriverView ? 'DriverBookingDetail' : 'PastBookingDetail',
+        params: { booking: bookingDetail },
+      },
+    });
+  };
+
+  const handleReportUser = () => {
+    if (isDriverView == null) {
+      showToast('Still loading, try again in a moment', 'info');
+      return;
+    }
+    navigation.navigate(isDriverView ? 'DriverApp' : 'PassengerApp', {
+      screen: isDriverView ? 'DriverProfileTab' : 'PassengerProfileTab',
+      params: { screen: 'ReportIssue' },
+    });
   };
 
   useEffect(() => {
@@ -153,6 +187,23 @@ export default function ChatScreen({ route, navigation }) {
     Keyboard.dismiss();
   };
 
+  const handlePickImage = () => {
+    if (uploadingImage) return;
+    showImagePickerOptions(async (result: any) => {
+      if (result?.cancelled) return;
+      if (result?.error) { showToast('Could not upload photo', 'error'); return; }
+      if (!result?.url) return;
+      setUploadingImage(true);
+      socketService.emitWithQueue('send-message', {
+        bookingId,
+        senderId: currentUser?.id,
+        content: '📷 Photo',
+        imageUrl: result.url,
+      });
+      setUploadingImage(false);
+    }, 'chat');
+  };
+
   const renderMessage = ({ item, index }) => {
     const isMe = item.senderId === currentUser?.id;
     const time = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -182,10 +233,14 @@ export default function ChatScreen({ route, navigation }) {
             onLongPress={() => setReactingTo(isReacting ? null : item.id)}
             delayLongPress={350}
           >
-            <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble]}>
-              <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
-                {item.content}
-              </Text>
+            <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble, item.imageUrl && styles.imageBubble]}>
+              {item.imageUrl ? (
+                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+              ) : (
+                <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
+                  {item.content}
+                </Text>
+              )}
               <View style={styles.messageFooter}>
                 <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>{time}</Text>
                 {isMe && (
@@ -238,9 +293,9 @@ export default function ChatScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <DetailSkeleton />
+      </SafeAreaView>
     );
   }
 
@@ -272,8 +327,8 @@ export default function ChatScreen({ route, navigation }) {
             'Chat Options',
             undefined,
             [
-              { text: 'View Ride Details', onPress: () => showToast('Ride details coming soon', 'info') },
-              { text: 'Block/Report', style: 'destructive', onPress: () => showToast('Reporting is coming soon', 'info') },
+              { text: 'View Ride Details', onPress: handleViewRideDetails },
+              { text: 'Report User', style: 'destructive', onPress: handleReportUser },
               { text: 'Cancel', style: 'cancel' },
             ],
           )}
@@ -330,9 +385,14 @@ export default function ChatScreen({ route, navigation }) {
         <View style={styles.inputArea}>
           <Pressable
             style={styles.emojiBtn}
-            onPress={() => showToast('Attachments are coming soon', 'info')}
+            onPress={handlePickImage}
+            disabled={uploadingImage}
           >
-            <Ionicons name="add" size={22} color={COLORS.textSecondary} />
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color={COLORS.textSecondary} />
+            ) : (
+              <Ionicons name="add" size={22} color={COLORS.textSecondary} />
+            )}
           </Pressable>
           <Pressable
             style={styles.emojiBtn}
@@ -406,6 +466,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
+  imageBubble: { padding: 4 },
+  messageImage: { width: 200, height: 200, borderRadius: 14 },
   messageText: { fontSize: 15, lineHeight: 20 },
   myText: { color: '#fff' },
   otherText: { color: COLORS.textPrimary },

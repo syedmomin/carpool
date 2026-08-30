@@ -90,7 +90,12 @@ export const SPACING = {
 };
 
 // ─── TYPOGRAPHY ─────────────────────────────────────────────────────────────
+// Single scale for the whole app — screen/section text AND the text inside
+// every list-item card (ride/booking/request/vehicle/notification rows).
+// Import these instead of inventing a one-off fontSize per screen; that's
+// what caused every card to read at a different size before this existed.
 export const TYPOGRAPHY = {
+  // Screen/section level (headers, page titles)
   heading1: { fontSize: 26, fontWeight: '800', color: COLORS.textPrimary },
   heading2: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary },
   heading3: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
@@ -98,6 +103,12 @@ export const TYPOGRAPHY = {
   body:     { fontSize: 14, fontWeight: '400', color: COLORS.textPrimary },
   caption:  { fontSize: 12, fontWeight: '400', color: COLORS.textSecondary },
   label:    { fontSize: 11, fontWeight: '500', color: COLORS.textSecondary },
+
+  // Card level (any list-item row — ride/booking/request/vehicle/notification)
+  cardTitle:   { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },   // city/name headline
+  cardBody:    { fontSize: 12.5, fontWeight: '500', color: COLORS.textPrimary }, // driver name, vehicle, etc.
+  cardMeta:    { fontSize: 11.5, fontWeight: '500', color: COLORS.textSecondary }, // date/time/seats chips
+  cardCaption: { fontSize: 11, fontWeight: '400', color: COLORS.textSecondary }, // smallest helper text
 };
 
 // ─── SHADOWS ────────────────────────────────────────────────────────────────

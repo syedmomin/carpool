@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, Pressable,
-  FlatList, Platform,
+  FlatList,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from './theme';
 import { SearchInput } from './Input';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function CitySearchModal({ visible, title, onSelect, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<string[]>(POPULAR_CITIES);
 
@@ -42,7 +44,7 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 15 }]}>
           <Text style={styles.title}>{title}</Text>
           <Pressable onPress={onClose} style={styles.closeBtn}>
             <Ionicons name="close" size={22} color={COLORS.textPrimary} />
@@ -102,7 +104,7 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
 
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#fff' },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: Platform.OS === 'ios' ? 55 : 45, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   title:        { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary },
   closeBtn:     { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
   searchWrap:   { padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },

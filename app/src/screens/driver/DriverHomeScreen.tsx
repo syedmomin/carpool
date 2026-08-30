@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, SectionHeader, PulseBadge, PressableScale, CURVE, RouteTag } from '../../components';
@@ -34,6 +35,7 @@ function confirmedSeatsFor(r: any): number {
 export default function DriverHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { myRides, myRidesState, loadMyRides } = useSocketData();
+  const insets = useSafeAreaInsets();
   useDoubleBackExit();
   const [myVehicle, setMyVehicle] = useState(null);
   const [loadingVehicles, setLoadingVehicles] = useState(!myVehicle);
@@ -90,15 +92,15 @@ export default function DriverHomeScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <View style={styles.headerInfo}>
             <Text style={styles.greeting}>{getGreeting()}, {currentUser?.name} 👋</Text>
-            <Text style={styles.subGreeting}>Here's your dashboard overview</Text>
+            <Text style={styles.subGreeting}>Ready for your next ride?</Text>
           </View>
-          <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
+          <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('DriverHomeTab', { screen: 'Notifications' })}>
             <View style={styles.notifIcon}>
-              <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={21} color={COLORS.primary} />
+              <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={21} color="#fff" />
               <PulseBadge count={unreadCount} />
             </View>
           </Pressable>
@@ -287,20 +289,20 @@ export default function DriverHomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  header: { backgroundColor: COLORS.bg, paddingTop: Platform.OS === 'ios' ? 55 : 45, paddingBottom: 4, paddingHorizontal: 20 },
+  header: { backgroundColor: COLORS.bg, paddingBottom: 16, paddingHorizontal: 20 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   headerInfo: { flex: 1 },
-  greeting: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary },
-  subGreeting: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3 },
-  notifBtn: {},
-  notifIcon: { width: 44, height: 44, backgroundColor: COLORS.cardBg, borderRadius: 14, alignItems: 'center', justifyContent: 'center', position: 'relative', borderWidth: 1, borderColor: COLORS.border },
+  greeting: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
+  subGreeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
+  notifBtn: { position: 'relative', marginTop: 2 },
+  notifIcon: { width: 44, height: 44, backgroundColor: COLORS.primary, borderRadius: 22, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   activeRideBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderRadius: 16, padding: 14, ...CURVE,
   },
   activeRideDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#22c55e' },
   activeRideTitle: { fontSize: 13, fontWeight: '700', color: COLORS.white, marginBottom: 2 },
-  activeRideRoute: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  activeRideRoute: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
   statsWrap: { gap: 12, paddingHorizontal: 20, paddingTop: 16 },
   heroCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,

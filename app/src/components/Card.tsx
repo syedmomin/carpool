@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   routeLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 4 },
   routeInfo: { flex: 1, justifyContent: 'space-between', height: 54 },
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cityName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: 0.1 },
+  cityName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: 0.1 },
   timeWrapper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   timeText: { fontSize: 12, color: COLORS.gray, fontWeight: '600' },
   priceSection: {

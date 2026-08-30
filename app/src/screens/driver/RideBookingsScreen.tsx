@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, EmptyState, Avatar, StarRating, StatusBadge, TrustBadgesRow, TabPills, SectionHeader } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, Avatar, StarRating, StatusBadge, TrustBadgesRow, TabPills, SectionHeader, RequestCardSkeleton, RouteTag } from '../../components';
 import { ridesApi, bookingsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
@@ -177,8 +177,11 @@ export default function RideBookingsScreen({ navigation, route }) {
 
   if (loading && !ride) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={COLORS.teal} />
+      <View style={styles.container}>
+        <AppBar title="Ride Bookings" onBack={() => navigation.goBack()} />
+        <View style={styles.list}>
+          {[1, 2, 3].map(i => <RequestCardSkeleton key={i} />)}
+        </View>
       </View>
     );
   }
@@ -209,7 +212,7 @@ export default function RideBookingsScreen({ navigation, route }) {
 
       {ride && (
         <View style={styles.subtitleBlock}>
-          <Text style={styles.subtitleRoute}>{(ride.fromCity || ride.from)} → {(ride.toCity || ride.to)}</Text>
+          <RouteTag from={ride.fromCity || ride.from} to={ride.toCity || ride.to} textStyle={styles.subtitleRoute} />
           <Text style={styles.subtitleDate}>
             {ride.date}{hasTime ? `, ${ride.departureTime}` : ''}
           </Text>
@@ -270,7 +273,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   subtitleBlock: { paddingHorizontal: 16, marginBottom: 12 },
-  subtitleRoute: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  subtitleRoute: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   subtitleDate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   summaryRow: {
     flexDirection: 'row', backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 14,

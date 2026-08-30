@@ -19,15 +19,19 @@ const REASONS = [
   { label: 'Other',                    value: 'OTHER' },
 ];
 
-export default function ReportIssueScreen({ navigation }) {
+export default function ReportIssueScreen({ navigation, route }) {
   const { userRole } = useApp();
   const { showToast } = useToast();
 
-  const [loadingPeople, setLoadingPeople] = useState(true);
-  const [people, setPeople] = useState<any[]>([]);
+  // Coming from a specific booking (e.g. "Report" on a past ride) skips the
+  // people picker entirely — the target is already known.
+  const preset = route?.params?.preset;
+
+  const [loadingPeople, setLoadingPeople] = useState(!preset);
+  const [people, setPeople] = useState<any[]>(preset ? [preset] : []);
   const [reason, setReason] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedRideId, setSelectedRideId] = useState<string | undefined>(undefined);
+  const [selectedId, setSelectedId] = useState<string | null>(preset?.id || null);
+  const [selectedRideId, setSelectedRideId] = useState<string | undefined>(preset?.rideId);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,6 +40,7 @@ export default function ReportIssueScreen({ navigation }) {
   // people from a completed/confirmed ride are eligible — reporting requires
   // a real, completed interaction with that person.
   const fetchPeople = useCallback(async () => {
+    if (preset) return;
     setLoadingPeople(true);
     try {
       if (userRole === 'driver') {
@@ -82,7 +87,7 @@ export default function ReportIssueScreen({ navigation }) {
     } finally {
       setLoadingPeople(false);
     }
-  }, [userRole]);
+  }, [userRole, preset]);
 
   useFocusEffect(useCallback(() => { fetchPeople(); }, [fetchPeople]));
 
@@ -121,9 +126,11 @@ export default function ReportIssueScreen({ navigation }) {
 
           <SectionHeader title="Who are you reporting?" style={[styles.sectionHeader, { marginTop: 20 }]} />
           <Text style={styles.helperText}>
-            {userRole === 'driver'
-              ? 'Select the passenger from one of your recent rides.'
-              : 'Select the driver from one of your recent rides.'}
+            {preset
+              ? `Reporting ${preset.name} from your ${preset.routeLabel || 'recent'} ride.`
+              : userRole === 'driver'
+                ? 'Select the passenger from one of your recent rides.'
+                : 'Select the driver from one of your recent rides.'}
           </Text>
           {loadingPeople ? (
             <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 20 }} />
@@ -131,7 +138,7 @@ export default function ReportIssueScreen({ navigation }) {
             <EmptyState
               icon="people-outline"
               title="No One to Report Yet"
-              subtitle={`You need at least one completed ride before you can file a report — this helps us verify reports against real ride history.`}
+              subtitle={`You need at least one completed ride before filing a report.`}
               style={styles.emptyState}
             />
           ) : (
@@ -208,7 +215,7 @@ const styles = StyleSheet.create({
   personRowSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   personNameRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   personName:       { flexShrink: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  personMeta:       { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  personMeta:       { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
   roleBadge:        { backgroundColor: COLORS.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
   roleBadgeText:    { fontSize: 10, fontWeight: '700', color: COLORS.primary, textTransform: 'uppercase', letterSpacing: 0.3 },
   radio: {

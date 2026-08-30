@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable,
+  View, Text, StyleSheet, FlatList, Pressable,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, EmptyState, AppBar, Avatar, RouteTag, TabPills } from '../../components';
+import { COLORS, CURVE, EmptyState, AppBar, Avatar, RouteTag, TabPills, CardSkeleton } from '../../components';
 import { reviewsApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 
@@ -14,7 +14,7 @@ export default function ReviewsScreen({ navigation, route }) {
   const viewedUserName = route?.params?.userName;
   const isOwnProfile = viewedUserId === currentUser?.id;
 
-  const [subTab, setSubTab] = useState<'received' | 'given'>('given');
+  const [subTab, setSubTab] = useState<'received' | 'given'>('received');
   const [received, setReceived] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [given, setGiven] = useState<any[]>([]);
@@ -111,8 +111,8 @@ export default function ReviewsScreen({ navigation, route }) {
     return (
       <View style={styles.container}>
         <AppBar title={title} onBack={() => navigation.goBack()} />
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View style={styles.listContent}>
+          {[1, 2, 3].map(i => <CardSkeleton key={i} />)}
         </View>
       </View>
     );
@@ -125,8 +125,8 @@ export default function ReviewsScreen({ navigation, route }) {
       {isOwnProfile && (
         <TabPills
           tabs={[
-            { label: `Given (${given.length})`, value: 'given' },
             { label: `Received (${received.length})`, value: 'received' },
+            { label: `Given (${given.length})`, value: 'given' },
           ]}
           activeTab={subTab}
           onSelect={setSubTab}
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   reviewerInfo: { flex: 1, marginLeft: 12 },
   reviewerName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  rideRoute: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  rideRoute: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   reviewDate: { fontSize: 11, color: COLORS.textSecondary },
   comment: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 19, marginTop: 6 },
 });

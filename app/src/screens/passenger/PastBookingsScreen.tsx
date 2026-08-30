@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { COLORS, CURVE, EmptyState, AppBar, StatusPill, TabPills } from '../../components';
+import { COLORS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, RouteTag } from '../../components';
 import ReviewModal from '../../components/ReviewModal';
 import { bookingsApi } from '../../services/api';
 import { groupByMonth, isUpcomingByDate } from '../../utils/bookingGrouping';
@@ -13,6 +13,7 @@ import { groupByMonth, isUpcomingByDate } from '../../utils/bookingGrouping';
 export default function PastBookingsScreen({ navigation }) {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loaded, setLoaded] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -53,6 +54,7 @@ export default function PastBookingsScreen({ navigation }) {
         } finally {
             setRefreshing(false);
             setLoading(false);
+            setLoaded(true);
             isFetching.current = false;
         }
     }, []);
@@ -85,11 +87,12 @@ export default function PastBookingsScreen({ navigation }) {
             onPress={() => navigation.navigate('PastBookingDetail', { booking: item })}
         >
             <View style={styles.cardHeader}>
-                <View style={styles.routeCol}>
-                    <Text style={styles.cityText}>{item.ride?.fromCity || 'Unknown'}</Text>
-                    <Ionicons name="arrow-forward" size={14} color={COLORS.gray} />
-                    <Text style={styles.cityText}>{item.ride?.toCity || 'Unknown'}</Text>
-                </View>
+                <RouteTag
+                    from={item.ride?.fromCity || 'Unknown'}
+                    to={item.ride?.toCity || 'Unknown'}
+                    textStyle={styles.cityText}
+                    style={styles.routeCol}
+                />
                 <StatusPill status={item.status} />
             </View>
             <View style={styles.cardFooter}>
@@ -110,6 +113,17 @@ export default function PastBookingsScreen({ navigation }) {
             )}
         </Pressable>
     );
+
+    if (!loaded && loading) {
+        return (
+            <View style={styles.container}>
+                <AppBar title="Past Bookings" onBack={() => navigation.goBack()} />
+                <View style={styles.listContent}>
+                    {[1, 2, 3].map(i => <BookingCardSkeleton key={i} />)}
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -174,7 +188,7 @@ const styles = StyleSheet.create({
     sectionHeader: { fontSize: 13, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 12, marginBottom: 10 },
     card: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    routeCol: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+    routeCol: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     cityText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
     dateText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },

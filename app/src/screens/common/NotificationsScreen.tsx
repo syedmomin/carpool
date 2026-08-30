@@ -215,29 +215,31 @@ export default function NotificationsScreen({ navigation }) {
 
           return (
             <Pressable
-              style={[styles.card, !isRead && styles.cardUnread, isNewRide && styles.cardNewRide]}
+              style={[styles.card, !isRead && styles.cardUnread]}
               onPress={() => handleNotifPress(item)}
             >
               <View style={[styles.iconBox, { backgroundColor: config.bg }]}>
-                <Ionicons name={(config.icon) as any} size={22} color={config.color} />
+                <Ionicons name={(config.icon) as any} size={21} color={config.color} />
               </View>
               <View style={styles.content}>
                 <View style={styles.titleRow}>
-                  <Text style={[styles.title, !isRead && { fontWeight: '800', letterSpacing: -0.1 }]}>{item.title}</Text>
+                  <Text style={[styles.title, !isRead && styles.titleUnread]} numberOfLines={1}>{item.title}</Text>
                   {!isRead && <View style={styles.unreadDot} />}
                 </View>
-                <Text style={styles.message}>{item.message}</Text>
-                <Text style={styles.time}>{timeLabel}</Text>
+                <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
+                <View style={styles.metaRow}>
+                  <Text style={styles.time}>{timeLabel}</Text>
 
-                {isNewRide && (item.rideId || item.ride?.id) && (
-                  <Pressable
-                    style={styles.interestedBtn}
-                    onPress={() => handleViewRide(item)}
-                  >
-                    <Ionicons name="eye-outline" size={15} color={COLORS.white} />
-                    <Text style={styles.interestedText}>View Ride</Text>
-                  </Pressable>
-                )}
+                  {isNewRide && (item.rideId || item.ride?.id) && (
+                    <Pressable
+                      style={styles.interestedBtn}
+                      onPress={() => handleViewRide(item)}
+                    >
+                      <Ionicons name="eye-outline" size={13} color={COLORS.primary} />
+                      <Text style={styles.interestedText}>View Ride</Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             </Pressable>
           );
@@ -268,8 +270,8 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 14, color: COLORS.textPrimary, height: '100%' },
 
   chatRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 14, marginBottom: 10, ...CURVE },
-  chatName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  chatPreview: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  chatName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  chatPreview: { fontSize: 12.5, color: COLORS.textSecondary, marginTop: 2 },
   chatRight: { alignItems: 'flex-end', gap: 6 },
   chatTime: { fontSize: 11, color: COLORS.textSecondary },
   chatUnreadBadge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
@@ -277,21 +279,25 @@ const styles = StyleSheet.create({
 
   card: {
     flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.cardBg,
-    borderRadius: 16, padding: 14, marginBottom: 10,
+    borderRadius: 16, padding: 14, marginBottom: 10, gap: 12,
     borderWidth: 1, borderColor: COLORS.border,
+    shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 1,
     ...CURVE,
   },
-  markAllBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  markAllText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary, backgroundColor: COLORS.primary + '05' },
-  cardNewRide: { borderLeftWidth: 3, borderLeftColor: COLORS.teal },
-  iconBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0, ...CURVE },
+  cardUnread: { backgroundColor: COLORS.primary + '06', borderColor: COLORS.primary + '20' },
+  iconBox: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   content: { flex: 1 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  title: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
-  message: { fontSize: 13, color: COLORS.gray, lineHeight: 19, marginBottom: 6 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
+  title: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
+  titleUnread: { fontWeight: '800', letterSpacing: -0.1 },
+  message: { fontSize: 12.5, color: COLORS.gray, lineHeight: 18, marginBottom: 6 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   time: { fontSize: 11, color: COLORS.gray },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, flexShrink: 0 },
-  interestedBtn: { marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9, ...CURVE },
-  interestedText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
+  unreadDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COLORS.primary, flexShrink: 0 },
+  interestedBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: COLORS.primaryLight, borderRadius: 20, borderWidth: 1, borderColor: COLORS.primary + '30',
+    paddingHorizontal: 10, paddingVertical: 5,
+  },
+  interestedText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
 });

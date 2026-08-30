@@ -298,7 +298,15 @@ export default function MyRequestsScreen({ navigation }) {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
-            <RouteTag from={req.fromCity} to={req.toCity} textStyle={styles.route} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <RouteTag from={req.fromCity} to={req.toCity} textStyle={styles.route} />
+              {!!req.roundTripGroupId && (
+                <View style={styles.roundTripBadge}>
+                  <Ionicons name="swap-horizontal" size={11} color={COLORS.primary} />
+                  <Text style={styles.roundTripBadgeText}>Round Trip</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.meta}>
               <Ionicons name="calendar-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{req.date}</Text>
@@ -522,8 +530,10 @@ const styles = StyleSheet.create({
 
   card:             { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: COLORS.border },
   cardHeader:       { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  route:            { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  route:            { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   meta:             { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  roundTripBadge:   { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginLeft: 8 },
+  roundTripBadgeText: { fontSize: 10, fontWeight: '700', color: COLORS.primary },
   metaText:         { fontSize: 12, color: COLORS.gray, fontWeight: '500' },
   noteText:         { fontSize: 12, color: COLORS.gray, fontStyle: 'italic', marginTop: 4 },
   statusBadge:      { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
@@ -544,7 +554,7 @@ const styles = StyleSheet.create({
   bidDriver:        { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   ratingRow:        { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
   ratingText:       { fontSize: 11, color: COLORS.warning, fontWeight: '600' },
-  bidVehicle:       { fontSize: 11, color: COLORS.gray, marginTop: 3 },
+  bidVehicle:       { fontSize: 11.5, color: COLORS.gray, marginTop: 3 },
 
   bidPriceBox:      { alignItems: 'flex-end', flexShrink: 0 },
   bidPrice:         { fontSize: 18, fontWeight: '700', color: COLORS.primary },

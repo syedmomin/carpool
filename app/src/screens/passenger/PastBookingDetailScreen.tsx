@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader } from '../../components';
+import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader, RouteTag } from '../../components';
 import { useGlobalModal } from '../../context/GlobalModalContext';
+import { estimateRideDistanceKm } from '../../utils/geo';
 
 function durationLabel(from?: string, to?: string) {
   if (!from || !to) return '—';
@@ -23,10 +24,12 @@ export default function PastBookingDetailScreen({ navigation, route }) {
   const driver = ride?.driver;
   const vehicle = ride?.vehicle;
 
+  const rideDistanceKm = estimateRideDistanceKm(ride);
+
   const INFO_ROWS = [
     { label: 'From', value: booking?.boardingCity || ride?.fromCity || ride?.from, icon: 'location-outline' },
     { label: 'To', value: booking?.exitCity || ride?.toCity || ride?.to, icon: 'flag-outline' },
-    { label: 'Distance', value: ride?.route?.distance ? `${Math.round(ride.route.distance)} km` : '—', icon: 'navigate-outline' },
+    { label: 'Distance', value: rideDistanceKm != null ? `${rideDistanceKm} km` : '—', icon: 'navigate-outline' },
     { label: 'Time', value: durationLabel(ride?.departureTime, ride?.arrivalTime), icon: 'time-outline' },
     { label: 'Seats', value: `${booking?.seats ?? 1}`, icon: 'people-outline' },
     { label: 'Fare per Seat', value: `Rs. ${(ride?.pricePerSeat ?? (booking?.totalAmount && booking?.seats ? Math.round(booking.totalAmount / booking.seats) : 0)).toLocaleString()}`, icon: 'pricetag-outline' },
@@ -41,9 +44,7 @@ export default function PastBookingDetailScreen({ navigation, route }) {
         rightAction={<StatusBadge status={booking?.status} />}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-        <Text style={styles.routeText}>
-          {ride?.fromCity || ride?.from} → {ride?.toCity || ride?.to}
-        </Text>
+        <RouteTag from={ride?.fromCity || ride?.from} to={ride?.toCity || ride?.to} textStyle={styles.routeText} />
         <Text style={styles.dateText}>{ride?.date}, {ride?.departureTime}</Text>
 
         {/* Driver card */}
@@ -95,7 +96,7 @@ export default function PastBookingDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   body: { paddingHorizontal: 16, paddingBottom: 32 },
-  routeText: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  routeText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   dateText: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4, marginBottom: 16 },
   driverCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

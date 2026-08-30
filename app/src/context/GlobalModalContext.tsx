@@ -2,6 +2,7 @@
 import {
   View, Text, StyleSheet, Modal, Pressable, Animated, Platform, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '../components/theme';
@@ -51,6 +52,7 @@ const GlobalModalContext = createContext(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export function GlobalModalProvider({ children }) {
+  const insets = useSafeAreaInsets();
   const [config, setConfig]   = useState(null);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -123,15 +125,8 @@ export function GlobalModalProvider({ children }) {
               <View style={styles.handle} />
             </View>
 
-            {/* Top accent line */}
-            <View style={styles.accentLineWrap}>
-                <LinearGradient colors={cfg.gradient} style={styles.accentLine} />
-            </View>
-
             <Animated.View style={[styles.iconCircle, { backgroundColor: cfg.iconBg, transform: [{ scale: iconScale }] }]}>
-              <View style={[styles.iconInner, { backgroundColor: cfg.iconBg }]}>
-                <Ionicons name={(iconName) as any} size={42} color={cfg.iconColor} />
-              </View>
+              <Ionicons name={(iconName) as any} size={30} color={cfg.iconColor} />
             </Animated.View>
 
             <Text style={styles.title}>{config?.title || ''}</Text>
@@ -153,7 +148,7 @@ export function GlobalModalProvider({ children }) {
               </Pressable>
             </View>
             {/* Bottom spacer for safe area (notches) */}
-            <View style={{ height: Platform.OS === 'ios' ? 34 : 24 }} />
+            <View style={{ height: Math.max(insets.bottom, 16) }} />
           </Animated.View>
         </View>
       </Modal>
@@ -176,8 +171,8 @@ const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     backgroundColor: '#fff',
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingHorizontal: 24,
     paddingBottom: 0,
     paddingTop: 0,
@@ -185,132 +180,100 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -12 },
-        shadowOpacity: 0.15,
-        shadowRadius: 20,
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
       },
       android: {
         elevation: 24,
       },
       web: {
-        boxShadow: '0 -12px 20px rgba(0,0,0,0.15)',
+        boxShadow: '0 -8px 16px rgba(0,0,0,0.1)',
       },
     }),
   },
   handleWrap: {
     width: '100%',
-    height: 30,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
   handle: {
-    width: 40,
-    height: 5,
-    borderRadius: 2.5,
+    width: 36,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#e2e8f0',
   },
-  accentLineWrap: {
-    width: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  accentLine: {
-    width: '100%',
-    height: 0, // Accent hidden or subtle bar
-  },
   iconCircle: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 10,
-      },
-      web: {
-        boxShadow: '0 6px 10px rgba(0,0,0,0.12)',
-      },
-    }),
-  },
-  iconInner: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.textPrimary,
     textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: -0.3,
+    marginBottom: 6,
+    letterSpacing: -0.2,
   },
   message: {
-    fontSize: 15,
+    fontSize: 14,
     color: COLORS.gray,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
     marginBottom: 4,
     paddingHorizontal: 0,
   },
   btnRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 28,
+    marginTop: 24,
     width: '100%',
   },
   cancelBtn: {
     flex: 1,
-    paddingVertical: 15,
-    borderRadius: 18,
+    paddingVertical: 13,
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#f1f5f9',
+    borderColor: COLORS.border,
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.cardBg,
   },
   cancelText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.textSecondary,
   },
   confirmBtnWrap: {
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 14,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
       },
       web: {
-        boxShadow: `0 4px 8px ${COLORS.primary}33`,
+        boxShadow: `0 3px 6px ${COLORS.primary}2a`,
       },
     }),
   },
   confirmBtn: {
-    paddingVertical: 15,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });
 

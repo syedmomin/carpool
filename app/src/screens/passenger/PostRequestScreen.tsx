@@ -3,15 +3,27 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, PrimaryButton, DatePickerInput, TimePickerInput } from '../../components';
+import { COLORS, CURVE, AppBar, PrimaryButton, DatePickerInput, TimePickerInput, PickupPinPicker } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 import { scheduleRequestsApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
 import { parseApiError } from '../../utils/errorMessages';
+import { to24Hour, formatLocalDate } from '../../utils/date';
+import { generateLocalId } from '../../utils/id';
+
+// Adds N days to a YYYY-MM-DD string, returning the same format.
+function addDays(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return formatLocalDate(dt);
+}
 
 export default function PostRequestScreen({ navigation, route }: any) {
   const { showToast } = useToast();
+  const { showModal } = useGlobalModal();
 
   const maxDate = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
@@ -20,7 +32,11 @@ export default function PostRequestScreen({ navigation, route }: any) {
   const [to, setTo]       = useState('');
   const [seats, setSeats] = useState(1);
   const [departureTime, setDepartureTime] = useState('');
+  const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
+  const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
   const [rideType, setRideType] = useState<'oneway' | 'roundtrip'>('oneway');
+  const [returnDate, setReturnDate] = useState<string | null>(null);
+  const [returnDepartureTime, setReturnDepartureTime] = useState('');
   const [note, setNote]   = useState('');
   const [posting, setPosting]   = useState(false);
   const [cityModal, setCityModal] = useState<'from' | 'to' | null>(null);
@@ -45,21 +61,83 @@ export default function PostRequestScreen({ navigation, route }: any) {
     if (from === to)   { showToast('Cities cannot be the same', 'error'); return; }
     if (!departureTime.trim()) { showToast('Please select your preferred departure time', 'warning'); return; }
 
+    const departureTime24 = to24Hour(departureTime.trim());
+
+    if (rideType === 'roundtrip') {
+      if (!returnDate) { showToast('Please select a return date', 'warning'); return; }
+      if (!returnDepartureTime.trim()) { showToast('Please select your preferred return time', 'warning'); return; }
+      if (returnDate < selectedDate) { showToast('Return date cannot be before the departure date', 'error'); return; }
+      const returnTime24 = to24Hour(returnDepartureTime.trim());
+      if (returnDate === selectedDate && returnTime24 <= departureTime24) {
+        showToast('Return time must be after the outbound departure time on the same day', 'error');
+        return;
+      }
+    }
+
+    if (rideType === 'roundtrip') {
+      const returnTime24 = to24Hour(returnDepartureTime.trim());
+      showModal({
+        type: 'primary',
+        title: 'Confirm Both Legs',
+        message:
+          `Outbound: ${from} → ${to}\n${selectedDate}, ${departureTime24}\n\n` +
+          `Return: ${to} → ${from}\n${returnDate}, ${returnTime24}`,
+        confirmText: 'Post Both Requests',
+        cancelText: 'Edit',
+        icon: 'swap-horizontal-outline',
+        onConfirm: () => doPost(departureTime24),
+      });
+      return;
+    }
+
+    doPost(departureTime24);
+  };
+
+  const doPost = async (departureTime24: string) => {
     setPosting(true);
+    const roundTripGroupId = rideType === 'roundtrip' ? generateLocalId() : undefined;
+
     const { error } = await scheduleRequestsApi.create({
-      fromCity: from, toCity: to, date: selectedDate, departureTime: departureTime.trim(), seats,
+      fromCity: from, toCity: to, date: selectedDate as string, departureTime: departureTime24, seats,
       note: note.trim() || undefined,
+      ...(roundTripGroupId ? { roundTripGroupId } : {}),
+      ...(pickupLat != null && pickupLng != null ? { fromLat: pickupLat, fromLng: pickupLng } : {}),
     });
-    setPosting(false);
 
     if (error) {
+      setPosting(false);
       showToast(parseApiError(error), 'error');
-    } else {
-      haptics.success();
-      showToast('Request posted! Drivers will send offers soon.', 'success', 4000);
-      setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
-      navigation.navigate('MyRequests');
+      return;
     }
+
+    if (rideType === 'roundtrip') {
+      const returnTime24 = to24Hour(returnDepartureTime.trim());
+      const { error: returnError } = await scheduleRequestsApi.create({
+        fromCity: to, toCity: from, date: returnDate as string, departureTime: returnTime24, seats,
+        note: note.trim() || undefined,
+        roundTripGroupId,
+      });
+      setPosting(false);
+      if (returnError) {
+        haptics.success();
+        showToast(`Outbound request posted, but the return leg failed: ${parseApiError(returnError)}`, 'warning');
+        setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
+        setReturnDate(null); setReturnDepartureTime(''); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+        navigation.navigate('MyRequests');
+        return;
+      }
+    } else {
+      setPosting(false);
+    }
+
+    haptics.success();
+    showToast(
+      rideType === 'roundtrip' ? 'Both requests posted! Drivers will send offers soon.' : 'Request posted! Drivers will send offers soon.',
+      'success', 4000,
+    );
+    setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
+    setReturnDate(null); setReturnDepartureTime(''); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+    navigation.navigate('MyRequests');
   };
 
   return (
@@ -68,29 +146,43 @@ export default function PostRequestScreen({ navigation, route }: any) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
         <View style={styles.card}>
           {/* Route */}
-          <Pressable style={styles.cityField} onPress={() => setCityModal('from')}>
-            <View style={[styles.cityDot, { backgroundColor: COLORS.primary }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>From</Text>
-              <Text style={[styles.cityText, !from && styles.placeholder]}>{from || 'Departure City'}</Text>
+          <View style={styles.routeCard}>
+            <View style={styles.routeLeft}>
+              <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
+              <View style={styles.routeVertLine} />
+              <View style={[styles.routeDot, { backgroundColor: COLORS.danger }]} />
             </View>
-            <Ionicons name="chevron-down" size={15} color={COLORS.gray} />
-          </Pressable>
-
-          <View style={styles.swapRow}>
-            <Pressable style={styles.swapBtn} onPress={() => { const t = from; setFrom(to); setTo(t); }}>
+            <View style={styles.routeInputs}>
+              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
+                <Text style={[styles.routeInput, !from && styles.routeInputPlaceholder]} numberOfLines={1}>
+                  {from || 'Departure City'}
+                </Text>
+              </Pressable>
+              <View style={styles.routeInputDivider} />
+              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
+                <Text style={[styles.routeInput, !to && styles.routeInputPlaceholder]} numberOfLines={1}>
+                  {to || 'Destination City'}
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={() => { const t = from; setFrom(to); setTo(t); }} style={styles.swapBtn}>
               <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
             </Pressable>
           </View>
 
-          <Pressable style={styles.cityField} onPress={() => setCityModal('to')}>
-            <View style={[styles.cityDot, { backgroundColor: COLORS.danger }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fieldLabel}>To</Text>
-              <Text style={[styles.cityText, !to && styles.placeholder]}>{to || 'Destination City'}</Text>
-            </View>
-            <Ionicons name="chevron-down" size={15} color={COLORS.gray} />
-          </Pressable>
+          {/* Exact Pickup Point (optional) */}
+          {!!from && (
+            <>
+              <Text style={styles.pinHint}>
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact pickup point in {from} so drivers can find you easily. This step is optional.
+              </Text>
+              <View style={{ marginBottom: 16 }}>
+                <PickupPinPicker
+                  onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+                />
+              </View>
+            </>
+          )}
 
           {/* Date / Time */}
           <View style={styles.row}>
@@ -135,12 +227,44 @@ export default function PostRequestScreen({ navigation, route }: any) {
               <Text style={[styles.rideTypeText, rideType === 'oneway' && styles.rideTypeTextActive]}>One Way</Text>
             </Pressable>
             <Pressable
-              style={styles.rideTypeBtn}
-              onPress={() => showToast('Round trip requests are coming soon', 'info')}
+              style={[styles.rideTypeBtn, rideType === 'roundtrip' && styles.rideTypeBtnActive]}
+              onPress={() => setRideType('roundtrip')}
             >
-              <Text style={styles.rideTypeText}>Round Trip</Text>
+              <Ionicons name="swap-horizontal-outline" size={16} color={rideType === 'roundtrip' ? COLORS.primary : COLORS.textSecondary} />
+              <Text style={[styles.rideTypeText, rideType === 'roundtrip' && styles.rideTypeTextActive]}>Round Trip</Text>
             </Pressable>
           </View>
+
+          {rideType === 'roundtrip' && (
+            <View style={styles.returnLegBox}>
+              <Text style={styles.returnLegHint}>
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> This posts a second request for the return leg ({to || 'destination'} → {from || 'origin'}).
+              </Text>
+
+              {!!selectedDate && (
+                <View style={styles.quickChipsRow}>
+                  <Pressable style={styles.quickChip} onPress={() => setReturnDate(selectedDate)}>
+                    <Text style={styles.quickChipText}>Same day</Text>
+                  </Pressable>
+                  <Pressable style={styles.quickChip} onPress={() => setReturnDate(addDays(selectedDate, 1))}>
+                    <Text style={styles.quickChipText}>Next day</Text>
+                  </Pressable>
+                  <Pressable style={styles.quickChip} onPress={() => setReturnDate(addDays(selectedDate, 7))}>
+                    <Text style={styles.quickChipText}>In a week</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <DatePickerInput label="Return Date" value={returnDate} onChange={setReturnDate} minDate={selectedDate ? new Date(selectedDate) : new Date()} maxDate={maxDate} placeholder="Select date" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TimePickerInput label="Return Time" value={returnDepartureTime || null} onChange={setReturnDepartureTime} placeholder="Select time" />
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Note */}
           <Text style={[styles.fieldLabelStandalone, { marginTop: 16 }]}>Additional Notes (Optional)</Text>
@@ -158,7 +282,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
         <View style={styles.infoBanner}>
           <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
           <Text style={styles.infoText}>
-            Drivers will see your request and send offers with their price. Accept the best offer and a ride will be instantly created with your seat confirmed.
+            Drivers will send offers with their price. Accept one and your ride is booked right away.
           </Text>
         </View>
 
@@ -182,14 +306,30 @@ const styles = StyleSheet.create({
     shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 2,
     ...CURVE,
   },
-  cityField:      { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
-  cityDot:        { width: 8, height: 8, borderRadius: 4 },
-  fieldLabel:     { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 2 },
   fieldLabelStandalone: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
-  cityText:       { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  placeholder:    { color: COLORS.gray, fontWeight: '400' },
-  swapRow:        { alignItems: 'flex-end', marginTop: -20, marginBottom: 4, marginRight: 4 },
-  swapBtn:        { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
+
+  // Route card (matches HomeScreen / SearchScreen)
+  routeCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
+    borderWidth: 1, borderColor: COLORS.border,
+    ...CURVE,
+  },
+  routeLeft: { alignItems: 'center', gap: 3 },
+  routeDot: { width: 8, height: 8, borderRadius: 4 },
+  routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
+  routeInputs: { flex: 1 },
+  routeInputTouch: { paddingVertical: 6 },
+  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
+  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
+  swapBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
+    ...CURVE,
+  },
+  pinHint:        { fontSize: 11.5, color: COLORS.gray, marginBottom: 8, lineHeight: 16 },
   row:            { flexDirection: 'row', gap: 12 },
   seatsRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16 },
   stepperRow:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -201,6 +341,11 @@ const styles = StyleSheet.create({
   rideTypeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   rideTypeText:   { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
   rideTypeTextActive: { color: COLORS.primary, fontWeight: '700' },
+  returnLegBox: { backgroundColor: COLORS.lightGray, borderRadius: 14, padding: 14, marginTop: 10, marginBottom: 4 },
+  returnLegHint: { fontSize: 12, color: COLORS.gray, marginBottom: 12, lineHeight: 18 },
+  quickChipsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  quickChip: { flex: 1, paddingVertical: 8, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' },
+  quickChipText: { fontSize: 11.5, fontWeight: '700', color: COLORS.primary },
   noteInput:      { backgroundColor: COLORS.lightGray, borderRadius: 12, padding: 12, fontSize: 13, color: COLORS.textPrimary, textAlignVertical: 'top', minHeight: 70 },
   infoBanner:     { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.primaryLight, borderRadius: 14, padding: 14, gap: 10, marginTop: 16, marginBottom: 20 },
   infoText:       { flex: 1, fontSize: 13, color: COLORS.primaryDark, lineHeight: 20 },

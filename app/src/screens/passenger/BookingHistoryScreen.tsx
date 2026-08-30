@@ -8,7 +8,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar } from '../../components';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar, RouteTag } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -33,6 +34,7 @@ function StarPicker({ rating, onChange }) {
 
 // ─── Review Modal ─────────────────────────────────────────────────────────────
 function ReviewModal({ booking, onClose, onSubmit }) {
+    const insets = useSafeAreaInsets();
     const [rating, setRating] = useState(5);
     const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -50,7 +52,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
         });
         setSubmitting(false);
         if (error) showToast(parseApiError(error), 'error');
-        else { showToast('Thanks for your review', 'success'); onSubmit(booking.id); }
+        else { showToast('Thanks for your review', 'success'); onSubmit(booking.id, booking?.ride?.id); }
     };
 
     return (
@@ -62,7 +64,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                         <Text style={rStyles.sheetTitle}>Rate Your Driver</Text>
                         <Text style={rStyles.sheetSub}>How was your ride with {booking?.ride?.driver?.name || 'the driver'}?</Text>
                     </LinearGradient>
-                    <View style={rStyles.sheetBody}>
+                    <View style={[rStyles.sheetBody, { paddingBottom: 24 + insets.bottom }]}>
                         <View style={rStyles.routeRecap}>
                             <Text style={rStyles.routeText}>
                                 {booking?.ride?.fromCity || booking?.ride?.from}{' > '}
@@ -99,6 +101,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
 
 // ─── Cancel Reason Modal ──────────────────────────────────────────────────────
 function CancelReasonModal({ visible, onClose, onSubmit }) {
+    const insets = useSafeAreaInsets();
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const submit = async () => {
@@ -118,7 +121,7 @@ function CancelReasonModal({ visible, onClose, onSubmit }) {
                         <Text style={[rStyles.sheetTitle, { color: '#b91c1c' }]}>Cancel Booking</Text>
                         <Text style={[rStyles.sheetSub, { color: '#991b1b' }]}>Please tell the driver why you are cancelling.</Text>
                     </LinearGradient>
-                    <View style={rStyles.sheetBody}>
+                    <View style={[rStyles.sheetBody, { paddingBottom: 24 + insets.bottom }]}>
                         <TextInput style={rStyles.commentInput} placeholder="Reason for cancellation..."
                             placeholderTextColor={COLORS.gray} value={reason} onChangeText={setReason}
                             multiline numberOfLines={3} maxLength={200} />
@@ -142,6 +145,7 @@ function CancelReasonModal({ visible, onClose, onSubmit }) {
 
 // ─── SOS Modal ────────────────────────────────────────────────────────────────
 function SOSModal({ visible, onClose }) {
+    const insets = useSafeAreaInsets();
     const emergencyNumbers = [
         { label: 'Rescue 1122', number: '1122', icon: 'medkit-outline',  color: '#ef4444' },
         { label: 'Police 15',   number: '15',   icon: 'shield-outline',  color: '#3b82f6' },
@@ -155,7 +159,7 @@ function SOSModal({ visible, onClose }) {
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <View style={sosStyles.overlay}>
-                <View style={sosStyles.sheet}>
+                <View style={[sosStyles.sheet, { paddingBottom: 20 + insets.bottom }]}>
                     <View style={sosStyles.header}>
                         <View style={sosStyles.sosIconWrap}><Ionicons name="warning" size={28} color="#fff" /></View>
                         <Text style={sosStyles.title}>Emergency SOS</Text>
@@ -196,6 +200,12 @@ export default function BookingHistoryScreen({ navigation }) {
     const REVIEWED_KEY = '@reviewed_booking_ids';
     const [reviewBooking, setReviewBooking]     = useState(null);
     const [reviewedIds, setReviewedIds]         = useState<Set<string>>(new Set());
+    // Server-truth set of ride IDs the passenger has already reviewed — the
+    // local AsyncStorage set above only hides the button instantly right
+    // after submitting on THIS device; this one is what actually stops a
+    // stale "Rate Driver" button from reappearing after a reinstall or on
+    // another device, since it reflects real reviews in the database.
+    const [reviewedRideIds, setReviewedRideIds] = useState<Set<string>>(new Set());
 
     // Persist reviewed booking IDs so the "Rate Driver" button doesn't reappear
     // after navigating away and returning to this screen.
@@ -206,6 +216,13 @@ export default function BookingHistoryScreen({ navigation }) {
             }
         });
     }, []);
+
+    const fetchReviewedRides = useCallback(async () => {
+        const { data } = await reviewsApi.myGiven();
+        const reviews = data?.data?.reviews || [];
+        setReviewedRideIds(new Set(reviews.map((r: any) => r.rideId).filter(Boolean)));
+    }, []);
+    useFocusEffect(useCallback(() => { fetchReviewedRides(); }, [fetchReviewedRides]));
     const [sosVisible, setSosVisible]           = useState(false);
     const [cancelTarget, setCancelTarget]       = useState(null);
     const [cancellingId, setCancellingId]       = useState<string | null>(null);
@@ -214,13 +231,10 @@ export default function BookingHistoryScreen({ navigation }) {
     const [addCount, setAddCount]               = useState(1);
     const [addLoading, setAddLoading]           = useState(false);
 
-    // "All" and "Cancelled" are additional filtered views derived from the
-    // SAME underlying booking lists this screen already fetches — myBookings
-    // (active, from the socket-backed hook) for "Upcoming", and pastBookings
-    // (fetched below) for "Past". "All" merges both into Upcoming/Past
-    // sections; "Cancelled" is just pastBookings narrowed to the
-    // cancelled/rejected/expired statuses. No new API calls were added.
-    const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'past' | 'cancelled'>('upcoming');
+    // "Cancelled" is an additional filtered view derived from the SAME
+    // pastBookings list already fetched for "Past", narrowed to the
+    // cancelled/rejected/expired statuses. No new API call needed for it.
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
     const [pastBookings, setPastBookings] = useState<any[]>([]);
     const [pastLoading, setPastLoading] = useState(true);
     const [pastLoaded, setPastLoaded] = useState(false);
@@ -241,8 +255,8 @@ export default function BookingHistoryScreen({ navigation }) {
         }
     }, []);
 
-    // "All" and "Cancelled" both need the past-bookings list loaded too.
-    const needsPastData = activeTab === 'past' || activeTab === 'all' || activeTab === 'cancelled';
+    // "Cancelled" needs the same past-bookings list loaded too.
+    const needsPastData = activeTab === 'past' || activeTab === 'cancelled';
     useFocusEffect(useCallback(() => {
         if (needsPastData && !pastLoaded) fetchPastBookings();
     }, [needsPastData, pastLoaded, fetchPastBookings]));
@@ -253,13 +267,6 @@ export default function BookingHistoryScreen({ navigation }) {
     );
     const pastSections = React.useMemo(() => groupByMonth(pastBookings), [pastBookings]);
     const cancelledSections = React.useMemo(() => groupByMonth(cancelledBookings), [cancelledBookings]);
-    const allSections = React.useMemo(() => {
-        const sections: any[] = [{ key: 'upcoming', kind: 'upcoming', title: 'Upcoming', data: myBookings }];
-        if (pastLoaded) {
-            for (const s of pastSections) sections.push({ ...s, kind: 'past' });
-        }
-        return sections;
-    }, [myBookings, pastSections, pastLoaded]);
 
     const addAvailable = addTarget ? Math.max(0, (addTarget.ride?.totalSeats ?? 0) - (addTarget.ride?.bookedSeats ?? 0)) : 0;
 
@@ -312,13 +319,35 @@ export default function BookingHistoryScreen({ navigation }) {
         }
     };
 
-    const handleReviewSubmitted = (bookingId: string) => {
+    const handleReviewSubmitted = (bookingId: string, rideId?: string) => {
         setReviewedIds(prev => {
             const next = new Set([...prev, bookingId]);
             AsyncStorage.setItem(REVIEWED_KEY, JSON.stringify([...next])).catch(() => {});
             return next;
         });
+        if (rideId) setReviewedRideIds(prev => new Set([...prev, rideId]));
         setReviewBooking(null);
+    };
+
+    const handleReportDriver = (ride: any) => {
+        if (!ride?.driver?.id) return;
+        navigation.navigate('PassengerApp', {
+            screen: 'PassengerProfileTab',
+            params: {
+                screen: 'ReportIssue',
+                params: {
+                    preset: {
+                        id: ride.driver.id,
+                        name: ride.driver.name,
+                        avatar: ride.driver.avatar,
+                        rideId: ride.id,
+                        role: 'Driver',
+                        routeLabel: `${ride.fromCity || ride.from || ''} → ${ride.toCity || ride.to || ''}`,
+                        dateLabel: ride.date,
+                    },
+                },
+            },
+        });
     };
 
     const renderBooking = ({ item }) => {
@@ -333,7 +362,7 @@ export default function BookingHistoryScreen({ navigation }) {
         const isActive      = item.status === 'CONFIRMED';
         const isInProgress  = ride.status === 'IN_PROGRESS';
         const isCompleted   = item.status === 'COMPLETED';
-        const canReview     = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id);
+        const canReview     = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id) && !reviewedRideIds.has(ride.id);
         const isCancelling  = cancellingId === item.id;
         const canCancel     = isActive && !isInProgress;
         const seatsLeft     = (ride?.totalSeats ?? 0) - (ride?.bookedSeats ?? 0);
@@ -487,16 +516,21 @@ export default function BookingHistoryScreen({ navigation }) {
 
     const renderPastBooking = ({ item }: any) => {
         const ride = item.ride;
-        const canReview = item.status === 'COMPLETED' && ride?.driver?.id && !reviewedIds.has(item.id);
+        if (!ride) return null;
+        const canReview = item.status === 'COMPLETED' && ride?.driver?.id && !reviewedIds.has(item.id) && !reviewedRideIds.has(ride.id);
+        const canReport = !!ride?.driver?.id;
         return (
             <Pressable
                 style={styles.pastRow}
                 onPress={() => navigation.navigate('PastBookingDetail', { booking: item })}
             >
                 <View style={styles.pastTopRow}>
-                    <Text style={styles.pastRoute} numberOfLines={1}>
-                        {ride?.fromCity || ride?.from} <Ionicons name="arrow-forward" size={12} color={COLORS.gray} /> {ride?.toCity || ride?.to}
-                    </Text>
+                    <RouteTag
+                        from={ride?.fromCity || ride?.from}
+                        to={ride?.toCity || ride?.to}
+                        textStyle={styles.pastRoute}
+                        style={{ flex: 1 }}
+                    />
                     <StatusPill status={item.status} />
                 </View>
                 <View style={styles.pastMetaRow}>
@@ -515,12 +549,20 @@ export default function BookingHistoryScreen({ navigation }) {
                 </View>
                 <View style={styles.pastBottomRow}>
                     <Text style={styles.pastAmount}>Rs {item.totalAmount?.toLocaleString()}</Text>
-                    {canReview && (
-                        <Pressable style={[styles.actionBtn, styles.actionBtnGold]} onPress={() => setReviewBooking(item)}>
-                            <Ionicons name="star-outline" size={13} color="#d97706" />
-                            <Text style={[styles.actionBtnText, { color: '#d97706' }]}>Rate Driver</Text>
-                        </Pressable>
-                    )}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {canReview && (
+                            <Pressable style={[styles.actionBtn, styles.actionBtnGold]} onPress={() => setReviewBooking(item)}>
+                                <Ionicons name="star-outline" size={13} color="#d97706" />
+                                <Text style={[styles.actionBtnText, { color: '#d97706' }]}>Rate Driver</Text>
+                            </Pressable>
+                        )}
+                        {canReport && (
+                            <Pressable style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => handleReportDriver(ride)}>
+                                <Ionicons name="flag-outline" size={13} color={COLORS.danger} />
+                                <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Report</Text>
+                            </Pressable>
+                        )}
+                    </View>
                 </View>
             </Pressable>
         );
@@ -546,10 +588,9 @@ export default function BookingHistoryScreen({ navigation }) {
             <TabPills
                 style={styles.tabPills}
                 tabs={[
-                    { label: `All${myBookings.length + pastBookings.length > 0 ? ` (${myBookings.length + pastBookings.length})` : ''}`, value: 'all' },
-                    { label: `Upcoming${myBookings.length > 0 ? ` (${myBookings.length})` : ''}`, value: 'upcoming' },
-                    { label: `Past${pastLoaded && pastBookings.length > 0 ? ` (${pastBookings.length})` : ''}`, value: 'past' },
-                    { label: `Cancelled${pastLoaded && cancelledBookings.length > 0 ? ` (${cancelledBookings.length})` : ''}`, value: 'cancelled' },
+                    { label: 'Upcoming', value: 'upcoming' },
+                    { label: 'Past', value: 'past' },
+                    { label: 'Cancelled', value: 'cancelled' },
                 ]}
                 activeTab={activeTab}
                 onSelect={(v) => setActiveTab(v)}
@@ -593,7 +634,7 @@ export default function BookingHistoryScreen({ navigation }) {
                         ) : null
                     }
                 />
-            ) : activeTab === 'cancelled' ? (
+            ) : (
                 <SectionList
                     sections={cancelledSections}
                     keyExtractor={item => item.id}
@@ -607,24 +648,6 @@ export default function BookingHistoryScreen({ navigation }) {
                         !pastLoading ? (
                             <EmptyState icon="close-circle-outline" title="No Cancelled Bookings"
                                 subtitle="Bookings you cancel (or that get rejected/expired) will appear here." />
-                        ) : null
-                    }
-                />
-            ) : (
-                <SectionList
-                    sections={allSections}
-                    keyExtractor={item => item.id}
-                    contentContainerStyle={styles.listContent}
-                    renderItem={({ item, section }: any) => section.kind === 'upcoming' ? renderBooking({ item }) : renderPastBooking({ item })}
-                    renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
-                    stickySectionHeadersEnabled={false}
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    ListFooterComponent={!pastLoaded ? <ActivityIndicator color={COLORS.primary} style={{ margin: 20 }} /> : null}
-                    ListEmptyComponent={
-                        !refreshing && pastLoaded ? (
-                            <EmptyState icon="receipt-outline" title="No Bookings Yet"
-                                subtitle="Your upcoming and past bookings will appear here." />
                         ) : null
                     }
                 />
@@ -675,7 +698,7 @@ const styles = StyleSheet.create({
     sectionHeader: { fontSize: 13, fontWeight: '800', color: COLORS.textSecondary, textTransform: 'uppercase', letterSpacing: 0.3, marginTop: 10, marginBottom: 10 },
     pastRow: { backgroundColor: COLORS.cardBg, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, padding: 14, marginBottom: 10, ...CURVE },
     pastTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 },
-    pastRoute: { flex: 1, fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+    pastRoute: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
     pastMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
     pastMetaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20 },
     pastMetaText: { fontSize: 11, fontWeight: '600', color: COLORS.gray },
@@ -712,7 +735,7 @@ const styles = StyleSheet.create({
     trackDot: { width: 10, height: 10, borderRadius: 5 },
     trackLine: { width: 2, height: 22, backgroundColor: COLORS.border, marginVertical: 3 },
     routeCities: { flex: 1, justifyContent: 'space-between', gap: 14 },
-    routeCity: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+    routeCity: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
     routeTimes: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 },
     routeTimeCell: { alignItems: 'flex-end' },
     routeLabel: { fontSize: 10, fontWeight: '600', color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 1 },
@@ -752,7 +775,7 @@ const rStyles = StyleSheet.create({
     sheetSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
     sheetBody: { padding: 24 },
     routeRecap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, padding: 12, marginBottom: 20 },
-    routeText: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+    routeText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
     routeDate: { fontSize: 12, color: COLORS.gray },
     stars: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 12 },
     ratingLabel: { alignItems: 'center', marginBottom: 16 },
@@ -768,7 +791,7 @@ const rStyles = StyleSheet.create({
 
 const sosStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 32 },
+    sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
     header: { alignItems: 'center', paddingTop: 28, paddingBottom: 20 },
     sosIconWrap: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
     title: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },

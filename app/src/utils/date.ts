@@ -23,6 +23,24 @@ export function getTodayStr(): string {
 /**
  * Helper to display a date in a nice format (optional utility)
  */
+/**
+ * Converts this app's "h:mm am/pm" time strings (produced by TimePickerInput)
+ * into strict 24-hour "HH:MM", which is the format some backend endpoints
+ * (e.g. schedule requests) validate against. Returns the input unchanged if
+ * it doesn't match the expected 12-hour pattern, so an already-24h value
+ * (or a genuinely malformed one) passes through rather than being mangled.
+ */
+export function to24Hour(time12: string): string {
+  const m = /^(\d{1,2}):(\d{2})\s*(am|pm)$/i.exec((time12 || '').trim());
+  if (!m) return time12;
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  const ap = m[3].toLowerCase();
+  if (ap === 'pm' && h !== 12) h += 12;
+  if (ap === 'am' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${min}`;
+}
+
 export function getNiceDate(dateStr: string): string {
   if (!dateStr) return '';
   const [y, m, d] = dateStr.split('-').map(Number);

@@ -34,7 +34,7 @@ interface RouteTagProps {
 export const RouteTag: React.FC<RouteTagProps> = ({
   from, to, textStyle, arrowColor = COLORS.gray, arrowLineWidth = 22, style,
 }) => (
-  <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 6 }, style]}>
+  <View style={[{ flexDirection: 'row', alignItems: 'center', gap: 3 }, style]}>
     <Text style={textStyle} numberOfLines={1}>{from}</Text>
     <RouteArrow color={arrowColor} lineWidth={arrowLineWidth} />
     <Text style={textStyle} numberOfLines={1}>{to}</Text>

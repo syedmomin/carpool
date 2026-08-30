@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable,
-  Platform, Modal, FlatList, ScrollView,
+  Modal, FlatList, ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, PulseBadge, CURVE, RideCard, SectionHeader, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, PulseBadge, CURVE, RideCard, SectionHeader, RideCardSkeleton, EmptyState } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
 import { useDoubleBackExit } from '../../utils/useDoubleBackExit';
+
 
 function getUpcomingDates() {
   const dates = [];
@@ -54,7 +56,8 @@ function QuickAction({ icon, label, onPress }) {
 export default function PassengerHomeScreen({ navigation }) {
   const { currentUser, unreadCount } = useApp();
   const { showToast } = useToast();
-  const { availableRides, loadAvailableRides } = useSocketData() as any;
+  const insets = useSafeAreaInsets();
+  const { availableRides, availableRidesState, loadAvailableRides } = useSocketData() as any;
   useDoubleBackExit();
 
   const [fromCity, setFromCity] = useState('');
@@ -100,14 +103,13 @@ export default function PassengerHomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <View style={styles.topCenter}>
-          <Ionicons name="location" size={13} color={COLORS.primary} />
-          <Text style={styles.locationText}>Pakistan</Text>
-          <Ionicons name="chevron-down" size={13} color={COLORS.gray} />
+      {/* Top Bar — greeting replaces the old location pill */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.greetRow}>
+          <Text style={styles.greetName}>{getGreeting()}, {firstName} 👋</Text>
+          <Text style={styles.greetSub}>Where are you going today?</Text>
         </View>
-        <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
+        <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('PassengerHomeTab', { screen: 'Notifications' })}>
           <View style={styles.notifIconContainer}>
             <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={24} color="#fff" />
             <PulseBadge count={unreadCount} />
@@ -120,12 +122,6 @@ export default function PassengerHomeScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Greeting */}
-        <View style={styles.greetRow}>
-          <Text style={styles.greetName}>{getGreeting()}, {firstName} 👋</Text>
-          <Text style={styles.greetSub}>Where are you going today?</Text>
-        </View>
-
         {/* From / To */}
         <View style={styles.routeCard}>
           <View style={styles.routeLeft}>
@@ -205,7 +201,9 @@ export default function PassengerHomeScreen({ navigation }) {
           onSeeAll={() => navigation.navigate('SearchTab')}
           style={styles.popularHeader}
         />
-        {popularRides.length > 0 ? (
+        {(!availableRidesState?.loaded && availableRidesState?.loading) ? (
+          [1, 2, 3].map(i => <RideCardSkeleton key={i} />)
+        ) : popularRides.length > 0 ? (
           popularRides.map((item: any, index: number) => (
             <RideCard
               key={item.id}
@@ -218,7 +216,6 @@ export default function PassengerHomeScreen({ navigation }) {
           ))
         ) : (
           <EmptyState
-            icon="car-outline"
             title="No rides yet"
             subtitle="Check back soon for available rides near you."
           />
@@ -287,20 +284,11 @@ export default function PassengerHomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   topBar: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 44,
-    paddingHorizontal: 16, paddingBottom: 12,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingBottom: 16,
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
     backgroundColor: COLORS.bg,
   },
-  topCenter: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.cardBg, borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 8, gap: 4,
-    borderWidth: 1, borderColor: COLORS.border,
-    ...CURVE,
-  },
-  locationText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
-  notifBtn: { position: 'relative' },
+  notifBtn: { position: 'relative', marginTop: 2 },
   notifIconContainer: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center',
@@ -316,9 +304,9 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingBottom: 12 },
 
   // Greeting
-  greetRow: { marginBottom: 16 },
-  greetName: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
-  greetSub: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
+  greetRow: { flex: 1, paddingRight: 12 },
+  greetName: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
+  greetSub: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
 
   // Route card
   routeCard: {
@@ -347,17 +335,17 @@ const styles = StyleSheet.create({
   },
 
   // Date pills
-  dateRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  dateRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   datePill: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 24, borderWidth: 1.5, borderColor: COLORS.border,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border,
     backgroundColor: COLORS.cardBg,
     ...CURVE,
   },
   datePillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  datePillText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
-  datePillActiveText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
+  datePillText: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  datePillActiveText: { fontSize: 12, fontWeight: '700', color: COLORS.white },
 
   // Find Ride button
   findBtn: {
@@ -395,6 +383,6 @@ const styles = StyleSheet.create({
   dateIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   dateIconActive: { backgroundColor: COLORS.primary },
   dateLabelWrap: { flex: 1 },
-  dateLabel: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  dateValue: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  dateLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  dateValue: { fontSize: 11.5, color: COLORS.textSecondary, marginTop: 2 },
 });

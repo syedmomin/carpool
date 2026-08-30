@@ -1,11 +1,11 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS, CURVE,
   StarRating, PrimaryButton, AppBar,
-  Avatar, TrustBadgesRow, RouteTag, SectionHeader,
+  Avatar, TrustBadgesRow, RouteTag, SectionHeader, DetailSkeleton, EmptyState,
 } from '../../components';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -52,23 +52,22 @@ export default function RideDetailScreen({ navigation, route }) {
 
   if (loadingRide) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.container}>
+        <AppBar title="Ride Details" />
+        <DetailSkeleton />
       </View>
     );
   }
 
   if (!ride) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bg, padding: 28 }}>
-        <Ionicons name="cloud-offline-outline" size={56} color={COLORS.gray} />
-        <Text style={{ fontSize: 17, fontWeight: '800', color: COLORS.textPrimary, marginTop: 16 }}>Couldn't load this ride</Text>
-        <Text style={{ fontSize: 13, color: COLORS.gray, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
-          Please check your connection and try again.
-        </Text>
-        <View style={{ height: 20 }} />
-        <PrimaryButton title="Try Again" onPress={fetchRide} icon="refresh-outline" style={{ alignSelf: 'stretch' }} />
-        <Pressable onPress={() => navigation.goBack()} style={{ marginTop: 14 }}>
+      <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+        <EmptyState
+          title="Couldn't load this ride"
+          subtitle="Please check your connection and try again."
+          action={{ label: 'Try Again', onPress: fetchRide }}
+        />
+        <Pressable onPress={() => navigation.goBack()} style={{ alignSelf: 'center', marginTop: -12, marginBottom: 24 }}>
           <Text style={{ color: COLORS.primary, fontWeight: '700' }}>Go Back</Text>
         </Pressable>
       </View>
@@ -376,7 +375,7 @@ const styles = StyleSheet.create({
   routeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   cityBlock: { flex: 1 },
   timeLarge: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-  cityText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  cityText: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   routeMiddle: { alignItems: 'center', paddingHorizontal: 8, gap: 4 },
   durationPill: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, backgroundColor: COLORS.lightGray, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   routeLineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

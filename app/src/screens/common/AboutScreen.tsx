@@ -37,7 +37,7 @@ export default function AboutScreen({ navigation }) {
         {/* About */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
-          <Text style={styles.cardText}>ChalParo connects drivers with empty seats to passengers who need affordable travel across Pakistan. We believe travel should be safe, affordable, and accessible to everyone.</Text>
+          <Text style={styles.cardText}>ChalParo connects drivers with empty seats to passengers who need an affordable ride across Pakistan.</Text>
         </View>
 
         {/* Contact */}
