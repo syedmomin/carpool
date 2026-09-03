@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, SectionList, Pressable,
-    ActivityIndicator, Modal, TextInput, Linking, Alert, ScrollView,
+    ActivityIndicator, Modal, TextInput, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,7 +9,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar, RouteTag } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar, RouteTag, CancelReasonModal, SOSModal } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -23,8 +23,8 @@ function StarPicker({ rating, onChange }) {
     return (
         <View style={rStyles.stars}>
             {[1, 2, 3, 4, 5].map(n => (
-                <Pressable key={n} onPress={() => onChange(n)}>
-                    <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any} size={36}
+                <Pressable key={n} onPress={() => onChange(n)} hitSlop={6}>
+                    <Ionicons name={(n <= rating ? 'star' : 'star-outline') as any} size={30}
                         color={n <= rating ? COLORS.warning : COLORS.border} />
                 </Pressable>
             ))}
@@ -60,7 +60,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
             <View style={rStyles.overlay}>
                 <View style={rStyles.sheet}>
                     <LinearGradient colors={GRADIENTS.primary as any} style={rStyles.sheetHeader}>
-                        <View style={rStyles.starIcon}><Ionicons name="star" size={32} color={COLORS.warning} /></View>
+                        <View style={rStyles.starIcon}><Ionicons name="star" size={24} color={COLORS.warning} /></View>
                         <Text style={rStyles.sheetTitle}>Rate Your Driver</Text>
                         <Text style={rStyles.sheetSub}>How was your ride with {booking?.ride?.driver?.name || 'the driver'}?</Text>
                     </LinearGradient>
@@ -93,97 +93,6 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                             </Pressable>
                         </View>
                     </View>
-                </View>
-            </View>
-        </Modal>
-    );
-}
-
-// ─── Cancel Reason Modal ──────────────────────────────────────────────────────
-function CancelReasonModal({ visible, onClose, onSubmit }) {
-    const insets = useSafeAreaInsets();
-    const [reason, setReason] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const submit = async () => {
-        if (!reason.trim()) return;
-        setSubmitting(true);
-        await onSubmit(reason.trim());
-        setSubmitting(false);
-    };
-    return (
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-            <View style={rStyles.overlay}>
-                <View style={rStyles.sheet}>
-                    <LinearGradient colors={['#fee2e2', '#fecaca']} style={rStyles.sheetHeader}>
-                        <View style={[rStyles.starIcon, { backgroundColor: 'rgba(239,68,68,0.2)' }]}>
-                            <Ionicons name="alert-circle" size={32} color="#ef4444" />
-                        </View>
-                        <Text style={[rStyles.sheetTitle, { color: '#b91c1c' }]}>Cancel Booking</Text>
-                        <Text style={[rStyles.sheetSub, { color: '#991b1b' }]}>Please tell the driver why you are cancelling.</Text>
-                    </LinearGradient>
-                    <View style={[rStyles.sheetBody, { paddingBottom: 24 + insets.bottom }]}>
-                        <TextInput style={rStyles.commentInput} placeholder="Reason for cancellation..."
-                            placeholderTextColor={COLORS.gray} value={reason} onChangeText={setReason}
-                            multiline numberOfLines={3} maxLength={200} />
-                        <View style={rStyles.btnRow}>
-                            <Pressable style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
-                                <Text style={rStyles.skipBtnText}>Go Back</Text>
-                            </Pressable>
-                            <Pressable
-                                style={[rStyles.submitBtn, rStyles.submitInner, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
-                                onPress={submit} disabled={!reason.trim().length || submitting}>
-                                {submitting ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Text style={rStyles.submitBtnText}>Cancel Booking</Text>}
-                            </Pressable>
-                        </View>
-                    </View>
-                </View>
-            </View>
-        </Modal>
-    );
-}
-
-// ─── SOS Modal ────────────────────────────────────────────────────────────────
-function SOSModal({ visible, onClose }) {
-    const insets = useSafeAreaInsets();
-    const emergencyNumbers = [
-        { label: 'Rescue 1122', number: '1122', icon: 'medkit-outline',  color: '#ef4444' },
-        { label: 'Police 15',   number: '15',   icon: 'shield-outline',  color: '#3b82f6' },
-        { label: 'Edhi 115',    number: '115',  icon: 'heart-outline',   color: COLORS.warning },
-        { label: 'Motorway 130',number: '130',  icon: 'car-outline',     color: '#8b5cf6' },
-    ];
-    const call = (number) => {
-        Linking.openURL(`tel:${number}`).catch(() => Alert.alert('Error', 'Could not open phone dialer.'));
-        onClose();
-    };
-    return (
-        <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-            <View style={sosStyles.overlay}>
-                <View style={[sosStyles.sheet, { paddingBottom: 20 + insets.bottom }]}>
-                    <View style={sosStyles.header}>
-                        <View style={sosStyles.sosIconWrap}><Ionicons name="warning" size={28} color="#fff" /></View>
-                        <Text style={sosStyles.title}>Emergency SOS</Text>
-                        <Text style={sosStyles.sub}>Tap to call emergency services</Text>
-                    </View>
-                    {emergencyNumbers.map(item => (
-                        <Pressable key={item.number} style={[sosStyles.numberRow, { borderLeftColor: item.color }]}
-                            onPress={() => call(item.number)}>
-                            <View style={[sosStyles.numIcon, { backgroundColor: item.color + '20' }]}>
-                                <Ionicons name={item.icon as any} size={20} color={item.color} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={sosStyles.numLabel}>{item.label}</Text>
-                                <Text style={sosStyles.numNumber}>{item.number}</Text>
-                            </View>
-                            <View style={[sosStyles.callBadge, { backgroundColor: item.color }]}>
-                                <Ionicons name="call" size={14} color="#fff" />
-                                <Text style={sosStyles.callBadgeText}>Call</Text>
-                            </View>
-                        </Pressable>
-                    ))}
-                    <Pressable style={sosStyles.closeBtn} onPress={onClose}>
-                        <Text style={sosStyles.closeBtnText}>Close</Text>
-                    </Pressable>
                 </View>
             </View>
         </Modal>
@@ -223,10 +132,11 @@ export default function BookingHistoryScreen({ navigation }) {
         setReviewedRideIds(new Set(reviews.map((r: any) => r.rideId).filter(Boolean)));
     }, []);
     useFocusEffect(useCallback(() => { fetchReviewedRides(); }, [fetchReviewedRides]));
-    const [sosVisible, setSosVisible]           = useState(false);
     const [cancelTarget, setCancelTarget]       = useState(null);
     const [cancellingId, setCancellingId]       = useState<string | null>(null);
     const [refreshing, setRefreshing]           = useState(false);
+    const [expandedId, setExpandedId]           = useState<string | null>(null);
+    const [sosVisible, setSosVisible]           = useState(false);
     const [addTarget, setAddTarget]             = useState<any>(null);
     const [addCount, setAddCount]               = useState(1);
     const [addLoading, setAddLoading]           = useState(false);
@@ -268,19 +178,6 @@ export default function BookingHistoryScreen({ navigation }) {
     const pastSections = React.useMemo(() => groupByMonth(pastBookings), [pastBookings]);
     const cancelledSections = React.useMemo(() => groupByMonth(cancelledBookings), [cancelledBookings]);
 
-    const addAvailable = addTarget ? Math.max(0, (addTarget.ride?.totalSeats ?? 0) - (addTarget.ride?.bookedSeats ?? 0)) : 0;
-
-    const confirmAddSeats = async () => {
-        if (!addTarget) return;
-        setAddLoading(true);
-        const { error } = await bookingsApi.addSeats(addTarget.id, addCount);
-        setAddLoading(false);
-        if (error) { showToast(parseApiError(error), 'error'); return; }
-        showToast(`${addCount} seat(s) added`, 'success');
-        setAddTarget(null);
-        loadMyBookings(true);
-    };
-
     // Load once on first focus; subsequent updates come via socket
     useFocusEffect(useCallback(() => {
         loadMyBookings();
@@ -317,6 +214,19 @@ export default function BookingHistoryScreen({ navigation }) {
                 onConfirm: async () => { await executeCancel(null, booking.id); },
             });
         }
+    };
+
+    const addAvailable = addTarget ? Math.max(0, (addTarget.ride?.totalSeats ?? 0) - (addTarget.ride?.bookedSeats ?? 0)) : 0;
+
+    const confirmAddSeats = async () => {
+        if (!addTarget) return;
+        setAddLoading(true);
+        const { error } = await bookingsApi.addSeats(addTarget.id, addCount);
+        setAddLoading(false);
+        if (error) { showToast(parseApiError(error), 'error'); return; }
+        showToast(`${addCount} seat(s) added`, 'success');
+        setAddTarget(null);
+        loadMyBookings(true);
     };
 
     const handleReviewSubmitted = (bookingId: string, rideId?: string) => {
@@ -361,155 +271,121 @@ export default function BookingHistoryScreen({ navigation }) {
         const vehicleLabel  = vehicle ? `${vehicle.brand} · ${vehicle.plateNumber}` : 'N/A';
         const isActive      = item.status === 'CONFIRMED';
         const isInProgress  = ride.status === 'IN_PROGRESS';
-        const isCompleted   = item.status === 'COMPLETED';
-        const canReview     = isCompleted && ride?.driver?.id && !reviewedIds.has(item.id) && !reviewedRideIds.has(ride.id);
         const isCancelling  = cancellingId === item.id;
         const canCancel     = isActive && !isInProgress;
         const seatsLeft     = (ride?.totalSeats ?? 0) - (ride?.bookedSeats ?? 0);
+        const isExpanded    = expandedId === item.id;
 
         // Swipe a cancellable booking left to reveal a quick Cancel action.
         const renderRightActions = () => canCancel ? (
-            <Pressable style={styles.swipeCancel} onPress={() => confirmCancel(item)}>
-                <Ionicons name="close-circle" size={26} color="#fff" />
-                <Text style={styles.swipeCancelText}>Cancel</Text>
+            <Pressable style={styles.swipeCancel} onPress={() => confirmCancel(item)} disabled={isCancelling}>
+                {isCancelling
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <><Ionicons name="close-circle" size={26} color="#fff" /><Text style={styles.swipeCancelText}>Cancel</Text></>
+                }
             </Pressable>
         ) : null;
 
         return (
           <Swipeable renderRightActions={renderRightActions} overshootRight={false} friction={2}>
-            <View style={styles.card}>
-
-                {/* Active ride banner */}
+            <Pressable
+                style={styles.pastRow}
+                onPress={() => setExpandedId(isExpanded ? null : item.id)}
+            >
                 {isInProgress && isActive && (
-                    <View style={styles.activeBanner}>
-                        <Ionicons name="navigate-outline" size={13} color={COLORS.white} />
-                        <Text style={styles.activeBannerText}>Ride is in progress</Text>
-                        <Pressable style={styles.sosBannerBtn} onPress={() => setSosVisible(true)}>
-                            <Ionicons name="warning-outline" size={13} color={COLORS.white} />
-                            <Text style={styles.sosBannerText}>SOS</Text>
-                        </Pressable>
+                    <View style={styles.inlineBanner}>
+                        <Ionicons name="navigate-outline" size={12} color={COLORS.primary} />
+                        <Text style={styles.inlineBannerText}>Ride is in progress</Text>
                     </View>
                 )}
-
-                {/* ── Status + Date ── */}
-                <View style={styles.cardTopRow}>
+                <View style={styles.pastTopRow}>
+                    <RouteTag from={fromCity} to={toCity} textStyle={styles.pastRoute} style={{ flex: 1 }} />
                     <StatusPill status={item.status} />
-                    <Text style={styles.cardDate}>{ride.date}</Text>
                 </View>
-
-                {/* ── Route ── */}
-                <View style={styles.routeBlock}>
-                    <View style={styles.routeTrack}>
-                        <View style={[styles.trackDot, { backgroundColor: COLORS.primary }]} />
-                        <View style={styles.trackLine} />
-                        <View style={[styles.trackDot, { backgroundColor: COLORS.secondary }]} />
+                <View style={styles.pastMetaRow}>
+                    <View style={styles.pastMetaChip}>
+                        <Ionicons name="calendar-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{ride.date}</Text>
                     </View>
-                    <View style={styles.routeCities}>
-                        <Text style={styles.routeCity}>{fromCity}</Text>
-                        <Text style={styles.routeCity}>{toCity}</Text>
-                    </View>
-                    <View style={styles.routeTimes}>
-                        <View style={styles.routeTimeCell}>
-                            <Text style={styles.routeLabel}>Pickup</Text>
-                            <Text style={styles.routeTime}>{ride.departureTime}</Text>
-                        </View>
-                        <View style={styles.routeTimeCell}>
-                            <Text style={styles.routeLabel}>Est. Arrival</Text>
-                            <Text style={styles.routeTime}>{ride.arrivalTime || '-'}</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* ── Meta chips ── */}
-                <View style={styles.metaRow}>
-                    <View style={styles.metaChip}>
-                        <Ionicons name="people-outline" size={12} color={COLORS.gray} />
-                        <Text style={styles.metaChipText}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
-                    </View>
-                    <View style={styles.metaChip}>
+                    <View style={styles.pastMetaChip}>
                         <Ionicons name="time-outline" size={12} color={COLORS.gray} />
-                        <Text style={styles.metaChipText}>{ride.departureTime}</Text>
+                        <Text style={styles.pastMetaText}>{ride.departureTime}</Text>
                     </View>
-                    {item.boardingCity && item.boardingCity !== ride.from && (
-                        <View style={[styles.metaChip, { backgroundColor: '#eff6ff' }]}>
-                            <Ionicons name="git-branch-outline" size={12} color={COLORS.primary} />
-                            <Text style={[styles.metaChipText, { color: COLORS.primary }]}>Partial</Text>
-                        </View>
-                    )}
+                    <View style={styles.pastMetaChip}>
+                        <Ionicons name="people-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
+                    </View>
+                </View>
+                <View style={styles.pastBottomRow}>
+                    <Text style={styles.pastAmount}>Rs {item.totalAmount?.toLocaleString()}</Text>
+                    <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.gray} />
                 </View>
 
-                {/* ── Driver + Amount ── */}
-                <View style={styles.driverAmountRow}>
-                    <Avatar name={driverName} uri={ride.driver?.avatar} size={44} />
-                    <View style={styles.driverMeta}>
-                        <Text style={styles.driverName}>{driverName}</Text>
-                        <Text style={styles.driverVehicle}>{vehicleLabel}</Text>
-                        {!!driverPhone && (
-                            <View style={styles.phoneRow}>
-                                <Ionicons name="call-outline" size={11} color={COLORS.gray} />
-                                <Text style={styles.driverPhone}>{driverPhone}</Text>
+                {isExpanded && (
+                    <View style={styles.expandedSection}>
+                        <View style={styles.driverRow}>
+                            <Avatar name={driverName} uri={ride.driver?.avatar} size={40} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.driverName}>{driverName}</Text>
+                                <Text style={styles.driverVehicle}>{vehicleLabel}</Text>
+                                {!!driverPhone && (
+                                    <View style={styles.phoneRow}>
+                                        <Ionicons name="call-outline" size={11} color={COLORS.gray} />
+                                        <Text style={styles.driverPhone}>{driverPhone}</Text>
+                                    </View>
+                                )}
+                            </View>
+                            {isActive && (
+                                <Pressable
+                                    style={styles.iconBtn}
+                                    onPress={(e) => { e.stopPropagation(); navigation.navigate('Chat', {
+                                        bookingId: item.id,
+                                        otherUser: ride.driver,
+                                        rideInfo: { label: `${ride.fromCity} > ${ride.toCity}` },
+                                    }); }}>
+                                    <Ionicons name="chatbubble-ellipses" size={16} color={COLORS.primary} />
+                                </Pressable>
+                            )}
+                            {canCancel && (
+                                <Pressable
+                                    style={[styles.iconBtn, styles.iconBtnDanger, isCancelling && { opacity: 0.5 }]}
+                                    onPress={(e) => { e.stopPropagation(); confirmCancel(item); }} disabled={isCancelling}>
+                                    {isCancelling
+                                        ? <ActivityIndicator size="small" color={COLORS.danger} />
+                                        : <Ionicons name="close" size={17} color={COLORS.danger} />
+                                    }
+                                </Pressable>
+                            )}
+                        </View>
+
+                        {(isInProgress || (isActive && !isInProgress && seatsLeft > 0)) && (
+                            <View style={styles.expandedActionsRow}>
+                                {isInProgress && (
+                                    <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
+                                        onPress={(e) => { e.stopPropagation(); navigation.navigate('RideTracking', { rideId: ride.id }); }}>
+                                        <Ionicons name="map" size={14} color={COLORS.primary} />
+                                        <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Live Map</Text>
+                                    </Pressable>
+                                )}
+                                {isInProgress && (
+                                    <Pressable style={[styles.actionBtn, styles.actionBtnDanger]}
+                                        onPress={(e) => { e.stopPropagation(); setSosVisible(true); }}>
+                                        <Ionicons name="warning-outline" size={14} color="#ef4444" />
+                                        <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>SOS</Text>
+                                    </Pressable>
+                                )}
+                                {isActive && !isInProgress && seatsLeft > 0 && (
+                                    <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
+                                        onPress={(e) => { e.stopPropagation(); setAddCount(1); setAddTarget(item); }}>
+                                        <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
+                                        <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Add Seats</Text>
+                                    </Pressable>
+                                )}
                             </View>
                         )}
                     </View>
-                    <View style={styles.amountBox}>
-                        <Text style={styles.amountLabel}>Total Paid</Text>
-                        <Text style={styles.amountValue}>Rs {item.totalAmount?.toLocaleString()}</Text>
-                    </View>
-                </View>
-
-                {/* ── Action buttons ── */}
-                {(isActive || canReview) && (
-                    <View style={styles.actionsRow}>
-                        {isInProgress && isActive && (
-                            <Pressable style={[styles.actionBtnPrimary, styles.actionBtnGrad]}
-                                onPress={() => navigation.navigate('RideTracking', { rideId: ride.id })}>
-                                <Ionicons name="map" size={14} color={COLORS.white} />
-                                <Text style={styles.actionBtnPrimaryText}>Live Map</Text>
-                            </Pressable>
-                        )}
-                        {isInProgress && (
-                            <Pressable style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => setSosVisible(true)}>
-                                <Ionicons name="warning-outline" size={14} color="#ef4444" />
-                                <Text style={[styles.actionBtnText, { color: '#ef4444' }]}>SOS</Text>
-                            </Pressable>
-                        )}
-                        {isActive && (
-                            <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
-                                onPress={() => navigation.navigate('Chat', {
-                                    bookingId: item.id,
-                                    otherUser: ride.driver,
-                                    rideInfo: { label: `${ride.fromCity} > ${ride.toCity}` },
-                                })}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={14} color={COLORS.primary} />
-                                <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Chat</Text>
-                            </Pressable>
-                        )}
-                        {isActive && !isInProgress && seatsLeft > 0 && (
-                            <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
-                                onPress={() => { setAddCount(1); setAddTarget(item); }}>
-                                <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
-                                <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Add Seats</Text>
-                            </Pressable>
-                        )}
-                        {isActive && !isInProgress && (
-                            <Pressable style={[styles.actionBtn, styles.actionBtnDanger, isCancelling && { opacity: 0.5 }]}
-                                onPress={() => confirmCancel(item)} disabled={isCancelling}>
-                                {isCancelling
-                                    ? <ActivityIndicator size="small" color={COLORS.danger} />
-                                    : <><Ionicons name="close-circle-outline" size={14} color={COLORS.danger} /><Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text></>
-                                }
-                            </Pressable>
-                        )}
-                        {canReview && (
-                            <Pressable style={[styles.actionBtn, styles.actionBtnGold]} onPress={() => setReviewBooking(item)}>
-                                <Ionicons name="star-outline" size={14} color="#d97706" />
-                                <Text style={[styles.actionBtnText, { color: '#d97706' }]}>Rate Driver</Text>
-                            </Pressable>
-                        )}
-                    </View>
                 )}
-
-            </View>
+            </Pressable>
           </Swipeable>
         );
     };
@@ -706,8 +582,26 @@ const styles = StyleSheet.create({
     pastAmount: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
     swipeCancel: { backgroundColor: COLORS.danger, justifyContent: 'center', alignItems: 'center', width: 96, borderRadius: 16, marginBottom: 16, gap: 2 },
     swipeCancelText: { color: '#fff', fontWeight: '800', fontSize: 12 },
-    addSeatsBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: COLORS.primary + '30', backgroundColor: COLORS.primary + '0d' },
-    addSeatsText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
+
+    inlineBanner: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, marginBottom: 10 },
+    inlineBannerText: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
+
+    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+    actionBtnText: { fontSize: 12, fontWeight: '700' },
+    actionBtnBlue: { backgroundColor: '#eff6ff', borderColor: COLORS.primary + '30' },
+    actionBtnDanger: { backgroundColor: '#fff0f0', borderColor: '#ef444430' },
+    actionBtnGold: { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning + '40' },
+
+    expandedSection: { marginTop: 2, paddingTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+    driverRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+    driverName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+    driverVehicle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+    phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    driverPhone: { fontSize: 11, color: COLORS.gray },
+    iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' },
+    iconBtnDanger: { backgroundColor: '#fff0f0' },
+    expandedActionsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+
     addOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', padding: 28 },
     addSheet: { width: '100%', backgroundColor: '#fff', borderRadius: 22, padding: 22 },
     addTitle: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center' },
@@ -721,87 +615,28 @@ const styles = StyleSheet.create({
     addCancelText: { color: COLORS.textPrimary, fontWeight: '700', fontSize: 15 },
     addConfirm: { backgroundColor: COLORS.primary },
     addConfirmText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-    card: { backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 14, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
-    activeBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: COLORS.primary },
-    activeBannerText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#fff' },
-    sosBannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-    sosBannerText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-
-    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-    cardDate: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
-
-    routeBlock: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 10, gap: 10 },
-    routeTrack: { alignItems: 'center', width: 12 },
-    trackDot: { width: 10, height: 10, borderRadius: 5 },
-    trackLine: { width: 2, height: 22, backgroundColor: COLORS.border, marginVertical: 3 },
-    routeCities: { flex: 1, justifyContent: 'space-between', gap: 14 },
-    routeCity: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-    routeTimes: { alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 },
-    routeTimeCell: { alignItems: 'flex-end' },
-    routeLabel: { fontSize: 10, fontWeight: '600', color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 1 },
-    routeTime: { fontSize: 13, color: COLORS.textPrimary, fontWeight: '700' },
-
-    metaRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 14, flexWrap: 'wrap' },
-    metaChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-    metaChipText: { fontSize: 12, fontWeight: '600', color: COLORS.gray },
-
-    driverAmountRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
-    driverMeta: { flex: 1 },
-    driverName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-    driverVehicle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-    phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-    driverPhone: { fontSize: 11, color: COLORS.gray },
-    amountBox: { alignItems: 'flex-end' },
-    amountLabel: { fontSize: 10, color: COLORS.gray, marginBottom: 2 },
-    amountValue: { fontSize: 18, fontWeight: '700', color: COLORS.primary },
-
-    actionsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4, flexWrap: 'wrap' },
-    actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
-    actionBtnText: { fontSize: 12, fontWeight: '700' },
-    actionBtnBlue: { backgroundColor: '#eff6ff', borderColor: COLORS.primary + '30' },
-    actionBtnDanger: { backgroundColor: '#fff0f0', borderColor: '#ef444430' },
-    actionBtnGold: { backgroundColor: COLORS.warningLight, borderColor: COLORS.warning + '40' },
-    actionBtnPrimary: { borderRadius: 10 },
-    actionBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: COLORS.primary },
-    actionBtnPrimaryText: { fontSize: 12, fontWeight: '800', color: '#fff' },
 });
 
 const rStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' },
-    sheetHeader: { alignItems: 'center', paddingTop: 32, paddingBottom: 24, paddingHorizontal: 20 },
-    starIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-    sheetTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
-    sheetSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-    sheetBody: { padding: 24 },
-    routeRecap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, padding: 12, marginBottom: 20 },
-    routeText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-    routeDate: { fontSize: 12, color: COLORS.gray },
-    stars: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 12 },
-    ratingLabel: { alignItems: 'center', marginBottom: 16 },
-    ratingLabelText: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-    commentInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, padding: 14, fontSize: 14, color: COLORS.textPrimary, minHeight: 80, textAlignVertical: 'top', marginBottom: 20 },
+    sheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+    sheetHeader: { alignItems: 'center', paddingTop: 24, paddingBottom: 18, paddingHorizontal: 20 },
+    starIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+    sheetTitle: { fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 3 },
+    sheetSub: { fontSize: 12.5, color: 'rgba(255,255,255,0.85)' },
+    sheetBody: { padding: 22 },
+    routeRecap: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.lightGray, borderRadius: 12, padding: 12, marginBottom: 18 },
+    routeText: { fontSize: 13.5, fontWeight: '700', color: COLORS.textPrimary },
+    routeDate: { fontSize: 11, color: COLORS.gray },
+    stars: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 10 },
+    ratingLabel: { alignItems: 'center', marginBottom: 18 },
+    ratingLabelText: { fontSize: 13.5, fontWeight: '600', color: COLORS.textSecondary },
+    commentInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, padding: 13, fontSize: 13.5, color: COLORS.textPrimary, minHeight: 80, textAlignVertical: 'top', marginBottom: 18 },
     btnRow: { flexDirection: 'row', gap: 12 },
-    skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },
-    skipBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.gray },
+    skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },
+    skipBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.gray },
     submitBtn: { flex: 2, borderRadius: 12, overflow: 'hidden' },
-    submitInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: 15 },
-    submitBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+    submitInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
+    submitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });
 
-const sosStyles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-    sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
-    header: { alignItems: 'center', paddingTop: 28, paddingBottom: 20 },
-    sosIconWrap: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-    title: { fontSize: 22, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
-    sub: { fontSize: 14, color: COLORS.gray },
-    numberRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 20, marginBottom: 10, backgroundColor: COLORS.lightGray, borderRadius: 14, padding: 14, borderLeftWidth: 4 },
-    numIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    numLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-    numNumber: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
-    callBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-    callBadgeText: { fontSize: 12, fontWeight: '800', color: '#fff' },
-    closeBtn: { marginHorizontal: 20, marginTop: 12, alignItems: 'center', paddingVertical: 14, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border },
-    closeBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.gray },
-});

@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, OVERLAYS, STATUS_COLORS, AMENITY_CONFIG, AppBar, EmptyState, Avatar, RouteTag, TabPills } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, CURVE, STATUS_COLORS, AMENITY_CONFIG, AppBar, EmptyState, Avatar, RouteTag, TabPills, SectionHeader } from '../../components';
 import { Skeleton, CardSkeleton, RequestCardSkeleton } from '../../components/Skeleton';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -28,6 +28,14 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
     .filter(([key]) => vehicle[key])
     .map(([key, cfg]) => ({ key, ...cfg }));
 
+  // Flowing "Type · Capacity · Plate · Color" line — inline, not boxed tiles.
+  const specParts = [
+    vehicle.type,
+    `${vehicle.totalSeats} seats`,
+    vehicle.plateNumber,
+    vehicle.color,
+  ].filter(Boolean);
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={vm.overlay}>
@@ -38,9 +46,11 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
           </View>
 
           {/* Gradient header with driver info */}
-          <LinearGradient colors={GRADIENTS.primary as any} style={vm.header}>
+          <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={vm.header}>
             <View style={vm.headerContent}>
-              <Avatar name={driver?.name || 'D'} uri={driver?.avatar} size={52} color="rgba(255,255,255,0.3)" />
+              <View style={vm.avatarRing}>
+                <Avatar name={driver?.name || 'D'} uri={driver?.avatar} size={52} color="rgba(255,255,255,0.3)" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={vm.driverName}>{driver?.name || 'Driver'}</Text>
                 {driver?.rating > 0 ? (
@@ -59,9 +69,16 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
 
             {/* Vehicle name strip */}
             <View style={vm.vehicleNameStrip}>
-              <Ionicons name="car-sport-outline" size={16} color="rgba(255,255,255,0.9)" />
+              <View style={vm.vehicleNameStripIcon}>
+                <Ionicons name="car-sport" size={14} color="#fff" />
+              </View>
               <Text style={vm.vehicleNameText}>{vehicle.brand} {vehicle.model}</Text>
-              {vehicle.color ? <Text style={vm.vehicleColorDot}>· {vehicle.color}</Text> : null}
+              {vehicle.color ? (
+                <>
+                  <View style={vm.vehicleStripDivider} />
+                  <Text style={vm.vehicleColorDot}>{vehicle.color}</Text>
+                </>
+              ) : null}
             </View>
           </LinearGradient>
 
@@ -85,63 +102,35 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
               </View>
             ) : (
               <View style={vm.imgPlaceholder}>
-                <LinearGradient colors={['#e0f2fe', '#bfdbfe']} style={vm.imgPlaceholderGrad}>
-                  <Ionicons name="car-outline" size={52} color={COLORS.primary + '60'} />
-                  <Text style={vm.imgPlaceholderText}>No photos available</Text>
-                </LinearGradient>
+                <Ionicons name="car-outline" size={48} color={COLORS.primary + '60'} />
+                <Text style={vm.imgPlaceholderText}>No photos available</Text>
               </View>
             )}
 
-            {/* Specs grid */}
+            {/* Specs — inline flowing line, not boxed tiles */}
             <View style={vm.section}>
-              <Text style={vm.sectionTitle}>Vehicle Details</Text>
-              <View style={vm.specsGrid}>
-                <View style={vm.specCard}>
-                  <LinearGradient colors={['#eff6ff', '#dbeafe']} style={vm.specCardGrad}>
-                    <Ionicons name="car-sport-outline" size={22} color={COLORS.primary} />
-                    <Text style={vm.specLabel}>Type</Text>
-                    <Text style={vm.specValue}>{vehicle.type}</Text>
-                  </LinearGradient>
-                </View>
-                <View style={vm.specCard}>
-                  <LinearGradient colors={['#f0fdf4', '#dcfce7']} style={vm.specCardGrad}>
-                    <Ionicons name="people-outline" size={22} color={COLORS.secondary} />
-                    <Text style={vm.specLabel}>Capacity</Text>
-                    <Text style={vm.specValue}>{vehicle.totalSeats} seats</Text>
-                  </LinearGradient>
-                </View>
-                {vehicle.plateNumber && (
-                  <View style={vm.specCard}>
-                    <LinearGradient colors={['#fefce8', '#fef9c3']} style={vm.specCardGrad}>
-                      <Ionicons name="id-card-outline" size={22} color="#ca8a04" />
-                      <Text style={vm.specLabel}>Plate</Text>
-                      <Text style={vm.specValue}>{vehicle.plateNumber}</Text>
-                    </LinearGradient>
-                  </View>
-                )}
-                {vehicle.color && (
-                  <View style={vm.specCard}>
-                    <LinearGradient colors={['#fdf4ff', '#fae8ff']} style={vm.specCardGrad}>
-                      <Ionicons name="color-palette-outline" size={22} color="#a855f7" />
-                      <Text style={vm.specLabel}>Color</Text>
-                      <Text style={vm.specValue}>{vehicle.color}</Text>
-                    </LinearGradient>
-                  </View>
-                )}
+              <SectionHeader title="Vehicle Details" style={vm.sectionHeader} />
+              <View style={vm.specsInlineCard}>
+                <Text style={vm.specsInlineText}>
+                  {specParts.map((part, i) => (
+                    <Text key={i}>
+                      {i > 0 && <Text style={vm.specsInlineSep}>   ·   </Text>}
+                      <Text style={vm.specsInlineValue}>{part}</Text>
+                    </Text>
+                  ))}
+                </Text>
               </View>
             </View>
 
             {/* Amenities */}
             {amenities.length > 0 && (
               <View style={vm.section}>
-                <Text style={vm.sectionTitle}>Amenities</Text>
+                <SectionHeader title="Amenities" style={vm.sectionHeader} />
                 <View style={vm.amenitiesGrid}>
                   {amenities.map(a => (
-                    <View key={a.key} style={[vm.amenityChip, { backgroundColor: a.color + '14', borderColor: a.color + '35' }]}>
-                      <View style={[vm.amenityIconWrap, { backgroundColor: a.color + '20' }]}>
-                        <Ionicons name={a.icon as any} size={18} color={a.color} />
-                      </View>
-                      <Text style={[vm.amenityLabel, { color: a.color }]}>{a.label}</Text>
+                    <View key={a.key} style={vm.amenityChip}>
+                      <Ionicons name={a.icon as any} size={15} color={a.color} />
+                      <Text style={vm.amenityLabel}>{a.label}</Text>
                     </View>
                   ))}
                 </View>
@@ -319,6 +308,12 @@ export default function MyRequestsScreen({ navigation }) {
               <Ionicons name="people-outline" size={13} color={COLORS.gray} />
               <Text style={styles.metaText}>{req.seats} seat{req.seats > 1 ? 's' : ''}</Text>
             </View>
+            {!!req.fromAddress && (
+              <View style={styles.meta}>
+                <Ionicons name="location-outline" size={13} color={COLORS.gray} />
+                <Text style={styles.metaText} numberOfLines={1}>{req.fromAddress}</Text>
+              </View>
+            )}
             {req.note ? <Text style={styles.noteText}>"{req.note}"</Text> : null}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
@@ -458,8 +453,12 @@ export default function MyRequestsScreen({ navigation }) {
     <View style={styles.container}>
       <AppBar
         title="My Requests"
-        rightIcon="add-outline"
-        onRightPress={() => navigation.navigate('PostRequest')}
+        rightAction={
+          <Pressable style={styles.addBtn} onPress={() => navigation.navigate('PostRequest')}>
+            <Ionicons name="add" size={18} color={COLORS.white} />
+            <Text style={styles.addBtnText}>Add</Text>
+          </Pressable>
+        }
       />
 
       {/* Segmented Tabs */}
@@ -527,6 +526,8 @@ const styles = StyleSheet.create({
   container:        { flex: 1, backgroundColor: COLORS.bg },
   loadingCenter:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list:             { padding: 16, paddingBottom: 32 },
+  addBtn:           { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 14, height: 38, borderRadius: 12, backgroundColor: COLORS.primary, ...CURVE },
+  addBtnText:       { fontSize: 14, fontWeight: '700', color: COLORS.white },
 
   card:             { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: COLORS.border },
   cardHeader:       { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
@@ -593,46 +594,46 @@ const styles = StyleSheet.create({
 // ─── Vehicle Details Modal Styles ─────────────────────────────────────────────
 const vm = StyleSheet.create({
   overlay:       { flex: 1, backgroundColor: OVERLAYS.darker, justifyContent: 'flex-end' },
-  sheet:         { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '94%', overflow: 'hidden' },
+  sheet:         { backgroundColor: COLORS.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '94%', overflow: 'hidden' },
   handleWrap:    { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, alignItems: 'center', paddingTop: 10 },
   handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.5)' },
 
   // Header
   header:        { paddingTop: 28, paddingBottom: 20, paddingHorizontal: 20 },
-  headerContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  headerContent: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
+  avatarRing:    { borderRadius: 30, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)' },
   driverName:    { fontSize: 18, fontWeight: '700', color: '#fff' },
   ratingRow:     { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   ratingText:    { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
   noRatingText:  { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 3 },
   closeBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  vehicleNameStrip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  vehicleNameStrip: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  vehicleNameStripIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   vehicleNameText:  { fontSize: 15, fontWeight: '700', color: '#fff', flex: 1 },
-  vehicleColorDot:  { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  vehicleStripDivider: { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.3)' },
+  vehicleColorDot:  { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
 
   // Gallery
   galleryWrapper:{ position: 'relative' },
   galleryImg:    { height: 220 },
-  dotsRow:       { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10, backgroundColor: '#f8fafc' },
+  dotsRow:       { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10, backgroundColor: COLORS.bg },
   dot:           { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.border },
   dotActive:     { backgroundColor: COLORS.primary, width: 20, borderRadius: 3 },
-  imgPlaceholder:{ },
-  imgPlaceholderGrad: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  imgPlaceholderText: { fontSize: 13, color: COLORS.primary + '80', fontWeight: '600' },
+  imgPlaceholder: { height: 140, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.lightGray },
+  imgPlaceholderText: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '600' },
 
   // Sections
-  section:       { paddingHorizontal: 20, paddingTop: 20 },
-  sectionTitle:  { fontSize: 13, fontWeight: '800', color: COLORS.gray, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 },
+  section:       { paddingHorizontal: 20, paddingTop: 22 },
+  sectionHeader: { marginTop: 0, marginBottom: 10 },
 
-  // Specs grid
-  specsGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  specCard:      { flex: 1, minWidth: '43%', borderRadius: 14, overflow: 'hidden' },
-  specCardGrad:  { padding: 14, alignItems: 'center', gap: 6 },
-  specLabel:     { fontSize: 10, color: COLORS.gray, textTransform: 'uppercase', fontWeight: '600', letterSpacing: 0.5 },
-  specValue:     { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  // Specs — one flowing inline line (Type · Capacity · Plate · Color), not boxed tiles
+  specsInlineCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, padding: 16, ...CURVE },
+  specsInlineText: { fontSize: 14, lineHeight: 22 },
+  specsInlineSep:  { color: COLORS.border, fontWeight: '700' },
+  specsInlineValue:{ fontWeight: '700', color: COLORS.textPrimary },
 
-  // Amenities
+  // Amenities — neutral chip, icon keeps its accent color for quick recognition
   amenitiesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  amenityChip:   { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  amenityIconWrap:{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  amenityLabel:  { fontSize: 12, fontWeight: '700' },
+  amenityChip:   { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.cardBg, borderWidth: 1, borderColor: COLORS.border },
+  amenityLabel:  { fontSize: 12.5, fontWeight: '600', color: COLORS.textPrimary },
 });

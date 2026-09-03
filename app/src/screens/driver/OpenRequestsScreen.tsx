@@ -70,6 +70,12 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
                       <Text style={bm.timeTagText}>Passenger departs at {request.departureTime}</Text>
                     </View>
                   )}
+                  {!!request.fromAddress && (
+                    <View style={bm.timeTag}>
+                      <Ionicons name="location-outline" size={12} color={COLORS.primary} />
+                      <Text style={bm.timeTagText} numberOfLines={1}>{request.fromAddress}</Text>
+                    </View>
+                  )}
                 </View>
               </View>
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator, TextInput,
@@ -20,8 +20,8 @@ import { formatLocalDate } from '../../utils/date';
 
 const TEXT_FIELDS = [
   { key: 'pricePerSeat', label: 'Price Per Seat (Rs) *', placeholder: 'e.g. 1500', type: 'numeric' },
-  { key: 'pickupPoint', label: 'Pickup Location', placeholder: 'e.g. Karachi Cantt Station' },
-  { key: 'dropPoint', label: 'Drop Location', placeholder: 'e.g. Larkana Bus Stop' },
+  { key: 'pickupPoint', label: 'Pickup Location *', placeholder: 'e.g. Karachi Cantt Station' },
+  { key: 'dropPoint', label: 'Drop Location *', placeholder: 'e.g. Larkana Bus Stop' },
 ];
 
 // Adds N days to a YYYY-MM-DD string, returning the same format.
@@ -106,6 +106,10 @@ export default function PostRideScreen({ navigation }) {
   });
   const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
   const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
+  // Tracks the last address we auto-filled into pickupPoint from the map pin,
+  // so we keep syncing it as the pin moves but stop the moment the driver
+  // types something of their own into the field.
+  const lastAutoPickupAddress = useRef('');
   const [rideType, setRideType] = useState<'oneway' | 'roundtrip'>('oneway');
   const [isMultiStop, setIsMultiStop] = useState(false);
   const [stops, setStops] = useState([]); // [{ city, arrivalTime }]
@@ -173,6 +177,14 @@ export default function PostRideScreen({ navigation }) {
     }
     if (form.from.trim().toLowerCase() === form.to.trim().toLowerCase()) {
       showToast('Leaving From and Going To cities cannot be the same.', 'error');
+      return;
+    }
+    if (pickupLat == null || pickupLng == null) {
+      showToast('Please set your exact pickup point on the map.', 'error');
+      return;
+    }
+    if (!form.dropPoint.trim()) {
+      showToast('Please enter the drop location.', 'error');
       return;
     }
     const price = Number(form.pricePerSeat);
@@ -324,7 +336,7 @@ export default function PostRideScreen({ navigation }) {
         if (returnResult.error) {
           haptics.success();
           showToast(`Outbound ride posted, but the return leg failed: ${parseApiError(returnResult.error)}`, 'warning');
-          setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+          setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); lastAutoPickupAddress.current = '';
           navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
           return;
         }
@@ -332,7 +344,7 @@ export default function PostRideScreen({ navigation }) {
 
       haptics.success();
       showToast(rideType === 'roundtrip' ? 'Both rides posted successfully' : 'Ride posted successfully', 'success');
-      setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+      setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); lastAutoPickupAddress.current = '';
       navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
     } catch (err) {
       showToast('Something went wrong while posting your ride. Please try again.', 'error');
@@ -415,11 +427,21 @@ export default function PostRideScreen({ navigation }) {
           {!!form.from && (
             <>
               <Text style={styles.pinHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact starting point in {form.from} so passengers can find you easily. This step is optional.
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact starting point in {form.from} so passengers can find you easily. Required.
               </Text>
               <View style={{ marginBottom: 16 }}>
                 <PickupPinPicker
                   onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+                  onAddressChange={(address) => {
+                    if (!address) return;
+                    // Auto-fill the Pickup Location field from the pin's resolved
+                    // address, but don't clobber it once the driver has typed
+                    // their own text there.
+                    if (!form.pickupPoint || form.pickupPoint === lastAutoPickupAddress.current) {
+                      update('pickupPoint', address);
+                      lastAutoPickupAddress.current = address;
+                    }
+                  }}
                 />
               </View>
             </>

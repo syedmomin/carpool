@@ -17,7 +17,17 @@ interface PickupPinPickerProps {
   initialLat?: number;
   initialLng?: number;
   onLocationChange: (lat: number, lng: number) => void;
+  // Fired whenever the pin's reverse-geocoded address resolves (or fails to,
+  // with an empty string) — lets callers auto-fill a "pickup point" text
+  // field instead of the address being computed here and thrown away.
+  onAddressChange?: (address: string) => void;
   height?: number;
+  // Reused as-is for a drop-off pin (BookingConfirmScreen) — these default to
+  // the pickup wording so every existing caller is unaffected.
+  summaryLabel?: string;
+  modalTitle?: string;
+  mapHint?: string;
+  confirmLabel?: string;
 }
 
 const PAKISTAN_CENTER = { latitude: 30.3753, longitude: 69.3451 };
@@ -37,7 +47,11 @@ function formatAddress(result: Location.LocationGeocodedAddress | null): string 
 }
 
 export const PickupPinPicker: React.FC<PickupPinPickerProps> = ({
-  initialLat, initialLng, onLocationChange, height = 150,
+  initialLat, initialLng, onLocationChange, onAddressChange, height = 150,
+  summaryLabel = 'Exact pickup point',
+  modalTitle = 'Set Pickup Location',
+  mapHint = 'Drag the map so the pin sits on your exact pickup spot',
+  confirmLabel = 'Confirm Pickup Point',
 }) => {
   const insets = useSafeAreaInsets();
   const [region, setRegion] = useState<{ latitude: number; longitude: number } | null>(
@@ -57,14 +71,17 @@ export const PickupPinPicker: React.FC<PickupPinPickerProps> = ({
     geocodeTimer.current = setTimeout(async () => {
       try {
         const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        setAddress(formatAddress(results?.[0] || null));
+        const formatted = formatAddress(results?.[0] || null);
+        setAddress(formatted);
+        onAddressChange?.(formatted);
       } catch {
         setAddress('');
+        onAddressChange?.('');
       } finally {
         setAddressLoading(false);
       }
     }, 500);
-  }, []);
+  }, [onAddressChange]);
 
   useEffect(() => {
     if (region) return; // already have a starting point (e.g. ride's boarding city)
@@ -124,7 +141,7 @@ export const PickupPinPicker: React.FC<PickupPinPickerProps> = ({
           <Ionicons name="location" size={18} color={COLORS.primary} />
         </View>
         <View style={styles.summaryTextWrap}>
-          <Text style={styles.summaryLabel}>Exact pickup point</Text>
+          <Text style={styles.summaryLabel}>{summaryLabel}</Text>
           <Text style={styles.summaryValue} numberOfLines={1}>
             {addressLoading ? 'Locating…' : (address || 'Tap to set on map')}
           </Text>
@@ -138,7 +155,7 @@ export const PickupPinPicker: React.FC<PickupPinPickerProps> = ({
             <Pressable onPress={() => setModalVisible(false)} hitSlop={10} style={styles.modalBackBtn}>
               <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
             </Pressable>
-            <Text style={styles.modalTitle}>Set Pickup Location</Text>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
             <View style={{ width: 34 }} />
           </View>
 
@@ -169,7 +186,7 @@ export const PickupPinPicker: React.FC<PickupPinPickerProps> = ({
             </Pressable>
 
             <View style={styles.hintBadge}>
-              <Text style={styles.hintText}>Drag the map so the pin sits on your exact pickup spot</Text>
+              <Text style={styles.hintText}>{mapHint}</Text>
             </View>
           </View>
 
@@ -180,7 +197,7 @@ export const PickupPinPicker: React.FC<PickupPinPickerProps> = ({
                 {addressLoading ? 'Finding address…' : (address || 'Unnamed location')}
               </Text>
             </View>
-            <PrimaryButton title="Confirm Pickup Point" onPress={() => setModalVisible(false)} />
+            <PrimaryButton title={confirmLabel} onPress={() => setModalVisible(false)} />
           </View>
         </View>
       </Modal>

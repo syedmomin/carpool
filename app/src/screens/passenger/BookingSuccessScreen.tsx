@@ -1,28 +1,19 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, PrimaryButton, GhostButton, AppBar, SectionHeader } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS, GRADIENTS, CURVE, PrimaryButton, GhostButton, SectionHeader, RouteTag } from '../../components';
 import { haptics } from '../../utils/haptics';
 
-// Light decorative confetti dots scattered around the checkmark circle.
-// Purely visual — positions/colors are fixed, no data dependency.
-const CONFETTI = [
-  { top: -6,  left: 14,  size: 10, color: '#f59e0b', shape: 'circle' },
-  { top: 10,  left: -14, size: 8,  color: '#1a73e8', shape: 'square' },
-  { top: -12, left: 96,  size: 8,  color: '#2e7d32', shape: 'circle' },
-  { top: 30,  left: 132, size: 10, color: '#f59e0b', shape: 'square' },
-  { top: 96,  left: -18, size: 10, color: '#2e7d32', shape: 'square' },
-  { top: 112, left: 128, size: 8,  color: '#1a73e8', shape: 'circle' },
-  { top: 140, left: 4,   size: 8,  color: '#f59e0b', shape: 'circle' },
-  { top: 138, left: 108, size: 10, color: '#2e7d32', shape: 'circle' },
-];
-
 export default function BookingSuccessScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
+
   useEffect(() => {
     haptics.success();
   }, []);
 
-  const { seats, rideData, boardingCity, exitCity } = route.params;
+  const { seats, rideData, boardingCity, exitCity, booking } = route.params;
   const ride = rideData || null;
 
   const fromLabel = boardingCity ?? ride?.from ?? '-';
@@ -32,54 +23,47 @@ export default function BookingSuccessScreen({ navigation, route }) {
   const totalFare = ride?.pricePerSeat != null ? (seats * ride.pricePerSeat) : null;
 
   const DETAIL_ROWS = [
-    { label: 'Route', value: `${fromLabel} → ${toLabel}`, icon: 'navigate-outline' },
     { label: 'Date & Time', value: timeLabel ? `${dateLabel} • ${timeLabel}` : dateLabel, icon: 'calendar-outline' },
     { label: 'Trip', value: `One Way • ${seats} Seat${seats !== 1 ? 's' : ''}`, icon: 'people-outline' },
+    ...(booking?.pickupAddress ? [{ label: 'Pickup Point', value: booking.pickupAddress, icon: 'location-outline' }] : []),
+    ...(booking?.dropAddress ? [{ label: 'Drop-off Point', value: booking.dropAddress, icon: 'flag-outline' }] : []),
+    { label: 'Payment Method', value: 'Cash', icon: 'cash-outline' },
     {
       label: 'Total Fare',
       value: totalFare != null ? `Rs ${totalFare.toLocaleString()}` : 'N/A',
       icon: 'wallet-outline',
       highlight: true,
     },
-    { label: 'Payment Method', value: 'Cash', icon: 'cash-outline' },
   ];
+
+  // Explicitly target the tab's root screen — this flow (Search > RideDetail >
+  // BookingConfirm > BookingSuccess) all lives inside PassengerHomeTab's own
+  // stack, so navigating to the tab alone is a no-op when it's already focused;
+  // only navigating to its nested root screen reliably pops back to Home.
+  const goHome = () => navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab', params: { screen: 'PassengerHomeMain' } });
+  const goToBooking = () => navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab', params: { screen: 'BookingHistoryMain' } });
 
   return (
     <View style={styles.container}>
-      <AppBar
-        title="Booking Confirmed"
-        onBack={() => navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab' })}
-      />
+      {/* Compact success header — replaces the old oversized checkmark hero */}
+      <LinearGradient colors={GRADIENTS.secondary as any} style={[styles.header, { paddingTop: insets.top + 14 }]}>
+        <Pressable onPress={() => (navigation.canGoBack() ? navigation.goBack() : goHome())} style={styles.headerBackBtn} hitSlop={8}>
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+        </Pressable>
+        <View style={styles.headerIconWrap}>
+          <Ionicons name="checkmark-circle" size={24} color="#fff" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>Booking Confirmed!</Text>
+          <Text style={styles.headerSubtitle}>Your ride has been booked successfully.</Text>
+        </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Checkmark hero with confetti */}
-        <View style={styles.heroWrap}>
-          <View style={styles.confettiLayer}>
-            {CONFETTI.map((c, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.confettiDot,
-                  {
-                    top: c.top, left: c.left,
-                    width: c.size, height: c.size,
-                    backgroundColor: c.color,
-                    borderRadius: c.shape === 'circle' ? c.size / 2 : 3,
-                    transform: [{ rotate: `${(i * 37) % 360}deg` }],
-                  },
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.checkOuter}>
-            <View style={styles.checkInner}>
-              <Ionicons name="checkmark" size={54} color="#fff" />
-            </View>
-          </View>
+        {/* Route summary strip */}
+        <View style={styles.routeStrip}>
+          <RouteTag from={fromLabel} to={toLabel} textStyle={styles.routeText} />
         </View>
-
-        <Text style={styles.title}>Booking Confirmed!</Text>
-        <Text style={styles.subtitle}>Your ride has been booked successfully.</Text>
 
         {/* Booking Details card */}
         <View style={[styles.detailsCard, CURVE]}>
@@ -99,22 +83,13 @@ export default function BookingSuccessScreen({ navigation, route }) {
             </View>
           ))}
         </View>
-
-        {/* Actions */}
-        <PrimaryButton
-          title="View Booking"
-          icon="receipt-outline"
-          onPress={() => navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab', params: { screen: 'BookingHistoryMain' } })}
-          style={{ marginBottom: 12 }}
-        />
-
-        <GhostButton
-          title="Back to Home"
-          onPress={() => navigation.navigate('PassengerApp', { screen: 'PassengerHomeTab' })}
-        />
-
-        <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Fluid bottom action bar */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 14 }]}>
+        <GhostButton title="Home" icon="home-outline" onPress={goHome} style={styles.homeBtn} />
+        <PrimaryButton title="View Booking" icon="receipt-outline" onPress={goToBooking} style={styles.viewBtn} />
+      </View>
     </View>
   );
 }
@@ -127,63 +102,51 @@ const styles = StyleSheet.create({
 
   body: {
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
+    paddingTop: 16,
+    paddingBottom: 24,
     alignItems: 'center',
   },
 
-  /* Hero */
-  heroWrap: {
-    width: 140,
-    height: 140,
+  /* Compact success header */
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 20,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  confettiLayer: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
+  headerBackBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  confettiDot: {
-    position: 'absolute',
+  headerIconWrap: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  checkOuter: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    backgroundColor: '#e8f5e9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkInner: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: COLORS.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.secondary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-
-  title: {
-    fontSize: 22,
+  headerTitle: {
+    fontSize: 16,
     fontWeight: '800',
-    color: COLORS.textPrimary,
-    textAlign: 'center',
+    color: '#fff',
   },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 24,
+  headerSubtitle: {
+    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 1,
   },
+
+  /* Route strip */
+  routeStrip: {
+    width: '100%',
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  routeText: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
 
   /* Details card */
   detailsCard: {
@@ -193,7 +156,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     padding: 18,
-    marginBottom: 24,
   },
   detailsHeader: {
     marginTop: 0,
@@ -231,4 +193,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+
+  /* Fluid bottom bar — floating, elevated card lifted off the scroll content */
+  bottomBar: {
+    flexDirection: 'row', gap: 12,
+    backgroundColor: COLORS.cardBg,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingTop: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 14,
+  },
+  homeBtn: { flex: 1 },
+  viewBtn: { flex: 1.6 },
 });
+

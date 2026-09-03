@@ -686,13 +686,17 @@ export default function RideTrackingScreen({ route, navigation }) {
             </View>
 
             <View style={s.safetyRow}>
-              <Pressable style={[s.safetyBtn, s.sosBtn]} onPress={() => handleCall('1122')}>
-                <Ionicons name="warning" size={20} color="#fff" />
-                <Text style={s.safetyBtnText}>SOS 1122</Text>
+              <Pressable style={s.safetyBtnWrap} onPress={() => handleCall('1122')}>
+                <LinearGradient colors={['#ef4444', '#dc2626']} style={s.safetyBtn}>
+                  <Ionicons name="warning" size={19} color="#fff" />
+                  <Text style={s.safetyBtnText}>SOS 1122</Text>
+                </LinearGradient>
               </Pressable>
-              <Pressable style={[s.safetyBtn, s.callBtn2]} onPress={() => handleCall(ride?.driver?.phone)}>
-                <Ionicons name="call" size={20} color="#fff" />
-                <Text style={s.safetyBtnText}>Call Driver</Text>
+              <Pressable style={s.safetyBtnWrap} onPress={() => handleCall(ride?.driver?.phone)}>
+                <LinearGradient colors={GRADIENTS.primary as any} style={s.safetyBtn}>
+                  <Ionicons name="call" size={19} color="#fff" />
+                  <Text style={s.safetyBtnText}>Call Driver</Text>
+                </LinearGradient>
               </Pressable>
             </View>
           </>
@@ -848,7 +852,7 @@ const s = StyleSheet.create({
     marginHorizontal: 20, marginBottom: 14, gap: 6,
   },
   routeDot:  { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
   routeLine: { flex: 1, height: 2, backgroundColor: '#e2e8f0', borderRadius: 1 },
   routeCity: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
 
@@ -873,13 +877,14 @@ const s = StyleSheet.create({
   liveStatusText: { fontSize: 13, fontWeight: '400', color: '#15803d' },
 
   safetyRow: { flexDirection: 'row', marginHorizontal: 20, gap: 12 },
-  safetyBtn: {
-    flex: 1, height: 54, borderRadius: 18,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 10, elevation: 6,
+  safetyBtnWrap: {
+    flex: 1, borderRadius: 16, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
   },
-  sosBtn:        { backgroundColor: '#ef4444', shadowColor: '#ef4444' },
-  callBtn2:      { backgroundColor: COLORS.primary, shadowColor: COLORS.primary },
-  safetyBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  safetyBtn: {
+    height: 54,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  safetyBtnText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },
 });
 

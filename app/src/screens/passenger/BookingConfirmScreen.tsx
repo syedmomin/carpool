@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, CURVE, AppBar, Avatar, StarRating, RouteTag, PrimaryButton, SectionHeader, PickupPinPicker } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
@@ -11,6 +12,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
   const { rideId, rideData, boardingCity, exitCity, initialSeats } = route.params;
   const { bookRide } = useApp();
   const { showToast } = useToast();
+  const insets = useSafeAreaInsets();
   const ride = rideData;
   const driver = ride?.driver;
   const vehicle = ride?.vehicle;
@@ -21,6 +23,10 @@ export default function BookingConfirmScreen({ navigation, route }) {
   const [submitting, setSubmitting] = useState(false);
   const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
   const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
+  const [pickupAddress, setPickupAddress] = useState<string | undefined>(undefined);
+  const [dropLat, setDropLat] = useState<number | undefined>(undefined);
+  const [dropLng, setDropLng] = useState<number | undefined>(undefined);
+  const [dropAddress, setDropAddress] = useState<string | undefined>(undefined);
 
   // Seed the pin near the boarding city's known coordinates when the ride's
   // route matches it (avoids opening the picker centered somewhere random
@@ -29,11 +35,23 @@ export default function BookingConfirmScreen({ navigation, route }) {
   const seedLat = boardingMatchesFrom ? ride?.fromLat : undefined;
   const seedLng = boardingMatchesFrom ? ride?.fromLng : undefined;
 
+  const exitMatchesTo = !exitCity || exitCity.toLowerCase() === (ride?.to || '').toLowerCase();
+  const dropSeedLat = exitMatchesTo ? ride?.toLat : undefined;
+  const dropSeedLng = exitMatchesTo ? ride?.toLng : undefined;
+
   const totalFare = seats * (ride?.pricePerSeat || 0);
 
   const handleConfirm = async () => {
+    if (pickupLat == null || pickupLng == null) {
+      showToast('Please set your exact pickup point on the map', 'warning');
+      return;
+    }
+    if (dropLat == null || dropLng == null) {
+      showToast('Please set your exact drop-off point on the map', 'warning');
+      return;
+    }
     setSubmitting(true);
-    const { data, error } = await bookRide(rideId, seats, boardingCity, exitCity, note.trim() || undefined, pickupLat, pickupLng);
+    const { data, error } = await bookRide(rideId, seats, boardingCity, exitCity, note.trim() || undefined, pickupLat, pickupLng, pickupAddress, dropLat, dropLng, dropAddress);
     setSubmitting(false);
     if (error) {
       showToast(parseApiError(error), 'error');
@@ -54,56 +72,70 @@ export default function BookingConfirmScreen({ navigation, route }) {
     <View style={styles.container}>
       <AppBar title="Confirm Booking" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Ride Summary</Text>
-          <View style={styles.summaryTopRow}>
-            <RouteTag from={boardingCity ?? ride?.from} to={exitCity ?? ride?.to} textStyle={styles.routeText} arrowColor={COLORS.textSecondary} />
-            <Text style={styles.priceValue}>Rs {ride?.pricePerSeat?.toLocaleString()}</Text>
-          </View>
-          <View style={styles.dateRow}>
-            <Text style={styles.dateText}>{ride?.date}, {ride?.departureTime}</Text>
-            <Text style={styles.priceCaption}>per seat</Text>
-          </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.pointRow}>
-            <View style={[styles.pointDot, { backgroundColor: COLORS.secondary }]} />
-            <Text style={styles.pointText} numberOfLines={1}>{ride?.pickupPoint || boardingCity || ride?.from}</Text>
-          </View>
-          <View style={styles.pointRow}>
-            <View style={[styles.pointDot, { backgroundColor: COLORS.danger }]} />
-            <Text style={styles.pointText} numberOfLines={1}>{ride?.dropPoint || exitCity || ride?.to}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <Text style={styles.cardLabel}>Driver</Text>
-          <View style={styles.driverRow}>
-            <Avatar name={driver?.name} uri={driver?.avatar} size={44} color={COLORS.primary} />
-            <View style={{ flex: 1 }}>
-              <View style={styles.driverNameRow}>
-                <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
-                {driver?.rating > 0 && <StarRating rating={driver.rating} size={12} />}
-                {driver?.reviewCount > 0 && <Text style={styles.reviewCount}>({driver.reviewCount})</Text>}
-              </View>
-              <Text style={styles.vehicleMeta} numberOfLines={1}>
-                {vehicle?.brand} {vehicle?.model}{vehicle?.year ? ` • ${vehicle.year}` : ''}
-              </Text>
+        {/* Route card */}
+        <View style={styles.routeCard}>
+          <View style={styles.routeCardTop}>
+            <RouteTag from={boardingCity ?? ride?.from} to={exitCity ?? ride?.to} textStyle={styles.routeText} />
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceValue}>Rs {ride?.pricePerSeat?.toLocaleString()}</Text>
+              <Text style={styles.priceCaption}>per seat</Text>
             </View>
           </View>
+          <Text style={styles.dateText}>{ride?.date}, {ride?.departureTime}</Text>
 
-          <View style={styles.divider} />
+          <View style={styles.timeline}>
+            <View style={styles.timelineTrack}>
+              <View style={[styles.timelineDot, { backgroundColor: COLORS.primary }]} />
+              <View style={styles.timelineLine} />
+              <View style={[styles.timelineDot, { backgroundColor: COLORS.danger }]} />
+            </View>
+            <View style={styles.timelinePoints}>
+              <Text style={styles.pointText} numberOfLines={1}>{ride?.pickupPoint || boardingCity || ride?.from}</Text>
+              <Text style={styles.pointText} numberOfLines={1}>{ride?.dropPoint || exitCity || ride?.to}</Text>
+            </View>
+          </View>
+        </View>
 
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Seats</Text>
+        {/* Driver */}
+        <SectionHeader title="Driver" style={styles.sectionHeader} />
+        <View style={styles.driverCard}>
+          <Avatar name={driver?.name} uri={driver?.avatar} size={48} color={COLORS.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
+            {driver?.rating > 0 && (
+              <View style={styles.driverRatingRow}>
+                <StarRating rating={driver.rating} size={12} />
+                {driver?.reviewCount > 0 && <Text style={styles.reviewCount}>({driver.reviewCount})</Text>}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Trip details */}
+        <SectionHeader title="Trip Details" style={styles.sectionHeader} />
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoLeft}>
+              <Ionicons name="car-sport-outline" size={15} color={COLORS.textSecondary} />
+              <Text style={styles.infoLabel}>Vehicle</Text>
+            </View>
+            <Text style={styles.infoValue} numberOfLines={1}>
+              {vehicle?.brand} {vehicle?.model}{vehicle?.year ? ` • ${vehicle.year}` : ''}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <View style={styles.infoLeft}>
+              <Ionicons name="people-outline" size={15} color={COLORS.textSecondary} />
+              <Text style={styles.infoLabel}>Seats</Text>
+            </View>
             <View style={styles.stepperRow}>
               <Pressable
                 style={[styles.stepperBtn, seats <= 1 && styles.stepperBtnDisabled]}
                 disabled={seats <= 1}
                 onPress={() => setSeats(s => Math.max(1, s - 1))}
               >
-                <Ionicons name="remove" size={16} color={seats <= 1 ? COLORS.gray : COLORS.primary} />
+                <Ionicons name="remove" size={15} color={seats <= 1 ? COLORS.gray : COLORS.primary} />
               </Pressable>
               <Text style={styles.stepperValue}>{seats}</Text>
               <Pressable
@@ -111,47 +143,73 @@ export default function BookingConfirmScreen({ navigation, route }) {
                 disabled={seats >= available}
                 onPress={() => setSeats(s => Math.min(available, s + 1))}
               >
-                <Ionicons name="add" size={16} color={seats >= available ? COLORS.gray : COLORS.primary} />
+                <Ionicons name="add" size={15} color={seats >= available ? COLORS.gray : COLORS.primary} />
               </Pressable>
             </View>
           </View>
-
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Total Fare</Text>
+          <View style={styles.infoRow}>
+            <View style={styles.infoLeft}>
+              <Ionicons name="wallet-outline" size={15} color={COLORS.textSecondary} />
+              <Text style={styles.infoLabel}>Payment Method</Text>
+            </View>
+            <Text style={[styles.infoValue, { color: COLORS.primary }]}>Cash on Ride</Text>
+          </View>
+          <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+            <View style={styles.infoLeft}>
+              <Ionicons name="cash-outline" size={15} color={COLORS.textSecondary} />
+              <Text style={styles.infoLabel}>Total Fare</Text>
+            </View>
             <Text style={styles.totalFareValue}>Rs {totalFare.toLocaleString()}</Text>
           </View>
-
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Payment Method</Text>
-            <Text style={styles.paymentValue}>Cash on Ride</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <SectionHeader title="Exact Pickup Point" style={{ marginBottom: 8 }} />
-          <Text style={styles.pickupHelper}>
-            Optional. Pin your exact spot so your driver can find you more easily. If you skip this, we'll use the boarding city instead.
-          </Text>
-          <PickupPinPicker
-            initialLat={seedLat}
-            initialLng={seedLng}
-            onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
-          />
-
-          <Text style={[styles.fieldLabel, { marginTop: 14, marginBottom: 8 }]}>Note to Driver (Optional)</Text>
-          <TextInput
-            style={styles.noteInput}
-            placeholder="Any special instructions?"
-            placeholderTextColor={COLORS.gray}
-            value={note}
-            onChangeText={setNote}
-            multiline
-            maxLength={200}
-          />
         </View>
+
+        {/* Pickup pin */}
+        <SectionHeader title="Exact Pickup Point *" style={styles.sectionHeader} />
+        <Text style={styles.pickupHelper}>
+          Required. Pin your exact spot so your driver can find you more easily.
+        </Text>
+        <PickupPinPicker
+          initialLat={seedLat}
+          initialLng={seedLng}
+          onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+          onAddressChange={(address) => setPickupAddress(address || undefined)}
+        />
+
+        {/* Drop-off pin */}
+        <SectionHeader title="Exact Drop-off Point *" style={[styles.sectionHeader, { marginTop: 20 }]} />
+        <Text style={styles.pickupHelper}>
+          Required. Pin exactly where you'd like to be dropped off.
+        </Text>
+        <PickupPinPicker
+          initialLat={dropSeedLat}
+          initialLng={dropSeedLng}
+          onLocationChange={(lat, lng) => { setDropLat(lat); setDropLng(lng); }}
+          onAddressChange={(address) => setDropAddress(address || undefined)}
+          summaryLabel="Exact drop-off point"
+          modalTitle="Set Drop-off Location"
+          mapHint="Drag the map so the pin sits on your exact drop-off spot"
+          confirmLabel="Confirm Drop-off Point"
+        />
+
+        {/* Note */}
+        <SectionHeader title="Note to Driver (Optional)" style={[styles.sectionHeader, { marginTop: 20 }]} />
+        <TextInput
+          style={styles.noteInput}
+          placeholder="Any special instructions?"
+          placeholderTextColor={COLORS.gray}
+          value={note}
+          onChangeText={setNote}
+          multiline
+          maxLength={200}
+        />
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      {/* Fluid bottom bar */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 14 }]}>
+        <View style={styles.bottomFareCol}>
+          <Text style={styles.bottomFareLabel}>Total Fare</Text>
+          <Text style={styles.bottomFareValue}>Rs {totalFare.toLocaleString()}</Text>
+        </View>
         <PrimaryButton
           title="Confirm Booking"
           onPress={handleConfirm}
@@ -167,41 +225,73 @@ export default function BookingConfirmScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   body: { paddingHorizontal: 16, paddingBottom: 24 },
-  card: {
-    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: COLORS.border,
-    shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 2,
+
+  routeCard: {
+    backgroundColor: COLORS.cardBg, borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: COLORS.border, marginBottom: 8,
     ...CURVE,
   },
-  cardLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.3 },
-  summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  routeText: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
-  priceValue: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-  dateRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  dateText: { fontSize: 12, color: COLORS.textSecondary },
-  priceCaption: { fontSize: 11, color: COLORS.textSecondary },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 14 },
-  pointRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  pointDot: { width: 8, height: 8, borderRadius: 4 },
-  pointText: { flex: 1, fontSize: 13, color: COLORS.textPrimary, fontWeight: '500' },
-  driverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  driverName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  routeCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
+  routeText: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  priceBadge: { alignItems: 'flex-end' },
+  priceValue: { fontSize: 17, fontWeight: '700', color: COLORS.primary },
+  priceCaption: { fontSize: 11, color: COLORS.textSecondary, marginTop: 1 },
+  dateText: { fontSize: 12.5, color: COLORS.textSecondary, marginTop: 4, marginBottom: 16 },
+
+  timeline: { flexDirection: 'row', gap: 12 },
+  timelineTrack: { alignItems: 'center', width: 10 },
+  timelineDot: { width: 9, height: 9, borderRadius: 5 },
+  timelineLine: { width: 2, flex: 1, minHeight: 18, backgroundColor: COLORS.border, marginVertical: 4 },
+  timelinePoints: { flex: 1, justifyContent: 'space-between', gap: 16 },
+  pointText: { fontSize: 13.5, color: COLORS.textPrimary, fontWeight: '600' },
+
+  sectionHeader: { marginTop: 18, marginBottom: 8 },
+
+  driverCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: COLORS.border,
+    ...CURVE,
+  },
+  driverName: { fontSize: 14.5, fontWeight: '700', color: COLORS.textPrimary },
+  driverRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
   reviewCount: { fontSize: 12, color: COLORS.textSecondary },
-  vehicleMeta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-  fieldRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  fieldLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
-  pickupHelper: { fontSize: 11.5, color: COLORS.textSecondary, marginBottom: 10, lineHeight: 16 },
-  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepperBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
+
+  infoCard: {
+    backgroundColor: COLORS.cardBg, borderRadius: 16,
+    borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14,
+    ...CURVE,
+  },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  infoLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  infoValue: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, maxWidth: '55%', textAlign: 'right' },
+  totalFareValue: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+
+  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepperBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   stepperBtnDisabled: { backgroundColor: COLORS.lightGray },
   stepperValue: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, minWidth: 16, textAlign: 'center' },
-  totalFareValue: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
-  paymentValue: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+
+  pickupHelper: { fontSize: 11.5, color: COLORS.textSecondary, marginBottom: 10, lineHeight: 16 },
+
   noteInput: {
-    borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 12,
-    fontSize: 13, color: COLORS.textPrimary, minHeight: 60, textAlignVertical: 'top',
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1, borderColor: COLORS.border, borderRadius: 14, padding: 14,
+    fontSize: 13.5, color: COLORS.textPrimary, minHeight: 70, textAlignVertical: 'top',
   },
-  bottomBar: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, backgroundColor: COLORS.bg },
-  confirmBtn: { marginTop: 0 },
+
+  // Fluid bottom bar — floating, elevated card separated from the scroll content,
+  // fare preview + CTA side by side (matches Uber/Careem-style checkout bars).
+  bottomBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: COLORS.cardBg,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingTop: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 14,
+  },
+  bottomFareCol: { flexShrink: 0 },
+  bottomFareLabel: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '500' },
+  bottomFareValue: { fontSize: 18, fontWeight: '800', color: COLORS.textPrimary, marginTop: 1 },
+  confirmBtn: { flex: 1 },
 });

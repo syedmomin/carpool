@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader } from '../../components';
 import { useToast } from '../../context/ToastContext';
@@ -19,6 +19,19 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
     return d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' } as any);
   })();
 
+  const openDirections = (lat?: number | null, lng?: number | null) => {
+    if (lat == null || lng == null) {
+      showToast('No exact pin was set for this booking', 'info');
+      return;
+    }
+    const url = Platform.select({
+      ios: `maps://app?daddr=${lat},${lng}`,
+      android: `google.navigation:q=${lat},${lng}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+    });
+    Linking.openURL(url as string).catch(() => showToast('Could not open navigation app', 'error'));
+  };
+
   const vehicle = ride?.vehicle;
   const vehicleLabel = vehicle ? `${[vehicle.brand, vehicle.model].filter(Boolean).join(' ')}${vehicle.plateNumber ? ` • ${vehicle.plateNumber}` : ''}` : '—';
   const distanceKm = estimateRideDistanceKm(ride);
@@ -32,6 +45,9 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
     { label: 'Seats', value: `${booking?.seats ?? 1}`, icon: 'people-outline' },
     { label: 'Total Fare', value: `Rs. ${booking?.totalAmount?.toLocaleString() ?? '0'}`, icon: 'cash-outline' },
     { label: 'Payment Method', value: 'Cash', icon: 'wallet-outline' },
+    // Passenger's exact pickup/drop-off pins — only shown when set on the map.
+    ...(booking?.pickupAddress ? [{ label: 'Pickup Point', value: booking.pickupAddress, icon: 'location-outline' }] : []),
+    ...(booking?.dropAddress ? [{ label: 'Drop-off Point', value: booking.dropAddress, icon: 'flag-outline' }] : []),
   ];
 
   const PASSENGER_ROWS = [
@@ -50,10 +66,8 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
         <View style={styles.passengerCard}>
           <Avatar name={passenger?.name} uri={passenger?.avatar} size={48} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <View style={styles.passengerNameRow}>
-              <Text style={styles.passengerName}>{passenger?.name || 'Unknown'}</Text>
-              {passenger?.rating > 0 && <StarRating rating={passenger.rating} size={13} />}
-            </View>
+            <Text style={styles.passengerName}>{passenger?.name || 'Unknown'}</Text>
+            {passenger?.rating > 0 && <StarRating rating={passenger.rating} size={13} />}
           </View>
           {passenger?.phone && (
             <Pressable
@@ -69,6 +83,11 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
           >
             <Ionicons name="chatbubble-ellipses" size={16} color={COLORS.primary} />
           </Pressable>
+          {booking?.pickupLat != null && booking?.pickupLng != null && (
+            <Pressable style={styles.iconBtn} onPress={() => openDirections(booking.pickupLat, booking.pickupLng)}>
+              <Ionicons name="navigate" size={16} color={COLORS.primary} />
+            </Pressable>
+          )}
         </View>
 
         {/* Ride Details */}
@@ -80,7 +99,14 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
                 <Ionicons name={row.icon as any} size={15} color={COLORS.textSecondary} />
                 <Text style={styles.infoLabel}>{row.label}</Text>
               </View>
-              <Text style={styles.infoValue} numberOfLines={1}>{row.value}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: '60%' }}>
+                <Text style={styles.infoValue} numberOfLines={1}>{row.value}</Text>
+                {row.label === 'Drop-off Point' && booking?.dropLat != null && booking?.dropLng != null && (
+                  <Pressable onPress={() => openDirections(booking.dropLat, booking.dropLng)} hitSlop={8}>
+                    <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
+                  </Pressable>
+                )}
+              </View>
             </View>
           ))}
         </View>
@@ -125,8 +151,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.border, marginBottom: 20,
     ...CURVE,
   },
-  passengerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  passengerName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  passengerName: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   infoCard: {
     backgroundColor: COLORS.cardBg, borderRadius: 16,

@@ -5,16 +5,27 @@ import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader, 
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { estimateRideDistanceKm } from '../../utils/geo';
 
-function durationLabel(from?: string, to?: string) {
-  if (!from || !to) return '—';
-  const [fh, fm] = from.split(':').map(Number);
-  const [th, tm] = to.split(':').map(Number);
-  if ([fh, fm, th, tm].some(isNaN)) return '—';
-  let mins = (th * 60 + tm) - (fh * 60 + fm);
-  if (mins < 0) mins += 24 * 60;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+function durationLabel(from?: string, to?: string, distanceKm?: number | null) {
+  if (from && to) {
+    const [fh, fm] = from.split(':').map(Number);
+    const [th, tm] = to.split(':').map(Number);
+    if (![fh, fm, th, tm].some(isNaN)) {
+      let mins = (th * 60 + tm) - (fh * 60 + fm);
+      if (mins < 0) mins += 24 * 60;
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+  }
+  // No arrival time on record — estimate from distance at ~35km/h so the
+  // row still shows something useful instead of a bare "—".
+  if (distanceKm != null) {
+    const mins = Math.round((distanceKm / 35) * 60);
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h > 0 ? `${h}h ${m}m` : `${m}m`} (est.)`;
+  }
+  return '—';
 }
 
 export default function PastBookingDetailScreen({ navigation, route }) {
@@ -26,15 +37,22 @@ export default function PastBookingDetailScreen({ navigation, route }) {
 
   const rideDistanceKm = estimateRideDistanceKm(ride);
 
+  const vehicleLabel = vehicle
+    ? `${vehicle.brand || ''} ${vehicle.model || ''}${vehicle.year ? ` • ${vehicle.year}` : ''}`.trim()
+    : '—';
+
   const INFO_ROWS = [
     { label: 'From', value: booking?.boardingCity || ride?.fromCity || ride?.from, icon: 'location-outline' },
     { label: 'To', value: booking?.exitCity || ride?.toCity || ride?.to, icon: 'flag-outline' },
+    { label: 'Vehicle', value: vehicleLabel, icon: 'car-outline' },
     { label: 'Distance', value: rideDistanceKm != null ? `${rideDistanceKm} km` : '—', icon: 'navigate-outline' },
-    { label: 'Time', value: durationLabel(ride?.departureTime, ride?.arrivalTime), icon: 'time-outline' },
+    { label: 'Time', value: durationLabel(ride?.departureTime, ride?.arrivalTime, rideDistanceKm), icon: 'time-outline' },
     { label: 'Seats', value: `${booking?.seats ?? 1}`, icon: 'people-outline' },
     { label: 'Fare per Seat', value: `Rs. ${(ride?.pricePerSeat ?? (booking?.totalAmount && booking?.seats ? Math.round(booking.totalAmount / booking.seats) : 0)).toLocaleString()}`, icon: 'pricetag-outline' },
     { label: 'Total Amount', value: `Rs. ${booking?.totalAmount?.toLocaleString() ?? '0'}`, icon: 'cash-outline' },
     { label: 'Payment Method', value: 'Cash', icon: 'wallet-outline' },
+    ...(booking?.pickupAddress ? [{ label: 'Pickup Point', value: booking.pickupAddress, icon: 'location-outline' }] : []),
+    ...(booking?.dropAddress ? [{ label: 'Drop-off Point', value: booking.dropAddress, icon: 'flag-outline' }] : []),
   ];
 
   return (
@@ -51,13 +69,8 @@ export default function PastBookingDetailScreen({ navigation, route }) {
         <View style={styles.driverCard}>
           <Avatar name={driver?.name} uri={driver?.avatar} size={48} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <View style={styles.driverNameRow}>
-              <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
-              {driver?.rating > 0 && <StarRating rating={driver.rating} size={13} />}
-            </View>
-            <Text style={styles.vehicleMeta} numberOfLines={1}>
-              {vehicle?.brand} {vehicle?.model}{vehicle?.year ? ` • ${vehicle.year}` : ''}
-            </Text>
+            <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
+            {driver?.rating > 0 && <StarRating rating={driver.rating} size={13} />}
           </View>
           {driver?.phone && (
             <Pressable
@@ -104,9 +117,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.border, marginBottom: 20,
     ...CURVE,
   },
-  driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  driverName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  vehicleMeta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  driverName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   iconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   sectionHeader: { marginTop: 0, marginBottom: 10 },
   infoCard: {

@@ -20,7 +20,7 @@ export interface AppContextState {
   
   postRide: (rideData: any) => Promise<{ data?: any, error?: any }>;
   searchRides: (from: string, to: string, date: string) => Promise<{ data: any[], error?: any }>;
-  bookRide: (rideId: string, seats: number, boardingCity?: string, exitCity?: string, note?: string, pickupLat?: number, pickupLng?: number) => Promise<{ data?: any, error?: any }>;
+  bookRide: (rideId: string, seats: number, boardingCity?: string, exitCity?: string, note?: string, pickupLat?: number, pickupLng?: number, pickupAddress?: string, dropLat?: number, dropLng?: number, dropAddress?: string) => Promise<{ data?: any, error?: any }>;
   cancelBooking: (bookingId: string, reason: string) => Promise<{ error?: any }>;
   
   registerVehicle: (vehicleData: any) => Promise<{ data?: any, error?: any }>;
@@ -198,8 +198,8 @@ export const AppProvider = ({ children }) => {
   };
 
   // ─── Bookings (pure API wrappers) ─────────────────────────────────────────
-  const bookRide = async (rideId, seats, boardingCity, exitCity, note, pickupLat?: number, pickupLng?: number) => {
-    const { data, error } = await bookingsApi.book(rideId, seats, boardingCity, exitCity, note, pickupLat, pickupLng);
+  const bookRide = async (rideId, seats, boardingCity, exitCity, note, pickupLat?: number, pickupLng?: number, pickupAddress?: string, dropLat?: number, dropLng?: number, dropAddress?: string) => {
+    const { data, error } = await bookingsApi.book(rideId, seats, boardingCity, exitCity, note, pickupLat, pickupLng, pickupAddress, dropLat, dropLng, dropAddress);
     if (error) return { error };
     return { data: data.data };
   };

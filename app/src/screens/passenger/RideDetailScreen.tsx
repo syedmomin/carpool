@@ -3,13 +3,46 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  COLORS, CURVE,
+  COLORS, CURVE, AMENITY_CONFIG,
   StarRating, PrimaryButton, AppBar,
-  Avatar, TrustBadgesRow, RouteTag, SectionHeader, DetailSkeleton, EmptyState,
+  Avatar, RouteTag, SectionHeader, DetailSkeleton, EmptyState,
 } from '../../components';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { ridesApi } from '../../services/api';
+import { estimateRideDistanceKm } from '../../utils/geo';
+
+function formatMinutes(mins: number) {
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// Prefers the real routed duration (ride.route.duration, seconds, from
+// OpenRouteService) — falls back to the difference between the ride's own
+// departure/arrival times, which are also real driver-entered fields.
+function durationLabel(ride: any) {
+  if (ride?.route?.duration) return formatMinutes(ride.route.duration / 60);
+  const from = ride?.departureTime, to = ride?.arrivalTime;
+  if (from && to) {
+    const [fh, fm] = from.replace(/\s?(am|pm)/i, '').split(':').map(Number);
+    const [th, tm] = to.replace(/\s?(am|pm)/i, '').split(':').map(Number);
+    if (![fh, fm, th, tm].some(isNaN)) {
+      let mins = (th * 60 + tm) - (fh * 60 + fm);
+      if (mins < 0) mins += 24 * 60;
+      return formatMinutes(mins);
+    }
+  }
+  return '';
+}
+
+function parseStops(raw: any): { city: string; arrivalTime?: string }[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+  }
+  return [];
+}
 
 export default function RideDetailScreen({ navigation, route }) {
   const params = route.params || {};
@@ -49,6 +82,9 @@ export default function RideDetailScreen({ navigation, route }) {
   const vehicle = ride?.vehicle;
   const available = ride ? (ride.totalSeats || 0) - (ride.bookedSeats || 0) : 0;
   const isSegment = !!(boardingCity && exitCity);
+  const rideDistanceKm = ride ? estimateRideDistanceKm(ride) : null;
+  const rideDuration = ride ? durationLabel(ride) : '';
+  const stops = ride?.isMultiStop ? parseStops(ride.stops) : [];
 
   if (loadingRide) {
     return (
@@ -84,11 +120,7 @@ export default function RideDetailScreen({ navigation, route }) {
     });
   };
 
-  const aboutBullets = [
-    'Leaving on time',
-    vehicle?.ac ? 'AC vehicle for a comfortable journey' : 'Comfortable journey',
-    driver?.rating >= 4.5 ? 'Highly rated driver' : driver?.isVerified ? 'Verified driver' : 'Experienced driver',
-  ];
+  const vehicleAmenities = Object.entries(AMENITY_CONFIG).filter(([key]) => vehicle?.[key]);
 
   return (
     <View style={styles.container}>
@@ -118,6 +150,12 @@ export default function RideDetailScreen({ navigation, route }) {
                   <Text style={styles.segmentBannerText}>Segment</Text>
                 </View>
               )}
+              {!!ride.roundTripGroupId && (
+                <View style={[styles.segmentBanner, { backgroundColor: '#fff8e1' }]}>
+                  <Ionicons name="swap-horizontal" size={11} color={COLORS.accent} />
+                  <Text style={[styles.segmentBannerText, { color: COLORS.accent }]}>Round Trip</Text>
+                </View>
+              )}
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.priceValue}>Rs {ride.pricePerSeat?.toLocaleString()}</Text>
@@ -131,7 +169,7 @@ export default function RideDetailScreen({ navigation, route }) {
               <Text style={styles.cityText} numberOfLines={1}>{isSegment ? boardingCity : ride.from}</Text>
             </View>
             <View style={styles.routeMiddle}>
-              <Text style={styles.durationPill}>{ride.duration || ''}</Text>
+              {!!rideDuration && <Text style={styles.durationPill}>{rideDuration}</Text>}
               <View style={styles.routeLineRow}>
                 <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
                 <View style={styles.routeDashLine} />
@@ -139,6 +177,7 @@ export default function RideDetailScreen({ navigation, route }) {
                 <View style={styles.routeDashLine} />
                 <View style={[styles.routeDot, { backgroundColor: COLORS.danger }]} />
               </View>
+              {rideDistanceKm != null && <Text style={styles.distanceText}>{rideDistanceKm} km</Text>}
             </View>
             <View style={[styles.cityBlock, { alignItems: 'flex-end' }]}>
               <Text style={styles.timeLarge}>{ride.arrivalTime || '-'}</Text>
@@ -159,76 +198,47 @@ export default function RideDetailScreen({ navigation, route }) {
           <View style={styles.driverRow}>
             <Avatar name={driver?.name} uri={driver?.avatar} size={48} color={COLORS.primary} />
             <View style={styles.driverInfo}>
-              <View style={styles.driverNameRow}>
-                <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
-                {driver?.isVerified && <Ionicons name="shield-checkmark" size={14} color={COLORS.secondary} />}
-              </View>
+              <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
               <View style={styles.driverMetaRow}>
                 {driver?.rating > 0 && <StarRating rating={driver.rating} size={13} />}
-                <Text style={styles.driverMeta} numberOfLines={1}>
-                  {vehicle?.brand} {vehicle?.model} {vehicle?.year || ''}
-                </Text>
+                {driver?.reviewCount > 0 && <Text style={styles.reviewCount}>({driver.reviewCount})</Text>}
               </View>
+              <Text style={styles.driverMeta} numberOfLines={1}>
+                {vehicle?.brand} {vehicle?.model}
+              </Text>
             </View>
-            <Pressable
-              style={styles.viewProfileBtn}
-              onPress={() => navigation.navigate('Reviews', { userId: driver?.id, userName: driver?.name })}
-            >
-              <Text style={styles.viewProfileText}>View Profile</Text>
-            </Pressable>
+            <View style={{ gap: 8, alignItems: 'flex-end' }}>
+              {driver?.phone && (
+                <Pressable
+                  style={styles.callIconBtn}
+                  onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Call ${driver?.name} at ${driver?.phone || 'N/A'}?`, confirmText: 'Call' })}
+                >
+                  <Ionicons name="call" size={16} color={COLORS.white} />
+                </Pressable>
+              )}
+              <Pressable
+                style={styles.viewProfileBtn}
+                onPress={() => navigation.navigate('Reviews', { userId: driver?.id, userName: driver?.name })}
+              >
+                <Text style={styles.viewProfileText}>View Profile</Text>
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.summaryDivider} />
 
-          {/* Amenity icons row */}
+          {/* Amenity icons row — only genuine backend-provided flags */}
           <View style={styles.amenityRow}>
             <View style={styles.amenityItem}>
               <Ionicons name="people-outline" size={16} color={COLORS.textSecondary} />
               <Text style={styles.amenityLabel}>{available} Seat{available !== 1 ? 's' : ''} Left</Text>
             </View>
-            <View style={styles.amenityItem}>
-              <Ionicons name={vehicle?.smoking ? 'logo-no-smoking' : 'ban-outline'} size={16} color={COLORS.textSecondary} />
-              <Text style={styles.amenityLabel}>No Smoking</Text>
-            </View>
-            {vehicle?.ac && (
-              <View style={styles.amenityItem}>
-                <Ionicons name="snow-outline" size={16} color={COLORS.textSecondary} />
-                <Text style={styles.amenityLabel}>AC</Text>
+            {vehicleAmenities.map(([key, cfg]) => (
+              <View key={key} style={styles.amenityItem}>
+                <Ionicons name={cfg.icon as any} size={16} color={COLORS.textSecondary} />
+                <Text style={styles.amenityLabel}>{cfg.label}</Text>
               </View>
-            )}
-            {vehicle?.music && (
-              <View style={styles.amenityItem}>
-                <Ionicons name="musical-notes-outline" size={16} color={COLORS.textSecondary} />
-                <Text style={styles.amenityLabel}>Music</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* About this ride */}
-        <View style={styles.aboutCard}>
-          <SectionHeader title="About this ride" style={styles.sectionHeaderInCard} />
-          {aboutBullets.map((b, i) => (
-            <View key={i} style={styles.aboutRow}>
-              <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
-              <Text style={styles.aboutText}>{b}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Driver contact */}
-        <View style={styles.section}>
-          <View style={styles.contactRow}>
-            <TrustBadgesRow user={driver} max={3} />
-            {driver?.phone && (
-              <Pressable
-                style={styles.callBtn}
-                onPress={() => showModal({ type: 'info', title: 'Call Driver', message: `Call ${driver?.name} at ${driver?.phone || 'N/A'}?`, confirmText: 'Call' })}
-              >
-                <Ionicons name="call" size={16} color={COLORS.white} />
-                <Text style={styles.callBtnText}>Call</Text>
-              </Pressable>
-            )}
+            ))}
           </View>
         </View>
 
@@ -252,24 +262,15 @@ export default function RideDetailScreen({ navigation, route }) {
 
               {/* Features — shown first so they're immediately visible */}
               <View style={styles.amenityGrid}>
-                {[
-                  { key: 'ac',           icon: 'snow-outline',            label: 'AC',        color: COLORS.teal },
-                  { key: 'wifi',         icon: 'wifi-outline',            label: 'WiFi',      color: COLORS.primary },
-                  { key: 'music',        icon: 'musical-notes-outline',   label: 'Music',     color: '#e91e63' },
-                  { key: 'usbCharging',  icon: 'flash-outline',           label: 'USB',       color: '#ff9800' },
-                  { key: 'waterCooler',  icon: 'water-outline',           label: 'Water',     color: '#03a9f4' },
-                  { key: 'blanket',      icon: 'bed-outline',             label: 'Blanket',   color: '#795548' },
-                  { key: 'firstAid',     icon: 'medkit-outline',          label: 'First Aid', color: COLORS.danger },
-                  { key: 'luggageRack',  icon: 'briefcase-outline',       label: 'Luggage',   color: COLORS.gray },
-                ].filter(f => vehicle?.[f.key]).map(f => (
-                  <View key={f.key} style={[styles.amenityChip, { backgroundColor: f.color + '15' }]}>
-                    <Ionicons name={(f.icon) as any} size={13} color={f.color} />
-                    <Text style={[styles.amenityChipText, { color: f.color }]}>{f.label}</Text>
+                {vehicleAmenities.map(([key, cfg]) => (
+                  <View key={key} style={[styles.amenityChip, { backgroundColor: cfg.color + '15' }]}>
+                    <Ionicons name={cfg.icon as any} size={13} color={cfg.color} />
+                    <Text style={[styles.amenityChipText, { color: cfg.color }]}>{cfg.label}</Text>
                   </View>
                 ))}
               </View>
 
-              {/* Meta chips — type, seats, color */}
+              {/* Meta chips — type, seats */}
               <View style={styles.vehicleMetaRow}>
                 <View style={styles.vehicleChip}>
                   <Ionicons name="car-outline" size={12} color={COLORS.gray} />
@@ -279,12 +280,6 @@ export default function RideDetailScreen({ navigation, route }) {
                   <Ionicons name="people-outline" size={12} color={COLORS.gray} />
                   <Text style={styles.vehicleChipText}>{vehicle?.totalSeats} seats</Text>
                 </View>
-                {vehicle?.color && (
-                  <View style={styles.vehicleChip}>
-                    <Ionicons name="color-palette-outline" size={12} color={COLORS.gray} />
-                    <Text style={styles.vehicleChipText}>{vehicle.color}</Text>
-                  </View>
-                )}
               </View>
             </View>
           </View>
@@ -300,9 +295,23 @@ export default function RideDetailScreen({ navigation, route }) {
               </View>
               <View>
                 <Text style={styles.rdLabel}>Pickup Point</Text>
-                <Text style={styles.rdValue}>{ride.pickupPoint}</Text>
+                <Text style={styles.rdValue}>{ride.pickupPoint || `${isSegment ? boardingCity : ride.from} (exact point shared by driver)`}</Text>
               </View>
             </View>
+            {stops.map((stop, i) => (
+              <React.Fragment key={i}>
+                <View style={styles.rdDivider} />
+                <View style={styles.routeDetailRow}>
+                  <View style={[styles.rdIcon, { backgroundColor: '#fff8e1' }]}>
+                    <Ionicons name="ellipse" size={10} color={COLORS.accent} />
+                  </View>
+                  <View>
+                    <Text style={styles.rdLabel}>Stop {i + 1}</Text>
+                    <Text style={styles.rdValue}>{stop.city}{stop.arrivalTime ? ` · ${stop.arrivalTime}` : ''}</Text>
+                  </View>
+                </View>
+              </React.Fragment>
+            ))}
             <View style={styles.rdDivider} />
             <View style={styles.routeDetailRow}>
               <View style={[styles.rdIcon, { backgroundColor: '#e8f5e9' }]}>
@@ -310,7 +319,7 @@ export default function RideDetailScreen({ navigation, route }) {
               </View>
               <View>
                 <Text style={styles.rdLabel}>Drop Point</Text>
-                <Text style={styles.rdValue}>{ride.dropPoint}</Text>
+                <Text style={styles.rdValue}>{ride.dropPoint || `${isSegment ? exitCity : ride.to} (exact point shared by driver)`}</Text>
               </View>
             </View>
             {ride.description && (
@@ -378,6 +387,7 @@ const styles = StyleSheet.create({
   cityText: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   routeMiddle: { alignItems: 'center', paddingHorizontal: 8, gap: 4 },
   durationPill: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, backgroundColor: COLORS.lightGray, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  distanceText: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
   routeLineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   routeDot: { width: 6, height: 6, borderRadius: 3 },
   routeDashLine: { width: 16, height: 1, backgroundColor: COLORS.border },
@@ -386,27 +396,18 @@ const styles = StyleSheet.create({
   summaryDivider: { height: 1, backgroundColor: COLORS.border, marginVertical: 14 },
   driverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   driverInfo: { flex: 1 },
-  driverNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  driverName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  driverMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  driverMeta: { fontSize: 12, color: COLORS.textSecondary },
+  driverName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
+  driverMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  reviewCount: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },
+  driverMeta: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  callIconBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
   viewProfileBtn: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   viewProfileText: { fontSize: 12, fontWeight: '700', color: COLORS.primaryDark },
   amenityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   amenityItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   amenityLabel: { fontSize: 12, fontWeight: '500', color: COLORS.textSecondary },
-  aboutCard: {
-    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginTop: 16,
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  aboutRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 },
-  aboutText: { fontSize: 13, fontWeight: '500', color: COLORS.textPrimary },
   section: { marginTop: 16 },
-  sectionHeaderInCard: { marginTop: 0, marginBottom: 0 },
   sectionHeaderInSection: { marginTop: 0, marginBottom: 12 },
-  contactRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  callBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
-  callBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.white },
   vehicleCard: {
     backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden',
     borderWidth: 1, borderColor: COLORS.border,
@@ -432,7 +433,13 @@ const styles = StyleSheet.create({
   rdLabel: { fontSize: 11, color: COLORS.gray, marginBottom: 2 },
   rdValue: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   descText: { fontSize: 13, color: COLORS.gray, flex: 1, lineHeight: 20 },
-  bookingBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 0, borderTopWidth: 1, borderTopColor: COLORS.border },
+  bookingBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.cardBg,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 20, paddingTop: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 14,
+  },
   seatsSelector: { flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 8 },
   seatsSelectorLabel: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   seatBtn: { width: 34, height: 34, borderRadius: 10, backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center', ...CURVE },

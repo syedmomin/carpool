@@ -39,6 +39,12 @@ export { SectionHeader } from './SectionHeader';
 // ─── Empty State ─────────────────────────────────────────────────────────────
 export { EmptyState } from './EmptyState';
 
+// ─── Safety Modals ───────────────────────────────────────────────────────────
+export { SOSModal, CancelReasonModal } from './SafetyModals';
+
+// ─── Ride Bookings Sheet ─────────────────────────────────────────────────────
+export { RideBookingsSheet } from './RideBookingsSheet';
+
 // ─── Progress Bar ────────────────────────────────────────────────────────────
 export { ProgressBar } from './ProgressBar';
 

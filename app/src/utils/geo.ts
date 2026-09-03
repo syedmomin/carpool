@@ -20,7 +20,9 @@ export function haversineKm(
 // back to a straight-line estimate from the ride's from/to coordinates.
 // Returns null only when neither is available.
 export function estimateRideDistanceKm(ride: any): number | null {
-  if (ride?.route?.distance) return Math.round(ride.route.distance);
+  // ride.route.distance comes from the backend's OpenRouteService integration
+  // in meters (see routing.service.ts) — convert to km.
+  if (ride?.route?.distance) return Math.round(ride.route.distance / 1000);
   if (ride?.fromLat != null && ride?.fromLng != null && ride?.toLat != null && ride?.toLng != null) {
     return Math.round(haversineKm(
       { latitude: ride.fromLat, longitude: ride.fromLng },

@@ -114,16 +114,26 @@ export default function RideBookingsScreen({ navigation, route }) {
         <View style={styles.cardTop}>
           <Avatar name={p.name} uri={p.avatar} size={48} color={COLORS.primary} />
           <View style={styles.pInfo}>
-            <View style={styles.pNameRow}>
-              <Text style={styles.pName}>{p.name}</Text>
-              {p.rating > 0 && <StarRating rating={p.rating} size={12} />}
-            </View>
+            <Text style={styles.pName}>{p.name}</Text>
+            {p.rating > 0 && <StarRating rating={p.rating} size={12} />}
             <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''} · Rs {item.totalAmount.toLocaleString()}</Text>
             <TrustBadgesRow user={p} max={2} style={{ marginTop: 4 }} />
           </View>
         </View>
 
         {requestedAt && <Text style={styles.requestedAt}>Requested at {requestedAt}</Text>}
+        {!!item.pickupAddress && (
+          <View style={styles.pickupRow}>
+            <Ionicons name="location-outline" size={13} color={COLORS.gray} />
+            <Text style={styles.pickupText} numberOfLines={1}>{item.pickupAddress}</Text>
+          </View>
+        )}
+        {!!item.dropAddress && (
+          <View style={styles.pickupRow}>
+            <Ionicons name="flag-outline" size={13} color={COLORS.gray} />
+            <Text style={styles.pickupText} numberOfLines={1}>{item.dropAddress}</Text>
+          </View>
+        )}
 
         <View style={styles.actionRow}>
           <Pressable
@@ -163,10 +173,8 @@ export default function RideBookingsScreen({ navigation, route }) {
       >
         <Avatar name={p.name} uri={p.avatar} size={40} color={COLORS.primary} />
         <View style={{ flex: 1 }}>
-          <View style={styles.pNameRow}>
-            <Text style={styles.pName}>{p.name}</Text>
-            {p.rating > 0 && <StarRating rating={p.rating} size={12} />}
-          </View>
+          <Text style={styles.pName}>{p.name}</Text>
+          {p.rating > 0 && <StarRating rating={p.rating} size={12} />}
           <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
         </View>
         <Text style={styles.bookingPrice}>Rs {item.totalAmount.toLocaleString()}</Text>
@@ -289,10 +297,11 @@ const styles = StyleSheet.create({
   card: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
   pInfo: { flex: 1 },
-  pNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  pName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 3 },
   pMeta: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
   requestedAt: { fontSize: 11, color: COLORS.gray, marginBottom: 10 },
+  pickupRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
+  pickupText: { fontSize: 12, color: COLORS.gray, flex: 1 },
   actionRow: { flexDirection: 'row', gap: 10 },
   btn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6, borderWidth: 1.5 },
   rejectBtn: { borderColor: COLORS.danger + '30', backgroundColor: '#fff5f5' },

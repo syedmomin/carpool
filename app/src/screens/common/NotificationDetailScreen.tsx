@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURVE, AppBar, SectionHeader } from '../../components';
 import { Skeleton } from '../../components/Skeleton';
-import { getNotificationStyle } from '../../utils/notificationStyle';
 import { ridesApi, notificationsApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -12,7 +10,6 @@ export default function NotificationDetailScreen({ navigation, route }) {
   const { notification } = route.params;
   const { showToast } = useToast();
   const { showModal } = useGlobalModal();
-  const config = getNotificationStyle(notification.type);
   const rideId = notification.rideId || notification.ride?.id;
 
   const [ride, setRide] = useState<any>(null);
@@ -50,13 +47,11 @@ export default function NotificationDetailScreen({ navigation, route }) {
         onRightPress={handleDelete}
       />
       <ScrollView contentContainerStyle={styles.body}>
-        <View style={[styles.iconCircle, { backgroundColor: config.color }]}>
-          <Ionicons name={config.icon as any} size={32} color={COLORS.white} />
+        <View style={styles.headerCard}>
+          <Text style={styles.title}>{notification.title}</Text>
+          <Text style={styles.date}>{dateLabel}</Text>
+          <Text style={styles.message}>{notification.message}</Text>
         </View>
-
-        <Text style={styles.title}>{notification.title}</Text>
-        <Text style={styles.date}>{dateLabel}</Text>
-        <Text style={styles.message}>{notification.message}</Text>
 
         {loadingRide && (
           <View style={{ width: '100%', marginTop: 28 }}>
@@ -105,11 +100,15 @@ export default function NotificationDetailScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  body: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32, alignItems: 'center' },
-  iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
-  date: { fontSize: 12, color: COLORS.textSecondary, marginTop: 6 },
-  message: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 21, marginTop: 14 },
+  body: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32 },
+  headerCard: {
+    width: '100%', backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: COLORS.border,
+    ...CURVE,
+  },
+  title: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  date: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
+  message: { fontSize: 13.5, color: COLORS.textSecondary, lineHeight: 20, marginTop: 12 },
   sectionHeader: { width: '100%', marginTop: 28, marginBottom: 10 },
   summaryCard: {
     width: '100%', backgroundColor: COLORS.cardBg, borderRadius: 16,

@@ -34,6 +34,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
   const [departureTime, setDepartureTime] = useState('');
   const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
   const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
+  const [pickupAddress, setPickupAddress] = useState<string | undefined>(undefined);
   const [rideType, setRideType] = useState<'oneway' | 'roundtrip'>('oneway');
   const [returnDate, setReturnDate] = useState<string | null>(null);
   const [returnDepartureTime, setReturnDepartureTime] = useState('');
@@ -60,6 +61,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
     if (!to)           { showToast('Please select destination city', 'warning'); return; }
     if (from === to)   { showToast('Cities cannot be the same', 'error'); return; }
     if (!departureTime.trim()) { showToast('Please select your preferred departure time', 'warning'); return; }
+    if (pickupLat == null || pickupLng == null) { showToast('Please set your exact pickup point on the map', 'warning'); return; }
 
     const departureTime24 = to24Hour(departureTime.trim());
 
@@ -102,6 +104,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
       note: note.trim() || undefined,
       ...(roundTripGroupId ? { roundTripGroupId } : {}),
       ...(pickupLat != null && pickupLng != null ? { fromLat: pickupLat, fromLng: pickupLng } : {}),
+      ...(pickupAddress ? { fromAddress: pickupAddress } : {}),
     });
 
     if (error) {
@@ -122,7 +125,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
         haptics.success();
         showToast(`Outbound request posted, but the return leg failed: ${parseApiError(returnError)}`, 'warning');
         setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
-        setReturnDate(null); setReturnDepartureTime(''); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+        setReturnDate(null); setReturnDepartureTime(''); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); setPickupAddress(undefined);
         navigation.navigate('MyRequests');
         return;
       }
@@ -136,7 +139,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
       'success', 4000,
     );
     setSelectedDate(null); setFrom(''); setTo(''); setSeats(1); setDepartureTime(''); setNote('');
-    setReturnDate(null); setReturnDepartureTime(''); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined);
+    setReturnDate(null); setReturnDepartureTime(''); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); setPickupAddress(undefined);
     navigation.navigate('MyRequests');
   };
 
@@ -174,11 +177,12 @@ export default function PostRequestScreen({ navigation, route }: any) {
           {!!from && (
             <>
               <Text style={styles.pinHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact pickup point in {from} so drivers can find you easily. This step is optional.
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact pickup point in {from} so drivers can find you easily. Required.
               </Text>
               <View style={{ marginBottom: 16 }}>
                 <PickupPinPicker
                   onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
+                  onAddressChange={(address) => setPickupAddress(address || undefined)}
                 />
               </View>
             </>

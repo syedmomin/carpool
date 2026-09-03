@@ -6,7 +6,6 @@ import { COLORS, CURVE, AppBar, EmptyState, Avatar, TabPills } from '../../compo
 import { useApp } from '../../context/AppContext';
 import { notificationsApi, chatApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
-import { getNotificationStyle } from '../../utils/notificationStyle';
 import { CardSkeleton } from '../../components/Skeleton';
 
 const PAGE_SIZE = 20;
@@ -207,7 +206,6 @@ export default function NotificationsScreen({ navigation }) {
         onRefresh={() => fetchNotifs(1, true, true)}
         ListFooterComponent={loading ? <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 16 }} /> : null}
         renderItem={({ item }) => {
-          const config = getNotificationStyle(item.type);
           const isNewRide = item.type === 'NEW_RIDE' || item.type === 'BOOKING';
           // Highlight = was unread when the window opened (kept until tapped).
           const isRead    = !highlightIds.current.has(item.id);
@@ -218,15 +216,12 @@ export default function NotificationsScreen({ navigation }) {
               style={[styles.card, !isRead && styles.cardUnread]}
               onPress={() => handleNotifPress(item)}
             >
-              <View style={[styles.iconBox, { backgroundColor: config.bg }]}>
-                <Ionicons name={(config.icon) as any} size={21} color={config.color} />
-              </View>
               <View style={styles.content}>
                 <View style={styles.titleRow}>
                   <Text style={[styles.title, !isRead && styles.titleUnread]} numberOfLines={1}>{item.title}</Text>
                   {!isRead && <View style={styles.unreadDot} />}
                 </View>
-                <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
+                <Text style={styles.message}>{item.message}</Text>
                 <View style={styles.metaRow}>
                   <Text style={styles.time}>{timeLabel}</Text>
 
@@ -279,18 +274,17 @@ const styles = StyleSheet.create({
 
   card: {
     flexDirection: 'row', alignItems: 'flex-start', backgroundColor: COLORS.cardBg,
-    borderRadius: 16, padding: 14, marginBottom: 10, gap: 12,
+    borderRadius: 16, padding: 14, marginBottom: 10,
     borderWidth: 1, borderColor: COLORS.border,
     shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 1,
     ...CURVE,
   },
   cardUnread: { backgroundColor: COLORS.primary + '06', borderColor: COLORS.primary + '20' },
-  iconBox: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   content: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
-  title: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary, flex: 1 },
+  title: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, flex: 1 },
   titleUnread: { fontWeight: '800', letterSpacing: -0.1 },
-  message: { fontSize: 12.5, color: COLORS.gray, lineHeight: 18, marginBottom: 6 },
+  message: { fontSize: 11.5, fontWeight: '500', color: COLORS.textSecondary, lineHeight: 18, marginBottom: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   time: { fontSize: 11, color: COLORS.gray },
   unreadDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: COLORS.primary, flexShrink: 0 },
