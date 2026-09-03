@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     View, Text, StyleSheet, FlatList, SectionList, Pressable,
-    ActivityIndicator, Modal, TextInput, ScrollView,
+    ActivityIndicator, Modal, TextInput, ScrollView, Platform, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -105,6 +105,15 @@ export default function BookingHistoryScreen({ navigation }) {
     const { myBookings, myBookingsState, loadMyBookings, removeBooking } = useSocketData();
     const { showModal } = useGlobalModal();
     const { showToast } = useToast();
+
+    const openDirections = (lat: number, lng: number) => {
+        const url = Platform.select({
+            ios: `maps://app?daddr=${lat},${lng}`,
+            android: `google.navigation:q=${lat},${lng}`,
+            default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+        });
+        Linking.openURL(url as string).catch(() => showToast('Could not open navigation app', 'error'));
+    };
 
     const REVIEWED_KEY = '@reviewed_booking_ids';
     const [reviewBooking, setReviewBooking]     = useState(null);
@@ -379,6 +388,13 @@ export default function BookingHistoryScreen({ navigation }) {
                                         onPress={(e) => { e.stopPropagation(); setAddCount(1); setAddTarget(item); }}>
                                         <Ionicons name="add-circle-outline" size={14} color={COLORS.primary} />
                                         <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Add Seats</Text>
+                                    </Pressable>
+                                )}
+                                {item.pickupLat != null && item.pickupLng != null && (
+                                    <Pressable style={[styles.actionBtn, styles.actionBtnBlue]}
+                                        onPress={(e) => { e.stopPropagation(); openDirections(item.pickupLat, item.pickupLng); }}>
+                                        <Ionicons name="navigate-outline" size={14} color={COLORS.primary} />
+                                        <Text style={[styles.actionBtnText, { color: COLORS.primary }]}>Get to Pickup</Text>
                                     </Pressable>
                                 )}
                             </View>

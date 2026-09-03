@@ -65,7 +65,7 @@ export default function ProfileScreen({ navigation }) {
     Promise.all([fetchRating(), fetchTotalRides()]).finally(() => setLoaded(true));
   }, [fetchRating, fetchTotalRides]));
 
-  const ratingValue = reviewStats?.total ? reviewStats.averageRating : currentUser?.rating;
+  const ratingValue = reviewStats?.total ? reviewStats.averageRating : null;
 
   const handleComingSoon = (label: string) => showToast(`${label} is coming soon`, 'info');
 

@@ -72,7 +72,7 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
           {passenger?.phone && (
             <Pressable
               style={styles.iconBtn}
-              onPress={() => showToast(`Calling ${passenger?.phone}`, 'info')}
+              onPress={() => Linking.openURL(`tel:${passenger.phone}`).catch(() => showToast('Unable to open dialer', 'error'))}
             >
               <Ionicons name="call" size={16} color={COLORS.primary} />
             </Pressable>

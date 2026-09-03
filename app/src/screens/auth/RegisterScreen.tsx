@@ -18,7 +18,7 @@ const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-const isValidPassword = (v) => v.length >= 6;
+const isValidPassword = (v) => v.length >= 8;
 
 const ROLE_META: Record<'passenger' | 'driver', { label: string; icon: keyof typeof Ionicons.glyphMap; sub: string }> = {
     passenger: { label: 'Passenger', icon: 'people', sub: 'Find affordable rides' },
@@ -53,7 +53,7 @@ export default function RegisterScreen({ navigation, route }) {
         else if (!isValidEmail(form.email)) e.email = 'Enter a valid email address';
 
         if (!form.password) e.password = 'Password is required';
-        else if (!isValidPassword(form.password)) e.password = 'Password must be at least 6 characters';
+        else if (!isValidPassword(form.password)) e.password = 'Password must be at least 8 characters';
 
         if (!form.city.trim()) e.city = 'Please select your city';
 
@@ -143,7 +143,7 @@ export default function RegisterScreen({ navigation, route }) {
                             <AuthInput
                                 variant="light"
                                 icon="lock-closed-outline"
-                                placeholder="Create a password (min 6 chars)"
+                                placeholder="Create a password (min 8 chars)"
                                 value={form.password}
                                 onChangeText={v => set('password', v)}
                                 password

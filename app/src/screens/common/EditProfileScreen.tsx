@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURVE, FormInput, AppBar, SectionHeader, PrimaryButton } from '../../components';
+import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -27,6 +28,7 @@ export default function EditProfileScreen({ navigation }) {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [deleting, setDeleting]   = useState(false);
+  const [cityModalOpen, setCityModalOpen] = useState(false);
 
   const set = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
@@ -159,7 +161,10 @@ export default function EditProfileScreen({ navigation }) {
           <FormInput label="Full Name *"    rightIcon="person-outline"   placeholder="Your full name"  value={form.name}  onChangeText={v => set('name', v)} />
           <FormInput label="Phone Number *" rightIcon="call-outline"     placeholder="03001234567"     value={form.phone} onChangeText={v => set('phone', digitsOnly(v).slice(0, 11))} keyboardType="phone-pad" maxLength={11} />
           <FormInput label="Email Address"  rightIcon="mail-outline"     placeholder="your@email.com" value={form.email} onChangeText={v => set('email', v)} keyboardType="email-address" autoCapitalize="none" />
-          <FormInput label="City"           rightIcon="location-outline" placeholder="e.g. Karachi"   value={form.city}  onChangeText={v => set('city', v)} />
+          <FormInput
+            label="City" rightIcon="location-outline" placeholder="Select your city"
+            value={form.city} editable={false} onRightIconPress={() => setCityModalOpen(true)}
+          />
 
           <PrimaryButton title="Save Changes" onPress={handleSave} loading={loading} style={styles.saveBtn} />
 
@@ -171,6 +176,13 @@ export default function EditProfileScreen({ navigation }) {
           </Pressable>
         </ScrollView>
       </View>
+
+      <CitySearchModal
+        visible={cityModalOpen}
+        title="Select City"
+        onSelect={(name) => set('city', name)}
+        onClose={() => setCityModalOpen(false)}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -77,11 +77,6 @@ export default function DriverHomeScreen({ navigation }) {
     ? Math.round(((totalEarned - yesterdayEarned) / yesterdayEarned) * 100)
     : (totalEarned > 0 ? 100 : 0);
 
-  // NOTE: online-time tracking doesn't exist anywhere in the backend yet
-  // (no session/presence duration is recorded), so this is a static
-  // placeholder — see final report.
-  const onlineTime = '--';
-
   const QUICK_ACTIONS = [
     { icon: 'add-circle', label: 'Post Ride', screen: 'PostRide' },
     { icon: 'list', label: 'Requests', screen: 'DriverRequestsTab' },
@@ -156,8 +151,8 @@ export default function DriverHomeScreen({ navigation }) {
             <Text style={styles.statLabel}>Rides</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statVal}>{onlineTime}</Text>
-            <Text style={styles.statLabel}>Online Time</Text>
+            <Text style={styles.statVal}>{totalPassengers}</Text>
+            <Text style={styles.statLabel}>Passengers</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statVal}>{rating != null ? rating.toFixed(1) : '--'}</Text>
@@ -278,7 +273,7 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Tip */}
         <View style={styles.tipCard}>
           <Ionicons name="bulb-outline" size={22} color={COLORS.warning} />
-          <Text style={styles.tipText}>Uploading clear vehicle photos can increase your bookings by 40%!</Text>
+          <Text style={styles.tipText}>Clear vehicle photos help passengers trust your ride and book faster.</Text>
         </View>
 
         <View style={{ height: 24 }} />

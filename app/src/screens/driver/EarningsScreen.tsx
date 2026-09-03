@@ -103,10 +103,6 @@ export default function EarningsScreen({ navigation }) {
     : (total > 0 ? 100 : 0);
   const deltaCompareLabel = tab === 0 ? 'vs yesterday' : tab === 1 ? 'vs last week' : 'vs last month';
 
-  // NOTE: no session/presence tracking exists in the backend, so there is no
-  // real online-time figure to show here — static placeholder (see report).
-  const onlineTime = '--';
-
   return (
     <View style={styles.container}>
       <AppBar
@@ -151,7 +147,7 @@ export default function EarningsScreen({ navigation }) {
         <View style={styles.statsRow}>
           {[
             { icon: 'car-sport-outline', label: 'Rides',      value: filtered.length,                     color: COLORS.primary },
-            { icon: 'time-outline',      label: 'Online Time', value: onlineTime,                          color: COLORS.primary },
+            { icon: 'people-outline',    label: 'Passengers', value: totalPassengers,                     color: COLORS.primary },
             { icon: 'trending-up',       label: 'Avg / Ride',  value: `Rs ${avgPerRide.toLocaleString()}`, color: COLORS.secondary },
           ].map((s, i) => (
             <View key={i} style={styles.statCard}>
@@ -160,27 +156,6 @@ export default function EarningsScreen({ navigation }) {
               </View>
               <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
               <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Earnings Breakdown */}
-        <SectionHeader title="Earnings Breakdown" />
-        <View style={styles.breakdownCard}>
-          {[
-            { icon: 'car-sport',       label: 'Ride Earnings', value: total, color: COLORS.secondary, bg: '#e8f5e9' },
-            { icon: 'cash-outline',    label: 'Tips',          value: 0,     color: COLORS.warning,   bg: COLORS.warningLight },
-            { icon: 'gift-outline',    label: 'Incentives',    value: 0,     color: COLORS.primary,   bg: COLORS.primaryLight },
-            { icon: 'remove-circle-outline', label: 'Deductions', value: 0,  color: COLORS.danger,    bg: COLORS.dangerLight },
-          ].map((row, i) => (
-            <View key={i} style={[styles.breakdownRow, i === 3 && { borderBottomWidth: 0 }]}>
-              <View style={styles.breakdownLeft}>
-                <View style={[styles.breakdownIcon, { backgroundColor: row.bg }]}>
-                  <Ionicons name={row.icon as any} size={16} color={row.color} />
-                </View>
-                <Text style={styles.breakdownLabel}>{row.label}</Text>
-              </View>
-              <Text style={styles.breakdownValue}>Rs {row.value.toLocaleString()}</Text>
             </View>
           ))}
         </View>
@@ -261,12 +236,6 @@ const styles = StyleSheet.create({
   statIcon:    { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8, ...CURVE },
   statVal:     { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   statLabel:   { fontSize: 10, color: COLORS.textSecondary, textAlign: 'center' },
-  breakdownCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, paddingHorizontal: 16, marginBottom: 24, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
-  breakdownRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  breakdownLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  breakdownIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  breakdownLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
-  breakdownValue: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   rideCard:    { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   rideLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   rideIconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f5e9', ...CURVE },

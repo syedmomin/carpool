@@ -49,7 +49,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         if (!code.trim()) e.code = 'Enter the 6-digit code';
         else if (!/^\d{6}$/.test(code)) e.code = 'Code must be 6 digits';
         if (!password) e.password = 'New password is required';
-        else if (password.length < 6) e.password = 'Password must be at least 6 characters';
+        else if (password.length < 8) e.password = 'Password must be at least 8 characters';
         setErrors(e);
         if (Object.keys(e).length) return;
 
@@ -132,7 +132,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                                 <AuthInput
                                     variant="light"
                                     icon="lock-closed-outline"
-                                    placeholder="New password (min 6 chars)"
+                                    placeholder="New password (min 8 chars)"
                                     value={password}
                                     onChangeText={(v) => { setPassword(v); setErr('password', ''); }}
                                     password

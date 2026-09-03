@@ -16,8 +16,6 @@ const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
 const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
 
-const isValidPassword = (v) => v.length >= 6;
-
 export default function LoginScreen({ navigation }) {
     const { login } = useApp();
     const { showToast } = useToast();
@@ -31,7 +29,6 @@ export default function LoginScreen({ navigation }) {
         if (!phone.trim()) e.phone = 'Phone number is required';
         else if (!isValidLocalPhone(phone)) e.phone = 'Enter your number as 0300 1234567';
         if (!password) e.password = 'Password is required';
-        else if (!isValidPassword(password)) e.password = 'Password must be at least 6 characters';
         setErrors(e);
         return Object.keys(e).length === 0;
     };

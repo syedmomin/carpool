@@ -416,15 +416,18 @@ export default function RideTrackingScreen({ route, navigation }) {
   const remainingKm = driverLocation && destination ? distanceKm(driverLocation, destination) : null;
   const etaMinutes = remainingKm !== null ? Math.max(1, Math.round((remainingKm / 35) * 60)) : null; // ~35km/h assumed avg speed
 
-  const openNavigation = () => {
-    if (!destination) { showToast('Destination location not available', 'error'); return; }
-    const label = encodeURIComponent(ride?.toCity || 'Destination');
+  const openDirectionsTo = (lat: number, lng: number) => {
     const url = Platform.select({
-      ios: `maps://app?daddr=${destination.latitude},${destination.longitude}`,
-      android: `google.navigation:q=${destination.latitude},${destination.longitude}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}`,
+      ios: `maps://app?daddr=${lat},${lng}`,
+      android: `google.navigation:q=${lat},${lng}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
     });
     Linking.openURL(url as string).catch(() => showToast('Could not open navigation app', 'error'));
+  };
+
+  const openNavigation = () => {
+    if (!destination) { showToast('Destination location not available', 'error'); return; }
+    openDirectionsTo(destination.latitude, destination.longitude);
   };
 
   const confirmedBookings = ride?.bookings?.filter((b: any) => b.status === 'CONFIRMED') || [];
@@ -593,6 +596,11 @@ export default function RideTrackingScreen({ route, navigation }) {
                       {'  ·  '}{item.seats} seat{item.seats !== 1 ? 's' : ''}
                     </Text>
                   </View>
+                  {item.pickupLat != null && item.pickupLng != null && (
+                    <Pressable style={s.callBtn} onPress={() => openDirectionsTo(item.pickupLat, item.pickupLng)}>
+                      <Ionicons name="navigate" size={18} color={COLORS.primary} />
+                    </Pressable>
+                  )}
                   <Pressable style={s.callBtn} onPress={() => handleCall(item.passenger?.phone)}>
                     <Ionicons name="call" size={18} color={COLORS.primary} />
                   </Pressable>

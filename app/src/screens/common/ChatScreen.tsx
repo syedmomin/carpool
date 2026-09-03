@@ -2,12 +2,11 @@
 import {
   View, Text, StyleSheet, FlatList, TextInput, Pressable,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  Keyboard, TouchableWithoutFeedback, Alert, Image,
+  Keyboard, TouchableWithoutFeedback, Alert, Image, Linking,
 } from 'react-native';
 import { showImagePickerOptions } from '../../utils/imagePicker';
 
 const QUICK_EMOJIS = ['😊','😂','❤️','👍','🙏','😮','😢','🔥','👏','😎','✅','🎉'];
-const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🙏'];
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, CURVE, Avatar, EmptyState, DetailSkeleton } from '../../components';
@@ -35,8 +34,6 @@ export default function ChatScreen({ route, navigation }) {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [reactions, setReactions] = useState<Record<string, string>>({});
-  const [reactingTo, setReactingTo] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<any>(null);
 
@@ -208,8 +205,6 @@ export default function ChatScreen({ route, navigation }) {
     const isMe = item.senderId === currentUser?.id;
     const time = item.createdAt ? new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     const isRead = !!item.readAt;
-    const msgReaction = reactions[item.id];
-    const isReacting = reactingTo === item.id;
 
     const dayLabel = item.createdAt ? new Date(item.createdAt).toDateString() : null;
     const prevDayLabel = index > 0 && messages[index - 1]?.createdAt ? new Date(messages[index - 1].createdAt).toDateString() : null;
@@ -228,63 +223,25 @@ export default function ChatScreen({ route, navigation }) {
         {!isMe && (
           <Avatar name={item.sender?.name} uri={item.sender?.avatar} size={30} style={styles.avatar} />
         )}
-        <View>
-          <Pressable
-            onLongPress={() => setReactingTo(isReacting ? null : item.id)}
-            delayLongPress={350}
-          >
-            <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble, item.imageUrl && styles.imageBubble]}>
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
-              ) : (
-                <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
-                  {item.content}
-                </Text>
-              )}
-              <View style={styles.messageFooter}>
-                <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>{time}</Text>
-                {isMe && (
-                  <Ionicons
-                    name="checkmark-done"
-                    size={12}
-                    color={isRead ? '#4ade80' : 'rgba(255,255,255,0.5)'}
-                    style={styles.readIcon}
-                  />
-                )}
-              </View>
-            </View>
-          </Pressable>
-
-          {/* Reaction picker bar */}
-          {isReacting && (
-            <View style={[styles.reactionBar, isMe ? styles.reactionBarRight : styles.reactionBarLeft]}>
-              {REACTION_EMOJIS.map(e => (
-                <Pressable
-                  key={e}
-                  onPress={() => {
-                    setReactions(r => ({ ...r, [item.id]: r[item.id] === e ? '' : e }));
-                    setReactingTo(null);
-                  }}
-                  style={styles.reactionOption}
-                >
-                  <Text style={styles.reactionOptionText}>{e}</Text>
-                </Pressable>
-              ))}
-              <Pressable onPress={() => setReactingTo(null)} style={styles.reactionClose}>
-                <Ionicons name="close" size={14} color={COLORS.gray} />
-              </Pressable>
-            </View>
+        <View style={[styles.bubble, isMe ? styles.myBubble : styles.otherBubble, item.imageUrl && styles.imageBubble]}>
+          {item.imageUrl ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} resizeMode="cover" />
+          ) : (
+            <Text style={[styles.messageText, isMe ? styles.myText : styles.otherText]}>
+              {item.content}
+            </Text>
           )}
-
-          {/* Attached reaction badge */}
-          {!!msgReaction && (
-            <Pressable
-              onPress={() => setReactions(r => ({ ...r, [item.id]: '' }))}
-              style={[styles.reactionBadge, isMe ? styles.reactionBadgeRight : styles.reactionBadgeLeft]}
-            >
-              <Text style={styles.reactionBadgeText}>{msgReaction}</Text>
-            </Pressable>
-          )}
+          <View style={styles.messageFooter}>
+            <Text style={[styles.timeText, isMe ? styles.myTime : styles.otherTime]}>{time}</Text>
+            {isMe && (
+              <Ionicons
+                name="checkmark-done"
+                size={12}
+                color={isRead ? '#4ade80' : 'rgba(255,255,255,0.5)'}
+                style={styles.readIcon}
+              />
+            )}
+          </View>
         </View>
       </View>
       </>
@@ -316,7 +273,10 @@ export default function ChatScreen({ route, navigation }) {
         {otherUser?.phone && (
           <Pressable
             style={styles.headerIconBtn}
-            onPress={() => showModal({ type: 'info', title: 'Call', message: `Call ${otherUser?.name} at ${otherUser.phone}?`, confirmText: 'Call' })}
+            onPress={() => showModal({
+              type: 'info', title: 'Call', message: `Call ${otherUser?.name} at ${otherUser.phone}?`, confirmText: 'Call',
+              onConfirm: () => Linking.openURL(`tel:${otherUser.phone}`).catch(() => showToast('Unable to open dialer', 'error')),
+            })}
           >
             <Ionicons name="call-outline" size={20} color={COLORS.textPrimary} />
           </Pressable>
@@ -337,18 +297,12 @@ export default function ChatScreen({ route, navigation }) {
         </Pressable>
       </View>
 
-      {/* Encryption notice */}
-      <View style={styles.encryptionBanner}>
-        <Ionicons name="lock-closed" size={12} color={COLORS.warning} />
-        <Text style={styles.encryptionText}>Messages and calls are end-to-end encrypted</Text>
-      </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <Pressable onPress={() => { setReactingTo(null); setEmojiOpen(false); }} style={{ flex: 1 }}>
+        <Pressable onPress={() => setEmojiOpen(false)} style={{ flex: 1 }}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -438,11 +392,6 @@ const styles = StyleSheet.create({
   headerRide: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
   headerIconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.lightGray, marginLeft: 8 },
 
-  encryptionBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: COLORS.warningLight, paddingVertical: 8, paddingHorizontal: 16,
-  },
-  encryptionText: { fontSize: 11, color: '#92400e', fontWeight: '500', textAlign: 'center' },
   dateDivider: { alignItems: 'center', marginVertical: 12 },
   dateDividerText: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, backgroundColor: COLORS.lightGray, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
 
@@ -532,44 +481,4 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   emojiChar: { fontSize: 24 },
-
-  reactionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    marginTop: 4,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-    alignSelf: 'flex-start',
-  },
-  reactionBarRight: { alignSelf: 'flex-end' },
-  reactionBarLeft: { alignSelf: 'flex-start' },
-  reactionOption: { paddingHorizontal: 4, paddingVertical: 2 },
-  reactionOptionText: { fontSize: 22 },
-  reactionClose: { paddingHorizontal: 4, paddingVertical: 2 },
-
-  reactionBadge: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  reactionBadgeRight: { alignSelf: 'flex-end' },
-  reactionBadgeLeft: { alignSelf: 'flex-start' },
-  reactionBadgeText: { fontSize: 16 },
 });

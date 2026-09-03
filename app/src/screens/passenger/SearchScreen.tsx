@@ -181,8 +181,6 @@ export default function SearchScreen({ navigation, route }) {
   const [sort, setSort] = useState(null);
   const [showSortModal, setShowSortModal] = useState(false);
   const [filterAC, setFilterAC] = useState(false);
-  const [filterFemale, setFilterFemale] = useState(false);
-  const [filterVehicle, setFilterVehicle] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
   const [filterTime, setFilterTime] = useState(null);
   const [filterMaxPrice, setFilterMaxPrice] = useState('');
@@ -195,7 +193,7 @@ export default function SearchScreen({ navigation, route }) {
   const [recentSearches, setRecentSearches] = useState<SearchEntry[]>([]);
   const [alertState, setAlertState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  const activeFilterCount = [filterAC, filterFemale, filterVehicle, filterBrand, filterTime !== null, !!filterMaxPrice].filter(Boolean).length;
+  const activeFilterCount = [filterAC, filterBrand, filterTime !== null, !!filterMaxPrice].filter(Boolean).length;
 
   // ── Compute display list ──────────────────────────────────────────────────
   const displayList = useMemo(() => {
@@ -205,8 +203,6 @@ export default function SearchScreen({ navigation, route }) {
 
     let list = base.filter(r => (r.totalSeats - r.bookedSeats) >= passengers);
     if (filterAC) list = list.filter(r => r.vehicle?.ac);
-    if (filterFemale) list = list.filter(r => r.femaleOnly || r.genderPreference === 'FEMALE');
-    if (filterVehicle) list = list.filter(r => r.vehicle?.type === filterVehicle.toUpperCase());
     if (filterBrand) list = list.filter(r => r.vehicle?.brand?.toLowerCase() === filterBrand.toLowerCase());
     if (filterTime !== null) {
       const slot = TIME_SLOTS[filterTime];
@@ -223,7 +219,7 @@ export default function SearchScreen({ navigation, route }) {
     if (sort === 3) list.sort((a, b) => (b.driver?.rating || 0) - (a.driver?.rating || 0));
 
     return list;
-  }, [searchResults, availableRides, passengers, filterAC, filterFemale, filterVehicle, filterBrand, filterTime, filterMaxPrice, sort]);
+  }, [searchResults, availableRides, passengers, filterAC, filterBrand, filterTime, filterMaxPrice, sort]);
 
   useEffect(() => {
     if (searchResults !== null && availableRides.length > 0) {
@@ -318,8 +314,6 @@ export default function SearchScreen({ navigation, route }) {
 
   const activeFilters = [
     filterAC && 'AC',
-    filterFemale && 'Female Only',
-    filterVehicle && filterVehicle,
     filterBrand && filterBrand,
     filterTime !== null && TIME_SLOTS[filterTime].label,
     filterMaxPrice && `Max Rs ${filterMaxPrice}`,
@@ -395,8 +389,6 @@ export default function SearchScreen({ navigation, route }) {
               style={styles.filterChip}
             />
             <Chip label="AC" icon="snow-outline" active={filterAC} onPress={() => setFilterAC(!filterAC)} style={styles.filterChip} />
-            <Chip label="Female Only" icon="woman-outline" active={filterFemale} onPress={() => setFilterFemale(!filterFemale)} style={styles.filterChip} />
-
             <Chip
               label={filterBrand || 'Brand'}
               icon="business-outline"
@@ -456,7 +448,7 @@ export default function SearchScreen({ navigation, route }) {
           ))}
           <Pressable
             style={styles.clearAllBtn}
-            onPress={() => { setFilterAC(false); setFilterFemale(false); setFilterVehicle(''); setFilterBrand(''); setFilterTime(null); setFilterMaxPrice(''); setSort(null); }}
+            onPress={() => { setFilterAC(false); setFilterBrand(''); setFilterTime(null); setFilterMaxPrice(''); setSort(null); }}
           >
             <Text style={styles.clearAllText}>Clear all</Text>
           </Pressable>
