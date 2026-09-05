@@ -10,7 +10,7 @@ import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY, flushPendingTrackingPoints } 
 import { haversineKm } from '../../utils/geo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, Avatar, SectionHeader, PrimaryButton, DetailSkeleton, RouteTag } from '../../components';
+import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag } from '../../components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ridesApi, trackingApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
@@ -614,12 +614,13 @@ export default function RideTrackingScreen({ route, navigation }) {
                 <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
                 <Text style={s.navigateBtnText}>Navigate</Text>
               </Pressable>
-              <PrimaryButton
-                title="Complete Ride"
-                onPress={handleFinishRide}
-                loading={isFinishing}
-                style={s.finishBtn}
-              />
+              <Pressable style={s.finishBtn} onPress={handleFinishRide} disabled={isFinishing}>
+                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.finishBtnInner}>
+                  {isFinishing
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={s.finishBtnText}>Complete Ride</Text>}
+                </LinearGradient>
+              </Pressable>
             </View>
           </>
         ) : (
@@ -837,7 +838,9 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   navigateBtnText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
-  finishBtn: { flex: 1.4 },
+  finishBtn: { flex: 1.4, height: 52, borderRadius: 12, overflow: 'hidden' },
+  finishBtnInner: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  finishBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   // Passenger
   driverCardGrad: {

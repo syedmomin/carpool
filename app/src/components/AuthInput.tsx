@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, interpolateColor,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { GLASS, COLORS, RADIUS, FONTS } from './theme';
+import { GLASS, COLORS, RADIUS, FONTS, SPACING } from './theme';
 
 const AView = Animated.View;
 
@@ -15,7 +15,7 @@ const AView = Animated.View;
 // inside a white card), so the border must read clearly on its own — a plain
 // white-on-white card made these nearly invisible before.
 const LIGHT = {
-  border:      '#D7DCE5',
+  border:      COLORS.border,
   borderFocus: COLORS.primary,
   inputFill:   COLORS.white,
   fillStrong:  COLORS.white,
@@ -65,7 +65,7 @@ export default function AuthInput({
       ? COLORS.danger
       : interpolateColor(f.value, [0, 1], [light ? LIGHT.border : GLASS.border, light ? LIGHT.borderFocus : GLASS.borderFocus]),
     borderWidth: light ? 1.5 : 1,
-    shadowOpacity: light ? 0.10 + f.value * 0.10 : 0.10 + f.value * 0.35,
+    shadowOpacity: light ? 0 : 0.10 + f.value * 0.35,
     backgroundColor: light ? LIGHT.inputFill : interpolateColor(f.value, [0, 1], [GLASS.inputFill, GLASS.fillStrong]),
   }));
 
@@ -84,9 +84,14 @@ export default function AuthInput({
       ) : null}
 
       {asButton ? (
-        <Text style={[styles.input, { color: textColor }, !value && { color: faintColor, fontFamily: FONTS.regular }]} numberOfLines={1}>
-          {value || placeholder}
-        </Text>
+        <View style={styles.inputAsTextWrap}>
+          <Text
+            style={[styles.inputAsText, { color: textColor }, !value && { color: faintColor, fontFamily: FONTS.regular }]}
+            numberOfLines={1}
+          >
+            {value || placeholder}
+          </Text>
+        </View>
       ) : (
         <TextInput
           style={[styles.input, { color: textColor }]}
@@ -127,24 +132,24 @@ export default function AuthInput({
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 14 },
+  wrap: { marginTop: 12 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    borderRadius: RADIUS.lg,
+    height: 44,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: SPACING.md,
     shadowColor: '#4d8bff',
     shadowOffset: { width: 0, height: 0 },
     shadowRadius: 12,
     overflow: 'hidden',
   },
+  // Flat, bordered look — matches FormInput (the field style used across the
+  // rest of the app) instead of a floating drop-shadow card.
   rowLight: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   leftIcon: { marginRight: 10 },
   leftLabelBox: {
@@ -184,6 +189,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: FONTS.medium,
     height: '100%',
+    padding: 0,
+  },
+  // Text (asButton mode) isn't a native input, so it doesn't auto-center the
+  // way TextInput does — a plain Text with height:'100%' rendered top-aligned
+  // instead of matching the left icon's vertical center. A View wrapper with
+  // justifyContent:'center' centers the Text reliably on both web and native.
+  inputAsTextWrap: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  inputAsText: {
+    fontSize: 15,
+    fontFamily: FONTS.medium,
     padding: 0,
   },
   rightBtn: { paddingLeft: 10 },

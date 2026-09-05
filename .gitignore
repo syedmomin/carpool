@@ -44,3 +44,5 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+ChalParo_All_Screens.pdf
+screenshots/

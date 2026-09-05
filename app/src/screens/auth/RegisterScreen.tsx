@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
-    View, Text, StyleSheet, Pressable,
+    View, Text, StyleSheet, Pressable, Image,
     ScrollView, KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, CitySearchModal, COLORS, CURVE, FONTS } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AuthBackground, AuthInput, Logo, CitySearchModal, COLORS, GRADIENTS, CURVE, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -90,6 +91,7 @@ export default function RegisterScreen({ navigation, route }) {
 
                         <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>
                             <Logo variant="auth" size={LOGO_SIZE} />
+                            <Text style={styles.brandTagline}>Har Safar Mein Sath</Text>
                         </Animated.View>
                         <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
                             <Text style={styles.title}>Create Account</Text>
@@ -99,9 +101,9 @@ export default function RegisterScreen({ navigation, route }) {
                         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
                             <Text style={styles.fieldLabel}>Joining as</Text>
                             <View style={styles.roleBadge}>
-                                <View style={styles.roleBadgeIcon}>
+                                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.roleBadgeIcon}>
                                     <Ionicons name={roleMeta.icon} size={18} color="#fff" />
-                                </View>
+                                </LinearGradient>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.roleBadgeLabel}>{roleMeta.label}</Text>
                                     <Text style={styles.roleBadgeSub}>{roleMeta.sub}</Text>
@@ -160,14 +162,16 @@ export default function RegisterScreen({ navigation, route }) {
                             />
 
                             <Pressable
-                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
                                 onPress={handleRegister}
                                 disabled={loading}
                             >
-                                <Text style={styles.primaryText}>{loading ? 'Creating Account…' : 'Create Account'}</Text>
-                                <View style={styles.primaryBtnIcon}>
-                                    <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                                </View>
+                                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
+                                    <Text style={styles.primaryText}>{loading ? 'Creating Account…' : 'Create Account'}</Text>
+                                    <View style={styles.primaryBtnIcon}>
+                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                    </View>
+                                </LinearGradient>
                             </Pressable>
                         </Animated.View>
 
@@ -175,6 +179,14 @@ export default function RegisterScreen({ navigation, route }) {
                             <Text style={styles.bottomMuted}>Already have an account? </Text>
                             <Text style={styles.bottomLink}>Sign In</Text>
                         </Pressable>
+
+                        <Animated.View entering={FadeInDown.delay(180).duration(500)} style={styles.illustrationWrap}>
+                            <Image
+                                source={require('../../assets/illustrations/carpool-hero.png')}
+                                style={styles.illustrationImg}
+                                resizeMode="cover"
+                            />
+                        </Animated.View>
 
                     </ScrollView>
                 </KeyboardAvoidingView>
@@ -192,9 +204,10 @@ export default function RegisterScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
     safe: { flex: 1 },
-    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28 },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 4 },
     back: { marginTop: 4, width: 40, height: 40, justifyContent: 'center' },
     hero: { alignItems: 'center', marginTop: 4, marginBottom: 2 },
+    brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, marginTop: -2 },
     header: { marginBottom: 14 },
     title: { color: COLORS.textPrimary, fontSize: 20, fontFamily: FONTS.extraBold, letterSpacing: -0.2, marginTop: 8 },
     subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 2 },
@@ -215,10 +228,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.primary,
         paddingHorizontal: 14,
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 1,
     },
     roleBadgeIcon: {
         width: 36, height: 36, borderRadius: 11,
-        backgroundColor: COLORS.primary,
         alignItems: 'center', justifyContent: 'center',
         marginRight: 12,
     },
@@ -226,21 +243,23 @@ const styles = StyleSheet.create({
     roleBadgeSub: { color: COLORS.gray, fontSize: 12, fontFamily: FONTS.medium, marginTop: 1 },
     roleChange: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.extraBold },
     // Primary button
-    primaryBtn: {
+    primaryBtnWrap: {
         marginTop: 22,
-        height: 52,
-        borderRadius: 16,
-        backgroundColor: COLORS.primary,
+        borderRadius: 14,
+        overflow: 'hidden',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 4,
+        ...CURVE,
+    },
+    primaryBtn: {
+        height: 42,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 4,
-        ...CURVE,
     },
     primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
     primaryBtnIcon: {
@@ -251,4 +270,10 @@ const styles = StyleSheet.create({
     bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
     bottomMuted: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium },
     bottomLink: { color: COLORS.primary, fontSize: 14, fontFamily: FONTS.extraBold },
+    illustrationWrap: {
+        marginTop: 24,
+        marginHorizontal: -24,
+        aspectRatio: 1737 / 906,
+    },
+    illustrationImg: { width: '100%', height: '100%' },
 });

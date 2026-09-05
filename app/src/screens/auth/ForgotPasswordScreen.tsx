@@ -6,7 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AuthBackground, AuthInput, Logo, COLORS, GRADIENTS, CURVE, FONTS } from '../../components';
 import { authApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -107,14 +108,16 @@ export default function ForgotPasswordScreen({ navigation }) {
                                     error={errors.email}
                                 />
                                 <Pressable
-                                    style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                    style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
                                     onPress={handleRequest}
                                     disabled={loading}
                                 >
-                                    <Text style={styles.primaryText}>{loading ? 'Sending…' : 'Send Reset Code'}</Text>
-                                    <View style={styles.primaryBtnIcon}>
-                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                                    </View>
+                                    <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
+                                        <Text style={styles.primaryText}>{loading ? 'Sending…' : 'Send Reset Code'}</Text>
+                                        <View style={styles.primaryBtnIcon}>
+                                            <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                        </View>
+                                    </LinearGradient>
                                 </Pressable>
                             </Animated.View>
                         ) : (
@@ -139,14 +142,16 @@ export default function ForgotPasswordScreen({ navigation }) {
                                     error={errors.password}
                                 />
                                 <Pressable
-                                    style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                    style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
                                     onPress={handleReset}
                                     disabled={loading}
                                 >
-                                    <Text style={styles.primaryText}>{loading ? 'Resetting…' : 'Reset Password'}</Text>
-                                    <View style={styles.primaryBtnIcon}>
-                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                                    </View>
+                                    <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
+                                        <Text style={styles.primaryText}>{loading ? 'Resetting…' : 'Reset Password'}</Text>
+                                        <View style={styles.primaryBtnIcon}>
+                                            <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                        </View>
+                                    </LinearGradient>
                                 </Pressable>
                                 <Pressable style={styles.resend} onPress={handleResend} hitSlop={6} disabled={loading}>
                                     <Text style={styles.resendText}>Didn’t get a code? Resend</Text>
@@ -183,21 +188,23 @@ const styles = StyleSheet.create({
     card: {
         paddingHorizontal: 2,
     },
-    primaryBtn: {
+    primaryBtnWrap: {
         marginTop: 18,
-        height: 52,
-        borderRadius: 16,
-        backgroundColor: COLORS.primary,
+        borderRadius: 14,
+        overflow: 'hidden',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 4,
+        ...CURVE,
+    },
+    primaryBtn: {
+        height: 42,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 4,
-        ...CURVE,
     },
     primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
     primaryBtnIcon: {

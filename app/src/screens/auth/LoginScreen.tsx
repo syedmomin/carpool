@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
-    View, Text, StyleSheet, Pressable,
+    View, Text, StyleSheet, Pressable, Image,
     ScrollView, KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { AuthBackground, AuthInput, Logo, COLORS, CURVE, FONTS } from '../../components';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AuthBackground, AuthInput, Logo, COLORS, GRADIENTS, CURVE, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -15,6 +16,10 @@ import { digitsOnly, normalizePkPhone, isValidLocalPhone } from '../../utils/pho
 const { width: W } = Dimensions.get('window');
 // Match the splash screen logo sizing exactly.
 const LOGO_SIZE = Math.max(120, Math.min(W * 0.34, 150));
+// Illustration is full-bleed (edge-to-edge, fixed to the screen bottom) —
+// reserve exactly its rendered height at the bottom of the scroll content so
+// it never covers the "Create New Account" button.
+const ILLUSTRATION_H = W / (1737 / 906);
 
 export default function LoginScreen({ navigation }) {
     const { login } = useApp();
@@ -51,11 +56,10 @@ export default function LoginScreen({ navigation }) {
 
                         <Animated.View entering={FadeInDown.duration(500)} style={styles.hero}>
                             <Logo variant="auth" size={LOGO_SIZE} />
-                            <Text style={styles.brandTagline}>Saath Chalein, Saath Bachaein</Text>
+                            <Text style={styles.brandTagline}>Har Safar Mein Sath</Text>
                         </Animated.View>
                         <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
-                            <Text style={styles.title}>Welcome back!</Text>
-                            <Text style={styles.subtitle}>Login to continue your journey</Text>
+                            <Text style={styles.title}>Welcome back, sign in to continue</Text>
                         </Animated.View>
 
                         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
@@ -85,26 +89,19 @@ export default function LoginScreen({ navigation }) {
                             </Pressable>
 
                             <Pressable
-                                style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
                                 onPress={handleLogin}
                                 disabled={loading}
                             >
-                                <Text style={styles.primaryText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
-                                <View style={styles.primaryBtnIcon}>
-                                    <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                                </View>
+                                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
+                                    <Text style={styles.primaryText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
+                                    <View style={styles.primaryBtnIcon}>
+                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+                                    </View>
+                                </LinearGradient>
                             </Pressable>
 
-                            <View style={styles.dividerRow}>
-                                <View style={styles.dividerLine} />
-                                <Text style={styles.dividerText}>OR</Text>
-                                <View style={styles.dividerLine} />
-                            </View>
-
-                            <Pressable
-                                style={styles.ghostBtn}
-                                onPress={() => navigation.navigate('RoleSelect')}
-                            >
+                            <Pressable style={styles.ghostBtn} onPress={() => navigation.navigate('RoleSelect')}>
                                 <Text style={styles.ghostText}>Create New Account</Text>
                             </Pressable>
                         </Animated.View>
@@ -112,41 +109,54 @@ export default function LoginScreen({ navigation }) {
                     </ScrollView>
                 </KeyboardAvoidingView>
             </SafeAreaView>
+
+            <Animated.View entering={FadeInDown.delay(180).duration(500)} style={styles.illustrationFixed} pointerEvents="none">
+                <Image
+                    source={require('../../assets/illustrations/carpool-hero.png')}
+                    style={styles.illustrationImg}
+                    resizeMode="cover"
+                />
+                <LinearGradient
+                    colors={[COLORS.bg, 'rgba(245,247,255,0)']}
+                    style={styles.illustrationFade}
+                />
+            </Animated.View>
         </AuthBackground>
     );
 }
 
 const styles = StyleSheet.create({
     safe: { flex: 1 },
-    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28, justifyContent: 'center' },
-    hero: { alignItems: 'center', marginBottom: 14 },
-    brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, marginTop: 6 },
-    header: { marginBottom: 14 },
-    title: { color: COLORS.textPrimary, fontSize: 22, fontFamily: FONTS.extraBold, letterSpacing: -0.2 },
-    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 2 },
+    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: ILLUSTRATION_H + 16, justifyContent: 'center' },
+    hero: { alignItems: 'center', marginBottom: 10 },
+    brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, marginTop: -2 },
+    header: { marginBottom: 12 },
+    title: { color: COLORS.textPrimary, fontSize: 18, fontFamily: FONTS.extraBold, letterSpacing: -0.2 },
     // No card background — inputs float directly on the light auth
     // background, each with its own shadow; a white card behind white inputs
     // made the fields nearly invisible.
     card: {
         paddingHorizontal: 2,
     },
-    forgot: { alignSelf: 'flex-end', marginTop: 12 },
+    forgot: { alignSelf: 'flex-end', marginTop: 10 },
     forgotText: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold },
+    primaryBtnWrap: {
+        marginTop: 14,
+        borderRadius: 14,
+        overflow: 'hidden',
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 4,
+        ...CURVE,
+    },
     primaryBtn: {
-        marginTop: 18,
-        height: 52,
-        borderRadius: 16,
-        backgroundColor: COLORS.primary,
+        height: 42,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 4,
-        ...CURVE,
     },
     primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
     primaryBtnIcon: {
@@ -154,12 +164,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         alignItems: 'center', justifyContent: 'center',
     },
-    dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
-    dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
-    dividerText: { marginHorizontal: 14, color: COLORS.gray, fontSize: 12, fontFamily: FONTS.bold, letterSpacing: 1 },
     ghostBtn: {
-        height: 52,
-        borderRadius: 16,
+        height: 42,
+        marginTop: 14,
+        borderRadius: 14,
         borderWidth: 1.5,
         borderColor: COLORS.primary,
         alignItems: 'center',
@@ -168,4 +176,14 @@ const styles = StyleSheet.create({
         ...CURVE,
     },
     ghostText: { color: COLORS.primary, fontSize: 15, fontFamily: FONTS.bold, letterSpacing: 0.2 },
+    illustrationFixed: {
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        width: '100%', aspectRatio: 1737 / 906,
+    },
+    illustrationImg: { width: '100%', height: '100%' },
+    // Soft blend so the illustration's own background eases into the screen
+    // background instead of showing a hard rectangular edge.
+    illustrationFade: {
+        position: 'absolute', top: 0, left: 0, right: 0, height: 28,
+    },
 });

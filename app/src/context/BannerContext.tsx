@@ -86,12 +86,9 @@ export function BannerProvider({ children }: { children: React.ReactNode }) {
             <View style={styles.accent}>
               <LinearGradient colors={style.gradient as any} style={StyleSheet.absoluteFill} />
             </View>
-            <View style={[styles.iconBox, { backgroundColor: style.bg }]}>
-              <Ionicons name={style.icon as any} size={22} color={style.color} />
-            </View>
             <View style={styles.content}>
               <Text style={styles.title} numberOfLines={1}>{banner.title}</Text>
-              {!!banner.message && <Text style={styles.message} numberOfLines={2}>{banner.message}</Text>}
+              {!!banner.message && <Text style={styles.message}>{banner.message}</Text>}
             </View>
             <Ionicons name="chevron-forward" size={18} color={COLORS.gray} style={{ alignSelf: 'center' }} />
           </Pressable>
@@ -117,10 +114,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   accent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 5 },
-  iconBox: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginRight: 12, flexShrink: 0 },
   content: { flex: 1, paddingRight: 6 },
-  title: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 2 },
-  message: { fontSize: 13, color: COLORS.gray, lineHeight: 18 },
+  title: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 3 },
+  message: { fontSize: 11.5, fontWeight: '500', color: COLORS.textSecondary, lineHeight: 18 },
   grabber: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: COLORS.border, marginTop: 6 },
 });
 

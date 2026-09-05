@@ -88,7 +88,7 @@ export default function SplashScreen({ navigation, onDone }) {
         </View>
 
         <View style={styles.titleContainer}>
-          <Text style={styles.tagline}>Saath Chalein, Saath Bachaein</Text>
+          <Text style={styles.tagline}>Har Safar Mein Sath</Text>
         </View>
 
         {/* ── Center spacer ── */}
@@ -96,8 +96,10 @@ export default function SplashScreen({ navigation, onDone }) {
           {connecting && <Text style={styles.connectingText}>Connecting…</Text>}
         </View>
 
-        <View style={styles.captionRow}>
-          <Ionicons name="shield-checkmark" size={16} color="#fff" />
+        <View style={styles.captionCard}>
+          <View style={styles.captionIconChip}>
+            <Ionicons name="shield-checkmark" size={16} color="#4ade80" />
+          </View>
           <Text style={styles.captionText}>Verified Rides. Safe Journeys. For Everyone.</Text>
         </View>
       </Animated.View>
@@ -150,16 +152,31 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginTop: 12,
   },
-  captionRow: {
+  captionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
     marginBottom: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  captionIconChip: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(74,222,128,0.16)',
   },
   captionText: {
     color: '#ffffff',
     fontSize: 13,
     fontFamily: FONTS.semiBold,
+    flexShrink: 1,
   },
 });
