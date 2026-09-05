@@ -172,11 +172,11 @@ export default function PostRideScreen({ navigation }) {
 
   const handlePost = async () => {
     if (!form.from || !form.to || !form.date || !form.departureTime || !form.pricePerSeat) {
-      showToast('Please fill From, To, Date, Departure Time, and Price.', 'error');
+      showToast('Fill in your route, date, time, and price first.', 'error');
       return;
     }
     if (form.from.trim().toLowerCase() === form.to.trim().toLowerCase()) {
-      showToast('Leaving From and Going To cities cannot be the same.', 'error');
+      showToast("Your pickup and destination can't be the same city.", 'error');
       return;
     }
     if (pickupLat == null || pickupLng == null) {
@@ -194,13 +194,13 @@ export default function PostRideScreen({ navigation }) {
     }
     if (isMultiStop) {
       if (stops.some(s => !s.city)) {
-        showToast('Each intermediate stop must have a city selected.', 'error');
+        showToast('Pick a city for every stop.', 'error');
         return;
       }
       const cityList = [form.from.toLowerCase(), ...stops.map(s => s.city.toLowerCase()), form.to.toLowerCase()];
       const uniqueCities = new Set(cityList);
       if (uniqueCities.size !== cityList.length) {
-        showToast('Route cannot have duplicate cities or stops matching departure/destination.', 'error');
+        showToast('Each stop needs to be a different city from your route.', 'error');
         return;
       }
     }
@@ -230,7 +230,7 @@ export default function PostRideScreen({ navigation }) {
         const outMins = timeToMinutes(form.departureTime);
         const retMins = timeToMinutes(form.returnDepartureTime);
         if (outMins != null && retMins != null && retMins <= outMins) {
-          showToast('Return time must be after the outbound departure time on the same day.', 'error');
+          showToast('Your return trip needs to leave after your outbound one on the same day.', 'error');
           return;
         }
       }
@@ -244,7 +244,7 @@ export default function PostRideScreen({ navigation }) {
       showModal({
         type: 'warning',
         title: 'Vehicle Required',
-        message: 'Please register your vehicle before posting a ride.',
+        message: "You'll need to register a vehicle before you can post a ride.",
         confirmText: 'Add Vehicle',
         cancelText: 'Cancel',
         onConfirm: () => navigation.navigate('VehicleSetup'),
@@ -343,11 +343,11 @@ export default function PostRideScreen({ navigation }) {
       }
 
       haptics.success();
-      showToast(rideType === 'roundtrip' ? 'Both rides posted successfully' : 'Ride posted successfully', 'success');
+      showToast(rideType === 'roundtrip' ? 'Both rides posted' : 'Ride posted', 'success');
       setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); lastAutoPickupAddress.current = '';
       navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
     } catch (err) {
-      showToast('Something went wrong while posting your ride. Please try again.', 'error');
+      showToast("Couldn't post your ride, check your connection and try again.", 'error');
     } finally {
       setLoading(false);
     }
@@ -375,7 +375,7 @@ export default function PostRideScreen({ navigation }) {
           ) : driverVehicles.length === 0 ? (
             <Pressable style={styles.noVehicleCard} onPress={() => navigation.navigate('VehicleSetup')}>
               <Ionicons name="warning-outline" size={20} color={COLORS.accent} />
-              <Text style={styles.noVehicleText}>Register your vehicle first {'>'}</Text>
+              <Text style={styles.noVehicleText}>Register a vehicle to post a ride {'>'}</Text>
             </Pressable>
           ) : (
             <Pressable
@@ -427,7 +427,7 @@ export default function PostRideScreen({ navigation }) {
           {!!form.from && (
             <>
               <Text style={styles.pinHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact starting point in {form.from} so passengers can find you easily. Required.
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact pickup point in {form.from} so passengers can find you easily (optional).
               </Text>
               <View style={{ marginBottom: 16 }}>
                 <PickupPinPicker
@@ -461,7 +461,7 @@ export default function PostRideScreen({ navigation }) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.matchTitle}>{matchCount} passengers waiting!</Text>
-                <Text style={styles.matchSub}>Found requests matching your route. View & make offers?</Text>
+                <Text style={styles.matchSub}>Tap to see them and send an offer.</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
             </Pressable>

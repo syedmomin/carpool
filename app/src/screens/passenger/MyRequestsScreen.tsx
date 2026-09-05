@@ -202,7 +202,7 @@ export default function MyRequestsScreen({ navigation }) {
     showModal({
       type: 'danger', title: 'Cancel Request?',
       message: `Cancel your ${req.fromCity} > ${req.toCity} request on ${req.date}? All pending offers will be removed.`,
-      confirmText: 'Yes, Cancel', cancelText: 'No',
+      confirmText: 'Yes, Cancel', cancelText: 'Keep Request',
       onConfirm: async () => {
         const { error } = await scheduleRequestsApi.cancel(req.id);
         if (error) { showToast(parseApiError(error), 'error'); return; }
@@ -215,7 +215,7 @@ export default function MyRequestsScreen({ navigation }) {
   const handleAccept = (req: any, bid: any) => {
     showModal({
       type: 'primary', title: 'Accept Offer?',
-      message: `Accept ${bid.driver?.name}'s offer of Rs ${bid.pricePerSeat}/seat for ${req.fromCity} > ${req.toCity}?\n\nA ride will be auto-created and your seat confirmed.`,
+      message: `Accept ${bid.driver?.name}'s offer of Rs ${bid.pricePerSeat}/seat for ${req.fromCity} > ${req.toCity}?\n\nWe'll set up the ride and confirm your seat right away.`,
       confirmText: 'Accept & Book', cancelText: 'Not Now', icon: 'checkmark-circle-outline',
       onConfirm: async () => {
         const { data, error } = await scheduleRequestsApi.acceptBid(req.id, bid.id);
@@ -239,7 +239,7 @@ export default function MyRequestsScreen({ navigation }) {
           navigation.navigate('BookingSuccess', { rideId: created.id, seats: req.seats, rideData });
         } else {
           // Ride shape unknown but accept succeeded — send them to their bookings.
-          showToast('Ride booked. Check My Bookings.', 'success');
+          showToast("You're booked! Head to My Bookings to see it.", 'success');
           navigation.navigate('PassengerApp', { screen: 'BookingHistoryTab' });
         }
       },
@@ -424,7 +424,7 @@ export default function MyRequestsScreen({ navigation }) {
             <LiveDot />
             <View style={{ flex: 1 }}>
               <Text style={styles.waitingText}>Waiting for driver offers</Text>
-              <Text style={styles.waitingSubText}>Drivers will see your request and place offers</Text>
+              <Text style={styles.waitingSubText}>Sit tight, you'll get a notification when someone bids</Text>
             </View>
           </View>
         )}
@@ -465,7 +465,7 @@ export default function MyRequestsScreen({ navigation }) {
       <TabPills
         tabs={[
           { label: `Active${activeRequests.length > 0 ? ` (${activeRequests.length})` : ''}`, value: 'active' },
-          { label: 'Completed', value: 'history' },
+          { label: 'Past', value: 'history' },
         ]}
         activeTab={selectedTab}
         onSelect={setSelectedTab}
@@ -491,8 +491,8 @@ export default function MyRequestsScreen({ navigation }) {
               myRequestsState.error ? (
               <EmptyState
                 icon="calendar-outline"
-                title="Couldn't load your requests"
-                subtitle="Please check your connection and try again."
+                title="Couldn't Load Your Requests"
+                subtitle="Check your internet and try again."
                 action={{ label: 'Try Again', onPress: () => loadMyRequests(true) }}
               />
               ) : (

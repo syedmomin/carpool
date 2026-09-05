@@ -100,7 +100,7 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
               {vehicles.length === 0 && (
                 <View style={bm.noVehicleBox}>
                   <Ionicons name="car-outline" size={22} color={COLORS.primary} />
-                  <Text style={bm.noVehicleText}>You need a registered vehicle before you can make an offer.</Text>
+                  <Text style={bm.noVehicleText}>Add a vehicle first, then you can make offers.</Text>
                   <Pressable style={bm.addVehicleBtn} onPress={() => { onClose(); onAddVehicle?.(); }}>
                     <Ionicons name="add-circle-outline" size={16} color="#fff" />
                     <Text style={bm.addVehicleBtnText}>Add a Vehicle</Text>
@@ -133,7 +133,7 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
               <Text style={bm.label}>Note <Text style={bm.optional}>(optional)</Text></Text>
               <TextInput
                 style={bm.noteInput}
-                placeholder="E.g. I can pick you up from your location..."
+                placeholder="E.g. Can pick you up 10 mins early if that works"
                 placeholderTextColor={COLORS.gray}
                 value={note}
                 onChangeText={setNote}
@@ -306,7 +306,7 @@ export default function OpenRequestsScreen({ navigation }) {
               : styles.bidDotPending
             ]} />
             <Text style={[styles.bidStatusText, myBid.status === 'REJECTED' && { color: COLORS.danger }]}>
-              {myBid.status === 'ACCEPTED' ? 'Accepted' : myBid.status === 'REJECTED' ? 'Declined, offer again?' : 'Pending'}
+              {myBid.status === 'ACCEPTED' ? 'Accepted' : myBid.status === 'REJECTED' ? 'Declined, try a new offer?' : 'Pending'}
             </Text>
           </View>
         )}
@@ -395,16 +395,16 @@ export default function OpenRequestsScreen({ navigation }) {
               <EmptyState
                 icon="calendar-outline"
                 title="Couldn't load requests"
-                subtitle="Please check your connection and try again."
+                subtitle="Check your internet and try again."
                 action={{ label: 'Try Again', onPress: () => loadOpenRequests(true) }}
-              />
+  />
             ) : (
               <EmptyState
                 icon="calendar-outline"
                 title={driverCity ? `No Requests from ${driverCity}` : 'Select Your City'}
                 subtitle={driverCity
-                  ? 'No passengers have posted requests from your city yet.'
-                  : 'Tap the filter icon above to set your current city and see nearby requests.'
+                  ? 'Try widening your search or check back later.'
+                  : 'Pick your city to see requests near you.'
                 }
               />
             )

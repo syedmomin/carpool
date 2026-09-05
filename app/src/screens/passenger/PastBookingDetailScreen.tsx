@@ -25,7 +25,7 @@ function durationLabel(from?: string, to?: string, distanceKm?: number | null) {
     const m = mins % 60;
     return `${h > 0 ? `${h}h ${m}m` : `${m}m`} (est.)`;
   }
-  return '—';
+  return 'N/A';
 }
 
 export default function PastBookingDetailScreen({ navigation, route }) {
@@ -39,17 +39,17 @@ export default function PastBookingDetailScreen({ navigation, route }) {
 
   const vehicleLabel = vehicle
     ? `${vehicle.brand || ''} ${vehicle.model || ''}${vehicle.year ? ` • ${vehicle.year}` : ''}`.trim()
-    : '—';
+    : 'N/A';
 
   const INFO_ROWS = [
     { label: 'From', value: booking?.boardingCity || ride?.fromCity || ride?.from, icon: 'location-outline' },
     { label: 'To', value: booking?.exitCity || ride?.toCity || ride?.to, icon: 'flag-outline' },
     { label: 'Vehicle', value: vehicleLabel, icon: 'car-outline' },
-    { label: 'Distance', value: rideDistanceKm != null ? `${rideDistanceKm} km` : '—', icon: 'navigate-outline' },
+    { label: 'Distance', value: rideDistanceKm != null ? `${rideDistanceKm} km` : 'N/A', icon: 'navigate-outline' },
     { label: 'Time', value: durationLabel(ride?.departureTime, ride?.arrivalTime, rideDistanceKm), icon: 'time-outline' },
     { label: 'Seats', value: `${booking?.seats ?? 1}`, icon: 'people-outline' },
-    { label: 'Fare per Seat', value: `Rs. ${(ride?.pricePerSeat ?? (booking?.totalAmount && booking?.seats ? Math.round(booking.totalAmount / booking.seats) : 0)).toLocaleString()}`, icon: 'pricetag-outline' },
-    { label: 'Total Amount', value: `Rs. ${booking?.totalAmount?.toLocaleString() ?? '0'}`, icon: 'cash-outline' },
+    { label: 'Fare per Seat', value: `Rs ${(ride?.pricePerSeat ?? (booking?.totalAmount && booking?.seats ? Math.round(booking.totalAmount / booking.seats) : 0)).toLocaleString()}`, icon: 'pricetag-outline' },
+    { label: 'Total Amount', value: `Rs ${booking?.totalAmount?.toLocaleString() ?? '0'}`, icon: 'cash-outline' },
     { label: 'Payment Method', value: 'Cash', icon: 'wallet-outline' },
     ...(booking?.pickupAddress ? [{ label: 'Pickup Point', value: booking.pickupAddress, icon: 'location-outline' }] : []),
     ...(booking?.dropAddress ? [{ label: 'Drop-off Point', value: booking.dropAddress, icon: 'flag-outline' }] : []),
@@ -69,7 +69,7 @@ export default function PastBookingDetailScreen({ navigation, route }) {
         <View style={styles.driverCard}>
           <Avatar name={driver?.name} uri={driver?.avatar} size={48} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
+            <Text style={styles.driverName}>{driver?.name || 'Driver'}</Text>
             {driver?.rating > 0 && <StarRating rating={driver.rating} size={13} />}
           </View>
           {driver?.phone && (

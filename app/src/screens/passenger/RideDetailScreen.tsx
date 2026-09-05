@@ -99,8 +99,8 @@ export default function RideDetailScreen({ navigation, route }) {
     return (
       <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
         <EmptyState
-          title="Couldn't load this ride"
-          subtitle="Please check your connection and try again."
+          title="Couldn't Load This Ride"
+          subtitle="Check your internet and try again."
           action={{ label: 'Try Again', onPress: fetchRide }}
         />
         <Pressable onPress={() => navigation.goBack()} style={{ alignSelf: 'center', marginTop: -12, marginBottom: 24 }}>
@@ -180,7 +180,7 @@ export default function RideDetailScreen({ navigation, route }) {
               {rideDistanceKm != null && <Text style={styles.distanceText}>{rideDistanceKm} km</Text>}
             </View>
             <View style={[styles.cityBlock, { alignItems: 'flex-end' }]}>
-              <Text style={styles.timeLarge}>{ride.arrivalTime || '-'}</Text>
+              <Text style={styles.timeLarge}>{ride.arrivalTime || 'N/A'}</Text>
               <Text style={styles.cityText} numberOfLines={1}>{isSegment ? exitCity : ride.to}</Text>
             </View>
           </View>
@@ -198,7 +198,7 @@ export default function RideDetailScreen({ navigation, route }) {
           <View style={styles.driverRow}>
             <Avatar name={driver?.name} uri={driver?.avatar} size={48} color={COLORS.primary} />
             <View style={styles.driverInfo}>
-              <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
+              <Text style={styles.driverName}>{driver?.name || 'Driver'}</Text>
               <View style={styles.driverMetaRow}>
                 {driver?.rating > 0 && <StarRating rating={driver.rating} size={13} />}
                 {driver?.reviewCount > 0 && <Text style={styles.reviewCount}>({driver.reviewCount})</Text>}
@@ -295,7 +295,7 @@ export default function RideDetailScreen({ navigation, route }) {
               </View>
               <View>
                 <Text style={styles.rdLabel}>Pickup Point</Text>
-                <Text style={styles.rdValue}>{ride.pickupPoint || `${isSegment ? boardingCity : ride.from} (exact point shared by driver)`}</Text>
+                <Text style={styles.rdValue}>{ride.pickupPoint || `${isSegment ? boardingCity : ride.from} (driver will share the exact spot closer to the ride)`}</Text>
               </View>
             </View>
             {stops.map((stop, i) => (
@@ -319,7 +319,7 @@ export default function RideDetailScreen({ navigation, route }) {
               </View>
               <View>
                 <Text style={styles.rdLabel}>Drop Point</Text>
-                <Text style={styles.rdValue}>{ride.dropPoint || `${isSegment ? exitCity : ride.to} (exact point shared by driver)`}</Text>
+                <Text style={styles.rdValue}>{ride.dropPoint || `${isSegment ? exitCity : ride.to} (driver will share the exact spot closer to the ride)`}</Text>
               </View>
             </View>
             {ride.description && (

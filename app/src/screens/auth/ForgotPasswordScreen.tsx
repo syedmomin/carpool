@@ -40,7 +40,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         const { error } = await authApi.forgotPassword(email.trim().toLowerCase());
         setLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
-        showToast('If that email is registered, a reset code has been sent.', 'success');
+        showToast("If that email's registered, we've sent a reset code.", 'success');
         setStep('reset');
     };
 
@@ -58,7 +58,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         const { error } = await authApi.resetPassword(email.trim().toLowerCase(), code, password);
         setLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
-        showToast('Password reset successfully. Please sign in.', 'success');
+        showToast('Password reset! Sign in with your new password.', 'success');
         navigation.navigate('Login');
     };
 
@@ -66,7 +66,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         setLoading(true);
         const { error } = await authApi.forgotPassword(email.trim().toLowerCase());
         setLoading(false);
-        showToast(error ? parseApiError(error) : 'A new code has been sent.', error ? 'error' : 'success');
+        showToast(error ? parseApiError(error) : "We've sent a new code.", error ? 'error' : 'success');
     };
 
     return (
@@ -90,7 +90,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                             <Text style={styles.title}>Forgot Password?</Text>
                             <Text style={styles.subtitle}>
                                 {step === 'request'
-                                    ? 'Enter your registered email and we’ll send you a reset code.'
+                                    ? "Enter the email you signed up with and we'll send a reset code."
                                     : `Enter the 6-digit code sent to ${email} and choose a new password.`}
                             </Text>
                         </Animated.View>

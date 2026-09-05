@@ -160,14 +160,14 @@ export default function EarningsScreen({ navigation }) {
           ))}
         </View>
 
-        {/* Recent Transactions */}
-        <SectionHeader title="Recent Transactions" />
+        {/* Recent Rides */}
+        <SectionHeader title="Recent Rides" />
         {loading ? (
           <View style={{ gap: 10 }}>
             {[1, 2, 3].map(i => <RideCardSkeleton key={i} />)}
           </View>
         ) : filtered.length === 0 ? (
-          <EmptyState icon="wallet-outline" title="No Earnings Yet" subtitle={tab === 0 ? 'No completed rides today.' : tab === 1 ? 'No completed rides this week.' : 'No completed rides this month.'} />
+          <EmptyState icon="wallet-outline" title="Nothing Earned Yet" subtitle={tab === 0 ? "Complete a ride today to see it show up here." : tab === 1 ? "Complete a ride this week to see it show up here." : "Complete a ride this month to see it show up here."} />
         ) : (
           filtered.map(ride => {
             const seats  = confirmedSeats(ride);

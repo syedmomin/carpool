@@ -75,7 +75,7 @@ export default function RegisterScreen({ navigation, route }) {
         });
         setLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
-        showToast('Account created successfully! Welcome to ChalParo.', 'success');
+        showToast('Welcome to ChalParo!', 'success');
         // Navigation happens automatically via AppNavigator when currentUser is set
     };
 
@@ -95,7 +95,7 @@ export default function RegisterScreen({ navigation, route }) {
                         </Animated.View>
                         <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
                             <Text style={styles.title}>Create Account</Text>
-                            <Text style={styles.subtitle}>Sign up to start your journey</Text>
+                            <Text style={styles.subtitle}>Just a few details to get you moving</Text>
                         </Animated.View>
 
                         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>

@@ -50,7 +50,7 @@ export default function EditProfileScreen({ navigation }) {
       showModal({
         type: 'danger',
         title: 'Discard changes?',
-        message: 'You have unsaved changes. Leave without saving them?',
+        message: "You'll lose these changes if you leave now.",
         confirmText: 'Discard',
         cancelText: 'Keep Editing',
         icon: 'alert-circle-outline',
@@ -63,7 +63,7 @@ export default function EditProfileScreen({ navigation }) {
   const handlePickImage = () => {
     showImagePickerOptions(async (result) => {
       if (result.cancelled) return;
-      if (result.error) { showToast('Image upload failed. Please try again.', 'error'); return; }
+      if (result.error) { showToast("Couldn't upload the photo, try again.", 'error'); return; }
       setUploading(true);
       setAvatar(result.url);
       setUploading(false);
@@ -78,7 +78,7 @@ export default function EditProfileScreen({ navigation }) {
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
     savedRef.current = true; // bypass the unsaved-changes guard
-    showToast('Profile updated successfully', 'success');
+    showToast('Profile updated', 'success');
     navigation.goBack();
   };
 
@@ -91,7 +91,7 @@ export default function EditProfileScreen({ navigation }) {
     showModal({
       type: 'danger',
       title: 'Delete Account?',
-      message: 'This will permanently delete and anonymize all your data, including your profile, rides, bookings, and history. This action cannot be undone.',
+      message: 'This will delete and anonymize your profile, rides, bookings, and history for good.',
       confirmText: 'Yes, Delete',
       cancelText: 'Cancel',
       icon: 'trash-outline',

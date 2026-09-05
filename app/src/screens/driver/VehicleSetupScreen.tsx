@@ -34,7 +34,7 @@ const ALL_FEATURES = [
   { key: 'luggageRack',label: 'Luggage Rack',     icon: 'briefcase-outline' },
 ];
 
-const STEPS = ['Basic Info', 'Documents', 'Verification'];
+const STEPS = ['Basic Info', 'Photos & Features', 'Verification'];
 
 // ─── Car brands available in Pakistan ─────────────────────────────────────────
 const VEHICLE_BRANDS = [
@@ -185,17 +185,17 @@ export default function VehicleSetupScreen({ navigation, route }) {
     try {
       const { uris, error, cancelled } = await pickMultipleImagesLocal();
       if (cancelled) return;
-      if (error) { showToast('Photo library permission denied. Please allow in settings.', 'error'); return; }
+      if (error) { showToast('Turn on photo access in Settings to add pictures.', 'error'); return; }
       setImages(prev => [...prev, ...uris]);
     } catch (e) {
-      showToast('Could not open photo library. Please try again.', 'error');
+      showToast("Couldn't open your photos, try again in a bit.", 'error');
     }
   };
 
   const addFromCamera = async () => {
     try {
       const result: any = await pickImageFromCameraLocal({ aspect: [4, 3] });
-      if (result.error) { showToast('Camera access denied. Please allow in settings.', 'error'); return; }
+      if (result.error) { showToast('Turn on camera access in Settings.', 'error'); return; }
       if (!result.cancelled) setImages(prev => [...prev, result.uri]);
     } catch (e) {
       showToast('Could not open camera. Please try again.', 'error');
@@ -218,13 +218,13 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const goNext = () => {
     if (step === 0) {
       if (!validateBasicInfo()) {
-        showToast('Please fill all required fields correctly.', 'error');
+        showToast('Fill in the required fields to continue.', 'error');
         return;
       }
       setStep(1);
     } else if (step === 1) {
       if (images.length === 0) {
-        showToast('Please add at least one vehicle photo.', 'error');
+        showToast('Add at least one photo of your vehicle.', 'error');
         return;
       }
       setStep(2);
@@ -279,10 +279,10 @@ export default function VehicleSetupScreen({ navigation, route }) {
         : await vehiclesApi.register(formData);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       haptics.success();
-      showToast(existing ? 'Vehicle updated successfully' : 'Vehicle registered. You can now post rides.', 'success');
+      showToast(existing ? 'Vehicle updated' : 'Vehicle registered. You can now post rides.', 'success');
       navigation.goBack();
     } catch (e) {
-      showToast('Could not save the vehicle. Please try again.', 'error');
+      showToast("Couldn't save your vehicle, check your connection and try again.", 'error');
     } finally {
       setLoading(false);
     }
@@ -356,7 +356,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
   // ─── Step 2: Documents (Photos + Features) ─────────────────────────────────
   const renderDocuments = () => (
     <View>
-      <SectionHeader title="Vehicle Photos (add at least one)" />
+      <SectionHeader title="Vehicle Photos" subtitle="Add at least one photo so passengers know what to expect." />
       <View style={styles.photosRow}>
         {images.map((img, i) => (
           <View key={i} style={styles.photoWrapper}>
@@ -433,7 +433,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
         <View style={styles.verifyNotice}>
           <Ionicons name="information-circle-outline" size={16} color={COLORS.primary} />
           <Text style={styles.verifyNoticeText}>
-            Your vehicle will be reviewed and approved within 24 hours before you can post rides.
+            Once registered, you can post rides with this vehicle right away.
           </Text>
         </View>
       </View>

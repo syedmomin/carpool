@@ -45,7 +45,7 @@ export default function ActiveRidesScreen({ navigation }) {
     if (!ride.vehicle) {
       showModal({
         type: 'danger', title: 'Vehicle Required',
-        message: 'Register and activate a vehicle before starting a ride.',
+        message: "You'll need an active vehicle before you can start a ride.",
         confirmText: 'Set Up Vehicle', cancelText: 'Cancel', icon: 'car-outline',
         onConfirm: () => navigation.navigate('MyVehiclesTab'),
       });
@@ -53,7 +53,7 @@ export default function ActiveRidesScreen({ navigation }) {
     }
     showModal({
       type: 'primary', title: 'Start Ride?',
-      message: 'This will notify all confirmed passengers that the ride has started.',
+      message: "Passengers will get a notification once you start the trip.",
       confirmText: 'Start Ride', cancelText: 'Cancel', icon: 'play-circle-outline',
       onConfirm: async () => {
         setActionLoading(ride.id);
@@ -72,7 +72,7 @@ export default function ActiveRidesScreen({ navigation }) {
   const handleCancelRide = (ride: any) => {
     showModal({
       type: 'danger', title: 'Cancel Ride?',
-      message: 'Are you sure? All passengers will be notified.',
+      message: 'This cancels the ride and lets every passenger know.',
       confirmText: 'Yes, Cancel', cancelText: 'No', icon: 'close-circle-outline',
       onConfirm: async () => {
         setActionLoading(ride.id);
@@ -276,18 +276,18 @@ export default function ActiveRidesScreen({ navigation }) {
         ListEmptyComponent={
           !refreshing ? (
             (tab !== 'completed' && myRidesState.error)
-              ? <EmptyState icon="car-sport-outline" title="Couldn't load your rides"
-                subtitle="Please check your connection and try again."
+              ? <EmptyState icon="car-sport-outline" title="Couldn't Load Your Rides"
+                subtitle="Check your internet and try again."
                 action={{ label: 'Try Again', onPress: () => loadMyRides(true) }} />
             : tab === 'active'
               ? <EmptyState icon="car-sport-outline" title="No Active Rides"
                 subtitle="Rides you've started will appear here." />
             : tab === 'upcoming'
               ? <EmptyState icon="car-sport-outline" title="No Upcoming Rides"
-                subtitle="You have no scheduled rides. Post a new ride to get started."
+                subtitle="Post a ride and it'll show up here."
                 action={{ label: 'Post a Ride', onPress: () => navigation.navigate('PostRide') }} />
               : <EmptyState icon="time-outline" title="No Ride History"
-                subtitle="Your completed and cancelled rides will appear here." />
+                subtitle="Completed and cancelled rides will appear here." />
           ) : null
         }
       />

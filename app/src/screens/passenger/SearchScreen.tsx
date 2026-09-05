@@ -246,7 +246,7 @@ export default function SearchScreen({ navigation, route }) {
 
       if (newMatches.length > 0) {
         setSearchResults(prev => [...(newMatches as any), ...(prev || [])]);
-        showToast(`Found ${newMatches.length} new ride(s) matching your search`, 'info');
+        showToast(`Found ${newMatches.length} new ride${newMatches.length !== 1 ? 's' : ''} matching your search`, 'info');
       } else if (changed) {
         setSearchResults(updatedResults);
       }
@@ -499,13 +499,13 @@ export default function SearchScreen({ navigation, route }) {
           ) : searchError ? (
             <EmptyState
               icon="car-outline"
-              title="Couldn't load rides"
-              subtitle="Please check your connection and try again."
+              title="Couldn't Load Rides"
+              subtitle="Check your internet and try again."
               action={{ label: 'Try Again', onPress: () => doSearch() }}
             />
           ) : (
             <View style={styles.emptyStateWrapper}>
-              <EmptyState title="No rides found" subtitle="Try different dates or cities" style={{ paddingVertical: 0 }} />
+              <EmptyState title="No Rides Found" subtitle="Try different dates or cities" style={{ paddingVertical: 0 }} />
               {from && to && date ? (
                 <Pressable
                   style={[styles.notifyBtn, alertState === 'saved' && styles.notifyBtnSaved]}
@@ -610,7 +610,7 @@ export default function SearchScreen({ navigation, route }) {
               style={[styles.sortOption, sort === null && styles.sortOptionActive]}
               onPress={() => { setSort(null); setShowSortModal(false); }}
             >
-              <Text style={[styles.sortOptionText, sort === null && { color: COLORS.primary, fontWeight: '700' }]}>Default (No Sort)</Text>
+              <Text style={[styles.sortOptionText, sort === null && { color: COLORS.primary, fontWeight: '700' }]}>Recommended</Text>
               {sort === null && <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />}
             </Pressable>
             {SORT_OPTIONS.map((opt, i) => (

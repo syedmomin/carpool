@@ -22,20 +22,20 @@ export default function ChangePasswordScreen({ navigation }) {
 
   const handleChange = async () => {
     if (!form.current || !form.newPass || !form.confirm) {
-      showToast('Please fill in all fields.', 'error'); return;
+      showToast('Fill in all fields to continue.', 'error'); return;
     }
     if (!meetsAllCriteria) {
-      showToast('Please meet all password requirements.', 'error'); return;
+      showToast("Your new password doesn't meet all the requirements yet.", 'error'); return;
     }
     if (form.newPass !== form.confirm) {
-      showToast('New passwords do not match.', 'error'); return;
+      showToast("Passwords don't match.", 'error'); return;
     }
     setLoading(true);
     const { error } = await authApi.changePassword(form.current, form.newPass);
     setLoading(false);
     if (error) { showToast(parseApiError(error), 'error'); return; }
     setForm({ current: '', newPass: '', confirm: '' });
-    showToast('Password changed successfully', 'success');
+    showToast('Password changed', 'success');
     navigation.goBack();
   };
 

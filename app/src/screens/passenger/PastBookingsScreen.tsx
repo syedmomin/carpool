@@ -98,7 +98,7 @@ export default function PastBookingsScreen({ navigation }) {
             <View style={styles.cardFooter}>
                 <View>
                     <Text style={styles.dateText}>{item.ride?.date || 'N/A'}</Text>
-                    <Text style={styles.driverText}>Driver: {item.ride?.driver?.name || 'N/A'}</Text>
+                    <Text style={styles.driverText}>Driver: {item.ride?.driver?.name || 'Driver'}</Text>
                 </View>
                 <View style={styles.priceCol}>
                     <Text style={styles.priceLabel}>Paid</Text>

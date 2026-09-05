@@ -55,7 +55,7 @@ export default function BookingSuccessScreen({ navigation, route }) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Booking Confirmed!</Text>
-          <Text style={styles.headerSubtitle}>Your ride has been booked successfully.</Text>
+          <Text style={styles.headerSubtitle}>Your seat is booked, get ready to travel!</Text>
         </View>
       </LinearGradient>
 

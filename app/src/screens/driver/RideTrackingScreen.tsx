@@ -257,7 +257,7 @@ export default function RideTrackingScreen({ route, navigation }) {
       // leave the screen rather than sitting on a map that broadcasts nothing.
       Alert.alert(
         'Location needed',
-        'ChalParo needs location access to share your live trip with passengers. Please enable it in Settings.',
+        'Turn on location so passengers can see your live trip. You can enable it in Settings.',
         [
           { text: 'Go Back', style: 'cancel', onPress: () => navigation.goBack() },
           { text: 'Open Settings', onPress: () => Linking.openSettings() },
@@ -371,7 +371,7 @@ export default function RideTrackingScreen({ route, navigation }) {
     showModal({
       type: 'info',
       title: 'Finish Ride?',
-      message: `You're about to complete this trip. All ${confirmedBookings.length} passenger(s) will be notified.`,
+      message: `We'll let your ${confirmedBookings.length} passenger${confirmedBookings.length !== 1 ? 's' : ''} know.`,
       confirmText: 'Finish Ride',
       cancelText: 'Not Yet',
       onConfirm: async () => {

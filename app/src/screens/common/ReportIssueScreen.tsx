@@ -99,15 +99,15 @@ export default function ReportIssueScreen({ navigation, route }) {
   const canSubmit = !!reason && !!selectedId && !submitting;
 
   const handleSubmit = async () => {
-    if (!reason) { showToast('Please select a reason.', 'error'); return; }
-    if (!selectedId) { showToast('Please select who you are reporting.', 'error'); return; }
+    if (!reason) { showToast('Pick a reason first.', 'error'); return; }
+    if (!selectedId) { showToast("Select who you're reporting.", 'error'); return; }
 
     setSubmitting(true);
     const { error } = await reportsApi.create(selectedId, reason, description.trim() || undefined, selectedRideId);
     setSubmitting(false);
 
     if (error) { showToast(parseApiError(error), 'error'); return; }
-    showToast('Report submitted. Our team will review it shortly.', 'success');
+    showToast("Got it, we'll look into this.", 'success');
     navigation.goBack();
   };
 
@@ -138,7 +138,7 @@ export default function ReportIssueScreen({ navigation, route }) {
             <EmptyState
               icon="people-outline"
               title="No One to Report Yet"
-              subtitle={`You need at least one completed ride before filing a report.`}
+              subtitle={`You'll need at least one completed ride before you can report someone.`}
               style={styles.emptyState}
             />
           ) : (
@@ -174,7 +174,7 @@ export default function ReportIssueScreen({ navigation, route }) {
             </View>
           )}
 
-          <SectionHeader title="Additional Details" style={[styles.sectionHeader, { marginTop: 20 }]} />
+          <SectionHeader title="Anything else to add?" style={[styles.sectionHeader, { marginTop: 20 }]} />
           <FormInput
             placeholder="Describe what happened (optional)"
             value={description}

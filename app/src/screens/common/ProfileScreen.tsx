@@ -175,7 +175,7 @@ export default function ProfileScreen({ navigation }) {
         onPress={() => showModal({
           type: 'danger',
           title: 'Logout?',
-          message: 'Are you sure you want to logout from ChalParo?',
+          message: "You'll need to sign back in next time.",
           confirmText: 'Yes, Logout',
           cancelText: 'Stay',
           icon: 'log-out-outline',

@@ -57,21 +57,21 @@ export default function PostRequestScreen({ navigation, route }: any) {
 
   const handlePost = async () => {
     if (!selectedDate) { showToast('Please select a date', 'warning'); return; }
-    if (!from)         { showToast('Please select departure city', 'warning'); return; }
-    if (!to)           { showToast('Please select destination city', 'warning'); return; }
+    if (!from)         { showToast('Please select a departure city', 'warning'); return; }
+    if (!to)           { showToast('Please select a destination city', 'warning'); return; }
     if (from === to)   { showToast('Cities cannot be the same', 'error'); return; }
-    if (!departureTime.trim()) { showToast('Please select your preferred departure time', 'warning'); return; }
+    if (!departureTime.trim()) { showToast('Please select a departure time', 'warning'); return; }
     if (pickupLat == null || pickupLng == null) { showToast('Please set your exact pickup point on the map', 'warning'); return; }
 
     const departureTime24 = to24Hour(departureTime.trim());
 
     if (rideType === 'roundtrip') {
       if (!returnDate) { showToast('Please select a return date', 'warning'); return; }
-      if (!returnDepartureTime.trim()) { showToast('Please select your preferred return time', 'warning'); return; }
+      if (!returnDepartureTime.trim()) { showToast('Please select a return time', 'warning'); return; }
       if (returnDate < selectedDate) { showToast('Return date cannot be before the departure date', 'error'); return; }
       const returnTime24 = to24Hour(returnDepartureTime.trim());
       if (returnDate === selectedDate && returnTime24 <= departureTime24) {
-        showToast('Return time must be after the outbound departure time on the same day', 'error');
+        showToast('Return time must be later than your departure time on the same day', 'error');
         return;
       }
     }
@@ -177,7 +177,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
           {!!from && (
             <>
               <Text style={styles.pinHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact pickup point in {from} so drivers can find you easily. Required.
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Pin your exact pickup spot in {from} so your driver can find you. This is required.
               </Text>
               <View style={{ marginBottom: 16 }}>
                 <PickupPinPicker
@@ -242,7 +242,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
           {rideType === 'roundtrip' && (
             <View style={styles.returnLegBox}>
               <Text style={styles.returnLegHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> This posts a second request for the return leg ({to || 'destination'} → {from || 'origin'}).
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> We'll also post a request for your trip back ({to || 'destination'} → {from || 'origin'}).
               </Text>
 
               {!!selectedDate && (
@@ -271,10 +271,10 @@ export default function PostRequestScreen({ navigation, route }: any) {
           )}
 
           {/* Note */}
-          <Text style={[styles.fieldLabelStandalone, { marginTop: 16 }]}>Additional Notes (Optional)</Text>
+          <Text style={[styles.fieldLabelStandalone, { marginTop: 16 }]}>Note to Driver (Optional)</Text>
           <TextInput
             style={styles.noteInput}
-            placeholder="Any additional information for drivers..."
+            placeholder="Any special instructions?"
             placeholderTextColor={COLORS.gray}
             value={note}
             onChangeText={setNote}

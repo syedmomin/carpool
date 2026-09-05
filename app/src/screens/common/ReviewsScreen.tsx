@@ -69,7 +69,7 @@ export default function ReviewsScreen({ navigation, route }) {
       {item.comment ? (
         <Text style={styles.comment}>{item.comment}</Text>
       ) : (
-        <Text style={[styles.comment, { fontStyle: 'italic', color: COLORS.textSecondary }]}>No comment provided.</Text>
+        <Text style={[styles.comment, { fontStyle: 'italic', color: COLORS.textSecondary }]}>No comment left.</Text>
       )}
     </View>
   );
@@ -149,7 +149,7 @@ export default function ReviewsScreen({ navigation, route }) {
             subtitle={
               subTab === 'given'
                 ? "Reviews you write for drivers or passengers will appear here."
-                : isOwnProfile ? 'Complete more rides to see what others think of you.' : 'This user has no reviews yet.'
+                : isOwnProfile ? 'Complete more rides to see what others think of you.' : "They don't have any reviews yet."
             }
           />
         }

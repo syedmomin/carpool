@@ -35,7 +35,7 @@ const TOPICS = [
   {
     key: 'safety', icon: 'shield-checkmark-outline', title: 'Safety & Guidelines', sub: 'Safety tips, community guidelines',
     faqs: [
-      { q: 'Is my data safe?', a: 'Yes. We use industry-standard encryption to protect your data.' },
+      { q: 'Is my data safe?', a: 'We use encryption and access controls to protect your data, but no system is ever 100% secure, so please keep your login details private.' },
       { q: 'What do I do in an emergency during a ride?', a: 'Use the SOS button on the Live Tracking screen to call emergency services immediately.' },
     ],
   },
@@ -58,7 +58,7 @@ export default function SupportScreen({ navigation }) {
         <LinearGradient colors={GRADIENTS.primary as any} style={styles.hero}>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>How can we help you?</Text>
-            <Text style={styles.heroSub}>We're here to assist you 24/7</Text>
+            <Text style={styles.heroSub}>We're here to help</Text>
           </View>
           <View style={styles.heroIconBox}>
             <Ionicons name="headset" size={30} color={COLORS.white} />

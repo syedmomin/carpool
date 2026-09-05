@@ -273,7 +273,7 @@ export default function DriverHomeScreen({ navigation }) {
         {/* Tip */}
         <View style={styles.tipCard}>
           <Ionicons name="bulb-outline" size={22} color={COLORS.warning} />
-          <Text style={styles.tipText}>Clear vehicle photos help passengers trust your ride and book faster.</Text>
+          <Text style={styles.tipText}>Add a few clear photos so riders know what they're getting into.</Text>
         </View>
 
         <View style={{ height: 24 }} />

@@ -102,7 +102,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
         <View style={styles.driverCard}>
           <Avatar name={driver?.name} uri={driver?.avatar} size={48} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.driverName}>{driver?.name || 'Unknown'}</Text>
+            <Text style={styles.driverName}>{driver?.name || 'Driver'}</Text>
             {driver?.rating > 0 && (
               <View style={styles.driverRatingRow}>
                 <StarRating rating={driver.rating} size={12} />
@@ -152,7 +152,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
               <Ionicons name="wallet-outline" size={15} color={COLORS.textSecondary} />
               <Text style={styles.infoLabel}>Payment Method</Text>
             </View>
-            <Text style={[styles.infoValue, { color: COLORS.primary }]}>Cash on Ride</Text>
+            <Text style={[styles.infoValue, { color: COLORS.primary }]}>Cash</Text>
           </View>
           <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
             <View style={styles.infoLeft}>
@@ -164,9 +164,9 @@ export default function BookingConfirmScreen({ navigation, route }) {
         </View>
 
         {/* Pickup pin */}
-        <SectionHeader title="Exact Pickup Point *" style={styles.sectionHeader} />
+        <SectionHeader title="Exact Pickup Point" style={styles.sectionHeader} />
         <Text style={styles.pickupHelper}>
-          Required. Pin your exact spot so your driver can find you more easily.
+          Pin your exact pickup spot, required so your driver can find you.
         </Text>
         <PickupPinPicker
           initialLat={seedLat}
@@ -176,9 +176,9 @@ export default function BookingConfirmScreen({ navigation, route }) {
         />
 
         {/* Drop-off pin */}
-        <SectionHeader title="Exact Drop-off Point *" style={[styles.sectionHeader, { marginTop: 20 }]} />
+        <SectionHeader title="Exact Drop-off Point" style={[styles.sectionHeader, { marginTop: 20 }]} />
         <Text style={styles.pickupHelper}>
-          Required. Pin exactly where you'd like to be dropped off.
+          Pin exactly where you want to be dropped off, this is required.
         </Text>
         <PickupPinPicker
           initialLat={dropSeedLat}

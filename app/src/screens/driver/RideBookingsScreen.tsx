@@ -66,7 +66,7 @@ export default function RideBookingsScreen({ navigation, route }) {
     showModal({
       type: 'primary',
       title: 'Accept Booking?',
-      message: `Are you sure you want to accept ${name}'s booking request?`,
+      message: `Accept ${name}'s request for this ride?`,
       confirmText: 'Accept',
       cancelText: 'Cancel',
       icon: 'checkmark-circle-outline',
@@ -87,7 +87,7 @@ export default function RideBookingsScreen({ navigation, route }) {
     showModal({
       type: 'danger',
       title: 'Reject Booking?',
-      message: `Are you sure you want to reject ${name}'s request? The seats will be released.`,
+      message: `Reject ${name}'s request? Their seats go back up for booking.`,
       confirmText: 'Reject',
       cancelText: 'Cancel',
       icon: 'close-circle-outline',
@@ -269,7 +269,7 @@ export default function RideBookingsScreen({ navigation, route }) {
           <EmptyState
             icon="people-outline"
             title={tab === 'pending' ? 'No Pending Requests' : 'No Accepted Bookings'}
-            subtitle="Passenger requests will appear here."
+            subtitle={tab === 'pending' ? "New requests will show up here." : "Bookings you've accepted will show up here."}
           />
         }
       />

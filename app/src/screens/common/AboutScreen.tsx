@@ -20,7 +20,7 @@ export default function AboutScreen({ navigation }) {
     { n: '1', label: 'Search a route or post a ride request for your trip.' },
     { n: '2', label: 'Drivers offer seats or bid a price. Pick the one you like.' },
     { n: '3', label: 'Chat, track the ride live, and pay the driver in cash.' },
-    { n: '4', label: 'Rate each other to keep the community safe and trusted.' },
+    { n: '4', label: 'Rate each other after every ride.' },
   ];
 
   return (
@@ -31,7 +31,7 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.logoSection}>
           <Logo variant="auth" width={200} height={72} />
           <Text style={styles.version}>Version 1.0.0</Text>
-          <Text style={styles.tagline}>Pakistan's Smart Ride Sharing App</Text>
+          <Text style={styles.tagline}>Affordable Intercity Rides Across Pakistan</Text>
         </View>
 
         {/* About */}
@@ -87,8 +87,8 @@ export default function AboutScreen({ navigation }) {
 
         {/* Team */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Made with love in Pakistan</Text>
-          <Text style={styles.cardText}>ChalParo is built by a small team that wants to make intercity travel across Pakistan easier and more affordable.</Text>
+          <Text style={styles.cardTitle}>Made With Love In Pakistan</Text>
+          <Text style={styles.cardText}>We're a small team in Pakistan trying to make going city to city less of a hassle.</Text>
         </View>
 
         <Text style={styles.copyright}>© 2026 ChalParo. All rights reserved.</Text>

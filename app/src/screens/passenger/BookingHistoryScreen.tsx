@@ -233,7 +233,7 @@ export default function BookingHistoryScreen({ navigation }) {
         const { error } = await bookingsApi.addSeats(addTarget.id, addCount);
         setAddLoading(false);
         if (error) { showToast(parseApiError(error), 'error'); return; }
-        showToast(`${addCount} seat(s) added`, 'success');
+        showToast(`${addCount} seat${addCount !== 1 ? 's' : ''} added`, 'success');
         setAddTarget(null);
         loadMyBookings(true);
     };
@@ -274,7 +274,7 @@ export default function BookingHistoryScreen({ navigation }) {
         if (!ride) return null;
         const fromCity      = ride.boardingCity || item.boardingCity || ride.from || '';
         const toCity        = ride.exitCity || item.exitCity || ride.to || '';
-        const driverName    = ride.driver?.name || 'N/A';
+        const driverName    = ride.driver?.name || 'Driver';
         const driverPhone   = ride.driver?.phone || '';
         const vehicle       = ride.vehicle;
         const vehicleLabel  = vehicle ? `${vehicle.brand} · ${vehicle.plateNumber}` : 'N/A';
@@ -499,8 +499,8 @@ export default function BookingHistoryScreen({ navigation }) {
                     ListEmptyComponent={
                         !refreshing ? (
                             myBookingsState.error ? (
-                                <EmptyState icon="receipt-outline" title="Couldn't load your bookings"
-                                    subtitle="Please check your connection and try again."
+                                <EmptyState icon="receipt-outline" title="Couldn't Load Your Bookings"
+                                    subtitle="Check your internet and try again."
                                     action={{ label: 'Try Again', onPress: () => loadMyBookings(true) }} />
                             ) : (
                                 <EmptyState icon="receipt-outline" title="No Active Bookings"
@@ -539,7 +539,7 @@ export default function BookingHistoryScreen({ navigation }) {
                     ListEmptyComponent={
                         !pastLoading ? (
                             <EmptyState icon="close-circle-outline" title="No Cancelled Bookings"
-                                subtitle="Bookings you cancel (or that get rejected/expired) will appear here." />
+                                subtitle="Bookings you cancel, or that get rejected or expire, will appear here." />
                         ) : null
                     }
                 />
@@ -554,7 +554,7 @@ export default function BookingHistoryScreen({ navigation }) {
             <Modal visible={!!addTarget} transparent animationType="fade" onRequestClose={() => setAddTarget(null)}>
                 <View style={styles.addOverlay}>
                     <View style={styles.addSheet}>
-                        <Text style={styles.addTitle}>Add seats</Text>
+                        <Text style={styles.addTitle}>Add Seats</Text>
                         <Text style={styles.addSub}>{addAvailable} more seat{addAvailable !== 1 ? 's' : ''} available on this ride</Text>
                         <View style={styles.stepperRow}>
                             <Pressable style={styles.stepBtn} onPress={() => setAddCount(c => Math.max(1, c - 1))}>

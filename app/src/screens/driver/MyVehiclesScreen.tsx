@@ -148,7 +148,7 @@ export default function MyVehiclesScreen({ navigation }) {
           onRefresh={fetchVehicles}
           ListEmptyComponent={
             !refreshing ? (
-              <EmptyState icon="car-outline" title="No Vehicles Found" subtitle="Add your vehicle to start posting rides" />
+              <EmptyState icon="car-outline" title="No Vehicle Yet" subtitle="Register your car, bus, or coaster to start posting rides" />
             ) : null
           }
         />

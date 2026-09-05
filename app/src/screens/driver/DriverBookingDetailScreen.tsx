@@ -21,7 +21,7 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
 
   const openDirections = (lat?: number | null, lng?: number | null) => {
     if (lat == null || lng == null) {
-      showToast('No exact pin was set for this booking', 'info');
+      showToast('No exact pickup pin for this booking', 'info');
       return;
     }
     const url = Platform.select({

@@ -188,7 +188,7 @@ export default function ChatScreen({ route, navigation }) {
     if (uploadingImage) return;
     showImagePickerOptions(async (result: any) => {
       if (result?.cancelled) return;
-      if (result?.error) { showToast('Could not upload photo', 'error'); return; }
+      if (result?.error) { showToast("Couldn't upload photo, try again.", 'error'); return; }
       if (!result?.url) return;
       setUploadingImage(true);
       socketService.emitWithQueue('send-message', {
@@ -275,7 +275,7 @@ export default function ChatScreen({ route, navigation }) {
             style={styles.headerIconBtn}
             onPress={() => showModal({
               type: 'info', title: 'Call', message: `Call ${otherUser?.name} at ${otherUser.phone}?`, confirmText: 'Call',
-              onConfirm: () => Linking.openURL(`tel:${otherUser.phone}`).catch(() => showToast('Unable to open dialer', 'error')),
+              onConfirm: () => Linking.openURL(`tel:${otherUser.phone}`).catch(() => showToast("Couldn't open the dialer.", 'error')),
             })}
           >
             <Ionicons name="call-outline" size={20} color={COLORS.textPrimary} />

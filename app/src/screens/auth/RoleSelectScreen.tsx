@@ -67,7 +67,7 @@ export default function RoleSelectScreen({ navigation }: any) {
 
           <Animated.View entering={FadeInDown.delay(150).duration(600)}>
             <Text style={styles.heading}>How do you want to ride?</Text>
-            <Text style={styles.subheading}>Choose your role to get started</Text>
+            <Text style={styles.subheading}>Pick one to continue</Text>
           </Animated.View>
 
           <View style={styles.cards}>
@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
     color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, letterSpacing: 0.3, marginTop: 6,
   },
   heading: {
-    color: COLORS.textPrimary, fontSize: 24, fontFamily: FONTS.extraBold, letterSpacing: -0.2, textAlign: 'center', marginTop: 10,
+    color: COLORS.textPrimary, fontSize: 24, fontFamily: FONTS.extraBold, letterSpacing: -0.2, textAlign: 'left', marginTop: 10,
   },
   subheading: {
-    color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, textAlign: 'center', marginTop: 2,
+    color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, textAlign: 'left', marginTop: 2,
   },
   cards: { marginTop: 28, gap: 14 },
   cardPress: { width: '100%' },

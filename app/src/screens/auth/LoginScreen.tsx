@@ -59,7 +59,8 @@ export default function LoginScreen({ navigation }) {
                             <Text style={styles.brandTagline}>Har Safar Mein Sath</Text>
                         </Animated.View>
                         <Animated.View entering={FadeInDown.delay(60).duration(500)} style={styles.header}>
-                            <Text style={styles.title}>Welcome back, sign in to continue</Text>
+                            <Text style={styles.title}>Welcome back!</Text>
+                            <Text style={styles.subtitle}>Sign in to book your next ride</Text>
                         </Animated.View>
 
                         <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.card}>
@@ -131,7 +132,8 @@ const styles = StyleSheet.create({
     hero: { alignItems: 'center', marginBottom: 10 },
     brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, marginTop: -2 },
     header: { marginBottom: 12 },
-    title: { color: COLORS.textPrimary, fontSize: 18, fontFamily: FONTS.extraBold, letterSpacing: -0.2 },
+    title: { color: COLORS.textPrimary, fontSize: 20, fontFamily: FONTS.extraBold, letterSpacing: -0.2 },
+    subtitle: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium, marginTop: 2 },
     // No card background — inputs float directly on the light auth
     // background, each with its own shadow; a white card behind white inputs
     // made the fields nearly invisible.

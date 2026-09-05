@@ -195,9 +195,9 @@ export default function PassengerHomeScreen({ navigation }) {
           />
         </View>
 
-        {/* Popular Rides */}
+        {/* Available Rides */}
         <SectionHeader
-          title="Popular Rides"
+          title="Available Rides"
           onSeeAll={() => navigation.navigate('SearchTab')}
           style={styles.popularHeader}
         />
@@ -216,8 +216,8 @@ export default function PassengerHomeScreen({ navigation }) {
           ))
         ) : (
           <EmptyState
-            title="No rides yet"
-            subtitle="Check back soon for available rides near you."
+            title="No Rides Yet"
+            subtitle="Drivers haven't posted any rides on your route today, try again in a bit."
           />
         )}
 

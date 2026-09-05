@@ -74,7 +74,7 @@ export default function CnicVerificationScreen({ navigation }) {
   const pickImage = async (setter, setUploading) => {
     showImagePickerOptions(async (result) => {
       if (result.cancelled) return;
-      if (result.error) { showToast('Image upload failed. Please try again.', 'error'); return; }
+      if (result.error) { showToast("Couldn't upload the image, try again.", 'error'); return; }
       setUploading(true);
       setter(result.url);
       setUploading(false);
@@ -86,7 +86,7 @@ export default function CnicVerificationScreen({ navigation }) {
     const result: any = await pickImageFromCamera({ aspect: [3, 4] }, 'documents');
     setUpSelfie(false);
     if (result.cancelled) return;
-    if (result.error) { showToast('Selfie upload failed. Please try again.', 'error'); return; }
+    if (result.error) { showToast("Couldn't upload the selfie, try again.", 'error'); return; }
     setSelfieImg(result.url);
   };
 
@@ -110,18 +110,18 @@ export default function CnicVerificationScreen({ navigation }) {
         return;
       }
       if (!licenceImg) {
-        showToast('Please upload your driving licence to verify as a driver.', 'error');
+        showToast('Upload your driving licence to verify as a driver.', 'error');
         return;
       }
     } else {
       if ((cnic || frontImg) && (!cnic || !frontImg)) {
-        showToast('Please enter your CNIC number and upload the front image.', 'error');
+        showToast('Add your CNIC number and the front image.', 'error');
         return;
       }
     }
 
     if (cnic && !validateCnic(cnic)) {
-      showToast('Please enter a valid CNIC number (e.g. 42101-1234567-1).', 'error');
+      showToast('Enter a valid CNIC number, e.g. 42101-1234567-1.', 'error');
       return;
     }
 
@@ -159,8 +159,8 @@ export default function CnicVerificationScreen({ navigation }) {
 
     showToast(
       isDriver
-        ? 'CNIC and licence submitted! We will verify within 24 hours.'
-        : 'CNIC submitted for verification. We will review within 24 hours.',
+        ? "CNIC and licence submitted! We'll review them shortly."
+        : "CNIC submitted for verification. We'll review it shortly.",
       'success',
     );
     navigation.goBack();
@@ -171,11 +171,11 @@ export default function CnicVerificationScreen({ navigation }) {
   const handleContinue = () => {
     const key = STEPS[step].key;
     if (key === 'front' && isDriver && (!cnic || !frontImg)) {
-      showToast('Please enter your CNIC number and upload the front image.', 'error');
+      showToast('Add your CNIC number and the front image.', 'error');
       return;
     }
     if (key === 'front' && !isDriver && cnic && !frontImg) {
-      showToast('Please upload the CNIC front image.', 'error');
+      showToast('Upload the CNIC front image.', 'error');
       return;
     }
     if (key === 'licence' || isLastStep) { handleSubmit(); return; }
@@ -227,7 +227,7 @@ export default function CnicVerificationScreen({ navigation }) {
     return (
       <>
         <Text style={styles.stepHeading}>Upload Driving Licence *</Text>
-        <Text style={styles.stepSub}>Upload a clear photo of your driving licence (front side)</Text>
+        <Text style={styles.stepSub}>Make sure all the details are clearly visible</Text>
         <UploadBox image={licenceImg} uploading={upLicence} onPress={() => pickImage(setLicenceImg, setUpLicence)} />
       </>
     );

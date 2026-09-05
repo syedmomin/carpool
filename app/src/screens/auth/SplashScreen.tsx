@@ -100,7 +100,7 @@ export default function SplashScreen({ navigation, onDone }) {
           <View style={styles.captionIconChip}>
             <Ionicons name="shield-checkmark" size={16} color="#4ade80" />
           </View>
-          <Text style={styles.captionText}>Verified Rides. Safe Journeys. For Everyone.</Text>
+          <Text style={styles.captionText}>CNIC-Verified Drivers. Ride With Confidence.</Text>
         </View>
       </Animated.View>
     </ImageBackground>
