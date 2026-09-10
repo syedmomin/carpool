@@ -217,22 +217,20 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('type', form.type);
-      formData.append('brand', form.brand.trim());
-      formData.append('model', form.model?.trim() || '');
-      if (form.year) formData.append('year', form.year);
-      formData.append('color', form.color?.trim() || '');
-      formData.append('plateNumber', form.plateNumber.trim().toUpperCase());
-      formData.append('totalSeats', form.totalSeats);
-
-      Object.keys(features).forEach(key => {
-        formData.append(key, features[key] ? 'true' : 'false');
-      });
+      const payload = {
+        type: form.type,
+        brand: form.brand.trim(),
+        model: form.model?.trim() || '',
+        year: form.year ? Number(form.year) : undefined,
+        color: form.color?.trim() || '',
+        plateNumber: form.plateNumber.trim().toUpperCase(),
+        totalSeats: Number(form.totalSeats),
+        ...features,
+      };
 
       const { error } = existing
-        ? await vehiclesApi.update(vehicleId, formData)
-        : await vehiclesApi.register(formData);
+        ? await vehiclesApi.update(vehicleId, payload)
+        : await vehiclesApi.register(payload);
       if (error) { showToast(parseApiError(error), 'error'); return; }
       haptics.success();
       showToast(existing ? 'Vehicle updated' : 'Vehicle registered. You can now post rides.', 'success');
