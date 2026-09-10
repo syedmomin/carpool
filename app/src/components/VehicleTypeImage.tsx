@@ -23,13 +23,25 @@ interface Props {
   size?: number;
 }
 
+// Every source image is landscape (a wide vehicle on a trimmed transparent
+// canvas), so "contain" inside a square box leaves visible top/bottom
+// letterboxing — the vehicle reads smaller than its box everywhere it's
+// used. Scaling the image up a fixed amount (purely visual — a transform,
+// not a layout size change) closes that gap consistently in every card
+// without needing per-call-site tuning.
+const ZOOM = 1.35;
+
 export const VehicleTypeImage: React.FC<Props> = ({ type, size = 80 }) => {
   const key = (IMAGE_BY_TYPE[type as VehicleTypeKey] ? type : 'CAR') as VehicleTypeKey;
   const isPremium = key === 'PREMIUM_CAR';
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Image source={IMAGE_BY_TYPE[key]} style={{ width: size, height: size }} resizeMode="contain" />
+      <Image
+        source={IMAGE_BY_TYPE[key]}
+        style={{ width: size, height: size, transform: [{ scale: ZOOM }] }}
+        resizeMode="contain"
+      />
       {isPremium && (
         <View style={{
           position: 'absolute', top: 0, right: size * 0.06,
