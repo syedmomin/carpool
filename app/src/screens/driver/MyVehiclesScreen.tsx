@@ -1,18 +1,13 @@
 ﻿import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, EmptyState, CardSkeleton } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, CardSkeleton, VehicleTypeImage } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
 import { vehiclesApi } from '../../services/api';
-
-const TYPE_ICON: any = {
-  CAR: 'car-outline', VAN: 'car-sport-outline', HIACE: 'bus-outline',
-  COASTER: 'bus-outline', BUS: 'bus-outline', PICKUP: 'car-outline',
-};
 
 export default function MyVehiclesScreen({ navigation }) {
   const { setActiveVehicle, deleteVehicle } = useApp();
@@ -45,20 +40,11 @@ export default function MyVehiclesScreen({ navigation }) {
   };
 
   const renderVehicle = ({ item }) => {
-    const firstImg = item.images?.[0];
-    const typeIcon = TYPE_ICON[item.type] || 'car-outline';
-
     return (
       <View style={styles.card}>
         <View style={styles.cardTopRow}>
           <View style={styles.imgBox}>
-            {firstImg ? (
-              <Image source={{ uri: firstImg }} style={styles.thumbnail} resizeMode="cover" />
-            ) : (
-              <View style={styles.imgPlaceholder}>
-                <Ionicons name={typeIcon} size={30} color={COLORS.border} />
-              </View>
-            )}
+            <VehicleTypeImage type={item.type} size={60} />
           </View>
 
           <View style={styles.infoCol}>
@@ -76,7 +62,7 @@ export default function MyVehiclesScreen({ navigation }) {
             <View style={styles.specRow}>
               <Ionicons name="people-outline" size={13} color={COLORS.textSecondary} />
               <Text style={styles.specText}>{item.totalSeats} Seats</Text>
-              <Ionicons name={typeIcon} size={13} color={COLORS.textSecondary} style={{ marginLeft: 10 }} />
+              <Ionicons name="car-outline" size={13} color={COLORS.textSecondary} style={{ marginLeft: 10 }} />
               <Text style={styles.specText}>{item.type}</Text>
             </View>
           </View>
@@ -148,7 +134,8 @@ export default function MyVehiclesScreen({ navigation }) {
           onRefresh={fetchVehicles}
           ListEmptyComponent={
             !refreshing ? (
-              <EmptyState icon="car-outline" title="No Vehicle Yet" subtitle="Register your car, bus, or coaster to start posting rides" />
+              <EmptyState icon="car-outline" title="No Vehicle Yet" subtitle="Register your car, bus, or coaster to start posting rides"
+                action={{ label: 'Add a Vehicle', onPress: () => navigation.navigate('VehicleSetup', { vehicleId: null }) }} />
             ) : null
           }
         />
@@ -178,9 +165,8 @@ const styles = StyleSheet.create({
   imgBox: {
     width: 96, height: 84, borderRadius: 12,
     overflow: 'hidden', backgroundColor: COLORS.lightGray,
+    alignItems: 'center', justifyContent: 'center',
   },
-  thumbnail:      { width: '100%', height: '100%' },
-  imgPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   infoCol:    { flex: 1, minWidth: 0, justifyContent: 'center', gap: 4 },
   nameRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

@@ -1,25 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Image, KeyboardAvoidingView, Platform, ActivityIndicator,
+  KeyboardAvoidingView, Platform,
   Modal, FlatList, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton, DetailSkeleton } from '../../components';
+import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton, DetailSkeleton, VehicleTypeImage } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
-import { pickMultipleImagesLocal, pickImageFromCameraLocal } from '../../utils/imagePicker';
 import { vehiclesApi } from '../../services/api';
 import { haptics } from '../../utils/haptics';
 
 // ─── Vehicle types ────────────────────────────────────────────────────────────
+// Each type maps to a fixed generic illustration (VehicleTypeImage) instead
+// of a per-vehicle photo — see that component for why.
 const VEHICLE_TYPES = [
-  { label: 'Car',     value: 'CAR' },
-  { label: 'Van',     value: 'VAN' },
-  { label: 'Hiace',   value: 'HIACE' },
-  { label: 'Coaster', value: 'COASTER' },
-  { label: 'Bus',     value: 'BUS' },
+  { label: 'Car',          value: 'CAR' },
+  { label: 'Premium Car',  value: 'PREMIUM_CAR' },
+  { label: 'Rickshaw',     value: 'RICKSHAW' },
+  { label: 'Van',          value: 'VAN' },
+  { label: 'Hiace',        value: 'HIACE' },
+  { label: 'Coaster',      value: 'COASTER' },
+  { label: 'Bus',          value: 'BUS' },
 ];
 
 // ─── All vehicle features ─────────────────────────────────────────────────────
@@ -34,14 +37,15 @@ const ALL_FEATURES = [
   { key: 'luggageRack',label: 'Luggage Rack',     icon: 'briefcase-outline' },
 ];
 
-const STEPS = ['Basic Info', 'Photos & Features', 'Verification'];
+const STEPS = ['Basic Info', 'Features', 'Verification'];
 
 // ─── Car brands available in Pakistan ─────────────────────────────────────────
 const VEHICLE_BRANDS = [
   'Toyota', 'Suzuki', 'Honda', 'Daihatsu', 'Mitsubishi', 'Nissan', 'Mazda', 'Subaru',
   'Hyundai', 'Kia',
   'Changan', 'MG', 'Proton', 'FAW', 'DFSK', 'Haval', 'Chery', 'BYD', 'JAC', 'Jinbei', 'Joylong', 'Foton',
-  'Hino', 'Daewoo', 'Isuzu', 'Master', 'Yutong', 'King Long', 'Ankai', 'Zhongtong',
+  'Hino', 'Daewoo', 'Isuzu', 'Master', 'Yutong', 'King Long', 'Ankai', 'Zhongtong', 'Ghandhara',
+  'Sazgar', 'Qingqi', 'United', 'New Asia', 'Prince',
   'Mercedes', 'BMW', 'Audi', 'Land Rover',
   'Other',
 ];
@@ -125,8 +129,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const [fetchLoading, setFetchLoading] = useState(!!vehicleId);
   const [existing,     setExisting]     = useState(null);
 
-  const [images, setImages]             = useState([]);
-  const [imgUploading, setImgUploading] = useState(false);
   const [form, setForm] = useState({
     type: '', brand: '', model: '', year: '', color: '', plateNumber: '', totalSeats: '4',
   });
@@ -152,7 +154,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
       }
       const v = data.data;
       setExisting(v);
-      setImages(v.images || []);
       setForm({
         type:        v.type        || '',
         brand:       v.brand       || '',
@@ -180,28 +181,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
   const toggleFeature = (key) => setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
   const typeLabel = VEHICLE_TYPES.find(t => t.value === form.type)?.label;
 
-  // ─── Multi-image picker (local only, no upload yet) ──────────────────────
-  const addVehicleImages = async () => {
-    try {
-      const { uris, error, cancelled } = await pickMultipleImagesLocal();
-      if (cancelled) return;
-      if (error) { showToast('Turn on photo access in Settings to add pictures.', 'error'); return; }
-      setImages(prev => [...prev, ...uris]);
-    } catch (e) {
-      showToast("Couldn't open your photos, try again in a bit.", 'error');
-    }
-  };
-
-  const addFromCamera = async () => {
-    try {
-      const result: any = await pickImageFromCameraLocal({ aspect: [4, 3] });
-      if (result.error) { showToast('Turn on camera access in Settings.', 'error'); return; }
-      if (!result.cancelled) setImages(prev => [...prev, result.uri]);
-    } catch (e) {
-      showToast('Could not open camera. Please try again.', 'error');
-    }
-  };
-
   // ─── Validation ────────────────────────────────────────────────────────────
   const validateBasicInfo = () => {
     const newErrors: any = {};
@@ -223,10 +202,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
       }
       setStep(1);
     } else if (step === 1) {
-      if (images.length === 0) {
-        showToast('Add at least one photo of your vehicle.', 'error');
-        return;
-      }
       setStep(2);
     } else {
       handleSave();
@@ -254,25 +229,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
       Object.keys(features).forEach(key => {
         formData.append(key, features[key] ? 'true' : 'false');
       });
-
-      const localUris = images.filter(i => !i.startsWith('http'));
-      const existingUrls = images.filter(i => i.startsWith('http'));
-      existingUrls.forEach(url => formData.append('existingImages', url));
-
-      await Promise.all(localUris.map(async (uri, index) => {
-        const filename = uri.split('/').pop() || `image_${index}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const mimeType = match ? `image/${match[1]}` : 'image/jpeg';
-        const cleanUri = Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
-
-        if (Platform.OS === 'web') {
-          const response = await fetch(uri);
-          const blob = await response.blob();
-          formData.append('images', blob, filename);
-        } else {
-          formData.append('images', { uri: cleanUri, name: filename, type: mimeType } as any);
-        }
-      }));
 
       const { error } = existing
         ? await vehiclesApi.update(vehicleId, formData)
@@ -353,35 +309,12 @@ export default function VehicleSetupScreen({ navigation, route }) {
     </View>
   );
 
-  // ─── Step 2: Documents (Photos + Features) ─────────────────────────────────
+  // ─── Step 2: Features ───────────────────────────────────────────────────────
   const renderDocuments = () => (
     <View>
-      <SectionHeader title="Vehicle Photos" subtitle="Add at least one photo so passengers know what to expect." />
-      <View style={styles.photosRow}>
-        {images.map((img, i) => (
-          <View key={i} style={styles.photoWrapper}>
-            <Image source={{ uri: img }} style={styles.photo} />
-            <Pressable style={styles.photoDeleteBtn} onPress={() => setImages(prev => prev.filter((_, j) => j !== i))}>
-              <Ionicons name="close-circle" size={22} color={COLORS.danger} />
-            </Pressable>
-          </View>
-        ))}
-        {imgUploading ? (
-          <View style={styles.addPhotoBtn}>
-            <ActivityIndicator color={COLORS.primary} />
-          </View>
-        ) : (
-          <View style={styles.photoAddGroup}>
-            <Pressable style={styles.addPhotoBtn} onPress={addVehicleImages}>
-              <Ionicons name="images-outline" size={24} color={COLORS.primary} />
-              <Text style={styles.addPhotoText}>Gallery</Text>
-            </Pressable>
-            <Pressable style={styles.addPhotoBtn} onPress={addFromCamera}>
-              <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
-              <Text style={styles.addPhotoText}>Camera</Text>
-            </Pressable>
-          </View>
-        )}
+      <View style={styles.typePreview}>
+        <VehicleTypeImage type={form.type} size={120} />
+        <Text style={styles.typePreviewLabel}>{typeLabel}</Text>
       </View>
 
       <SectionHeader title="Amenities & Features" style={{ marginTop: 8 }} />
@@ -416,7 +349,6 @@ export default function VehicleSetupScreen({ navigation, route }) {
       { label: 'Color', value: form.color || '—' },
       { label: 'Registration Number', value: form.plateNumber.toUpperCase() || '—' },
       { label: 'Seats Available', value: form.totalSeats || '—' },
-      { label: 'Photos', value: `${images.length} uploaded` },
       { label: 'Features', value: `${Object.values(features).filter(Boolean).length} selected` },
     ];
     return (
@@ -478,7 +410,7 @@ export default function VehicleSetupScreen({ navigation, route }) {
 
         <View style={styles.bottomBar}>
           <PrimaryButton
-            title={step === 0 ? 'Next: Documents' : step === 1 ? 'Next: Verification' : (existing ? 'Save Changes' : 'Register Vehicle')}
+            title={step === 0 ? 'Next: Features' : step === 1 ? 'Next: Verification' : (existing ? 'Save Changes' : 'Register Vehicle')}
             onPress={goNext}
             loading={loading}
             style={styles.continueBtn}
@@ -537,14 +469,9 @@ const styles = StyleSheet.create({
   stepperBtn:   { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center' },
   seatsValue:   { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, minWidth: 20, textAlign: 'center' },
 
-  // Photos
-  photosRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  photoWrapper:  { position: 'relative' },
-  photo:         { width: 90, height: 80, borderRadius: 12 },
-  photoDeleteBtn:{ position: 'absolute', top: -8, right: -8 },
-  photoAddGroup: { flexDirection: 'row', gap: 8 },
-  addPhotoBtn:   { width: 90, height: 80, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, gap: 4 },
-  addPhotoText:  { fontSize: 11, color: COLORS.primary, fontWeight: '600' },
+  // Vehicle type preview
+  typePreview:      { alignItems: 'center', backgroundColor: COLORS.cardBg, borderRadius: 16, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 20, marginBottom: 8, ...CURVE },
+  typePreviewLabel: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary, marginTop: 8 },
 
   // Features
   featureHint:    { fontSize: 12, color: COLORS.gray, marginBottom: 12, lineHeight: 18 },

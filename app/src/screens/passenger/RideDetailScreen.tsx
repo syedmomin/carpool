@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   COLORS, CURVE, AMENITY_CONFIG,
   StarRating, PrimaryButton, AppBar,
-  Avatar, RouteTag, SectionHeader, DetailSkeleton, EmptyState,
+  Avatar, RouteTag, SectionHeader, DetailSkeleton, EmptyState, VehicleTypeImage,
 } from '../../components';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { useToast } from '../../context/ToastContext';
@@ -246,14 +246,9 @@ export default function RideDetailScreen({ navigation, route }) {
         <View style={styles.section}>
           <SectionHeader title="Vehicle" style={styles.sectionHeaderInSection} />
           <View style={styles.vehicleCard}>
-            {vehicle?.images?.[0] ? (
-              <Image source={{ uri: vehicle.images[0] }} style={styles.vehicleImg} resizeMode="cover" />
-            ) : (
-              <View style={[styles.vehicleImg, styles.vehicleImgPlaceholder]}>
-                <Ionicons name="car-sport-outline" size={40} color={COLORS.gray} />
-                <Text style={styles.vehicleImgLabel}>{vehicle?.brand || 'Vehicle'}</Text>
-              </View>
-            )}
+            <View style={[styles.vehicleImg, styles.vehicleImgPlaceholder]}>
+              <VehicleTypeImage type={vehicle?.type} size={64} />
+            </View>
             <View style={styles.vehicleDetails}>
               <View style={styles.vehicleHeaderRow}>
                 <Text style={styles.vehicleName}>{vehicle?.brand} {vehicle?.model}</Text>
@@ -414,7 +409,6 @@ const styles = StyleSheet.create({
   },
   vehicleImg: { width: '100%', height: 140 },
   vehicleImgPlaceholder: { backgroundColor: COLORS.lightGray, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  vehicleImgLabel: { fontSize: 13, color: COLORS.gray, fontWeight: '600' },
   vehicleDetails: { padding: 14 },
   vehicleHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   vehicleName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },

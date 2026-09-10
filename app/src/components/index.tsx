@@ -75,6 +75,7 @@ export { default as RouteLoader } from './RouteLoader';
 // ─── Route Tag (from > to with SVG arrow) ─────────────────────────────────────
 export { RouteTag } from './RouteTag';
 export { RoutePicker } from './RoutePicker';
+export { VehicleTypeImage } from './VehicleTypeImage';
 export { PickupPinPicker } from './PickupPinPicker';
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────

@@ -13,13 +13,6 @@ import { vehiclesApi, reviewsApi } from '../../services/api';
 import { formatLocalDate, getTodayStr } from '../../utils/date';
 import { useDoubleBackExit } from '../../utils/useDoubleBackExit';
 
-function getGreeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good Morning';
-  if (h < 17) return 'Good Afternoon';
-  return 'Good Evening';
-}
-
 // Compute confirmed seats from bookings array when the full bookings list is
 // available (loaded via SocketDataContext), so pending-but-unaccepted seats
 // don't inflate the dashboard earnings number.
@@ -90,7 +83,7 @@ export default function DriverHomeScreen({ navigation }) {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <View style={styles.headerInfo}>
-            <Text style={styles.greeting}>{getGreeting()}, {currentUser?.name} 👋</Text>
+            <Text style={styles.greeting}>Hi, {currentUser?.name} 👋</Text>
             <Text style={styles.subGreeting}>Ready for your next ride?</Text>
           </View>
           <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('DriverHomeTab', { screen: 'Notifications' })}>
@@ -270,12 +263,6 @@ export default function DriverHomeScreen({ navigation }) {
           </>
         )}
 
-        {/* Tip */}
-        <View style={styles.tipCard}>
-          <Ionicons name="bulb-outline" size={22} color={COLORS.warning} />
-          <Text style={styles.tipText}>Add a few clear photos so riders know what they're getting into.</Text>
-        </View>
-
         <View style={{ height: 24 }} />
       </View>
     </ScrollView>
@@ -349,6 +336,4 @@ const styles = StyleSheet.create({
   rideSeats: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   emptyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border },
   emptyRowText: { fontSize: 12, color: COLORS.textSecondary, flex: 1 },
-  tipCard: { borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8, backgroundColor: COLORS.warningLight },
-  tipText: { flex: 1, fontSize: 13, color: COLORS.textPrimary, lineHeight: 20 },
 });

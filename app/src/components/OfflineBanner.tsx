@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { socketService } from '../services/socket.service';
 import { useApp } from '../context/AppContext';
+import { useIsConnected } from '../hooks/useIsConnected';
 
 /**
  * Thin top bar shown when the realtime connection drops, so users know why
@@ -15,6 +16,9 @@ export default function OfflineBanner() {
   const insets = useSafeAreaInsets();
   const [show, setShow] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The device having no internet is handled by NoInternetScreen's full-screen
+  // takeover instead — don't stack this banner on top of it.
+  const isConnected = useIsConnected();
 
   useEffect(() => {
     const unsub = socketService.onConnectionChange((connected) => {
@@ -29,7 +33,7 @@ export default function OfflineBanner() {
     return () => { if (timer.current) clearTimeout(timer.current); unsub(); };
   }, []);
 
-  if (!currentUser || !show) return null;
+  if (!currentUser || !show || isConnected === false) return null;
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>

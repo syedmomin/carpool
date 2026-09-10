@@ -504,7 +504,8 @@ export default function BookingHistoryScreen({ navigation }) {
                                     action={{ label: 'Try Again', onPress: () => loadMyBookings(true) }} />
                             ) : (
                                 <EmptyState icon="receipt-outline" title="No Active Bookings"
-                                    subtitle="You have no pending or confirmed bookings." />
+                                    subtitle="You have no pending or confirmed bookings."
+                                    action={{ label: 'Find a Ride', onPress: () => navigation.navigate('PassengerApp', { screen: 'SearchTab' }) }} />
                             )
                         ) : null
                     }

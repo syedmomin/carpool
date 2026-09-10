@@ -5,8 +5,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { haptics } from '../utils/haptics';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 interface Props {
   onPress?: () => void;
   onLongPress?: () => void;
@@ -31,17 +29,26 @@ export const PressableScale: React.FC<Props> = ({
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
+  // The entering (fade-in) animation and the press-scale transform are kept
+  // on two separate nodes — putting both on one Animated component makes
+  // Reanimated warn that the layout animation may overwrite the transform,
+  // and in practice the entrance animation can visibly clobber the scale.
   return (
-    <AnimatedPressable
-      onPressIn={() => { scale.value = withTiming(scaleTo, { duration: 90 }); }}
-      onPressOut={() => { scale.value = withTiming(1, { duration: 130 }); }}
-      onPress={() => { if (haptic) haptics.impact(); onPress?.(); }}
-      onLongPress={onLongPress}
-      disabled={disabled}
+    <Animated.View
       entering={index !== undefined ? FadeInDown.duration(260).delay(Math.min(index, 8) * 45) : undefined}
-      style={[style, animStyle]}
+      style={style}
     >
-      {children}
-    </AnimatedPressable>
+      <Pressable
+        onPressIn={() => { scale.value = withTiming(scaleTo, { duration: 90 }); }}
+        onPressOut={() => { scale.value = withTiming(1, { duration: 130 }); }}
+        onPress={() => { if (haptic) haptics.impact(); onPress?.(); }}
+        onLongPress={onLongPress}
+        disabled={disabled}
+      >
+        <Animated.View style={animStyle}>
+          {children}
+        </Animated.View>
+      </Pressable>
+    </Animated.View>
   );
 };

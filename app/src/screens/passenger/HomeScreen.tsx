@@ -32,13 +32,6 @@ function getUpcomingDates() {
   return dates;
 }
 
-function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good Morning';
-  if (hour < 17) return 'Good Afternoon';
-  return 'Good Evening';
-}
-
 const UPCOMING_DATES = getUpcomingDates();
 
 // ─── Quick Action Tile ────────────────────────────────────────────────────────
@@ -106,7 +99,7 @@ export default function PassengerHomeScreen({ navigation }) {
       {/* Top Bar — greeting replaces the old location pill */}
       <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
         <View style={styles.greetRow}>
-          <Text style={styles.greetName}>{getGreeting()}, {firstName} 👋</Text>
+          <Text style={styles.greetName}>Hi, {firstName} 👋</Text>
           <Text style={styles.greetSub}>Where are you going today?</Text>
         </View>
         <Pressable style={styles.notifBtn} onPress={() => navigation.navigate('PassengerHomeTab', { screen: 'Notifications' })}>
@@ -203,6 +196,7 @@ export default function PassengerHomeScreen({ navigation }) {
           <EmptyState
             title="No Rides Yet"
             subtitle="Drivers haven't posted any rides on your route today, try again in a bit."
+            action={{ label: 'Search Other Routes', onPress: () => navigation.navigate('SearchTab') }}
           />
         )}
 

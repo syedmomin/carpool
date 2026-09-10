@@ -393,7 +393,7 @@ export default function OpenRequestsScreen({ navigation }) {
                 title="Couldn't load requests"
                 subtitle="Check your internet and try again."
                 action={{ label: 'Try Again', onPress: () => loadOpenRequests(true) }}
-  />
+              />
             ) : (
               <EmptyState
                 icon="calendar-outline"
@@ -402,6 +402,7 @@ export default function OpenRequestsScreen({ navigation }) {
                   ? 'Try widening your search or check back later.'
                   : 'Pick your city to see requests near you.'
                 }
+                action={{ label: driverCity ? 'Change City' : 'Select City', onPress: () => setCityModal(true) }}
               />
             )
           }

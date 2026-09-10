@@ -13,7 +13,7 @@ export default function ActiveRidesScreen({ navigation }) {
   const { showToast } = useToast();
   const { myRides, myRidesState, loadMyRides, patchRide } = useSocketData();
 
-  const [tab, setTab] = useState<'active' | 'upcoming' | 'completed'>('active');
+  const [tab, setTab] = useState<'upcoming' | 'completed'>('upcoming');
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -35,8 +35,12 @@ export default function ActiveRidesScreen({ navigation }) {
     setRefreshing(false);
   };
 
-  const activeRides = myRides.filter(r => r.status === 'IN_PROGRESS');
-  const upcomingRides = myRides.filter(r => r.status === 'ACTIVE');
+  // In-progress rides surface inside the Upcoming tab (at the top, via
+  // sort below) rather than their own tab — a driver only ever has one
+  // ride running at a time, so a dedicated tab for it was dead weight.
+  const upcomingRides = myRides
+    .filter(r => r.status === 'ACTIVE' || r.status === 'IN_PROGRESS')
+    .sort((a, b) => (a.status === b.status ? 0 : a.status === 'IN_PROGRESS' ? -1 : 1));
   const historyRides = myRides.filter(r => r.status === 'COMPLETED' || r.status === 'CANCELLED' || r.status === 'EXPIRED');
 
   const bookingsSheetRide = myRides.find(r => r.id === bookingsSheet?.rideId) || null;
@@ -251,14 +255,13 @@ export default function ActiveRidesScreen({ navigation }) {
     );
   }
 
-  const data = tab === 'active' ? activeRides : tab === 'upcoming' ? upcomingRides : historyRides;
+  const data = tab === 'upcoming' ? upcomingRides : historyRides;
 
   return (
     <View style={styles.container}>
       <AppBar title="My Rides" rightAction={addRideBtn} />
       <TabPills
         tabs={[
-          { label: `Active${activeRides.length > 0 ? ` (${activeRides.length})` : ''}`, value: 'active' },
           { label: `Upcoming${upcomingRides.length > 0 ? ` (${upcomingRides.length})` : ''}`, value: 'upcoming' },
           { label: 'Completed', value: 'completed' },
         ]}
@@ -279,9 +282,6 @@ export default function ActiveRidesScreen({ navigation }) {
               ? <EmptyState icon="car-sport-outline" title="Couldn't Load Your Rides"
                 subtitle="Check your internet and try again."
                 action={{ label: 'Try Again', onPress: () => loadMyRides(true) }} />
-            : tab === 'active'
-              ? <EmptyState icon="car-sport-outline" title="No Active Rides"
-                subtitle="Rides you've started will appear here." />
             : tab === 'upcoming'
               ? <EmptyState icon="car-sport-outline" title="No Upcoming Rides"
                 subtitle="Post a ride and it'll show up here."

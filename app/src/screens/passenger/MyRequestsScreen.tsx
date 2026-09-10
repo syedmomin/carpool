@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, OVERLAYS, CURVE, STATUS_COLORS, AMENITY_CONFIG, AppBar, EmptyState, Avatar, RouteTag, TabPills, SectionHeader } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, CURVE, STATUS_COLORS, AMENITY_CONFIG, AppBar, EmptyState, Avatar, RouteTag, TabPills, SectionHeader, VehicleTypeImage } from '../../components';
 import { Skeleton, CardSkeleton, RequestCardSkeleton } from '../../components/Skeleton';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -20,10 +20,8 @@ const { width: SW } = Dimensions.get('window');
 
 // ─── Vehicle Details Modal ────────────────────────────────────────────────────
 function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
-  const [imgIdx, setImgIdx] = useState(0);
   if (!visible || !vehicle) return null;
 
-  const images    = vehicle.images || [];
   const amenities = Object.entries(AMENITY_CONFIG)
     .filter(([key]) => vehicle[key])
     .map(([key, cfg]) => ({ key, ...cfg }));
@@ -83,29 +81,9 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
           </LinearGradient>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-            {/* Image gallery */}
-            {images.length > 0 ? (
-              <View style={vm.galleryWrapper}>
-                <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}
-                  onMomentumScrollEnd={e => setImgIdx(Math.round(e.nativeEvent.contentOffset.x / SW))}>
-                  {images.map((uri: string, i: number) => (
-                    <Image key={i} source={{ uri }} style={[vm.galleryImg, { width: SW }]} resizeMode="cover" />
-                  ))}
-                </ScrollView>
-                {images.length > 1 && (
-                  <View style={vm.dotsRow}>
-                    {images.map((_: any, i: number) => (
-                      <View key={i} style={[vm.dot, i === imgIdx && vm.dotActive]} />
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={vm.imgPlaceholder}>
-                <Ionicons name="car-outline" size={48} color={COLORS.primary + '60'} />
-                <Text style={vm.imgPlaceholderText}>No photos available</Text>
-              </View>
-            )}
+            <View style={vm.imgPlaceholder}>
+              <VehicleTypeImage type={vehicle.type} size={96} />
+            </View>
 
             {/* Specs — inline flowing line, not boxed tiles */}
             <View style={vm.section}>
@@ -614,13 +592,7 @@ const vm = StyleSheet.create({
   vehicleColorDot:  { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
 
   // Gallery
-  galleryWrapper:{ position: 'relative' },
-  galleryImg:    { height: 220 },
-  dotsRow:       { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10, backgroundColor: COLORS.bg },
-  dot:           { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.border },
-  dotActive:     { backgroundColor: COLORS.primary, width: 20, borderRadius: 3 },
-  imgPlaceholder: { height: 140, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.lightGray },
-  imgPlaceholderText: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '600' },
+  imgPlaceholder: { height: 140, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.lightGray },
 
   // Sections
   section:       { paddingHorizontal: 20, paddingTop: 22 },

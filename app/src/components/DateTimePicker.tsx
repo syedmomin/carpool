@@ -95,7 +95,7 @@ export function DatePickerInput({ label, value, onChange, minDate, maxDate, plac
           display="default"
           minimumDate={minDate}
           maximumDate={maxDate}
-          onChange={handleChange}
+          onValueChange={handleChange}
         />
       )}
 
@@ -124,7 +124,7 @@ export function DatePickerInput({ label, value, onChange, minDate, maxDate, plac
             display="spinner"
             minimumDate={minDate}
             maximumDate={maxDate}
-            onChange={handleChange}
+            onValueChange={handleChange}
             style={{ height: 200 }}
           />
         </PickerModal>
@@ -188,7 +188,7 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
           mode="time"
           display="default"
           is24Hour={false}
-          onChange={handleChange}
+          onValueChange={handleChange}
         />
       )}
 
@@ -217,7 +217,7 @@ export function TimePickerInput({ label, value, onChange, placeholder = 'Select 
             mode="time"
             display="spinner"
             is24Hour={false}
-            onChange={handleChange}
+            onValueChange={handleChange}
             style={{ height: 200 }}
           />
         </PickerModal>

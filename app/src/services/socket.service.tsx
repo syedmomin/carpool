@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { AppState, AppStateStatus } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { SERVER_URL } from '../config/network';
 import { tokenStorage } from './api';
 
@@ -39,6 +40,15 @@ class SocketService {
 
   constructor() {
     AppState.addEventListener('change', this._handleAppStateChange);
+    // Reconnect the instant the device gets internet back, instead of
+    // waiting out socket.io's own exponential backoff (up to 10s) — this
+    // runs for the lifetime of the app, in the background.
+    NetInfo.addEventListener((state) => {
+      if (state.isConnected && this.socket && !this.socket.connected) {
+        console.log('[Socket] Network back online, reconnecting...');
+        this.socket.connect();
+      }
+    });
   }
 
   private _handleAppStateChange = (nextAppState: AppStateStatus) => {

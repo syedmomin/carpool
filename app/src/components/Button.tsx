@@ -6,8 +6,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, RADIUS, CURVE } from './theme';
 import { haptics } from '../utils/haptics';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 const withHaptic = (fn?: () => void) => () => { haptics.impact(); fn?.(); };
 
 function usePressScale(scaleTo = 0.97) {
@@ -33,38 +31,48 @@ interface ButtonProps {
   disabled?: boolean;
 }
 
+// Every button below keeps its press-scale transform on an inner
+// Animated.View rather than on the Pressable itself — Reanimated warns
+// ("Property 'transform' ... may be overwritten by a layout animation")
+// when a screen's own entering/exiting animation and a component's own
+// transform style land on the same node, since a list/card fade-in
+// implicitly drives a layout transition on its animated children.
+// Keeping the outer node a plain, non-animated Pressable sidesteps that.
+
 // ─── Primary Button (Gradient) ───────────────────────────────────────────────
 export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, trailingIcon, colors, disabled }) => {
   const { animStyle, onPressIn, onPressOut } = usePressScale(0.97);
   return (
-    <AnimatedPressable
+    <Pressable
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={withHaptic(onPress)}
       disabled={!!loading || !!disabled}
-      style={[styles.container, disabled && styles.disabled, style, animStyle]}
+      style={[styles.container, disabled && styles.disabled, style]}
     >
-      <LinearGradient
-        colors={(colors || GRADIENTS.primary) as any}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.gradient}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <>
-            {icon && <Ionicons name={icon as any} size={18} color="#fff" style={styles.btnIcon} />}
-            <Text style={styles.btnText}>{title}</Text>
-            {trailingIcon && (
-              <View style={styles.trailingIconBadge}>
-                <Ionicons name={trailingIcon as any} size={16} color={colors ? colors[0] : COLORS.primary} />
-              </View>
-            )}
-          </>
-        )}
-      </LinearGradient>
-    </AnimatedPressable>
+      <Animated.View style={animStyle}>
+        <LinearGradient
+          colors={(colors || GRADIENTS.primary) as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gradient}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              {icon && <Ionicons name={icon as any} size={18} color="#fff" style={styles.btnIcon} />}
+              <Text style={styles.btnText}>{title}</Text>
+              {trailingIcon && (
+                <View style={styles.trailingIconBadge}>
+                  <Ionicons name={trailingIcon as any} size={16} color={colors ? colors[0] : COLORS.primary} />
+                </View>
+              )}
+            </>
+          )}
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
   );
 };
 
@@ -72,15 +80,17 @@ export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, lo
 export const GhostButton: React.FC<ButtonProps> = ({ title, onPress, style, color, icon }) => {
   const { animStyle, onPressIn, onPressOut } = usePressScale(0.98);
   return (
-    <AnimatedPressable
+    <Pressable
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={withHaptic(onPress)}
-      style={[styles.ghost, { borderColor: color || COLORS.primary }, style, animStyle]}
+      style={[styles.ghost, { borderColor: color || COLORS.primary }, style]}
     >
-      {icon && <Ionicons name={icon as any} size={16} color={color || COLORS.primary} style={styles.btnIcon} />}
-      <Text style={[styles.ghostText, { color: color || COLORS.primary }]}>{title}</Text>
-    </AnimatedPressable>
+      <Animated.View style={[styles.rowCenter, animStyle]}>
+        {icon && <Ionicons name={icon as any} size={16} color={color || COLORS.primary} style={styles.btnIcon} />}
+        <Text style={[styles.ghostText, { color: color || COLORS.primary }]}>{title}</Text>
+      </Animated.View>
+    </Pressable>
   );
 };
 
@@ -88,7 +98,7 @@ export const GhostButton: React.FC<ButtonProps> = ({ title, onPress, style, colo
 export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, color = COLORS.primary, bg, style }) => {
   const { animStyle, onPressIn, onPressOut } = usePressScale(0.9);
   return (
-    <AnimatedPressable
+    <Pressable
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={withHaptic(onPress)}
@@ -97,11 +107,12 @@ export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, co
         styles.iconBtn,
         { width: size, height: size, borderRadius: size / 2, backgroundColor: bg || COLORS.lightGray },
         style,
-        animStyle,
       ]}
     >
-      <Ionicons name={icon as any} size={size * 0.5} color={color} />
-    </AnimatedPressable>
+      <Animated.View style={animStyle}>
+        <Ionicons name={icon as any} size={size * 0.5} color={color} />
+      </Animated.View>
+    </Pressable>
   );
 };
 
@@ -109,19 +120,21 @@ export const IconButton: React.FC<ButtonProps> = ({ icon, onPress, size = 40, co
 export const FAB: React.FC<ButtonProps> = ({ icon, onPress, colors, style }) => {
   const { animStyle, onPressIn, onPressOut } = usePressScale(0.93);
   return (
-    <AnimatedPressable
+    <Pressable
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       onPress={withHaptic(onPress)}
-      style={[styles.fabContainer, style, animStyle]}
+      style={[styles.fabContainer, style]}
     >
-      <LinearGradient
-        colors={(colors || GRADIENTS.primary) as any}
-        style={styles.fab}
-      >
-        <Ionicons name={icon as any} size={20} color="#fff" />
-      </LinearGradient>
-    </AnimatedPressable>
+      <Animated.View style={animStyle}>
+        <LinearGradient
+          colors={(colors || GRADIENTS.primary) as any}
+          style={styles.fab}
+        >
+          <Ionicons name={icon as any} size={20} color="#fff" />
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
   );
 };
 
@@ -168,6 +181,7 @@ const styles = StyleSheet.create({
     ...CURVE,
   },
   ghostText: { fontSize: 14, fontWeight: '600' },
+  rowCenter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   iconBtn: { alignItems: 'center', justifyContent: 'center' },
   fabContainer: {
     borderRadius: RADIUS.full,

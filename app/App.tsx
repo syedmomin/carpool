@@ -17,10 +17,12 @@ import { GlobalModalProvider } from "./src/context/GlobalModalContext";
 import { BannerProvider } from "./src/context/BannerContext";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import OfflineBanner from "./src/components/OfflineBanner";
+import NoInternetScreen from "./src/components/NoInternetScreen";
 import AppNavigator from "./src/navigation/AppNavigator";
 import SocketListener from "./src/components/SocketListener";
 import { SocketDataProvider } from "./src/context/SocketDataContext";
 import { setupNotificationListeners } from "./src/utils/notifications";
+import { useIsConnected } from "./src/hooks/useIsConnected";
 // Side-effect import: registers the background location task with TaskManager
 // at startup. Without this, TaskManager.defineTask never runs and
 // startLocationUpdatesAsync(LOCATION_TASK_NAME) throws "task not found".
@@ -34,6 +36,7 @@ import "./src/tasks/locationTask";
 
 export default function App() {
   const navigationRef = useRef(null);
+  const isConnected = useIsConnected();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -70,6 +73,7 @@ export default function App() {
                     <AppNavigator navigationRef={navigationRef} />
                   </ErrorBoundary>
                   <OfflineBanner />
+                  {isConnected === false && <NoInternetScreen />}
                 </BannerProvider>
               </ToastProvider>
             </GlobalModalProvider>
