@@ -62,8 +62,7 @@ export default function MyVehiclesScreen({ navigation }) {
             <View style={styles.specRow}>
               <Ionicons name="people-outline" size={13} color={COLORS.textSecondary} />
               <Text style={styles.specText}>{item.totalSeats} Seats</Text>
-              <Ionicons name="car-outline" size={13} color={COLORS.textSecondary} style={{ marginLeft: 10 }} />
-              <Text style={styles.specText}>{item.type}</Text>
+              <Text style={[styles.specText, { marginLeft: 10 }]}>{item.type}</Text>
             </View>
           </View>
         </View>

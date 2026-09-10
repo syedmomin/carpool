@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, Switch, Modal, FlatList, ActivityIndicator, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton, PickupPinPicker, RoutePicker } from '../../components';
+import { COLORS, CURVE, AppBar, SectionHeader, PrimaryButton, PickupPinPicker, RoutePicker, VehicleTypeImage } from '../../components';
 import { DatePickerInput, TimePickerInput } from '../../components/DateTimePicker';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
@@ -384,7 +384,7 @@ export default function PostRideScreen({ navigation }) {
 
             >
               <View style={styles.vehicleIconBox}>
-                <Ionicons name="car-sport" size={20} color={COLORS.primary} />
+                <VehicleTypeImage type={selectedVehicle?.type} size={36} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.vehicleName}>{selectedVehicle?.brand || 'No vehicle'}</Text>
@@ -642,7 +642,7 @@ export default function PostRideScreen({ navigation }) {
                   style={[styles.vehiclePickerItem, selectedVehicle?.id === item.id && styles.vehiclePickerItemActive]}
                   onPress={() => { setSelectedVehicle(item); setVehiclePickerOpen(false); }}
                 >
-                  <Ionicons name="car-sport-outline" size={22} color={selectedVehicle?.id === item.id ? COLORS.primary : COLORS.gray} />
+                  <VehicleTypeImage type={item.type} size={36} />
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.vehiclePickerName, selectedVehicle?.id === item.id && { color: COLORS.primary }]}>{item.brand}</Text>
                     <Text style={styles.vehiclePickerDetail}>{item.plateNumber} • {item.totalSeats} seats</Text>

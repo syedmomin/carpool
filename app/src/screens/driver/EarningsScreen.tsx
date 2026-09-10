@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, EmptyState, RideCardSkeleton, AnimatedNumber, TabPills, SectionHeader } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, RideCardSkeleton, AnimatedNumber, TabPills, SectionHeader, VehicleTypeImage } from '../../components';
 import { ridesApi } from '../../services/api';
 import { formatLocalDate, getTodayStr } from '../../utils/date';
 
@@ -176,7 +176,7 @@ export default function EarningsScreen({ navigation }) {
               <View key={ride.id} style={styles.rideCard}>
                 <View style={styles.rideLeft}>
                   <View style={styles.rideIconBox}>
-                    <Ionicons name="car-sport" size={18} color={COLORS.secondary} />
+                    <VehicleTypeImage type={ride.vehicle?.type} size={36} />
                   </View>
                   <View>
                     <Text style={styles.rideRoute}>{ride.from} {'>'} {ride.to}</Text>

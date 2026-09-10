@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar, RouteTag, PrimaryButton } from '../../components';
+import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar, RouteTag, PrimaryButton, VehicleTypeImage } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -119,7 +119,7 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
                         style={[bm.vehicleChip, selectedVehicle?.id === v.id && bm.vehicleChipActive]}
                         onPress={() => setVehicle(v)}
                       >
-                        <Ionicons name="car-outline" size={14} color={selectedVehicle?.id === v.id ? '#fff' : COLORS.primary} />
+                        <VehicleTypeImage type={v.type} size={22} />
                         <Text style={[bm.vehicleChipText, selectedVehicle?.id === v.id && { color: '#fff' }]}>
                           {v.brand} {v.model}
                         </Text>

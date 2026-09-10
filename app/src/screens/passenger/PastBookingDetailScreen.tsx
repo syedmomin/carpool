@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader, RouteTag } from '../../components';
+import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader, RouteTag, VehicleTypeImage } from '../../components';
 import { useGlobalModal } from '../../context/GlobalModalContext';
 import { estimateRideDistanceKm } from '../../utils/geo';
 
@@ -94,7 +94,9 @@ export default function PastBookingDetailScreen({ navigation, route }) {
           {INFO_ROWS.map((row, i) => (
             <View key={row.label} style={[styles.infoRow, i === INFO_ROWS.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={styles.infoLeft}>
-                <Ionicons name={row.icon as any} size={15} color={COLORS.textSecondary} />
+                {row.label === 'Vehicle'
+                  ? <VehicleTypeImage type={vehicle?.type} size={20} />
+                  : <Ionicons name={row.icon as any} size={15} color={COLORS.textSecondary} />}
                 <Text style={styles.infoLabel}>{row.label}</Text>
               </View>
               <Text style={styles.infoValue} numberOfLines={1}>{row.value}</Text>

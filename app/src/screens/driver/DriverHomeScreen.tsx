@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, SectionHeader, PulseBadge, PressableScale, CURVE, RouteTag } from '../../components';
+import { COLORS, GRADIENTS, SectionHeader, PulseBadge, PressableScale, CURVE, RouteTag, VehicleTypeImage } from '../../components';
 import { Skeleton, RideCardSkeleton } from '../../components/Skeleton';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -207,7 +207,7 @@ export default function DriverHomeScreen({ navigation }) {
             <View style={styles.vehicleInner}>
               <View style={styles.vehicleAccentBar} />
               <View style={styles.vehicleIconBox}>
-                <Ionicons name="car-sport" size={28} color={COLORS.primary} />
+                <VehicleTypeImage type={myVehicle.type} size={42} />
               </View>
               <View style={styles.vehicleInfo}>
                 <View style={styles.vehicleRow}>

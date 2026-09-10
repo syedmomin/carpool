@@ -68,7 +68,7 @@ function VehicleDetailsModal({ visible, vehicle, driver, onClose }: any) {
             {/* Vehicle name strip */}
             <View style={vm.vehicleNameStrip}>
               <View style={vm.vehicleNameStripIcon}>
-                <Ionicons name="car-sport" size={14} color="#fff" />
+                <VehicleTypeImage type={vehicle.type} size={22} />
               </View>
               <Text style={vm.vehicleNameText}>{vehicle.brand} {vehicle.model}</Text>
               {vehicle.color ? (

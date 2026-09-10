@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader } from '../../components';
+import { COLORS, CURVE, AppBar, Avatar, StarRating, StatusBadge, SectionHeader, VehicleTypeImage } from '../../components';
 import { useToast } from '../../context/ToastContext';
 import { estimateRideDistanceKm } from '../../utils/geo';
 
@@ -96,7 +96,9 @@ export default function DriverBookingDetailScreen({ navigation, route }) {
           {RIDE_ROWS.map((row, i) => (
             <View key={row.label} style={[styles.infoRow, i === RIDE_ROWS.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={styles.infoLeft}>
-                <Ionicons name={row.icon as any} size={15} color={COLORS.textSecondary} />
+                {row.label === 'Vehicle'
+                  ? <VehicleTypeImage type={vehicle?.type} size={20} />
+                  : <Ionicons name={row.icon as any} size={15} color={COLORS.textSecondary} />}
                 <Text style={styles.infoLabel}>{row.label}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: '60%' }}>

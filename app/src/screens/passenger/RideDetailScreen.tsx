@@ -268,7 +268,6 @@ export default function RideDetailScreen({ navigation, route }) {
               {/* Meta chips — type, seats */}
               <View style={styles.vehicleMetaRow}>
                 <View style={styles.vehicleChip}>
-                  <Ionicons name="car-outline" size={12} color={COLORS.gray} />
                   <Text style={styles.vehicleChipText}>{vehicle?.type || 'Car'}</Text>
                 </View>
                 <View style={styles.vehicleChip}>

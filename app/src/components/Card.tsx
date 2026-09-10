@@ -7,6 +7,7 @@ import { StarRating } from './StarRating';
 import { RouteTag } from './RouteTag';
 import { PressableScale } from './PressableScale';
 import { Avatar } from './Avatar';
+import { VehicleTypeImage } from './VehicleTypeImage';
 
 // ─── Ride Card ────────────────────────────────────────────────────────────────
 interface RideCardProps {
@@ -111,7 +112,7 @@ export const RideCard: React.FC<RideCardProps> = ({ ride, driver, vehicle, onPre
             {/* Vehicle info */}
             {vehicleLabel ? (
               <View style={styles.vehicleInfo}>
-                <Ionicons name="car-outline" size={11} color={COLORS.gray} />
+                <VehicleTypeImage type={vehicle?.type} size={16} />
                 <Text style={styles.vehicleText}>{vehicleLabel}</Text>
               </View>
             ) : null}

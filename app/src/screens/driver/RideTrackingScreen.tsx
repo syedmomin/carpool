@@ -10,7 +10,7 @@ import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY, flushPendingTrackingPoints } 
 import { haversineKm } from '../../utils/geo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag, PrimaryButton, GhostButton } from '../../components';
+import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag, PrimaryButton, GhostButton, VehicleTypeImage } from '../../components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ridesApi, trackingApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
@@ -633,7 +633,7 @@ export default function RideTrackingScreen({ route, navigation }) {
                 <Text style={s.driverName}>{ride?.driver?.name || 'Your Driver'}</Text>
                 <Stars rating={driverRating} />
                 <View style={s.vehiclePill}>
-                  <Ionicons name="car-sport" size={12} color={COLORS.primary} />
+                  <VehicleTypeImage type={ride?.vehicle?.type} size={16} />
                   <Text style={s.vehicleText} numberOfLines={1}>
                     {[ride?.vehicle?.brand, ride?.vehicle?.model].filter(Boolean).join(' ') || ride?.vehicle?.type || 'Vehicle'}
                     {ride?.vehicle?.plateNumber ? ` · ${ride?.vehicle?.plateNumber}` : ''}

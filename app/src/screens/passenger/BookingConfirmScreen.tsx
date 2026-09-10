@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, CURVE, AppBar, Avatar, StarRating, RouteTag, PrimaryButton, SectionHeader, PickupPinPicker } from '../../components';
+import { COLORS, CURVE, AppBar, Avatar, StarRating, RouteTag, PrimaryButton, SectionHeader, PickupPinPicker, VehicleTypeImage } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -117,7 +117,7 @@ export default function BookingConfirmScreen({ navigation, route }) {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={styles.infoLeft}>
-              <Ionicons name="car-sport-outline" size={15} color={COLORS.textSecondary} />
+              <VehicleTypeImage type={vehicle?.type} size={20} />
               <Text style={styles.infoLabel}>Vehicle</Text>
             </View>
             <Text style={styles.infoValue} numberOfLines={1}>
