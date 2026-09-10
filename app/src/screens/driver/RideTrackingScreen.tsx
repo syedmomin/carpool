@@ -10,7 +10,7 @@ import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY, flushPendingTrackingPoints } 
 import { haversineKm } from '../../utils/geo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag } from '../../components';
+import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag, PrimaryButton, GhostButton } from '../../components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ridesApi, trackingApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
@@ -610,17 +610,13 @@ export default function RideTrackingScreen({ route, navigation }) {
             />
 
             <View style={s.finishWrap}>
-              <Pressable style={s.navigateBtn} onPress={openNavigation}>
-                <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
-                <Text style={s.navigateBtnText}>Navigate</Text>
-              </Pressable>
-              <Pressable style={s.finishBtn} onPress={handleFinishRide} disabled={isFinishing}>
-                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.finishBtnInner}>
-                  {isFinishing
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={s.finishBtnText}>Complete Ride</Text>}
-                </LinearGradient>
-              </Pressable>
+              <GhostButton title="Navigate" icon="navigate-outline" onPress={openNavigation} style={s.navigateBtn} />
+              <PrimaryButton
+                title="Complete Ride"
+                onPress={handleFinishRide}
+                loading={isFinishing}
+                style={s.finishBtn}
+              />
             </View>
           </>
         ) : (
@@ -652,12 +648,12 @@ export default function RideTrackingScreen({ route, navigation }) {
             </LinearGradient>
 
             <View style={s.routeRow}>
-              <View style={[s.routeDot, { backgroundColor: '#2563eb' }]} />
+              <Ionicons name="location" size={13} color={COLORS.primary} />
               <Text style={s.routeCity}>{ride?.fromCity}</Text>
               <View style={s.routeLine} />
               <Ionicons name="arrow-forward" size={14} color={COLORS.gray} />
               <View style={s.routeLine} />
-              <View style={[s.routeDot, { backgroundColor: '#ef4444' }]} />
+              <Ionicons name="location" size={13} color={COLORS.secondary} />
               <Text style={s.routeCity}>{ride?.toCity}</Text>
             </View>
 
@@ -833,14 +829,8 @@ const s = StyleSheet.create({
   emptyText: { textAlign: 'center', fontSize: 13, color: COLORS.gray, marginVertical: 8 },
 
   finishWrap: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: 4 },
-  navigateBtn: {
-    flex: 1, height: 52, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-  },
-  navigateBtnText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
-  finishBtn: { flex: 1.4, height: 52, borderRadius: 12, overflow: 'hidden' },
-  finishBtnInner: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  finishBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  navigateBtn: { flex: 1 },
+  finishBtn: { flex: 1.4 },
 
   // Passenger
   driverCardGrad: {
@@ -862,8 +852,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 14, gap: 6,
   },
-  routeDot:  { width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
   routeLine: { flex: 1, height: 2, backgroundColor: '#e2e8f0', borderRadius: 1 },
   routeCity: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
 
@@ -893,7 +881,7 @@ const s = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
   },
   safetyBtn: {
-    height: 54,
+    height: 48,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   safetyBtnText: { color: '#fff', fontSize: 14.5, fontWeight: '700' },

@@ -7,7 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, PulseBadge, CURVE, RideCard, SectionHeader, RideCardSkeleton, EmptyState } from '../../components';
+import { COLORS, GRADIENTS, PulseBadge, CURVE, RideCard, SectionHeader, RideCardSkeleton, EmptyState, RoutePicker } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
@@ -123,29 +123,14 @@ export default function PassengerHomeScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* From / To */}
-        <View style={styles.routeCard}>
-          <View style={styles.routeLeft}>
-            <View style={[styles.routeDot, styles.routeDotOrigin]} />
-            <View style={styles.routeVertLine} />
-            <View style={[styles.routeDot, styles.routeDotDest]} />
-          </View>
-          <View style={styles.routeInputs}>
-            <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
-              <Text style={[styles.routeInput, !fromCity && styles.routeInputPlaceholder]}>
-                {fromCity || 'Leaving From'}
-              </Text>
-            </Pressable>
-            <View style={styles.routeInputDivider} />
-            <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
-              <Text style={[styles.routeInput, !toCity && styles.routeInputPlaceholder]}>
-                {toCity || 'Where to?'}
-              </Text>
-            </Pressable>
-          </View>
-          <Pressable onPress={swapCities} style={styles.swapBtn}>
-            <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-          </Pressable>
-        </View>
+        <RoutePicker
+          fromValue={fromCity}
+          toValue={toCity}
+          toPlaceholder="Where to?"
+          onPressFrom={() => setCityModal('from')}
+          onPressTo={() => setCityModal('to')}
+          onSwap={swapCities}
+        />
 
         {/* Date Row */}
         <View style={styles.dateRow}>
@@ -307,32 +292,6 @@ const styles = StyleSheet.create({
   greetRow: { flex: 1, paddingRight: 12 },
   greetName: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
   greetSub: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
-
-  // Route card
-  routeCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
-    borderWidth: 1, borderColor: COLORS.border,
-    ...CURVE,
-  },
-  routeLeft: { alignItems: 'center', gap: 3 },
-  routeDot: { width: 8, height: 8, borderRadius: 4 },
-  routeDotOrigin: { backgroundColor: COLORS.primary },
-  routeDotDest: { backgroundColor: COLORS.secondary },
-  routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
-  routeInputs: { flex: 1 },
-  routeInputTouch: { paddingVertical: 6 },
-  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
-  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
-
-  // Swap button
-  swapBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
-    ...CURVE,
-  },
 
   // Date pills
   dateRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },

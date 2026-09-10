@@ -9,7 +9,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar, RouteTag, CancelReasonModal, SOSModal } from '../../components';
+import { COLORS, GRADIENTS, OVERLAYS, CURVE, EmptyState, AppBar, StatusPill, TabPills, BookingCardSkeleton, Avatar, RouteTag, CancelReasonModal, SOSModal, PrimaryButton } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useSocketData } from '../../context/SocketDataContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -85,12 +85,12 @@ function ReviewModal({ booking, onClose, onSubmit }) {
                             <Pressable style={rStyles.skipBtn} onPress={onClose} disabled={submitting}>
                                 <Text style={rStyles.skipBtnText}>Skip</Text>
                             </Pressable>
-                            <Pressable style={rStyles.submitBtn} onPress={submit} disabled={submitting}>
-                                <LinearGradient colors={GRADIENTS.primary as any} style={rStyles.submitInner}>
-                                    {submitting ? <ActivityIndicator size="small" color="#fff" />
-                                        : <Text style={rStyles.submitBtnText}>Submit Review</Text>}
-                                </LinearGradient>
-                            </Pressable>
+                            <PrimaryButton
+                                title="Submit Review"
+                                onPress={submit}
+                                loading={submitting}
+                                style={rStyles.submitBtn}
+                            />
                         </View>
                     </View>
                 </View>
@@ -649,10 +649,8 @@ const rStyles = StyleSheet.create({
     ratingLabelText: { fontSize: 13.5, fontWeight: '600', color: COLORS.textSecondary },
     commentInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, padding: 13, fontSize: 13.5, color: COLORS.textPrimary, minHeight: 80, textAlignVertical: 'top', marginBottom: 18 },
     btnRow: { flexDirection: 'row', gap: 12 },
-    skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },
+    skipBtn: { flex: 1, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border },
     skipBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.gray },
-    submitBtn: { flex: 2, borderRadius: 12, overflow: 'hidden' },
-    submitInner: { alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
-    submitBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+    submitBtn: { flex: 2 },
 });
 

@@ -161,7 +161,7 @@ export const useGlobalModal = () => useContext(GlobalModalContext);
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10,10,30,0.65)',
   },
   bottomSheetContainer: {

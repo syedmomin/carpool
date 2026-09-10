@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
+import { View, Pressable, Text, StyleSheet, ActivityIndicator, StyleProp, ViewStyle } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,8 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   loading?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Renders a small white circle with this icon at the trailing edge (used on auth screens' CTAs). */
+  trailingIcon?: keyof typeof Ionicons.glyphMap;
   colors?: string[];
   color?: string;
   size?: number;
@@ -32,7 +34,7 @@ interface ButtonProps {
 }
 
 // ─── Primary Button (Gradient) ───────────────────────────────────────────────
-export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, colors, disabled }) => {
+export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, loading, icon, trailingIcon, colors, disabled }) => {
   const { animStyle, onPressIn, onPressOut } = usePressScale(0.97);
   return (
     <AnimatedPressable
@@ -54,6 +56,11 @@ export const PrimaryButton: React.FC<ButtonProps> = ({ title, onPress, style, lo
           <>
             {icon && <Ionicons name={icon as any} size={18} color="#fff" style={styles.btnIcon} />}
             <Text style={styles.btnText}>{title}</Text>
+            {trailingIcon && (
+              <View style={styles.trailingIconBadge}>
+                <Ionicons name={trailingIcon as any} size={16} color={colors ? colors[0] : COLORS.primary} />
+              </View>
+            )}
           </>
         )}
       </LinearGradient>
@@ -118,26 +125,42 @@ export const FAB: React.FC<ButtonProps> = ({ icon, onPress, colors, style }) => 
   );
 };
 
+// Single source of truth for every primary/ghost CTA button in the app —
+// change the height/radius here, not per-screen.
+export const BUTTON_HEIGHT = 48;
+const BUTTON_RADIUS = 14;
+
 const styles = StyleSheet.create({
   container: {
-    borderRadius: RADIUS.md,
+    borderRadius: BUTTON_RADIUS,
     overflow: 'hidden',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 3,
     ...CURVE,
   },
   disabled: { opacity: 0.5 },
   gradient: {
+    height: BUTTON_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
     paddingHorizontal: 20,
+    gap: 10,
   },
-  btnText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
-  btnIcon: { marginRight: 8 },
+  btnText: { color: '#fff', fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
+  btnIcon: {},
+  trailingIconBadge: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+  },
   ghost: {
-    borderRadius: RADIUS.md,
+    height: BUTTON_HEIGHT,
+    borderRadius: BUTTON_RADIUS,
     borderWidth: 1.5,
-    paddingVertical: 11,
     paddingHorizontal: 24,
     alignItems: 'center',
     flexDirection: 'row',

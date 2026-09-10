@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AuthBackground, AuthInput, Logo, CitySearchModal, COLORS, GRADIENTS, CURVE, FONTS } from '../../components';
+import { AuthBackground, AuthInput, Logo, CitySearchModal, PrimaryButton, COLORS, GRADIENTS, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -84,6 +84,7 @@ export default function RegisterScreen({ navigation, route }) {
             <SafeAreaView style={styles.safe}>
                 <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                     <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                      <View style={styles.paddedContent}>
 
                         <Pressable style={styles.back} onPress={() => navigation.goBack()} hitSlop={10}>
                             <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
@@ -161,24 +162,21 @@ export default function RegisterScreen({ navigation, route }) {
                                 error={errors.city}
                             />
 
-                            <Pressable
-                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
+                            <PrimaryButton
+                                title={loading ? 'Creating Account…' : 'Create Account'}
+                                trailingIcon="arrow-forward"
                                 onPress={handleRegister}
-                                disabled={loading}
-                            >
-                                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-                                    <Text style={styles.primaryText}>{loading ? 'Creating Account…' : 'Create Account'}</Text>
-                                    <View style={styles.primaryBtnIcon}>
-                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                                    </View>
-                                </LinearGradient>
-                            </Pressable>
+                                loading={loading}
+                                style={styles.primaryBtnWrap}
+                            />
                         </Animated.View>
 
                         <Pressable style={styles.bottomRow} onPress={() => navigation.navigate('Login', { intendedRole: role })}>
                             <Text style={styles.bottomMuted}>Already have an account? </Text>
                             <Text style={styles.bottomLink}>Sign In</Text>
                         </Pressable>
+
+                      </View>
 
                         <Animated.View entering={FadeInDown.delay(180).duration(500)} style={styles.illustrationWrap}>
                             <Image
@@ -204,7 +202,8 @@ export default function RegisterScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
     safe: { flex: 1 },
-    scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 4 },
+    scroll: { flexGrow: 1, paddingBottom: 4 },
+    paddedContent: { paddingHorizontal: 24 },
     back: { marginTop: 4, width: 40, height: 40, justifyContent: 'center' },
     hero: { alignItems: 'center', marginTop: 4, marginBottom: 2 },
     brandTagline: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold, marginTop: -2 },
@@ -242,37 +241,13 @@ const styles = StyleSheet.create({
     roleBadgeLabel: { color: COLORS.textPrimary, fontSize: 15, fontFamily: FONTS.extraBold },
     roleBadgeSub: { color: COLORS.gray, fontSize: 12, fontFamily: FONTS.medium, marginTop: 1 },
     roleChange: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.extraBold },
-    // Primary button
-    primaryBtnWrap: {
-        marginTop: 22,
-        borderRadius: 14,
-        overflow: 'hidden',
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 4,
-        ...CURVE,
-    },
-    primaryBtn: {
-        height: 42,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-    },
-    primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
-    primaryBtnIcon: {
-        width: 28, height: 28, borderRadius: 14,
-        backgroundColor: '#fff',
-        alignItems: 'center', justifyContent: 'center',
-    },
+    primaryBtnWrap: { marginTop: 22 },
     bottomRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 22, paddingVertical: 4 },
     bottomMuted: { color: COLORS.gray, fontSize: 14, fontFamily: FONTS.medium },
     bottomLink: { color: COLORS.primary, fontSize: 14, fontFamily: FONTS.extraBold },
     illustrationWrap: {
         marginTop: 24,
-        marginHorizontal: -24,
+        width: '100%',
         aspectRatio: 1737 / 906,
     },
     illustrationImg: { width: '100%', height: '100%' },

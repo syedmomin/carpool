@@ -5,9 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AuthBackground, AuthInput, Logo, COLORS, GRADIENTS, CURVE, FONTS } from '../../components';
+import { AuthBackground, AuthInput, Logo, PrimaryButton, GhostButton, COLORS, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../context/ToastContext';
 import { parseApiError } from '../../utils/errorMessages';
@@ -89,22 +88,19 @@ export default function LoginScreen({ navigation }) {
                                 <Text style={styles.forgotText}>Forgot Password?</Text>
                             </Pressable>
 
-                            <Pressable
-                                style={[styles.primaryBtnWrap, loading && { opacity: 0.7 }]}
+                            <PrimaryButton
+                                title={loading ? 'Signing In…' : 'Sign In'}
+                                trailingIcon="arrow-forward"
                                 onPress={handleLogin}
-                                disabled={loading}
-                            >
-                                <LinearGradient colors={GRADIENTS.primary as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryBtn}>
-                                    <Text style={styles.primaryText}>{loading ? 'Signing In…' : 'Sign In'}</Text>
-                                    <View style={styles.primaryBtnIcon}>
-                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
-                                    </View>
-                                </LinearGradient>
-                            </Pressable>
+                                loading={loading}
+                                style={styles.primaryBtnWrap}
+                            />
 
-                            <Pressable style={styles.ghostBtn} onPress={() => navigation.navigate('RoleSelect')}>
-                                <Text style={styles.ghostText}>Create New Account</Text>
-                            </Pressable>
+                            <GhostButton
+                                title="Create New Account"
+                                onPress={() => navigation.navigate('RoleSelect')}
+                                style={styles.ghostBtn}
+                            />
                         </Animated.View>
 
                     </ScrollView>
@@ -142,42 +138,8 @@ const styles = StyleSheet.create({
     },
     forgot: { alignSelf: 'flex-end', marginTop: 10 },
     forgotText: { color: COLORS.primary, fontSize: 13, fontFamily: FONTS.bold },
-    primaryBtnWrap: {
-        marginTop: 14,
-        borderRadius: 14,
-        overflow: 'hidden',
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 4,
-        ...CURVE,
-    },
-    primaryBtn: {
-        height: 42,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-    },
-    primaryText: { color: '#fff', fontSize: 16, fontFamily: FONTS.bold, letterSpacing: 0.3 },
-    primaryBtnIcon: {
-        width: 28, height: 28, borderRadius: 14,
-        backgroundColor: '#fff',
-        alignItems: 'center', justifyContent: 'center',
-    },
-    ghostBtn: {
-        height: 42,
-        marginTop: 14,
-        borderRadius: 14,
-        borderWidth: 1.5,
-        borderColor: COLORS.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: COLORS.primaryLight,
-        ...CURVE,
-    },
-    ghostText: { color: COLORS.primary, fontSize: 15, fontFamily: FONTS.bold, letterSpacing: 0.2 },
+    primaryBtnWrap: { marginTop: 14 },
+    ghostBtn: { marginTop: 14, backgroundColor: COLORS.primaryLight },
     illustrationFixed: {
         position: 'absolute', left: 0, right: 0, bottom: 0,
         width: '100%', aspectRatio: 1737 / 906,

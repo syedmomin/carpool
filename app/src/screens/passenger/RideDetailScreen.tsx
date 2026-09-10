@@ -171,11 +171,11 @@ export default function RideDetailScreen({ navigation, route }) {
             <View style={styles.routeMiddle}>
               {!!rideDuration && <Text style={styles.durationPill}>{rideDuration}</Text>}
               <View style={styles.routeLineRow}>
-                <View style={[styles.routeDot, { backgroundColor: COLORS.secondary }]} />
+                <Ionicons name="location" size={12} color={COLORS.primary} />
                 <View style={styles.routeDashLine} />
                 <Ionicons name="car-sport" size={14} color={COLORS.primary} />
                 <View style={styles.routeDashLine} />
-                <View style={[styles.routeDot, { backgroundColor: COLORS.danger }]} />
+                <Ionicons name="location" size={12} color={COLORS.secondary} />
               </View>
               {rideDistanceKm != null && <Text style={styles.distanceText}>{rideDistanceKm} km</Text>}
             </View>
@@ -389,7 +389,6 @@ const styles = StyleSheet.create({
   durationPill: { fontSize: 11, fontWeight: '600', color: COLORS.textSecondary, backgroundColor: COLORS.lightGray, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   distanceText: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2, fontWeight: '600' },
   routeLineRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  routeDot: { width: 6, height: 6, borderRadius: 3 },
   routeDashLine: { width: 16, height: 1, backgroundColor: COLORS.border },
   fullRouteRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   fullRouteLabel: { fontSize: 11, color: COLORS.textSecondary },

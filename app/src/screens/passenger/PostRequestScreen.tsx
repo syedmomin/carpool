@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, PrimaryButton, DatePickerInput, TimePickerInput, PickupPinPicker } from '../../components';
+import { COLORS, CURVE, AppBar, PrimaryButton, DatePickerInput, TimePickerInput, PickupPinPicker, RoutePicker } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -149,29 +149,15 @@ export default function PostRequestScreen({ navigation, route }: any) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
         <View style={styles.card}>
           {/* Route */}
-          <View style={styles.routeCard}>
-            <View style={styles.routeLeft}>
-              <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
-              <View style={styles.routeVertLine} />
-              <View style={[styles.routeDot, { backgroundColor: COLORS.danger }]} />
-            </View>
-            <View style={styles.routeInputs}>
-              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
-                <Text style={[styles.routeInput, !from && styles.routeInputPlaceholder]} numberOfLines={1}>
-                  {from || 'Departure City'}
-                </Text>
-              </Pressable>
-              <View style={styles.routeInputDivider} />
-              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
-                <Text style={[styles.routeInput, !to && styles.routeInputPlaceholder]} numberOfLines={1}>
-                  {to || 'Destination City'}
-                </Text>
-              </Pressable>
-            </View>
-            <Pressable onPress={() => { const t = from; setFrom(to); setTo(t); }} style={styles.swapBtn}>
-              <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-            </Pressable>
-          </View>
+          <RoutePicker
+            fromValue={from}
+            toValue={to}
+            fromPlaceholder="Departure City"
+            toPlaceholder="Destination City"
+            onPressFrom={() => setCityModal('from')}
+            onPressTo={() => setCityModal('to')}
+            onSwap={() => { const t = from; setFrom(to); setTo(t); }}
+          />
 
           {/* Exact Pickup Point (optional) */}
           {!!from && (
@@ -312,27 +298,6 @@ const styles = StyleSheet.create({
   },
   fieldLabelStandalone: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, marginBottom: 10 },
 
-  // Route card (matches HomeScreen / SearchScreen)
-  routeCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
-    borderWidth: 1, borderColor: COLORS.border,
-    ...CURVE,
-  },
-  routeLeft: { alignItems: 'center', gap: 3 },
-  routeDot: { width: 8, height: 8, borderRadius: 4 },
-  routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
-  routeInputs: { flex: 1 },
-  routeInputTouch: { paddingVertical: 6 },
-  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
-  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
-  swapBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
-    ...CURVE,
-  },
   pinHint:        { fontSize: 11.5, color: COLORS.gray, marginBottom: 8, lineHeight: 16 },
   row:            { flexDirection: 'row', gap: 12 },
   seatsRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.lightGray, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 16 },

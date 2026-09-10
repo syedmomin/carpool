@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(5, 14, 41, 0.4)', // dark blue tint overlay
   },
   content: {

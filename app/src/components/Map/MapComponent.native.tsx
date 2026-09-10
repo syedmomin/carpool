@@ -1,7 +1,9 @@
-// Real OpenStreetMap via Leaflet.js in WebView — free, no API key needed
+// Real OpenStreetMap via Leaflet.js in WebView, tiles served by CARTO (needs
+// an API key as of Aug 2026 — see src/constants/mapConfig.ts)
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { CARTO_TILE_URL } from '../../constants/mapConfig';
 
 interface Region {
   latitude: number;
@@ -87,9 +89,10 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
     attributionControl: false,
   }).setView([${lat}, ${lng}], 16);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('${CARTO_TILE_URL}', {
     maxZoom: 20,
     tileSize: 256,
+    subdomains: 'abcd',
   }).addTo(map);
 
   // Car SVG icon for driver — white circle with blue border + glow ring

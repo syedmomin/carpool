@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, CURVE } from './theme';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { COLORS } from './theme';
 import { EmptyIllustration } from './EmptyIllustration';
+import { PrimaryButton } from './Button';
 
 interface EmptyStateProps {
   /** @deprecated no longer rendered — every empty state now shares one illustration */
@@ -20,14 +20,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ title, subtitle, style, 
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {action ? (
-        <Pressable
-          style={({ pressed }) => [styles.actionBtnWrap, pressed && { opacity: 0.85 }]}
-          onPress={action.onPress}
-        >
-          <LinearGradient colors={GRADIENTS.primary as any} style={styles.actionBtn}>
-            <Text style={styles.actionText}>{action.label}</Text>
-          </LinearGradient>
-        </Pressable>
+        <PrimaryButton title={action.label} onPress={action.onPress} style={styles.actionBtnWrap} />
       ) : null}
     </View>
   );
@@ -57,26 +50,5 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     maxWidth: 240,
   },
-  actionBtnWrap: {
-    marginTop: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-    ...CURVE,
-  },
-  actionBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.2,
-  },
+  actionBtnWrap: { marginTop: 20 },
 });

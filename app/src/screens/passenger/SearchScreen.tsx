@@ -5,7 +5,7 @@ import {
   ActivityIndicator, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, RideCard, EmptyState, Chip, AppBar, RideCardSkeleton, RouteTag, DatePickerInput, TimePickerInput } from '../../components';
+import { COLORS, CURVE, RideCard, EmptyState, Chip, AppBar, RideCardSkeleton, RouteTag, RoutePicker, DatePickerInput, TimePickerInput } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useApp } from '../../context/AppContext';
 import { ridesApi, scheduleAlertsApi } from '../../services/api';
@@ -330,30 +330,15 @@ export default function SearchScreen({ navigation, route }) {
       {/* ── Search Form ──────────────────────────────────────────────── */}
       <View style={styles.searchContainer}>
         <View style={styles.searchCard}>
-          {/* From / To — matches the Home screen's route card */}
-          <View style={styles.routeCard}>
-            <View style={styles.routeLeft}>
-              <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
-              <View style={styles.routeVertLine} />
-              <View style={[styles.routeDot, { backgroundColor: COLORS.danger }]} />
-            </View>
-            <View style={styles.routeInputs}>
-              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('from')}>
-                <Text style={[styles.routeInput, !from && styles.routeInputPlaceholder]} numberOfLines={1}>
-                  {from || 'Leaving From'}
-                </Text>
-              </Pressable>
-              <View style={styles.routeInputDivider} />
-              <Pressable style={styles.routeInputTouch} onPress={() => setCityModal('to')}>
-                <Text style={[styles.routeInput, !to && styles.routeInputPlaceholder]} numberOfLines={1}>
-                  {to || 'Where to?'}
-                </Text>
-              </Pressable>
-            </View>
-            <Pressable onPress={swapCities} style={styles.swapBtn}>
-              <Ionicons name="swap-vertical" size={18} color={COLORS.primary} />
-            </Pressable>
-          </View>
+          {/* From / To — shared route picker, matches Home/Post Ride/Post Request */}
+          <RoutePicker
+            fromValue={from}
+            toValue={to}
+            toPlaceholder="Where to?"
+            onPressFrom={() => setCityModal('from')}
+            onPressTo={() => setCityModal('to')}
+            onSwap={swapCities}
+          />
 
           {/* Search Button */}
           <Pressable style={styles.searchBtn} onPress={() => doSearch()} disabled={loading}>
@@ -638,27 +623,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16,
     borderWidth: 1, borderColor: COLORS.border,
     shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 2,
-    ...CURVE,
-  },
-  // Route card (matches HomeScreen)
-  routeCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 16, padding: 14, marginBottom: 12, gap: 12,
-    borderWidth: 1, borderColor: COLORS.border,
-    ...CURVE,
-  },
-  routeLeft: { alignItems: 'center', gap: 3 },
-  routeDot: { width: 8, height: 8, borderRadius: 4 },
-  routeVertLine: { width: 2, height: 22, backgroundColor: COLORS.border },
-  routeInputs: { flex: 1 },
-  routeInputTouch: { paddingVertical: 6 },
-  routeInput: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
-  routeInputPlaceholder: { color: COLORS.gray, fontWeight: '400' },
-  routeInputDivider: { height: 1, borderTopWidth: 1, borderTopColor: COLORS.border },
-  swapBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center',
     ...CURVE,
   },
   searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 16 },

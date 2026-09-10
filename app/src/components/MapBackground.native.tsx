@@ -1,8 +1,10 @@
-// Real OpenStreetMap via Leaflet.js in WebView — free, no API key needed
+// Real OpenStreetMap via Leaflet.js in WebView, tiles served by CARTO (needs
+// an API key as of Aug 2026 — see src/constants/mapConfig.ts)
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, StyleProp, ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
+import { CARTO_TILE_URL } from '../constants/mapConfig';
 
 interface MapBackgroundProps {
   children?: React.ReactNode;
@@ -26,7 +28,7 @@ const MAP_HTML = `<!DOCTYPE html>
 <script>
   var map = L.map('map', { zoomControl:false, attributionControl:false, dragging:false, touchZoom:false, scrollWheelZoom:false })
     .setView([30.3753, 69.3451], 16);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom:20 }).addTo(map);
+  L.tileLayer('${CARTO_TILE_URL}', { maxZoom:20, subdomains:'abcd' }).addTo(map);
 
   var userMarker = null;
 

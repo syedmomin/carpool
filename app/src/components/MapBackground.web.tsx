@@ -126,7 +126,7 @@ export default function MapBackground({ children, style }: MapBackgroundProps) {
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
   mapBase: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#f2efe9',
   },
   block: {

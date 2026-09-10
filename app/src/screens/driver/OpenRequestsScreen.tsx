@@ -6,7 +6,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar, RouteTag } from '../../components';
+import { COLORS, GRADIENTS, CURVE, AppBar, EmptyState, RequestCardSkeleton, Avatar, RouteTag, PrimaryButton } from '../../components';
 import CitySearchModal from '../../components/CitySearchModal';
 import { useToast } from '../../context/ToastContext';
 import { useGlobalModal } from '../../context/GlobalModalContext';
@@ -143,18 +143,14 @@ function OfferModal({ visible, request, vehicles, onSubmit, onClose, onAddVehicl
               />
 
               {vehicles.length > 0 && (
-                <Pressable
-                  style={[bm.submitBtn, (!price || submitting) && { opacity: 0.6 }]}
+                <PrimaryButton
+                  title="Submit Offer"
+                  icon="send-outline"
                   onPress={handleSubmit}
-                  disabled={!price || submitting}
-                >
-                  <LinearGradient colors={GRADIENTS.primary as any} style={bm.submitGrad}>
-                    {submitting
-                      ? <ActivityIndicator color="#fff" size="small" />
-                      : <><Ionicons name="send-outline" size={16} color="#fff" /><Text style={bm.submitText}>Submit Offer</Text></>
-                    }
-                  </LinearGradient>
-                </Pressable>
+                  loading={submitting}
+                  disabled={!price}
+                  style={bm.submitBtn}
+                />
               )}
             </View>
           </Pressable>
@@ -511,8 +507,6 @@ const bm = StyleSheet.create({
   noVehicleText: { fontSize: 13, color: COLORS.textPrimary, textAlign: 'center', lineHeight: 19 },
   addVehicleBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
   addVehicleBtnText: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  submitBtn:  { borderRadius: 12, overflow: 'hidden' },
-  submitGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15 },
-  submitText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  submitBtn: { marginTop: 4 },
 });
 
