@@ -272,7 +272,8 @@ export const reviewsApi = {
 // ─── Verification ────────────────────────────────────────────────────────────
 export const verificationApi = {
   submitCnic: (cnicNumber, frontImage, backImage, selfieImage, cnicName?: string) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage, selfieImage, cnicName }),
-  submitLicence: (licenceImage) => request('POST', '/verification/licence', { licenceImage }),
+  checkCnic: (cnicNumber: string, cnicName: string, frontImage: string) => request('POST', '/verification/cnic/check', { cnicNumber, cnicName, frontImage }),
+  submitLicence: (licenceNumber: string, licenceImage: string) => request('POST', '/verification/licence', { licenceNumber, licenceImage }),
   status: () => request('GET', '/verification/status'),
 };
 

@@ -508,7 +508,7 @@ export default function AppNavigator({ navigationRef }: any) {
         const { data } = await verificationApi.status();
         const v = data?.data;
         const cnicDone = !!(v?.cnicNumber && v?.cnicFront && v?.cnicBack && v?.selfieImage);
-        const licenceDone = userRole !== 'driver' || !!v?.licenceImage;
+        const licenceDone = userRole !== 'driver' || !!(v?.licenceNumber && v?.licenceImage);
         setVerificationRequired(!cnicDone || !licenceDone);
       } catch (err) {
         // Fail closed — an unreachable check should not silently unlock the app.

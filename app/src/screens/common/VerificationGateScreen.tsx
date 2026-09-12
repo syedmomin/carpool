@@ -49,12 +49,13 @@ interface Props {
 export default function VerificationGateScreen({ isDriver, onComplete }: Props) {
   const insets = useSafeAreaInsets();
 
-  const [cnicName,   setCnicName]   = useState('');
-  const [cnic,       setCnic]       = useState('');
-  const [frontImg,   setFrontImg]   = useState(null);
-  const [backImg,    setBackImg]    = useState(null);
-  const [selfieImg,  setSelfieImg]  = useState(null);
-  const [licenceImg, setLicenceImg] = useState(null);
+  const [cnicName,      setCnicName]      = useState('');
+  const [cnic,          setCnic]          = useState('');
+  const [frontImg,      setFrontImg]      = useState(null);
+  const [backImg,       setBackImg]       = useState(null);
+  const [selfieImg,     setSelfieImg]     = useState(null);
+  const [licenceNumber, setLicenceNumber] = useState('');
+  const [licenceImg,    setLicenceImg]    = useState(null);
   const [processing, setProcessing] = useState(false);
   const [topError,   setTopError]   = useState<string | null>(null);
   const [step,       setStep]       = useState(0);
@@ -138,16 +139,30 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
       if (!frontImg) return setTopError('Upload the CNIC front image.');
       if (!backImg) return setTopError('Upload the CNIC back image.');
 
-      const { ok } = await uploadStepImages([
+      const uploaded = await uploadStepImages([
         { uri: frontImg, setter: setFrontImg },
         { uri: backImg, setter: setBackImg },
       ]);
-      if (!ok) return;
+      if (!uploaded.ok) return;
+
+      // Check the front image actually matches what was typed before letting
+      // the user move on — catches a wrong number/name immediately instead of
+      // it silently sitting on PENDING for a human to eventually notice.
+      setProcessing(true);
+      const { data: checkData, error: checkError } = await verificationApi.checkCnic(cnic, cnicName.trim(), uploaded.urls[0]);
+      setProcessing(false);
+      if (checkError) { setTopError(parseApiError(checkError)); return; }
+      if (!checkData?.data?.ok) {
+        setTopError("That name or number doesn't match your CNIC photo. Double-check them, or upload a clearer front image.");
+        return;
+      }
+
       setStep(s => s + 1);
       return;
     }
 
     if (key === 'licence') {
+      if (!licenceNumber.trim()) return setTopError('Enter your licence number.');
       if (!licenceImg) return setTopError('Upload your driving licence to continue.');
       const { ok } = await uploadStepImages([{ uri: licenceImg, setter: setLicenceImg }]);
       if (!ok) return;
@@ -170,7 +185,7 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     const { error: cnicError } = await verificationApi.submitCnic(cnic, frontImg, backImg, selfieUrl, cnicName.trim());
     let licenceError = null;
     if (isDriver) {
-      ({ error: licenceError } = await verificationApi.submitLicence(licenceImg));
+      ({ error: licenceError } = await verificationApi.submitLicence(licenceNumber.trim(), licenceImg));
     }
     setProcessing(false);
 
@@ -187,9 +202,6 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     if (key === 'cnic') {
       return (
         <>
-          <Text style={styles.stepHeading}>CNIC Details</Text>
-          <Text style={styles.stepSub}>Enter your details exactly as printed on your CNIC</Text>
-
           <FormInput
             label="Full Name (as on CNIC) *"
             icon="person-outline"
@@ -229,18 +241,22 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     if (key === 'licence') {
       return (
         <>
-          <Text style={styles.stepHeading}>Upload Driving Licence *</Text>
-          <Text style={styles.stepSub}>Make sure all the details are clearly visible</Text>
-          <UploadBox label="Tap to upload" image={licenceImg} onPress={() => pickImage(setLicenceImg)} style={{ height: 150 }} />
+          <FormInput
+            label="Licence Number *"
+            icon="document-text-outline"
+            placeholder="e.g. LHR-1234567"
+            value={licenceNumber}
+            onChangeText={setLicenceNumber}
+            autoCapitalize="characters"
+          />
+          <View style={{ marginTop: 14 }}>
+            <UploadBox label="Tap to upload" image={licenceImg} onPress={() => pickImage(setLicenceImg)} style={{ height: 150 }} />
+          </View>
         </>
       );
     }
     return (
-      <>
-        <Text style={styles.stepHeading}>Take a Selfie</Text>
-        <Text style={styles.stepSub}>Helps us confirm it's really you</Text>
-        <UploadBox label="Tap to open camera" image={selfieImg} onPress={pickSelfie} style={{ height: 150 }} />
-      </>
+      <UploadBox label="Tap to open camera" image={selfieImg} onPress={pickSelfie} style={{ height: 150 }} />
     );
   };
 
@@ -328,9 +344,6 @@ const styles = StyleSheet.create({
   statusBannerError: { backgroundColor: '#fef2f2' },
   statusBannerText:  { flex: 1, fontSize: 12.5, fontWeight: '600', color: COLORS.primaryDark },
   statusBannerErrorText: { color: COLORS.danger },
-
-  stepHeading:      { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'left', marginBottom: 6 },
-  stepSub:          { fontSize: 13, color: COLORS.textSecondary, textAlign: 'left', marginBottom: 20 },
 
   uploadStack:      { marginTop: 20 },
   uploadBox:        { borderWidth: 1.5, borderColor: COLORS.primary + '60', borderStyle: 'dashed', borderRadius: 16, height: 130, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, overflow: 'hidden', ...CURVE },

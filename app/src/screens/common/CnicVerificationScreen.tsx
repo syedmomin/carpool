@@ -95,7 +95,13 @@ export default function CnicVerificationScreen({ navigation }) {
               )}
               <DocRow label="CNIC Front" image={record.cnicFront} status={record.cnicStatus} />
               <DocRow label="CNIC Back" image={record.cnicBack} status={record.cnicStatus} />
-              <DocRow label="Selfie" image={record.selfieImage} status={record.cnicStatus} />
+              <DocRow label="Selfie" image={record.selfieImage} status={record.selfieStatus} />
+              {record.licenceNumber && (
+                <View style={styles.cnicNumberCard}>
+                  <Text style={styles.cnicNumberLabel}>Licence Number</Text>
+                  <Text style={styles.cnicNumberValue}>{record.licenceNumber}</Text>
+                </View>
+              )}
               <DocRow label="Driving Licence" image={record.licenceImage} status={record.licenceStatus} />
               {record.rejectedReason && (
                 <View style={styles.rejectionCard}>

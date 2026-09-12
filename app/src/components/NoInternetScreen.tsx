@@ -22,7 +22,7 @@ export default function NoInternetScreen() {
       </View>
       <Text style={styles.title}>No Internet Connection</Text>
       <Text style={styles.subtitle}>
-        Check your Wi-Fi or mobile data — we'll reconnect automatically once you're back online.
+        Check your Wi-Fi or mobile data. We'll reconnect automatically once you're back online.
       </Text>
       <GhostButton title="Try Again" icon="refresh" onPress={() => NetInfo.fetch()} style={styles.retryBtn} />
     </View>
