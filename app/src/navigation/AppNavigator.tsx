@@ -47,6 +47,7 @@ import NotificationsScreen from '../screens/common/NotificationsScreen';
 import NotificationDetailScreen from '../screens/common/NotificationDetailScreen';
 import EditProfileScreen from '../screens/common/EditProfileScreen';
 import CnicVerificationScreen from '../screens/common/CnicVerificationScreen';
+import VerificationGateScreen from '../screens/common/VerificationGateScreen';
 import ChangePasswordScreen from '../screens/common/ChangePasswordScreen';
 import SupportScreen from '../screens/common/SupportScreen';
 import ReportIssueScreen from '../screens/common/ReportIssueScreen';
@@ -479,18 +480,45 @@ function DriverTabNav() {
 }
 
 // ─── Root Navigator ───────────────────────────────────────────────────────────
-import { ridesApi } from '../services/api';
+import { ridesApi, verificationApi } from '../services/api';
 
 export default function AppNavigator({ navigationRef }: any) {
   const { currentUser, userRole, isLoading } = useApp();
   const [splashVisible, setSplashVisible] = useState(true);
   const [activeSessionChecked, setActiveSessionChecked] = useState(false);
+  const [verificationChecked, setVerificationChecked] = useState(false);
+  const [verificationRequired, setVerificationRequired] = useState(false);
 
   // Re-arm the active-session check whenever the logged-in user changes, so a
   // logout>login (AppNavigator never unmounts) still resumes an in-progress ride.
   useEffect(() => {
     setActiveSessionChecked(false);
   }, [currentUser?.id]);
+
+  // Re-arm on every login too — this is a live server check every time, never
+  // a cached/persisted flag, so it can't be bypassed by stale local state.
+  useEffect(() => {
+    setVerificationChecked(false);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      if (!currentUser || verificationChecked) return;
+      try {
+        const { data } = await verificationApi.status();
+        const v = data?.data;
+        const cnicDone = !!(v?.cnicNumber && v?.cnicFront && v?.cnicBack && v?.selfieImage);
+        const licenceDone = userRole !== 'driver' || !!v?.licenceImage;
+        setVerificationRequired(!cnicDone || !licenceDone);
+      } catch (err) {
+        // Fail closed — an unreachable check should not silently unlock the app.
+        setVerificationRequired(true);
+      } finally {
+        setVerificationChecked(true);
+      }
+    };
+    checkVerification();
+  }, [currentUser, userRole, verificationChecked]);
 
   useEffect(() => {
     const checkActiveSession = async () => {
@@ -521,6 +549,16 @@ export default function AppNavigator({ navigationRef }: any) {
     );
   }
 
+  // Logged in but not yet checked for the mandatory verification gate — a
+  // brief beat, never long enough to need its own illustration.
+  if (currentUser && !verificationChecked) {
+    return (
+      <View style={{ flex: 1, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={COLORS.primary} size="large" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
@@ -529,15 +567,28 @@ export default function AppNavigator({ navigationRef }: any) {
       >
         {/* Protected app stacks */}
         {currentUser ? (
-          <>
-            {userRole === 'driver' ? (
-              <Stack.Screen name="DriverApp" component={DriverTabNav} options={{ animation: 'none' }} />
-            ) : (
-              <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
-            )}
-            <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
-            <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
-          </>
+          verificationRequired ? (
+            // The ONLY reachable screen until every required document is
+            // submitted — no tabs, no back gesture escape route.
+            <Stack.Screen name="VerificationGate" options={{ gestureEnabled: false }}>
+              {() => (
+                <VerificationGateScreen
+                  isDriver={userRole === 'driver'}
+                  onComplete={() => setVerificationRequired(false)}
+                />
+              )}
+            </Stack.Screen>
+          ) : (
+            <>
+              {userRole === 'driver' ? (
+                <Stack.Screen name="DriverApp" component={DriverTabNav} options={{ animation: 'none' }} />
+              ) : (
+                <Stack.Screen name="PassengerApp" component={PassengerTabNav} options={{ animation: 'none' }} />
+              )}
+              <Stack.Screen name="RideTracking" component={RideTrackingScreen} options={{ animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="Chat" component={ChatScreen} options={{ animation: 'slide_from_right' }} />
+            </>
+          )
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

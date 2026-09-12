@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import { uploadApi } from '../services/api';
 
 // Permission denials (especially "Don't allow again") can't be re-requested in
@@ -16,7 +16,7 @@ interface PickerOptions {
 }
 
 // type: 'profile' | 'vehicle' | 'documents'
-async function uploadToServer(uri, type = 'profile') {
+export async function uploadToServer(uri, type = 'profile') {
   const { data, error } = await uploadApi.image(uri, type);
   if (error) return { error };
   return { url: data.data.url };
@@ -30,8 +30,7 @@ export async function pickImageFromLibrary(options: PickerOptions = {}, type = '
   }
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: options.aspect || [1, 1],
+    allowsEditing: false,
     quality: 0.8,
   });
   if (result.canceled) return { cancelled: true };
@@ -45,8 +44,7 @@ export async function pickImageFromCamera(options: PickerOptions = {}, type = 'p
     return { error: 'Permission denied' };
   }
   const result = await ImagePicker.launchCameraAsync({
-    allowsEditing: true,
-    aspect: options.aspect || [4, 3],
+    allowsEditing: false,
     quality: 0.8,
   });
   if (result.canceled) return { cancelled: true };
@@ -78,12 +76,48 @@ export async function pickImageFromCameraLocal(options: PickerOptions = {}) {
     return { error: 'Permission denied' };
   }
   const result = await ImagePicker.launchCameraAsync({
-    allowsEditing: true,
-    aspect: options.aspect || [4, 3],
+    allowsEditing: false,
     quality: 0.8,
   });
   if (result.canceled) return { cancelled: true };
   return { uri: result.assets[0].uri };
+}
+
+// Pick a single image from the library, local only (no upload)
+export async function pickImageFromLibraryLocal(options: PickerOptions = {}) {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    permissionAlert('Please allow photo library access to upload images.');
+    return { error: 'Permission denied' };
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: false,
+    quality: 0.8,
+  });
+  if (result.canceled) return { cancelled: true };
+  return { uri: result.assets[0].uri };
+}
+
+// Same source-choice prompt as showImagePickerOptions, but purely local —
+// no upload happens until the caller explicitly uploads the picked uri.
+//
+// react-native-web's Alert.alert doesn't support custom multi-button
+// prompts — this silently renders nothing at all on web, so tapping an
+// upload box there would look completely dead. The browser's own file
+// picker already lets a user choose their camera as a source on mobile
+// web, so skip straight to the library picker on web instead of showing
+// a chooser that can't actually appear.
+export function showImagePickerOptionsLocal(onResult) {
+  if (Platform.OS === 'web') {
+    pickImageFromLibraryLocal().then(onResult);
+    return;
+  }
+  Alert.alert('Upload Photo', 'Choose a source', [
+    { text: 'Camera', onPress: async () => onResult(await pickImageFromCameraLocal()) },
+    { text: 'Photo Library', onPress: async () => onResult(await pickImageFromLibraryLocal()) },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
 }
 
 // Upload a batch of local URIs to server — returns array of URLs
@@ -103,6 +137,12 @@ export async function pickMultipleImages() {
 }
 
 export function showImagePickerOptions(onResult, type = 'profile') {
+  // Same web limitation as showImagePickerOptionsLocal above — Alert.alert's
+  // custom buttons don't render on web at all.
+  if (Platform.OS === 'web') {
+    pickImageFromLibrary({}, type).then(onResult);
+    return;
+  }
   Alert.alert('Upload Photo', 'Choose a source', [
     { text: 'Camera', onPress: async () => onResult(await pickImageFromCamera({}, type)) },
     { text: 'Photo Library', onPress: async () => onResult(await pickImageFromLibrary({}, type)) },

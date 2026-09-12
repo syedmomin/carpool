@@ -12,7 +12,7 @@ import { useToast } from '../../context/ToastContext';
 const getMenuItems = (userRole: string, docsBadge?: { label: string; color: string; bg: string }) => {
   const items: any[] = [
     ...(userRole === 'driver' ? [{ icon: 'car-sport-outline', label: 'My Vehicles', screen: 'MyVehiclesTab' }] : []),
-    ...(userRole === 'driver' ? [{ icon: 'card-outline', label: 'Documents', screen: 'CnicVerify', badge: docsBadge }] : []),
+    { icon: 'card-outline', label: 'My Documents', screen: 'CnicVerify', badge: docsBadge },
     { icon: 'help-circle-outline', label: 'Help & Support', screen: 'Support' },
     { icon: 'flag-outline', label: 'Report Suspicious Activity', screen: 'ReportIssue' },
     { icon: 'lock-closed-outline', label: 'Change Password', screen: 'ChangePassword' },

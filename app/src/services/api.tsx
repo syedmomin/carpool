@@ -271,7 +271,7 @@ export const reviewsApi = {
 
 // ─── Verification ────────────────────────────────────────────────────────────
 export const verificationApi = {
-  submitCnic: (cnicNumber, frontImage, backImage, selfieImage) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage, selfieImage }),
+  submitCnic: (cnicNumber, frontImage, backImage, selfieImage, cnicName?: string) => request('POST', '/verification/cnic', { cnicNumber, frontImage, backImage, selfieImage, cnicName }),
   submitLicence: (licenceImage) => request('POST', '/verification/licence', { licenceImage }),
   status: () => request('GET', '/verification/status'),
 };
@@ -335,11 +335,22 @@ export const uploadApi = {
       const mimeType = `image/${ext === 'png' ? 'png' : 'jpeg'}`;
 
       const formData = new FormData();
-      formData.append('image', {
-        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-        name: filename || `upload-${Date.now()}.${ext}`,
-        type: mimeType,
-      } as any);
+      const finalName = filename || `upload-${Date.now()}.${ext}`;
+
+      if (Platform.OS === 'web') {
+        // Web's FormData only accepts a string or a real Blob/File — the
+        // native {uri, name, type} shape below throws "Unsupported
+        // FormDataPart implementation" here, so fetch the picked uri
+        // (blob:/data: on web) into an actual Blob first.
+        const blob = await (await fetch(uri)).blob();
+        formData.append('image', blob, finalName);
+      } else {
+        formData.append('image', {
+          uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+          name: finalName,
+          type: mimeType,
+        } as any);
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
