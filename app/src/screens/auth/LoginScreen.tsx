@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Pressable, Image,
-    ScrollView, KeyboardAvoidingView, Platform, Dimensions,
+    ScrollView, KeyboardAvoidingView, Platform, Dimensions, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+    FadeInDown, useSharedValue, useAnimatedStyle, withTiming,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthBackground, AuthInput, Logo, PrimaryButton, GhostButton, COLORS, FONTS } from '../../components';
 import { useApp } from '../../context/AppContext';
@@ -27,6 +29,32 @@ export default function LoginScreen({ navigation }) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<any>({});
+
+    // Fade the fixed bottom illustration out of the way while the keyboard is
+    // open — it's absolutely positioned outside the scroll view, so it never
+    // moves with the form content and would otherwise sit on top of whichever
+    // field the keyboard pushed up into its space.
+    const illustrationOpacity = useSharedValue(1);
+    const illustrationTranslateY = useSharedValue(0);
+    useEffect(() => {
+        const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const onShow = () => {
+            illustrationOpacity.value = withTiming(0, { duration: 180 });
+            illustrationTranslateY.value = withTiming(30, { duration: 180 });
+        };
+        const onHide = () => {
+            illustrationOpacity.value = withTiming(1, { duration: 220 });
+            illustrationTranslateY.value = withTiming(0, { duration: 220 });
+        };
+        const subShow = Keyboard.addListener(showEvt, onShow);
+        const subHide = Keyboard.addListener(hideEvt, onHide);
+        return () => { subShow.remove(); subHide.remove(); };
+    }, []);
+    const illustrationAnimStyle = useAnimatedStyle(() => ({
+        opacity: illustrationOpacity.value,
+        transform: [{ translateY: illustrationTranslateY.value }],
+    }));
 
     const validate = () => {
         const e: any = {};
@@ -108,15 +136,17 @@ export default function LoginScreen({ navigation }) {
             </SafeAreaView>
 
             <Animated.View entering={FadeInDown.delay(180).duration(500)} style={styles.illustrationFixed} pointerEvents="none">
-                <Image
-                    source={require('../../assets/illustrations/carpool-hero.png')}
-                    style={styles.illustrationImg}
-                    resizeMode="cover"
-                />
-                <LinearGradient
-                    colors={[COLORS.bg, 'rgba(245,247,255,0)']}
-                    style={styles.illustrationFade}
-                />
+                <Animated.View style={[{ flex: 1 }, illustrationAnimStyle]}>
+                    <Image
+                        source={require('../../assets/illustrations/carpool-hero.png')}
+                        style={styles.illustrationImg}
+                        resizeMode="cover"
+                    />
+                    <LinearGradient
+                        colors={[COLORS.bg, 'rgba(245,247,255,0)']}
+                        style={styles.illustrationFade}
+                    />
+                </Animated.View>
             </Animated.View>
         </AuthBackground>
     );

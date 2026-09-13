@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, Pressable, Image,
-    ScrollView, KeyboardAvoidingView, Platform, Dimensions,
+    ScrollView, KeyboardAvoidingView, Platform, Dimensions, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+    FadeInDown, useSharedValue, useAnimatedStyle, withTiming,
+} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthBackground, AuthInput, Logo, CitySearchModal, PrimaryButton, COLORS, GRADIENTS, FONTS } from '../../components';
@@ -36,6 +38,30 @@ export default function RegisterScreen({ navigation, route }) {
     const [errors, setErrors] = useState<any>({});
     const [loading, setLoading] = useState(false);
     const [cityModal, setCityModal] = useState(false);
+
+    // Fade the bottom illustration out of the way while the keyboard is open
+    // so it never ends up sitting behind/near a focused field.
+    const illustrationOpacity = useSharedValue(1);
+    const illustrationTranslateY = useSharedValue(0);
+    useEffect(() => {
+        const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const onShow = () => {
+            illustrationOpacity.value = withTiming(0, { duration: 180 });
+            illustrationTranslateY.value = withTiming(30, { duration: 180 });
+        };
+        const onHide = () => {
+            illustrationOpacity.value = withTiming(1, { duration: 220 });
+            illustrationTranslateY.value = withTiming(0, { duration: 220 });
+        };
+        const subShow = Keyboard.addListener(showEvt, onShow);
+        const subHide = Keyboard.addListener(hideEvt, onHide);
+        return () => { subShow.remove(); subHide.remove(); };
+    }, []);
+    const illustrationAnimStyle = useAnimatedStyle(() => ({
+        opacity: illustrationOpacity.value,
+        transform: [{ translateY: illustrationTranslateY.value }],
+    }));
 
     const set = (key, val) => {
         setForm(p => ({ ...p, [key]: val }));
@@ -179,11 +205,13 @@ export default function RegisterScreen({ navigation, route }) {
                       </View>
 
                         <Animated.View entering={FadeInDown.delay(180).duration(500)} style={styles.illustrationWrap}>
-                            <Image
-                                source={require('../../assets/illustrations/carpool-hero.png')}
-                                style={styles.illustrationImg}
-                                resizeMode="cover"
-                            />
+                            <Animated.View style={[{ flex: 1 }, illustrationAnimStyle]}>
+                                <Image
+                                    source={require('../../assets/illustrations/carpool-hero.png')}
+                                    style={styles.illustrationImg}
+                                    resizeMode="cover"
+                                />
+                            </Animated.View>
                         </Animated.View>
 
                     </ScrollView>

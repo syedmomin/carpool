@@ -33,11 +33,13 @@ export const PressableScale: React.FC<Props> = ({
   // on two separate nodes — putting both on one Animated component makes
   // Reanimated warn that the layout animation may overwrite the transform,
   // and in practice the entrance animation can visibly clobber the scale.
+  // The caller's `style` (often a row layout: icon + label + chevron) has to
+  // land on the same node as the transform, not the bare entrance wrapper —
+  // that wrapper has exactly one child, so it never lays out multiple
+  // children regardless of flexDirection, and a row style stranded there
+  // does nothing for the actual content underneath.
   return (
-    <Animated.View
-      entering={index !== undefined ? FadeInDown.duration(260).delay(Math.min(index, 8) * 45) : undefined}
-      style={style}
-    >
+    <Animated.View entering={index !== undefined ? FadeInDown.duration(260).delay(Math.min(index, 8) * 45) : undefined}>
       <Pressable
         onPressIn={() => { scale.value = withTiming(scaleTo, { duration: 90 }); }}
         onPressOut={() => { scale.value = withTiming(1, { duration: 130 }); }}
@@ -45,7 +47,7 @@ export const PressableScale: React.FC<Props> = ({
         onLongPress={onLongPress}
         disabled={disabled}
       >
-        <Animated.View style={animStyle}>
+        <Animated.View style={[style, animStyle]}>
           {children}
         </Animated.View>
       </Pressable>
