@@ -1,31 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, View, Text, StyleSheet, Pressable,
-  FlatList,
+  FlatList, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS, FONTS } from './theme';
 import { SearchInput } from './Input';
-import { searchCities, POPULAR_CITIES } from '../constants/cities';
+import { loadCities, searchCities, CityEntry } from '../utils/cities';
 
 import { haptics } from '../utils/haptics';
 
 interface Props {
   visible: boolean;
   title: string;
-  onSelect: (name: string) => void;
+  // Also hands back the city's coordinates (when known) so callers can bias
+  // an exact-location picker/search to that city instead of the whole country.
+  onSelect: (name: string, coords?: { lat: number; lng: number }) => void;
   onClose: () => void;
 }
 
 export default function CitySearchModal({ visible, title, onSelect, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<string[]>(POPULAR_CITIES);
+  const [results, setResults] = useState<CityEntry[]>(searchCities(''));
+  // The very first open (or a failed fetch) can hand back an empty list
+  // before `loadCities()` resolves — without this, that reads as "City not
+  // found" rather than "still loading" or "couldn't reach the server".
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    if (!visible) { setQuery(''); setResults(POPULAR_CITIES); }
+    if (visible) {
+      setCitiesLoading(true);
+      loadCities().then((cities) => {
+        setLoadFailed(cities.length === 0);
+        setResults(searchCities(query));
+        setCitiesLoading(false);
+      });
+    } else {
+      setQuery(''); setResults(searchCities(''));
+    }
   }, [visible]);
 
   const handleSearch = (text: string) => {
@@ -33,9 +49,9 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
     setResults(searchCities(text));
   };
 
-  const handleSelect = (city: string) => {
+  const handleSelect = (city: CityEntry) => {
     haptics.selection();
-    onSelect(city);
+    onSelect(city.name, { lat: city.lat, lng: city.lng });
     onClose();
   };
 
@@ -78,23 +94,36 @@ export default function CitySearchModal({ visible, title, onSelect, onClose }: P
           </Text>
         </View>
 
-        {results.length > 0 ? (
+        {citiesLoading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator color={COLORS.primary} size="small" />
+            <Text style={styles.emptyText}>Loading cities…</Text>
+          </View>
+        ) : results.length > 0 ? (
           <FlatList
             data={results}
-            keyExtractor={item => item}
+            keyExtractor={item => item.name}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
               <Pressable style={({ pressed }) => [styles.item, pressed && styles.itemPressed]} onPress={() => handleSelect(item)}>
                 <View style={styles.iconBox}>
                   <Ionicons name="location" size={16} color={COLORS.primary} />
                 </View>
-                <Text style={styles.itemName}>{item}</Text>
+                <Text style={styles.itemName}>{item.name}</Text>
                 <Ionicons name="chevron-forward" size={16} color={COLORS.border} />
               </Pressable>
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
             contentContainerStyle={{ paddingBottom: 40, paddingTop: 4 }}
           />
+        ) : loadFailed ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="cloud-offline-outline" size={36} color={COLORS.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>Couldn't load cities</Text>
+            <Text style={styles.emptyText}>Check your connection and try again</Text>
+          </View>
         ) : (
           <View style={styles.empty}>
             <View style={styles.emptyIconBox}>

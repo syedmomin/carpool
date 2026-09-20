@@ -51,8 +51,27 @@ export function SOSModal({ visible, onClose }: { visible: boolean; onClose: () =
     );
 }
 
-// ─── Cancel Reason Modal ──────────────────────────────────────────────────────
-export function CancelReasonModal({ visible, onClose, onSubmit }: { visible: boolean; onClose: () => void; onSubmit: (reason: string) => Promise<void> | void }) {
+// ─── Cancel/Remove Reason Modal ────────────────────────────────────────────────
+// Shared by both directions: a passenger cancelling their own booking, and a
+// driver removing one passenger from their ride. `presets` renders as tappable
+// chips that fill the text box (still editable after tapping) instead of
+// forcing everyone to type a reason from scratch every time.
+interface CancelReasonModalProps {
+    visible: boolean;
+    onClose: () => void;
+    onSubmit: (reason: string) => Promise<void> | void;
+    title?: string;
+    subtitle?: string;
+    submitLabel?: string;
+    presets?: string[];
+}
+export function CancelReasonModal({
+    visible, onClose, onSubmit,
+    title = 'Cancel Booking',
+    subtitle = 'Please tell the driver why you are cancelling.',
+    submitLabel = 'Cancel Booking',
+    presets,
+}: CancelReasonModalProps) {
     const insets = useSafeAreaInsets();
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -71,11 +90,24 @@ export function CancelReasonModal({ visible, onClose, onSubmit }: { visible: boo
                         <View style={[cStyles.starIcon, { backgroundColor: 'rgba(239,68,68,0.2)' }]}>
                             <Ionicons name="alert-circle" size={32} color="#ef4444" />
                         </View>
-                        <Text style={[cStyles.sheetTitle, { color: '#b91c1c' }]}>Cancel Booking</Text>
-                        <Text style={[cStyles.sheetSub, { color: '#991b1b' }]}>Please tell the driver why you are cancelling.</Text>
+                        <Text style={[cStyles.sheetTitle, { color: '#b91c1c' }]}>{title}</Text>
+                        <Text style={[cStyles.sheetSub, { color: '#991b1b' }]}>{subtitle}</Text>
                     </View>
                     <View style={[cStyles.sheetBody, { paddingBottom: 24 + insets.bottom }]}>
-                        <TextInput style={cStyles.commentInput} placeholder="Reason for cancellation..."
+                        {!!presets?.length && (
+                            <View style={cStyles.presetRow}>
+                                {presets.map((p) => (
+                                    <Pressable
+                                        key={p}
+                                        style={[cStyles.presetChip, reason === p && cStyles.presetChipActive]}
+                                        onPress={() => setReason(p)}
+                                    >
+                                        <Text style={[cStyles.presetChipText, reason === p && cStyles.presetChipTextActive]}>{p}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        )}
+                        <TextInput style={cStyles.commentInput} placeholder="Reason..."
                             placeholderTextColor={COLORS.gray} value={reason} onChangeText={setReason}
                             multiline numberOfLines={3} maxLength={200} />
                         <View style={cStyles.btnRow}>
@@ -86,7 +118,7 @@ export function CancelReasonModal({ visible, onClose, onSubmit }: { visible: boo
                                 style={[cStyles.submitBtn, cStyles.submitInner, { backgroundColor: COLORS.danger, opacity: reason.trim().length ? 1 : 0.5 }]}
                                 onPress={submit} disabled={!reason.trim().length || submitting}>
                                 {submitting ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Text style={cStyles.submitBtnText}>Cancel Booking</Text>}
+                                    : <Text style={cStyles.submitBtnText}>{submitLabel}</Text>}
                             </Pressable>
                         </View>
                     </View>
@@ -104,6 +136,11 @@ const cStyles = StyleSheet.create({
     sheetTitle: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
     sheetSub: { fontSize: 14 },
     sheetBody: { padding: 24 },
+    presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+    presetChip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: '#fff' },
+    presetChipActive: { borderColor: COLORS.danger, backgroundColor: '#fef2f2' },
+    presetChipText: { fontSize: 12.5, fontWeight: '600', color: COLORS.textSecondary },
+    presetChipTextActive: { color: COLORS.danger },
     commentInput: { borderWidth: 1.5, borderColor: COLORS.border, borderRadius: 14, padding: 14, fontSize: 14, color: COLORS.textPrimary, minHeight: 80, textAlignVertical: 'top', marginBottom: 20 },
     btnRow: { flexDirection: 'row', gap: 12 },
     skipBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 15, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.border },

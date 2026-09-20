@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Pressable, Platform,
-  Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar, Alert,
+  Dimensions, ActivityIndicator, Animated, FlatList, Linking, StatusBar, Alert, Share,
 } from 'react-native';
 import { MapView, Marker, Polyline } from '../../components/Map';
 import * as Location from 'expo-location';
@@ -10,7 +10,7 @@ import { LOCATION_TASK_NAME, TRACKING_RIDE_ID_KEY, flushPendingTrackingPoints } 
 import { haversineKm } from '../../utils/geo';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag, PrimaryButton, GhostButton, VehicleTypeImage } from '../../components';
+import { COLORS, GRADIENTS, Avatar, SectionHeader, DetailSkeleton, RouteTag, PrimaryButton, GhostButton, VehicleTypeImage, CancelReasonModal } from '../../components';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ridesApi, trackingApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
@@ -21,6 +21,20 @@ import ReviewModal from '../../components/ReviewModal';
 
 const { width } = Dimensions.get('window');
 const isDriverRole = (role?: string) => role === 'DRIVER';
+
+// After this long with no new ping, treat the feed as stale rather than
+// silently keep showing the last-known dot as "live" forever.
+const STALE_AFTER_MS = 45000;
+
+// "just now" / "12s ago" / "3m ago" — used for the passenger's live-status
+// pill so a frozen marker doesn't masquerade as a live one.
+function formatAgo(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 8) return 'just now';
+  if (s < 60) return `${s}s ago`;
+  const m = Math.round(s / 60);
+  return `${m}m ago`;
+}
 
 // ─── Haversine distance (km) + rough ETA ───────────────────────────────────────
 const distanceKm = haversineKm;
@@ -105,6 +119,17 @@ export default function RideTrackingScreen({ route, navigation }) {
   const [loading, setLoading]                 = useState(true);
   const [driverLocation, setDriverLocation]   = useState<any>(null);
   const [locTimedOut, setLocTimedOut]         = useState(false);
+  // Last time we actually received a driver ping (socket or REST fallback) —
+  // separate from `driverLocation` itself, which stays populated forever
+  // once set, so staleness can be detected even though the marker doesn't move.
+  const lastPingAt                            = useRef<number | null>(null);
+  const [msSinceLastPing, setMsSinceLastPing] = useState<number | null>(null);
+  // Where the currently-shown location came from — the driver's own GPS, or
+  // (only while the driver's feed is stale) a confirmed passenger's phone
+  // acting as a crowd-sourced fallback. Shown in the UI so it never looks
+  // like a fully-verified vehicle position when it isn't.
+  const [locationSource, setLocationSource]   = useState<'driver' | 'passenger-fallback'>('driver');
+  const fallbackSub                           = useRef<any>(null);
   const [currentSpeed, setCurrentSpeed]       = useState(0);
   const [routeCoords, setRouteCoords]         = useState<{ latitude: number; longitude: number }[]>([]);
 
@@ -127,6 +152,40 @@ export default function RideTrackingScreen({ route, navigation }) {
   const locationSub = useRef<any>(null);
   const mapRef      = useRef<any>(null);
   const mountedRef  = useRef(true);
+  // Mirrors of state read inside callbacks that were set up once (socket
+  // handlers, watchPositionAsync) and would otherwise see a stale, empty
+  // value forever — `routeCoords`/`ride` load asynchronously after mount.
+  const routeCoordsRef = useRef(routeCoords);
+  const rideRef        = useRef(ride);
+  useEffect(() => { routeCoordsRef.current = routeCoords; }, [routeCoords]);
+  useEffect(() => { rideRef.current = ride; }, [ride]);
+
+  // The map's initial camera position is captured ONCE (first real fix, or a
+  // country-wide fallback if none arrives yet) and never touched again —
+  // `MapView`'s `initialRegion` prop feeds into HTML generation, so handing
+  // it a fresh driverLocation-derived object on every GPS tick would rebuild
+  // and reload the whole WebView continuously.
+  const FALLBACK_REGION = { latitude: 30.3753, longitude: 69.3451, latitudeDelta: 0.02, longitudeDelta: 0.02 };
+  const initialRegionRef = useRef(FALLBACK_REGION);
+  const [initialRegionReady, setInitialRegionReady] = useState(false);
+
+  // Pushes a live driver position everywhere it needs to go, without ever
+  // putting it into a React child (see MapComponent.native.tsx for why).
+  const pushDriverPosition = (latitude: number, longitude: number, heading?: number | null) => {
+    if (!initialRegionReady) {
+      initialRegionRef.current = { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+      setInitialRegionReady(true);
+    }
+    mapRef.current?.updateDriverLocation?.(latitude, longitude, heading || 0);
+    const dest = rideRef.current?.toLat && rideRef.current?.toLng
+      ? { latitude: rideRef.current.toLat, longitude: rideRef.current.toLng }
+      : null;
+    if (dest && routeCoordsRef.current.length <= 1) {
+      mapRef.current?.updateFallbackLine?.(latitude, longitude, dest.latitude, dest.longitude);
+    } else {
+      mapRef.current?.clearFallbackLine?.();
+    }
+  };
 
   const elapsed = useElapsed(driver && !loading);
 
@@ -137,15 +196,16 @@ export default function RideTrackingScreen({ route, navigation }) {
 
   useEffect(() => {
     fetchRide();
-    socketService.connect();
-    socketService.joinRide(rideId, driver ? 'driver' : 'rider');
 
     // Passenger: receive driver's live location from socket
     const onLocationUpdate = (payload: any) => {
       if (!mountedRef.current || payload.rideId !== rideId) return;
       const { latitude, longitude, heading } = payload;
       setDriverLocation({ latitude, longitude, heading });
-      mapRef.current?.updateDriverLocation?.(latitude, longitude, heading || 0);
+      setLocationSource(payload.source === 'passenger-fallback' ? 'passenger-fallback' : 'driver');
+      lastPingAt.current = Date.now();
+      setMsSinceLastPing(0);
+      pushDriverPosition(latitude, longitude, heading);
     };
 
     const onRideCompleted = (data: any) => {
@@ -157,32 +217,82 @@ export default function RideTrackingScreen({ route, navigation }) {
       }
     };
 
-    if (driver) {
-      // Start GPS after a short delay to let map mount
-      setTimeout(() => startTracking(), 800);
-    } else {
-      socketService.onLocationUpdate(onLocationUpdate);
-    }
-    socketService.on('RIDE_COMPLETED', onRideCompleted);
+    // socketService.on/onLocationUpdate silently drop the listener if the
+    // socket hasn't connected yet (this.socket is still null) — must always
+    // await connect() first, per the pattern SocketListener.tsx establishes.
+    let cancelled = false;
+    (async () => {
+      await socketService.connect();
+      if (cancelled || !mountedRef.current) return;
+      socketService.joinRide(rideId, driver ? 'driver' : 'rider');
+      if (driver) {
+        // Start GPS after a short delay to let map mount
+        setTimeout(() => { if (!cancelled) startTracking(); }, 800);
+      } else {
+        socketService.onLocationUpdate(onLocationUpdate);
+      }
+      socketService.on('RIDE_COMPLETED', onRideCompleted);
+    })();
 
     return () => {
+      cancelled = true;
       stopTracking();
       socketService.offLocationUpdate(onLocationUpdate);
       socketService.off('RIDE_COMPLETED', onRideCompleted);
       socketService.leaveRide(rideId);
     };
-  }, [rideId]);
+  }, [rideId, driver]);
 
-  // Once map is ready + we have driver location, fit bounds
+  // Passenger: recompute "time since last ping" every few seconds so the
+  // live-status pill can flip from "live" to "reconnecting" on its own,
+  // without waiting for the next actual location update to arrive.
   useEffect(() => {
-    if (!mapReady || !ride) return;
-    if (driverLocation) {
-      mapRef.current?.updateDriverLocation?.(
-        driverLocation.latitude,
-        driverLocation.longitude,
-        driverLocation.heading || 0
-      );
+    if (driver) return;
+    const id = setInterval(() => {
+      if (lastPingAt.current != null) setMsSinceLastPing(Date.now() - lastPingAt.current);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [driver]);
+
+  const isStale = !driver && !!driverLocation && msSinceLastPing != null && msSinceLastPing > STALE_AFTER_MS;
+
+  // Passenger crowd-source fallback: while the driver's own feed is stale,
+  // report this passenger's own GPS as a stand-in so the map (and anyone
+  // watching a Share Live Location link) isn't just frozen on the last
+  // known point. The server only actually uses this if it agrees the
+  // driver's feed is stale, so it's harmless to send opportunistically.
+  useEffect(() => {
+    if (driver || !isStale) {
+      fallbackSub.current?.remove();
+      fallbackSub.current = null;
+      return;
     }
+    let cancelled = false;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted' || cancelled) return;
+      const sub = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, distanceInterval: 20, timeInterval: 5000 },
+        (loc) => {
+          const { latitude, longitude, heading, speed } = loc.coords;
+          socketService.emitLocationFallback({ rideId, latitude, longitude, heading, speed });
+        },
+      );
+      if (cancelled) { sub.remove(); return; }
+      fallbackSub.current = sub;
+    })();
+    return () => {
+      cancelled = true;
+      fallbackSub.current?.remove();
+      fallbackSub.current = null;
+    };
+  }, [driver, isStale, rideId]);
+
+  // Once map is ready + we have driver location, push it in (the WebView
+  // itself only exists after mapReady, so anything sent earlier is a no-op).
+  useEffect(() => {
+    if (!mapReady || !ride || !driverLocation) return;
+    pushDriverPosition(driverLocation.latitude, driverLocation.longitude, driverLocation.heading);
   }, [mapReady]);
 
   // Reverse-geocode the live position into a readable place name (free,
@@ -198,12 +308,14 @@ export default function RideTrackingScreen({ route, navigation }) {
     if (now - lastGeocodedAt.current < 20000 && moved < 250) return;
     lastGeocodedAt.current = now;
     lastGeocodedAtCoord.current = driverLocation;
+    let cancelled = false;
     (async () => {
       try {
         const results = await Location.reverseGeocodeAsync({
           latitude: driverLocation.latitude,
           longitude: driverLocation.longitude,
         });
+        if (cancelled) return; // a newer position already superseded this lookup
         const r = results?.[0];
         if (!r) return;
         const parts = [r.street, r.district || r.city].filter(Boolean);
@@ -212,6 +324,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         // Reverse geocoding is a nice-to-have — never let it disrupt tracking.
       }
     })();
+    return () => { cancelled = true; };
   }, [driverLocation]);
 
   // Fetch the road-following route (falls back to a straight stub server-side
@@ -231,6 +344,14 @@ export default function RideTrackingScreen({ route, navigation }) {
     })();
     return () => { cancelled = true; };
   }, [rideId]);
+
+  // The real route just became available as a Polyline child — drop the
+  // imperative dashed fallback line immediately rather than waiting for the
+  // next GPS tick to clear it (pushDriverPosition would otherwise leave both
+  // visible together for a few seconds).
+  useEffect(() => {
+    if (routeCoords.length > 1) mapRef.current?.clearFallbackLine?.();
+  }, [routeCoords]);
 
   const fetchRide = async () => {
     // Driver needs the ride WITH its bookings + passengers (getMineById), so the
@@ -273,7 +394,7 @@ export default function RideTrackingScreen({ route, navigation }) {
       const { latitude, longitude, heading, speed, accuracy } = initial.coords;
       setDriverLocation({ latitude, longitude, heading });
       setCurrentSpeed(Math.round((speed || 0) * 3.6));
-      mapRef.current?.updateDriverLocation?.(latitude, longitude, heading || 0);
+      pushDriverPosition(latitude, longitude, heading);
       mapRef.current?.updateUserLocation?.(latitude, longitude, accuracy || 20);
       mapRef.current?.animateCamera?.({ center: { latitude, longitude }, zoom: 16 });
       socketService.emitLocation({ rideId, latitude, longitude, heading, speed });
@@ -293,7 +414,7 @@ export default function RideTrackingScreen({ route, navigation }) {
         setDriverLocation({ latitude, longitude, heading });
         setCurrentSpeed(Math.round((speed || 0) * 3.6));
         // Update map driver marker + camera
-        mapRef.current?.updateDriverLocation?.(latitude, longitude, heading || 0);
+        pushDriverPosition(latitude, longitude, heading);
         mapRef.current?.updateUserLocation?.(latitude, longitude, accuracy || 20);
         mapRef.current?.animateCamera?.({ center: { latitude, longitude }, zoom: 16 });
         // Broadcast to passengers via socket
@@ -359,12 +480,32 @@ export default function RideTrackingScreen({ route, navigation }) {
     if (!driverLocation) return;
     setRecentering(true);
     mapRef.current?.animateCamera?.({ center: driverLocation, zoom: 17 });
-    setTimeout(() => setRecentering(false), 800);
+    setTimeout(() => { if (mountedRef.current) setRecentering(false); }, 800);
   };
 
   const handleCall = (phone?: string) => {
     if (!phone) { showToast('Phone number not available', 'error'); return; }
     Linking.openURL(`tel:${phone}`).catch(() => showToast('Unable to open dialer', 'error'));
+  };
+
+  const [sharingLocation, setSharingLocation] = useState(false);
+  const handleShareLocation = async () => {
+    if (sharingLocation) return; // guard against a double-tap firing two requests
+    setSharingLocation(true);
+    const { data, error } = await trackingApi.getShareLink(rideId);
+    if (mountedRef.current) setSharingLocation(false);
+    if (error || !data?.data?.url) {
+      if (mountedRef.current) showToast(error || "Couldn't get the share link", 'error');
+      return;
+    }
+    try {
+      await Share.share({
+        message: `Track my ChalParo ride live: ${data.data.url}`,
+        url: data.data.url, // used by iOS; Android falls back to the message text
+      });
+    } catch {
+      // user cancelled the share sheet — nothing to do
+    }
   };
 
   const handleFinishRide = () => {
@@ -391,6 +532,22 @@ export default function RideTrackingScreen({ route, navigation }) {
         }
       },
     });
+  };
+
+  const [reportIncompleteVisible, setReportIncompleteVisible] = useState(false);
+  const [reportingIncomplete, setReportingIncomplete] = useState(false);
+  const executeReportIncomplete = async (reason: string) => {
+    setReportingIncomplete(true);
+    const { error } = await ridesApi.reportIncomplete(rideId, reason);
+    setReportingIncomplete(false);
+    if (error) {
+      showToast(error, 'error');
+      return;
+    }
+    setReportIncompleteVisible(false);
+    stopTracking();
+    showToast('Ride marked incomplete — passengers notified', 'info');
+    navigation.navigate('DriverApp', { screen: 'MyRidesTab' });
   };
 
   const advanceRating = () => {
@@ -436,9 +593,6 @@ export default function RideTrackingScreen({ route, navigation }) {
   const myBooking         = !driver ? ride?.bookings?.find((b: any) => b.passengerId === currentUser?.id) : null;
   const driverRating      = ride?.driver?.rating ?? null;
 
-  const initialRegion = driverLocation
-    ? { ...driverLocation, latitudeDelta: 0.01, longitudeDelta: 0.01 }
-    : { latitude: 30.3753, longitude: 69.3451, latitudeDelta: 0.02, longitudeDelta: 0.02 };
 
   return (
     <View style={s.container}>
@@ -448,19 +602,16 @@ export default function RideTrackingScreen({ route, navigation }) {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        initialRegion={initialRegion}
+        initialRegion={initialRegionRef.current}
         onLayout={() => setMapReady(true)}
       >
-        {/* Driver car marker (used only on initial render — live updates via mapRef) */}
-        {driverLocation && (
-          <Marker
-            coordinate={{ latitude: driverLocation.latitude, longitude: driverLocation.longitude }}
-            pinColor="green"
-            isDriver
-            rotation={driverLocation.heading || 0}
-            title={driver ? 'You' : `Driver: ${ride?.driver?.name || ''}`}
-          />
-        )}
+        {/* The driver's live position is deliberately NOT a child here — it
+            changes every couple of seconds, and any child change rebuilds
+            this map's HTML and reloads the whole WebView (see
+            MapComponent.native.tsx). It's pushed imperatively instead via
+            pushDriverPosition()/mapRef (updateDriverLocation + the dashed
+            fallback line below), leaving only the rarely-changing static
+            content as children. */}
 
         {/* Destination / drop-off marker */}
         {ride?.toLat && ride?.toLng && (
@@ -480,20 +631,12 @@ export default function RideTrackingScreen({ route, navigation }) {
           />
         )}
 
-        {/* Route line: prefer the fetched road route; otherwise fall back to a
-            straight line between the live driver position and the destination. */}
-        {routeCoords.length > 1 ? (
+        {/* Real fetched road route, once available — the straight-line
+            fallback (while it's still loading) is drawn imperatively by
+            pushDriverPosition via updateFallbackLine/clearFallbackLine. */}
+        {routeCoords.length > 1 && (
           <Polyline coordinates={routeCoords} strokeColor="#1d4ed8" strokeWidth={4} />
-        ) : (driverLocation && destination) ? (
-          <Polyline
-            coordinates={[
-              { latitude: driverLocation.latitude, longitude: driverLocation.longitude },
-              destination,
-            ]}
-            strokeColor="#1d4ed8"
-            strokeWidth={4}
-          />
-        ) : null}
+        )}
       </MapView>
 
       {/* ── Recenter FAB ─────────────────────────────────────────────── */}
@@ -579,6 +722,13 @@ export default function RideTrackingScreen({ route, navigation }) {
               </View>
             </View>
 
+            <Pressable style={s.shareBtn} onPress={handleShareLocation} disabled={sharingLocation}>
+              {sharingLocation
+                ? <ActivityIndicator size="small" color={COLORS.primary} />
+                : <Ionicons name="share-social-outline" size={16} color={COLORS.primary} />}
+              <Text style={s.shareBtnText}>Share Live Location</Text>
+            </Pressable>
+
             <SectionHeader title="Onboard Passengers" style={s.sectionTitle} />
             <FlatList
               data={confirmedBookings}
@@ -618,6 +768,10 @@ export default function RideTrackingScreen({ route, navigation }) {
                 style={s.finishBtn}
               />
             </View>
+            <Pressable style={s.issueLink} onPress={() => setReportIncompleteVisible(true)}>
+              <Ionicons name="warning-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={s.issueLinkText}>Breakdown or can't finish this ride? Report it</Text>
+            </Pressable>
           </>
         ) : (
           /* ─── PASSENGER PANEL ───────────────────────────────────────── */
@@ -679,16 +833,27 @@ export default function RideTrackingScreen({ route, navigation }) {
               </View>
             )}
 
-            <View style={s.liveStatus}>
-              <LiveDot active={!!driverLocation} />
-              <Text style={s.liveStatusText}>
-                {driverLocation
-                  ? 'Driver location live on map'
-                  : locTimedOut
+            <View style={[s.liveStatus, isStale && s.liveStatusStale]}>
+              <LiveDot active={!!driverLocation && !isStale} />
+              <Text style={[s.liveStatusText, isStale && s.liveStatusTextStale]}>
+                {!driverLocation
+                  ? (locTimedOut
                     ? 'Location unavailable right now. Call the driver to coordinate.'
-                    : 'Waiting for driver location...'}
+                    : 'Waiting for driver location...')
+                  : isStale
+                    ? `Signal lost — last seen ${formatAgo(msSinceLastPing as number)}`
+                    : locationSource === 'passenger-fallback'
+                      ? 'Approximate location (from a passenger nearby)'
+                      : 'Driver location live on map'}
               </Text>
             </View>
+
+            <Pressable style={s.shareBtn} onPress={handleShareLocation} disabled={sharingLocation}>
+              {sharingLocation
+                ? <ActivityIndicator size="small" color={COLORS.primary} />
+                : <Ionicons name="share-social-outline" size={16} color={COLORS.primary} />}
+              <Text style={s.shareBtnText}>Share Live Location with Family</Text>
+            </Pressable>
 
             <View style={s.safetyRow}>
               <Pressable style={s.safetyBtnWrap} onPress={() => handleCall('1122')}>
@@ -722,6 +887,16 @@ export default function RideTrackingScreen({ route, navigation }) {
           routeDate={ride?.date}
         />
       )}
+
+      <CancelReasonModal
+        visible={reportIncompleteVisible}
+        onClose={() => setReportIncompleteVisible(false)}
+        onSubmit={executeReportIncomplete}
+        title="Report an Issue"
+        subtitle="This ends the ride now and tells your passengers it couldn't be completed. No earnings are recorded for it."
+        submitLabel={reportingIncomplete ? 'Reporting…' : 'End Ride & Notify Passengers'}
+        presets={['Vehicle breakdown', 'Accident', 'Road closure / weather', 'Personal emergency']}
+      />
     </View>
   );
 }
@@ -831,6 +1006,8 @@ const s = StyleSheet.create({
   finishWrap: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginTop: 4 },
   navigateBtn: { flex: 1 },
   finishBtn: { flex: 1.4 },
+  issueLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 4 },
+  issueLinkText: { fontSize: 12, color: COLORS.textSecondary, fontWeight: '600' },
 
   // Passenger
   driverCardGrad: {
@@ -874,6 +1051,15 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#86efac',
   },
   liveStatusText: { fontSize: 13, fontWeight: '400', color: '#15803d' },
+  liveStatusStale: { backgroundColor: '#fff7ed', borderColor: '#fdba74' },
+  liveStatusTextStale: { color: '#c2410c', fontWeight: '600' },
+
+  shareBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginHorizontal: 20, marginBottom: 14, height: 44, borderRadius: 14,
+    backgroundColor: COLORS.primaryLight, borderWidth: 1, borderColor: COLORS.primary + '30',
+  },
+  shareBtnText: { fontSize: 13.5, fontWeight: '700', color: COLORS.primary },
 
   safetyRow: { flexDirection: 'row', marginHorizontal: 20, gap: 12 },
   safetyBtnWrap: {

@@ -63,8 +63,14 @@ export default function PassengerHomeScreen({ navigation }) {
     const onNewRide = (data: any) => {
       showToast(`New ride: ${data.fromCity || data.from} > ${data.toCity || data.to}`, 'info');
     };
-    socketService.on('NEW_RIDE', onNewRide);
-    return () => socketService.off('NEW_RIDE', onNewRide);
+    // socketService.on() silently drops the listener if the socket hasn't
+    // connected yet — connect() must resolve first (no-op if already connected).
+    let cancelled = false;
+    (async () => {
+      await socketService.connect();
+      if (!cancelled) socketService.on('NEW_RIDE', onNewRide);
+    })();
+    return () => { cancelled = true; socketService.off('NEW_RIDE', onNewRide); };
   }, []);
 
   useFocusEffect(useCallback(() => {

@@ -1,12 +1,13 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useSocketData } from '../context/SocketDataContext';
 import { useToast } from '../context/ToastContext';
 import { socketService } from '../services/socket.service';
 import { useGlobalModal } from '../context/GlobalModalContext';
 import { useBanner } from '../context/BannerContext';
-import { bookingsApi } from '../services/api';
+import { bookingsApi, ridesApi } from '../services/api';
 import ReviewModal from './ReviewModal';
+import RideConfirmationModal from './RideConfirmationModal';
 
 /**
  * SocketListener — single global real-time hub. Always mounted.
@@ -27,6 +28,21 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
   const { showModal } = useGlobalModal();
   const { showBanner } = useBanner();
   const [completedRide, setCompletedRide] = useState<any>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<any>(null);
+
+  // Checked on login/app-open (push alone can be missed — permission off,
+  // phone silenced) AND re-checked every time the server tells us a new
+  // prompt went out (RIDE_CONFIRMATION_NEEDED) or the driver just resolved
+  // one, in case another ride is already waiting behind it.
+  const checkPendingConfirmation = useCallback(async () => {
+    if (currentUser?.role !== 'DRIVER') return;
+    const { data } = await ridesApi.getPendingConfirmation();
+    setPendingConfirmation(data?.data || null);
+  }, [currentUser?.role]);
+
+  useEffect(() => {
+    checkPendingConfirmation();
+  }, [checkPendingConfirmation]);
 
   // Convenience: route label from a socket payload for banner subtitles.
   const routeOf = (d: any) =>
@@ -236,6 +252,23 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
         }
       },
 
+      onRideIncomplete: (data: any) => {
+        incrementUnreadCount();
+        if (currentUser.role === 'PASSENGER') {
+          socketData.patchRideInBookings(data.rideId, { status: 'INCOMPLETE' });
+          showModal({
+            type: 'danger',
+            title: 'Ride ended early',
+            message: `The ${routeOf(data)} ride couldn't be completed.\nReason: ${data.reason || 'Not specified'}\n\nPlease coordinate with your driver directly about your fare.`,
+            confirmText: 'OK',
+            onConfirm: () => navigationRef.current?.navigate('PassengerApp', { screen: 'PassengerHomeTab' }),
+          });
+        }
+        if (currentUser.role === 'DRIVER') {
+          socketData.patchRide(data.rideId, { status: 'INCOMPLETE' });
+        }
+      },
+
       onRideExpired: (data: any) => {
         incrementUnreadCount();
         if (currentUser.role === 'DRIVER') {
@@ -382,6 +415,10 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
 
       onReviewReceived: () => incrementUnreadCount(),
 
+      onRideConfirmationNeeded: () => {
+        if (currentUser.role === 'DRIVER') checkPendingConfirmation();
+      },
+
       // Authoritative badge sync: fired by the server for EVERY notification it
       // creates, so the bell badge stays correct for all types (reminders, new
       // requests, etc.) even if no type-specific handler bumps it.
@@ -421,6 +458,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('RIDE_STARTED',       handlers.onRideStarted);
       socketService.on('RIDE_COMPLETED',     handlers.onRideCompleted);
       socketService.on('RIDE_CANCELLED',     handlers.onRideCancelled);
+      socketService.on('RIDE_INCOMPLETE',    handlers.onRideIncomplete);
       socketService.on('RIDE_EXPIRED',       handlers.onRideExpired);
       socketService.on('RIDE_REMINDER',      handlers.onRideReminder);
       socketService.on('SCHEDULE_REQUEST',   handlers.onScheduleRequest);
@@ -433,6 +471,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.on('REQUEST_CANCELLED',  handlers.onRequestCancelled);
       socketService.on('REQUEST_EXPIRED',    handlers.onRequestExpired);
       socketService.on('CHAT_MESSAGE',        handlers.onNewChatMessage);
+      socketService.on('RIDE_CONFIRMATION_NEEDED', handlers.onRideConfirmationNeeded);
     });
 
     return () => {
@@ -450,6 +489,7 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('RIDE_STARTED',       handlers.onRideStarted);
       socketService.off('RIDE_COMPLETED',     handlers.onRideCompleted);
       socketService.off('RIDE_CANCELLED',     handlers.onRideCancelled);
+      socketService.off('RIDE_INCOMPLETE',    handlers.onRideIncomplete);
       socketService.off('RIDE_EXPIRED',       handlers.onRideExpired);
       socketService.off('RIDE_REMINDER',      handlers.onRideReminder);
       socketService.off('SCHEDULE_REQUEST',   handlers.onScheduleRequest);
@@ -462,19 +502,27 @@ export default function SocketListener({ navigationRef }: { navigationRef: any }
       socketService.off('REQUEST_CANCELLED',  handlers.onRequestCancelled);
       socketService.off('REQUEST_EXPIRED',    handlers.onRequestExpired);
       socketService.off('CHAT_MESSAGE',        handlers.onNewChatMessage);
+      socketService.off('RIDE_CONFIRMATION_NEEDED', handlers.onRideConfirmationNeeded);
     };
   }, [currentUser?.id]);
 
   return (
-    <ReviewModal
-      visible={!!completedRide}
-      onClose={() => setCompletedRide(null)}
-      rideId={completedRide?.rideId}
-      revieweeId={completedRide?.driverId}
-      revieweeName={completedRide?.driverName || 'your Driver'}
-      targetRole="DRIVER"
-      routeLabel={completedRide?.routeLabel}
-      routeDate={completedRide?.date}
-    />
+    <>
+      <ReviewModal
+        visible={!!completedRide}
+        onClose={() => setCompletedRide(null)}
+        rideId={completedRide?.rideId}
+        revieweeId={completedRide?.driverId}
+        revieweeName={completedRide?.driverName || 'your Driver'}
+        targetRole="DRIVER"
+        routeLabel={completedRide?.routeLabel}
+        routeDate={completedRide?.date}
+      />
+      <RideConfirmationModal
+        visible={!!pendingConfirmation}
+        ride={pendingConfirmation}
+        onResolved={checkPendingConfirmation}
+      />
+    </>
   );
 }

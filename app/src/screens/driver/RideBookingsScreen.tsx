@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, CURVE, AppBar, EmptyState, Avatar, StarRating, StatusBadge, TrustBadgesRow, TabPills, SectionHeader, RequestCardSkeleton, RouteTag } from '../../components';
+import { COLORS, CURVE, AppBar, EmptyState, Avatar, StarRating, StatusBadge, TrustBadgesRow, TabPills, SectionHeader, RequestCardSkeleton, RouteTag, CancelReasonModal } from '../../components';
 import { ridesApi, bookingsApi } from '../../services/api';
 import { socketService } from '../../services/socket.service';
 import { useToast } from '../../context/ToastContext';
@@ -24,6 +24,7 @@ export default function RideBookingsScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [tab, setTab] = useState<'pending' | 'accepted'>('pending');
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
   const fetchingRef = useRef(false);
 
   const fetchRide = useCallback(async () => {
@@ -50,11 +51,20 @@ export default function RideBookingsScreen({ navigation, route }) {
     const onBookingChanged = (data: any) => {
       if (data.rideId === rideId) fetchRide();
     };
-    socketService.on('BOOKING_REQUESTED',  onBookingChanged);
-    socketService.on('BOOKING_CANCELLED',  onBookingChanged);
-    socketService.on('BOOKING_ACCEPTED',   onBookingChanged);
-    socketService.on('BOOKING_REJECTED',   onBookingChanged);
+    // socketService.on() silently drops the listener if the socket hasn't
+    // connected yet — connect() must resolve first (it's a no-op if already
+    // connected, e.g. via the app-wide SocketListener).
+    let cancelled = false;
+    (async () => {
+      await socketService.connect();
+      if (cancelled) return;
+      socketService.on('BOOKING_REQUESTED',  onBookingChanged);
+      socketService.on('BOOKING_CANCELLED',  onBookingChanged);
+      socketService.on('BOOKING_ACCEPTED',   onBookingChanged);
+      socketService.on('BOOKING_REJECTED',   onBookingChanged);
+    })();
     return () => {
+      cancelled = true;
       socketService.off('BOOKING_REQUESTED',  onBookingChanged);
       socketService.off('BOOKING_CANCELLED',  onBookingChanged);
       socketService.off('BOOKING_ACCEPTED',   onBookingChanged);
@@ -102,6 +112,19 @@ export default function RideBookingsScreen({ navigation, route }) {
         }
       },
     });
+  };
+
+  const executeRemove = async (reason: string) => {
+    if (!removeTarget) return;
+    setActionLoading(removeTarget.id);
+    const { error } = await bookingsApi.removeByDriver(removeTarget.id, reason);
+    setActionLoading(null);
+    setRemoveTarget(null);
+    if (error) showToast(error, 'error');
+    else {
+      showToast('Passenger removed', 'info');
+      fetchRide();
+    }
   };
 
   const renderPendingCard = (item: any) => {
@@ -165,6 +188,7 @@ export default function RideBookingsScreen({ navigation, route }) {
 
   const renderAcceptedRow = (item: any) => {
     const p = item.passenger;
+    const canRemove = item.status === 'CONFIRMED' && !isFinished;
     return (
       <Pressable
         key={item.id}
@@ -178,6 +202,15 @@ export default function RideBookingsScreen({ navigation, route }) {
           <Text style={styles.pMeta}>{item.seats} seat{item.seats !== 1 ? 's' : ''}</Text>
         </View>
         <Text style={styles.bookingPrice}>Rs {item.totalAmount.toLocaleString()}</Text>
+        {canRemove && (
+          <Pressable
+            style={styles.removeBtn}
+            hitSlop={8}
+            onPress={(e) => { e.stopPropagation(); setRemoveTarget({ id: item.id, name: p.name }); }}
+          >
+            <Ionicons name="person-remove-outline" size={18} color={COLORS.danger} />
+          </Pressable>
+        )}
         <Ionicons name="chevron-forward" size={18} color={COLORS.gray} />
       </Pressable>
     );
@@ -273,6 +306,16 @@ export default function RideBookingsScreen({ navigation, route }) {
           />
         }
       />
+
+      <CancelReasonModal
+        visible={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        onSubmit={executeRemove}
+        title="Remove Passenger"
+        subtitle={removeTarget ? `Tell ${removeTarget.name} why they're being removed from this ride.` : ''}
+        submitLabel="Remove Passenger"
+        presets={['Passenger unreachable', 'Inappropriate behavior', 'Passenger requested removal', 'Safety concern']}
+      />
     </View>
   );
 }
@@ -314,4 +357,5 @@ const styles = StyleSheet.create({
   },
   acceptedRowPressed: { backgroundColor: COLORS.lightGray },
   bookingPrice: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
+  removeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff5f5', alignItems: 'center', justifyContent: 'center' },
 });

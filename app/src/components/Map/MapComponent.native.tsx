@@ -1,6 +1,6 @@
 // Real OpenStreetMap via Leaflet.js in WebView, tiles served by CARTO (needs
 // an API key as of Aug 2026 — see src/constants/mapConfig.ts)
-import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { CARTO_TILE_URL } from '../../constants/mapConfig';
@@ -106,6 +106,7 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
   var driverMarker = null;
   var userMarker   = null;
   var accuracyCircle = null;
+  var fallbackLine = null;
 
   ${initDriverJs}
   ${staticMarkersJs}
@@ -117,6 +118,28 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
     className: '', iconSize:[18,18], iconAnchor:[9,9]
   });
 
+  // Slides the marker from its current spot to the new one over the given
+  // duration (ms) instead of teleporting — a fresh GPS tick otherwise
+  // reads as a jittery jump rather than smooth motion. A genuinely large jump
+  // (e.g. the very first fix, or catching up after a long dead zone) is
+  // snapped instead of slid, so it doesn't look like the car raced across
+  // half the map in under a second.
+  function animateMarkerTo(marker, toLatLng, duration) {
+    var from = marker.getLatLng();
+    if (from.distanceTo(toLatLng) > 2000) { marker.setLatLng(toLatLng); return; }
+    var start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      var progress = Math.min((ts - start) / duration, 1);
+      marker.setLatLng([
+        from.lat + (toLatLng.lat - from.lat) * progress,
+        from.lng + (toLatLng.lng - from.lng) * progress,
+      ]);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
   function handleMsg(raw) {
     try {
       var msg = JSON.parse(raw);
@@ -124,7 +147,7 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
       if (msg.type === 'DRIVER_LOCATION') {
         var ll = L.latLng(msg.lat, msg.lng);
         if (driverMarker) {
-          driverMarker.setLatLng(ll);
+          animateMarkerTo(driverMarker, ll, 900);
           if (msg.heading != null && typeof driverMarker.setRotationAngle === 'function') {
             driverMarker.setRotationAngle(msg.heading);
           }
@@ -160,6 +183,19 @@ function buildMapHtml(initialRegion?: Region, markers: MarkerData[] = [], polyli
       else if (msg.type === 'FIT_BOUNDS') {
         var bounds = L.latLngBounds(msg.points.map(function(p) { return [p.lat, p.lng]; }));
         map.fitBounds(bounds, { padding:[60,60], animate:true, maxZoom:16 });
+      }
+
+      // Dashed "as the crow flies" line to the destination, used only until
+      // the real road route loads. Updated imperatively (never baked into the
+      // page HTML) so a moving vehicle doesn't force a full WebView reload.
+      else if (msg.type === 'FALLBACK_LINE') {
+        var flPts = [[msg.lat1, msg.lng1], [msg.lat2, msg.lng2]];
+        if (fallbackLine) fallbackLine.setLatLngs(flPts);
+        else fallbackLine = L.polyline(flPts, { color:'#1d4ed8', weight:4, opacity:0.55, dashArray:'8,8' }).addTo(map);
+      }
+
+      else if (msg.type === 'CLEAR_FALLBACK_LINE') {
+        if (fallbackLine) { map.removeLayer(fallbackLine); fallbackLine = null; }
       }
 
     } catch(e) {}
@@ -201,6 +237,12 @@ export const MapView = forwardRef<any, any>(({ style, initialRegion, children, o
       send({ type: 'USER_LOCATION', lat, lng, accuracy }),
     fitBounds:            (points: { lat: number; lng: number }[]) =>
       send({ type: 'FIT_BOUNDS', points }),
+    // Imperative, not baked into `children` — a live-moving vehicle must
+    // never be represented as a Marker/Polyline child (see below), since any
+    // child change rebuilds the page HTML and reloads the whole WebView.
+    updateFallbackLine:   (lat1: number, lng1: number, lat2: number, lng2: number) =>
+      send({ type: 'FALLBACK_LINE', lat1, lng1, lat2, lng2 }),
+    clearFallbackLine:    () => send({ type: 'CLEAR_FALLBACK_LINE' }),
   }));
 
   const markers: MarkerData[] = [];
@@ -213,7 +255,14 @@ export const MapView = forwardRef<any, any>(({ style, initialRegion, children, o
       polylineCoords.push(...child.props.coordinates);
   });
 
-  const html = buildMapHtml(initialRegion, markers, polylineCoords);
+  // Rebuilding this HTML string reloads the entire WebView (losing zoom/pan
+  // and restarting Leaflet) — so it must only happen when the STATIC content
+  // (destination/pickup pins, the fetched route) actually changes, never on
+  // every render. Callers must keep any live/fast-changing marker (the
+  // driver's position) out of `children` entirely and push it through the
+  // imperative handle instead (updateDriverLocation/updateFallbackLine).
+  const htmlCacheKey = JSON.stringify({ initialRegion, markers, polylineCoords });
+  const html = useMemo(() => buildMapHtml(initialRegion, markers, polylineCoords), [htmlCacheKey]);
 
   return (
     <View style={[styles.container, style]}>

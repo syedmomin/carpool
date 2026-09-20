@@ -106,10 +106,17 @@ export default function PostRideScreen({ navigation }) {
   });
   const [pickupLat, setPickupLat] = useState<number | undefined>(undefined);
   const [pickupLng, setPickupLng] = useState<number | undefined>(undefined);
-  // Tracks the last address we auto-filled into pickupPoint from the map pin,
-  // so we keep syncing it as the pin moves but stop the moment the driver
-  // types something of their own into the field.
+  const [dropLat, setDropLat] = useState<number | undefined>(undefined);
+  const [dropLng, setDropLng] = useState<number | undefined>(undefined);
+  // Selected city coordinates — bias the pickup/drop map search to the right
+  // city instead of searching all of Pakistan.
+  const [fromCoords, setFromCoords] = useState<{ lat: number; lng: number } | undefined>(undefined);
+  const [toCoords, setToCoords] = useState<{ lat: number; lng: number } | undefined>(undefined);
+  // Tracks the last address we auto-filled into pickupPoint/dropPoint from the
+  // map pin, so we keep syncing it as the pin moves but stop the moment the
+  // driver types something of their own into the field.
   const lastAutoPickupAddress = useRef('');
+  const lastAutoDropAddress = useRef('');
   const [rideType, setRideType] = useState<'oneway' | 'roundtrip'>('oneway');
   const [isMultiStop, setIsMultiStop] = useState(false);
   const [stops, setStops] = useState([]); // [{ city, arrivalTime }]
@@ -124,12 +131,16 @@ export default function PostRideScreen({ navigation }) {
   // Intelligent Matching: Check for passengers when route changes
   useEffect(() => {
     if (form.from && form.to) {
+      let cancelled = false;
       setMatchLoading(true);
       scheduleRequestsApi.getMatchCount(form.from, form.to, form.date)
         .then(({ data }) => {
-          if (data?.data?.count !== undefined) setMatchCount(data.data.count);
+          // A faster/newer request may have already resolved and set state —
+          // an older, slower response arriving after it must not overwrite it.
+          if (!cancelled && data?.data?.count !== undefined) setMatchCount(data.data.count);
         })
-        .finally(() => setMatchLoading(false));
+        .finally(() => { if (!cancelled) setMatchLoading(false); });
+      return () => { cancelled = true; };
     } else {
       setMatchCount(0);
     }
@@ -159,11 +170,13 @@ export default function PostRideScreen({ navigation }) {
   const updateStop = (idx, key, val) =>
     setStops(prev => prev.map((s, i) => i === idx ? { ...s, [key]: val } : s));
 
-  const handleCitySelect = (city) => {
+  const handleCitySelect = (city, coords) => {
     if (cityModal === 'from') {
       update('from', city);
+      setFromCoords(coords);
     } else if (cityModal === 'to') {
       update('to', city);
+      setToCoords(coords);
     } else if (cityModal?.type === 'stop') {
       updateStop(cityModal.idx, 'city', city);
     }
@@ -181,6 +194,10 @@ export default function PostRideScreen({ navigation }) {
     }
     if (pickupLat == null || pickupLng == null) {
       showToast('Please set your exact pickup point on the map.', 'error');
+      return;
+    }
+    if (dropLat == null || dropLng == null) {
+      showToast('Please set your exact drop point on the map.', 'error');
       return;
     }
     if (!form.dropPoint.trim()) {
@@ -271,6 +288,20 @@ export default function PostRideScreen({ navigation }) {
     doPost();
   };
 
+  // Shared by both the single-post and round-trip-failure paths below — kept
+  // in one place so a future new form field can't be added to `form`'s
+  // initial state without also being reset here (previously duplicated
+  // verbatim at both call sites, which is exactly how that kind of miss happens).
+  const resetForm = () => {
+    setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' });
+    setRideType('oneway');
+    setPickupLat(undefined); setPickupLng(undefined);
+    setDropLat(undefined); setDropLng(undefined);
+    setFromCoords(undefined); setToCoords(undefined);
+    lastAutoPickupAddress.current = '';
+    lastAutoDropAddress.current = '';
+  };
+
   const doPost = async () => {
     haptics.impact();
     try {
@@ -299,8 +330,9 @@ export default function PostRideScreen({ navigation }) {
         stops: stopsPayload,
         ...(roundTripGroupId ? { roundTripGroupId } : {}),
         // A dropped pin is more precise than the city-center auto-fill, so it
-        // overrides fromLat/fromLng when the driver set one.
+        // overrides fromLat/fromLng (and toLat/toLng) when the driver set one.
         ...(pickupLat != null && pickupLng != null ? { fromLat: pickupLat, fromLng: pickupLng } : {}),
+        ...(dropLat != null && dropLng != null ? { toLat: dropLat, toLng: dropLng } : {}),
       };
 
       const { data, error } = await postRide(outboundPayload);
@@ -330,13 +362,17 @@ export default function PostRideScreen({ navigation }) {
           isMultiStop,
           stops: returnStopsPayload,
           roundTripGroupId,
+          // The return leg starts where the outbound leg dropped off, and
+          // ends where it originally picked up.
+          ...(dropLat != null && dropLng != null ? { fromLat: dropLat, fromLng: dropLng } : {}),
+          ...(pickupLat != null && pickupLng != null ? { toLat: pickupLat, toLng: pickupLng } : {}),
         };
 
         const returnResult = await postRide(returnPayload);
         if (returnResult.error) {
           haptics.success();
           showToast(`Outbound ride posted, but the return leg failed: ${parseApiError(returnResult.error)}`, 'warning');
-          setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); lastAutoPickupAddress.current = '';
+          resetForm();
           navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
           return;
         }
@@ -344,7 +380,7 @@ export default function PostRideScreen({ navigation }) {
 
       haptics.success();
       showToast(rideType === 'roundtrip' ? 'Both rides posted' : 'Ride posted', 'success');
-      setForm({ from: '', to: '', date: '', departureTime: '', arrivalTime: '', pricePerSeat: '', pickupPoint: '', dropPoint: '', description: '', returnDate: '', returnDepartureTime: '' }); setRideType('oneway'); setPickupLat(undefined); setPickupLng(undefined); lastAutoPickupAddress.current = '';
+      resetForm();
       navigation.navigate('DriverApp', { screen: 'MyRidesTab', params: { screen: 'ActiveRides' } });
     } catch (err) {
       showToast("Couldn't post your ride, check your connection and try again.", 'error');
@@ -406,17 +442,22 @@ export default function PostRideScreen({ navigation }) {
             toPlaceholder="Going To?"
             onPressFrom={() => setCityModal('from')}
             onPressTo={() => setCityModal('to')}
-            onSwap={() => { update('from', form.to); update('to', form.from); }}
+            onSwap={() => {
+              update('from', form.to); update('to', form.from);
+              setFromCoords(toCoords); setToCoords(fromCoords);
+            }}
           />
 
-          {/* ── Exact Pickup Point (optional) ───────────────────────────────── */}
+          {/* ── Exact Pickup Point (required) ───────────────────────────────── */}
           {!!form.from && (
             <>
               <Text style={styles.pinHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Add your exact pickup point in {form.from} so passengers can find you easily (optional).
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Pin your exact pickup point in {form.from}, required so passengers can find you.
               </Text>
               <View style={{ marginBottom: 16 }}>
                 <PickupPinPicker
+                  biasLat={fromCoords?.lat}
+                  biasLng={fromCoords?.lng}
                   onLocationChange={(lat, lng) => { setPickupLat(lat); setPickupLng(lng); }}
                   onAddressChange={(address) => {
                     if (!address) return;
@@ -426,6 +467,34 @@ export default function PostRideScreen({ navigation }) {
                     if (!form.pickupPoint || form.pickupPoint === lastAutoPickupAddress.current) {
                       update('pickupPoint', address);
                       lastAutoPickupAddress.current = address;
+                    }
+                  }}
+                />
+              </View>
+            </>
+          )}
+
+          {/* ── Exact Drop Point (required) ─────────────────────────────────── */}
+          {!!form.to && (
+            <>
+              <Text style={styles.pinHint}>
+                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Pin your exact drop point in {form.to}, required so passengers can find it.
+              </Text>
+              <View style={{ marginBottom: 16 }}>
+                <PickupPinPicker
+                  biasLat={toCoords?.lat}
+                  biasLng={toCoords?.lng}
+                  summaryLabel="Exact drop point"
+                  modalTitle="Set Drop Location"
+                  mapHint="Drag the map so the pin sits on the exact drop spot"
+                  confirmLabel="Confirm Drop Point"
+                  searchPlaceholder="Search for a place or address"
+                  onLocationChange={(lat, lng) => { setDropLat(lat); setDropLng(lng); }}
+                  onAddressChange={(address) => {
+                    if (!address) return;
+                    if (!form.dropPoint || form.dropPoint === lastAutoDropAddress.current) {
+                      update('dropPoint', address);
+                      lastAutoDropAddress.current = address;
                     }
                   }}
                 />
@@ -453,68 +522,15 @@ export default function PostRideScreen({ navigation }) {
             </Pressable>
           )}
 
-          {/* ── Multi-Stop Toggle ──────────────────────────────────────────── */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <Ionicons name="git-branch-outline" size={18} color={isMultiStop ? COLORS.primary : COLORS.gray} />
-              <View>
-                <Text style={[styles.toggleLabel, isMultiStop && { color: COLORS.primary }]}>Multi-Stop Route</Text>
-                <Text style={styles.toggleSub}>Add intermediate stops for partial bookings</Text>
-              </View>
-            </View>
-            <Switch
-              value={isMultiStop}
-              onValueChange={(val) => { setIsMultiStop(val); if (!val) setStops([]); }}
-              trackColor={{ false: COLORS.border, true: COLORS.primary + '60' }}
-              thumbColor={isMultiStop ? COLORS.primary : '#f4f3f4'}
-            />
-          </View>
-
-          {/* ── Intermediate Stops ─────────────────────────────────────────── */}
-          {isMultiStop && (
-            <View style={styles.stopsContainer}>
-              <Text style={styles.stopsHint}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.gray} /> Passengers can book any segment (e.g. Hyderabad {'>'} Multan)
-              </Text>
-
-              {stops.map((stop, idx) => (
-                <View key={idx} style={styles.stopRow}>
-                  <View style={styles.stopNumCol}>
-                    <View style={styles.stopLine} />
-                    <View style={styles.stopNum}>
-                      <Text style={styles.stopNumText}>{idx + 1}</Text>
-                    </View>
-                    <View style={styles.stopLine} />
-                  </View>
-                  <View style={styles.stopFields}>
-                    <Pressable
-                      style={styles.stopCityBtn}
-                      onPress={() => setCityModal({ type: 'stop', idx })}
-                    >
-                      <Ionicons name="location-outline" size={16} color={COLORS.gray} />
-                      <Text style={[styles.stopCityText, !stop.city && styles.placeholder]}>
-                        {stop.city || 'Select stop city'}
-                      </Text>
-                      <Ionicons name="chevron-down" size={14} color={COLORS.gray} />
-                    </Pressable>
-                    <TimePickerInput
-                      label="Arrival Time at Stop"
-                      value={stop.arrivalTime}
-                      onChange={(v) => updateStop(idx, 'arrivalTime', v)}
-                    />
-                  </View>
-                  <Pressable style={styles.stopRemoveBtn} onPress={() => removeStop(idx)}>
-                    <Ionicons name="close-circle" size={22} color={COLORS.danger} />
-                  </Pressable>
-                </View>
-              ))}
-
-              <Pressable style={styles.addStopBtn} onPress={addStop}>
-                <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-                <Text style={styles.addStopText}>Add Intermediate Stop</Text>
-              </Pressable>
-            </View>
-          )}
+          {/* ── Multi-Stop Route: hidden for now ────────────────────────────────
+              Pulled from the UI, not deleted — segment pricing has a real bug
+              (search shows a pro-rated per-segment price, but booking-confirm
+              still charges the full route price) and pickup ordering/capacity
+              accounting need a proper redesign before this goes back in front
+              of drivers. `isMultiStop`/`stops` state below stays wired into
+              the post payload (always false/[] with the toggle gone) so this
+              can be re-enabled by restoring the JSX once the feature is
+              redesigned, without touching the submit logic again. */}
 
           {/* ── Schedule ─────────────────────────────────────────────────── */}
           <SectionHeader title="Schedule" />

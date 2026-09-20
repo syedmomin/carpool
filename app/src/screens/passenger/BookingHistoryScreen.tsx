@@ -549,7 +549,12 @@ export default function BookingHistoryScreen({ navigation }) {
             {reviewBooking && (
                 <ReviewModal booking={reviewBooking} onClose={() => setReviewBooking(null)} onSubmit={handleReviewSubmitted} />
             )}
-            <CancelReasonModal visible={!!cancelTarget} onClose={() => setCancelTarget(null)} onSubmit={executeCancel} />
+            <CancelReasonModal
+                visible={!!cancelTarget}
+                onClose={() => setCancelTarget(null)}
+                onSubmit={executeCancel}
+                presets={['Change of plans', 'Found another ride', 'Price too high', 'Driver unresponsive']}
+            />
             <SOSModal visible={sosVisible} onClose={() => setSosVisible(false)} />
 
             <Modal visible={!!addTarget} transparent animationType="fade" onRequestClose={() => setAddTarget(null)}>

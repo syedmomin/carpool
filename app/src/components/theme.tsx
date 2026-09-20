@@ -109,7 +109,7 @@ export const TYPOGRAPHY = {
   cardBody:    { fontSize: 12.5, fontWeight: '500', color: COLORS.textPrimary }, // driver name, vehicle, etc.
   cardMeta:    { fontSize: 11.5, fontWeight: '500', color: COLORS.textSecondary }, // date/time/seats chips
   cardCaption: { fontSize: 11, fontWeight: '400', color: COLORS.textSecondary }, // smallest helper text
-};
+} as const;
 
 // ─── SHADOWS ────────────────────────────────────────────────────────────────
 export const SHADOWS = {
@@ -185,6 +185,7 @@ export const STATUS_COLORS: Record<string, StatusToken> = {
   completed:           { text: '#0369a1',         bg: '#f0f9ff',  label: 'Completed' },
   cancelled:           { text: COLORS.danger,     bg: '#fef2f2',  label: 'Cancelled' },
   expired:             { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired' },
+  incomplete:          { text: '#9a3412',         bg: '#fff7ed',  label: 'Incomplete' },
   expired_no_bookings: { text: '#9a3412',         bg: '#fef2f2',  label: 'Expired, no bookings' },
   // Booking statuses
   confirmed:           { text: COLORS.secondary, bg: '#e8f5e9',  label: 'Confirmed' },

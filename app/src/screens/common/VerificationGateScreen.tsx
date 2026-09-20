@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import {
   showImagePickerOptionsLocal, pickImageFromCameraLocal, uploadToServer,
 } from '../../utils/imagePicker';
 import { verificationApi } from '../../services/api';
+import { useGlobalModal } from '../../context/GlobalModalContext';
 
 // ─── Upload Box ────────────────────────────────────────────────────────────────
 function UploadBox({ image, onPress, label, style }: any) {
@@ -33,13 +34,20 @@ interface Props {
 }
 
 // Mandatory identity-verification stepper — the ONLY screen reachable until
-// every required document is submitted (see AppNavigator, which renders this
-// in place of the entire app, no tabs/back-out). Once submitted, the full
-// upload UI moves out of reach — CnicVerificationScreen (Profile > Documents)
-// becomes a read-only viewer for what was submitted here.
+// every required document is submitted AND approved (see AppNavigator, which
+// renders this in place of the entire app, no tabs/back-out). Once every
+// document is submitted, the full upload UI moves out of reach —
+// CnicVerificationScreen (Profile > Documents) becomes a read-only viewer.
 //
 // Steps: 1) CNIC (name + number + front/back on one page), 2) Licence
 // (drivers only), 3) Selfie. Passengers skip the licence step entirely.
+//
+// If an admin REJECTS a document, its fields get cleared server-side (see
+// admin.routes.ts) — that's what brings this screen back for the user, and
+// on mount we fetch the current record to figure out which step(s) still
+// need doing so a re-submission (e.g. licence only) doesn't force the user
+// back through an already-approved CNIC, and doesn't needlessly re-send it
+// either (which would bump it from APPROVED back to PENDING for no reason).
 //
 // Images are picked locally only (no per-image auto-upload) — every image
 // for the current step uploads together, in one batch, only when the user
@@ -48,6 +56,7 @@ interface Props {
 // per box.
 export default function VerificationGateScreen({ isDriver, onComplete }: Props) {
   const insets = useSafeAreaInsets();
+  const { showModal } = useGlobalModal();
 
   const [cnicName,      setCnicName]      = useState('');
   const [cnic,          setCnic]          = useState('');
@@ -59,12 +68,58 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
   const [processing, setProcessing] = useState(false);
   const [topError,   setTopError]   = useState<string | null>(null);
   const [step,       setStep]       = useState(0);
+  const [cnicCheckAttempts, setCnicCheckAttempts] = useState(0);
+  const MAX_CNIC_CHECK_ATTEMPTS = 3;
 
-  const STEPS = useMemo(() => {
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [neededKeys, setNeededKeys] = useState<Set<string> | null>(null);
+  const [rejectionReasons, setRejectionReasons] = useState<{ cnic?: string; licence?: string }>({});
+
+  const BASE_STEPS = useMemo(() => {
     const base = [{ key: 'cnic', label: 'CNIC' }];
     return isDriver
       ? [...base, { key: 'licence', label: 'Licence' }, { key: 'selfie', label: 'Selfie' }]
       : [...base, { key: 'selfie', label: 'Selfie' }];
+  }, [isDriver]);
+
+  // Only the steps that actually still need work — a rejected licence alone
+  // shows just the Licence step, not the whole onboarding flow again.
+  const STEPS = useMemo(() => {
+    if (!neededKeys) return BASE_STEPS;
+    const filtered = BASE_STEPS.filter(s => neededKeys.has(s.key));
+    return filtered.length ? filtered : BASE_STEPS;
+  }, [BASE_STEPS, neededKeys]);
+
+  const isRedo = !!neededKeys && STEPS.length < BASE_STEPS.length;
+  const needsCnic    = STEPS.some(s => s.key === 'cnic');
+  const needsLicence = STEPS.some(s => s.key === 'licence');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await verificationApi.status();
+      if (cancelled) return;
+      const v = data?.data;
+      if (v) {
+        if (v.cnicName)      setCnicName(v.cnicName);
+        if (v.cnicNumber)    setCnic(v.cnicNumber);
+        if (v.cnicFront)     setFrontImg(v.cnicFront);
+        if (v.cnicBack)      setBackImg(v.cnicBack);
+        if (v.selfieImage)   setSelfieImg(v.selfieImage);
+        if (v.licenceNumber) setLicenceNumber(v.licenceNumber);
+        if (v.licenceImage)  setLicenceImg(v.licenceImage);
+        setRejectionReasons({ cnic: v.cnicRejectedReason || undefined, licence: v.licenceRejectedReason || undefined });
+      }
+      const keys = new Set<string>();
+      if (!(v?.cnicNumber && v?.cnicFront && v?.cnicBack)) keys.add('cnic');
+      if (isDriver && !(v?.licenceNumber && v?.licenceImage)) keys.add('licence');
+      if (!v?.selfieImage) keys.add('selfie');
+      // Nothing actually missing shouldn't happen (AppNavigator wouldn't have
+      // routed here) — fall back to the full flow rather than an empty one.
+      setNeededKeys(keys.size ? keys : new Set(BASE_STEPS.map(s => s.key)));
+      setLoadingStatus(false);
+    })();
+    return () => { cancelled = true; };
   }, [isDriver]);
 
   const pickImage = (setter) => {
@@ -128,6 +183,45 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     return { ok: true, urls };
   };
 
+  // Only submits the document(s) that were actually part of this run
+  // (`needsCnic`/`needsLicence`) — an already-approved document never gets
+  // silently re-sent, which would reset its status back to PENDING for no
+  // reason. `fresh` carries whatever URL the step JUST uploaded THIS tick
+  // (state from the matching setter above isn't visible until next render).
+  const finish = async (fresh: { cnicFrontUrl?: string; cnicBackUrl?: string; selfieUrl?: string; licenceUrl?: string } = {}) => {
+    setProcessing(true);
+    let cnicError = null;
+    let licenceError = null;
+    if (needsCnic) {
+      ({ error: cnicError } = await verificationApi.submitCnic(
+        cnic,
+        fresh.cnicFrontUrl ?? frontImg,
+        fresh.cnicBackUrl ?? backImg,
+        fresh.selfieUrl ?? selfieImg,
+        cnicName.trim(),
+      ));
+    }
+    if (isDriver && needsLicence) {
+      ({ error: licenceError } = await verificationApi.submitLicence(
+        licenceNumber.trim(),
+        fresh.licenceUrl ?? licenceImg,
+      ));
+    }
+    setProcessing(false);
+
+    if (cnicError || licenceError) {
+      setTopError(parseApiError(cnicError || licenceError));
+      return;
+    }
+
+    onComplete();
+  };
+
+  const advanceOrFinish = (fresh?: Parameters<typeof finish>[0]) => {
+    if (isLastStep) return finish(fresh);
+    setStep(s => s + 1);
+  };
+
   const handleContinue = async () => {
     setTopError(null);
     const key = STEPS[step].key;
@@ -147,54 +241,52 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
 
       // Check the front image actually matches what was typed before letting
       // the user move on — catches a wrong number/name immediately instead of
-      // it silently sitting on PENDING for a human to eventually notice.
+      // it silently sitting on PENDING for a human to eventually notice. OCR
+      // on a real photo (glare, font, lamination) can misread a genuine CNIC,
+      // so the user gets up to MAX_CNIC_CHECK_ATTEMPTS tries to fix a typo or
+      // upload a clearer photo before being let through — after that they can
+      // proceed, but the backend keeps them restricted (no posting/booking)
+      // until an admin manually approves the submission (requireVerification).
       setProcessing(true);
       const { data: checkData, error: checkError } = await verificationApi.checkCnic(cnic, cnicName.trim(), uploaded.urls[0]);
       setProcessing(false);
       if (checkError) { setTopError(parseApiError(checkError)); return; }
       if (!checkData?.data?.ok) {
-        setTopError("That name or number doesn't match your CNIC photo. Double-check them, or upload a clearer front image.");
+        const attemptsUsed = cnicCheckAttempts + 1;
+        setCnicCheckAttempts(attemptsUsed);
+        if (attemptsUsed < MAX_CNIC_CHECK_ATTEMPTS) {
+          setTopError(`That name or number doesn't match your CNIC photo (attempt ${attemptsUsed}/${MAX_CNIC_CHECK_ATTEMPTS}). Double-check them, or upload a clearer front image.`);
+          return;
+        }
+        showModal({
+          type: 'info',
+          icon: 'time-outline',
+          title: "We'll verify this manually",
+          message: "We still couldn't confirm your CNIC automatically. You can continue, but our team will need to review your documents — you won't be able to post or book rides until they're approved.",
+          confirmText: 'Continue',
+          onConfirm: () => advanceOrFinish({ cnicFrontUrl: uploaded.urls[0] as string, cnicBackUrl: uploaded.urls[1] as string }),
+        });
         return;
       }
 
-      setStep(s => s + 1);
+      advanceOrFinish({ cnicFrontUrl: uploaded.urls[0] as string, cnicBackUrl: uploaded.urls[1] as string });
       return;
     }
 
     if (key === 'licence') {
       if (!licenceNumber.trim()) return setTopError('Enter your licence number.');
       if (!licenceImg) return setTopError('Upload your driving licence to continue.');
-      const { ok } = await uploadStepImages([{ uri: licenceImg, setter: setLicenceImg }]);
+      const { ok, urls } = await uploadStepImages([{ uri: licenceImg, setter: setLicenceImg }]);
       if (!ok) return;
-      setStep(s => s + 1);
+      advanceOrFinish({ licenceUrl: urls[0] as string });
       return;
     }
 
-    // selfie — always the final step for both roles
+    // selfie
     if (!selfieImg) return setTopError('Take a selfie to continue.');
     const { ok, urls } = await uploadStepImages([{ uri: selfieImg, setter: setSelfieImg }]);
     if (!ok) return;
-    // Pass the just-resolved URL straight through — setSelfieImg above won't
-    // be visible on selfieImg until the next render, and handleSubmit runs
-    // right now, in this same tick.
-    handleSubmit(urls[0]);
-  };
-
-  const handleSubmit = async (selfieUrl: string) => {
-    setProcessing(true);
-    const { error: cnicError } = await verificationApi.submitCnic(cnic, frontImg, backImg, selfieUrl, cnicName.trim());
-    let licenceError = null;
-    if (isDriver) {
-      ({ error: licenceError } = await verificationApi.submitLicence(licenceNumber.trim(), licenceImg));
-    }
-    setProcessing(false);
-
-    if (cnicError || licenceError) {
-      setTopError(parseApiError(cnicError || licenceError));
-      return;
-    }
-
-    onComplete();
+    advanceOrFinish({ selfieUrl: urls[0] as string });
   };
 
   const renderStepContent = () => {
@@ -202,6 +294,12 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     if (key === 'cnic') {
       return (
         <>
+          {rejectionReasons.cnic && (
+            <View style={styles.rejectionBanner}>
+              <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
+              <Text style={styles.rejectionBannerText}>Previously rejected: {rejectionReasons.cnic}</Text>
+            </View>
+          )}
           <FormInput
             label="Full Name (as on CNIC) *"
             icon="person-outline"
@@ -241,6 +339,12 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     if (key === 'licence') {
       return (
         <>
+          {rejectionReasons.licence && (
+            <View style={styles.rejectionBanner}>
+              <Ionicons name="alert-circle" size={16} color={COLORS.danger} />
+              <Text style={styles.rejectionBannerText}>Previously rejected: {rejectionReasons.licence}</Text>
+            </View>
+          )}
           <FormInput
             label="Licence Number *"
             icon="document-text-outline"
@@ -260,35 +364,47 @@ export default function VerificationGateScreen({ isDriver, onComplete }: Props) 
     );
   };
 
+  if (loadingStatus) {
+    return (
+      <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.headerTitle}>Verify Your Identity</Text>
-        <Text style={styles.headerSub}>Required once, before you can use ChalParo</Text>
+        <Text style={styles.headerTitle}>{isRedo ? 'Fix Your Documents' : 'Verify Your Identity'}</Text>
+        <Text style={styles.headerSub}>
+          {isRedo ? 'A document was rejected — fix it below to continue.' : 'Required once, before you can use ChalParo'}
+        </Text>
       </View>
 
       {/* Stepper — no back-navigation once a step is passed; this is a
           one-way onboarding gate, not an editable form. */}
-      <View style={styles.stepperRow}>
-        {STEPS.map((s, i) => (
-          <React.Fragment key={s.key}>
-            <View style={styles.stepperItem}>
-              <View style={[
-                styles.stepCircle,
-                i === step && styles.stepCircleActive,
-                i < step && styles.stepCircleDone,
-              ]}>
-                {i < step
-                  ? <Ionicons name="checkmark" size={13} color={COLORS.white} />
-                  : <Text style={[styles.stepCircleText, i === step && styles.stepCircleTextActive]}>{i + 1}</Text>
-                }
+      {STEPS.length > 1 && (
+        <View style={styles.stepperRow}>
+          {STEPS.map((s, i) => (
+            <React.Fragment key={s.key}>
+              <View style={styles.stepperItem}>
+                <View style={[
+                  styles.stepCircle,
+                  i === step && styles.stepCircleActive,
+                  i < step && styles.stepCircleDone,
+                ]}>
+                  {i < step
+                    ? <Ionicons name="checkmark" size={13} color={COLORS.white} />
+                    : <Text style={[styles.stepCircleText, i === step && styles.stepCircleTextActive]}>{i + 1}</Text>
+                  }
+                </View>
+                <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]}>{s.label}</Text>
               </View>
-              <Text style={[styles.stepLabel, i === step && styles.stepLabelActive]}>{s.label}</Text>
-            </View>
-            {i < STEPS.length - 1 && <View style={[styles.stepConnector, i < step && styles.stepConnectorDone]} />}
-          </React.Fragment>
-        ))}
-      </View>
+              {i < STEPS.length - 1 && <View style={[styles.stepConnector, i < step && styles.stepConnectorDone]} />}
+            </React.Fragment>
+          ))}
+        </View>
+      )}
 
       {/* Batch upload / submit status — covers every image for the step at
           once, so there's one clear signal instead of per-box spinners. */}
@@ -344,6 +460,9 @@ const styles = StyleSheet.create({
   statusBannerError: { backgroundColor: '#fef2f2' },
   statusBannerText:  { flex: 1, fontSize: 12.5, fontWeight: '600', color: COLORS.primaryDark },
   statusBannerErrorText: { color: COLORS.danger },
+
+  rejectionBanner:     { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#fef2f2', borderRadius: 12, padding: 12, marginBottom: 16 },
+  rejectionBannerText: { flex: 1, fontSize: 12.5, fontWeight: '600', color: COLORS.danger, lineHeight: 18 },
 
   uploadStack:      { marginTop: 20 },
   uploadBox:        { borderWidth: 1.5, borderColor: COLORS.primary + '60', borderStyle: 'dashed', borderRadius: 16, height: 130, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, overflow: 'hidden', ...CURVE },

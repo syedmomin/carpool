@@ -6,11 +6,13 @@ import { API_BASE_URL } from '../config/network';
 const LOCATION_TASK_NAME = 'background-location-task';
 const TRACKING_RIDE_ID_KEY = '@tracking_ride_id';
 const TRACKING_QUEUE_KEY = '@tracking_pending_points';
-// Bounds the local buffer if the device stays offline a long time — old
-// points are dropped first since the newest position matters most once
-// connectivity returns; a full log still exists server-side for points
-// that did make it through.
-const MAX_QUEUED_POINTS = 500;
+// Bounds the local buffer for a long dead zone (a 30-50h intercity route can
+// genuinely go hours without signal on a remote stretch). At the 5s capture
+// interval this holds ~28 hours of points before thinning kicks in — and
+// even then, old points are downsampled rather than dropped outright (see
+// thinQueue), so the whole dead-zone stretch still shows up on the map at
+// lower resolution instead of vanishing.
+const MAX_QUEUED_POINTS = 20000;
 
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   if (error) {
@@ -40,9 +42,9 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
           timestamp: new Date(location.timestamp || Date.now()).toISOString(),
         };
 
-        const queue = await readQueue();
+        let queue = await readQueue();
         queue.push(point);
-        if (queue.length > MAX_QUEUED_POINTS) queue.splice(0, queue.length - MAX_QUEUED_POINTS);
+        queue = thinQueue(queue, MAX_QUEUED_POINTS);
 
         const flushed = await flushQueue(rideId, token, queue);
         if (flushed) {
@@ -56,6 +58,24 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     }
   }
 });
+
+// Keeps the buffer within maxLen without ever wholesale-dropping a chunk of
+// history: the newest half is kept at full resolution, and the older half is
+// evenly downsampled to fit its budget instead of being discarded — so a
+// multi-hour dead zone still leaves a (coarser) trace instead of a gap.
+function thinQueue(queue: any[], maxLen: number): any[] {
+  if (queue.length <= maxLen) return queue;
+  const keepRecentCount = Math.floor(maxLen / 2);
+  const recent = queue.slice(-keepRecentCount);
+  const older = queue.slice(0, queue.length - keepRecentCount);
+  const olderBudget = maxLen - keepRecentCount;
+  const step = older.length / olderBudget;
+  const thinnedOlder: any[] = [];
+  for (let i = 0; i < olderBudget; i++) {
+    thinnedOlder.push(older[Math.floor(i * step)]);
+  }
+  return [...thinnedOlder, ...recent];
+}
 
 async function readQueue(): Promise<any[]> {
   try {

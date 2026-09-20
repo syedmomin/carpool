@@ -38,11 +38,10 @@ export default function DriverHomeScreen({ navigation }) {
     loadMyRides();
     if (!myVehicle) {
       setLoadingVehicles(true);
-      vehiclesApi.myVehicles().then(({ data }) => {
-        if (data?.data) {
-          const active = data.data.find((v: any) => v.isActive) || data.data[0] || null;
-          setMyVehicle(active);
-        }
+      // Only the one active vehicle is shown here — was fetching the whole
+      // list (up to 100 rows) just to pick one client-side.
+      vehiclesApi.getActive().then(({ data }) => {
+        setMyVehicle(data?.data || null);
         setLoadingVehicles(false);
       }).catch(() => setLoadingVehicles(false));
     }
@@ -159,12 +158,21 @@ export default function DriverHomeScreen({ navigation }) {
         <SectionHeader title="Quick Actions" />
         <View style={styles.actionsGrid}>
           {QUICK_ACTIONS.map((action, i) => (
-            <PressableScale key={i} style={styles.actionCard} onPress={() => navigation.navigate(action.screen)} scaleTo={0.94} index={i}>
-              <View style={styles.actionIconBox}>
-                <Ionicons name={action.icon as any} size={22} color={COLORS.primary} />
-              </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </PressableScale>
+            // PressableScale's own root node (the entrance-animation wrapper)
+            // never receives the `flex: 1` from `actionCard` — that style
+            // lands two levels deeper, on the node wrapping its children — so
+            // it can't stretch to share this row's width on its own. Wrapping
+            // it in a `flex: 1` View makes THAT the real row flex-item; the
+            // PressableScale inside then stretches to fill it via RN's
+            // default cross-axis stretch, all the way down.
+            <View key={i} style={{ flex: 1 }}>
+              <PressableScale style={styles.actionCard} onPress={() => navigation.navigate(action.screen)} scaleTo={0.94} index={i}>
+                <View style={styles.actionIconBox}>
+                  <Ionicons name={action.icon as any} size={22} color={COLORS.primary} />
+                </View>
+                <Text style={styles.actionLabel}>{action.label}</Text>
+              </PressableScale>
+            </View>
           ))}
         </View>
 
@@ -205,9 +213,8 @@ export default function DriverHomeScreen({ navigation }) {
         ) : myVehicle ? (
           <PressableScale style={styles.vehicleCard} onPress={() => navigation.navigate('MyVehiclesTab')} scaleTo={0.98}>
             <View style={styles.vehicleInner}>
-              <View style={styles.vehicleAccentBar} />
               <View style={styles.vehicleIconBox}>
-                <VehicleTypeImage type={myVehicle.type} size={42} />
+                <VehicleTypeImage type={myVehicle.type} size={40} />
               </View>
               <View style={styles.vehicleInfo}>
                 <View style={styles.vehicleRow}>
@@ -308,10 +315,13 @@ const styles = StyleSheet.create({
   actionCard: { flex: 1, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.cardBg, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
   actionIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   actionLabel: { fontSize: 11, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
-  vehicleCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: COLORS.border, ...CURVE },
-  vehicleInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  vehicleAccentBar: { width: 4, borderRadius: 2, height: '80%', backgroundColor: COLORS.primary, marginRight: 0 },
-  vehicleIconBox: { width: 48, height: 48, borderRadius: 12, backgroundColor: COLORS.bg, alignItems: 'center', justifyContent: 'center' },
+  vehicleCard: {
+    backgroundColor: COLORS.cardBg, borderRadius: 16, overflow: 'hidden', marginBottom: 24,
+    shadowColor: '#0f172a', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 10,
+    elevation: 2,
+  },
+  vehicleInner: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  vehicleIconBox: { width: 46, height: 46, borderRadius: 13, backgroundColor: COLORS.primaryLight, alignItems: 'center', justifyContent: 'center' },
   vehicleInfo: { flex: 1 },
   vehicleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
   vehicleName: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
@@ -326,9 +336,14 @@ const styles = StyleSheet.create({
   addVehicleCard: { backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 24, borderWidth: 1.5, borderColor: COLORS.border, borderStyle: 'dashed' },
   addVehicleTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 10, marginBottom: 4 },
   addVehicleSub: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 18 },
-  rideCard: { backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: COLORS.border },
+  rideCard: {
+    backgroundColor: COLORS.cardBg, borderRadius: 14, padding: 13, marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8,
+    elevation: 1,
+  },
   rideLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rideDot: { width: 10, height: 10, borderRadius: 5 },
+  rideDot: { width: 8, height: 8, borderRadius: 4 },
   rideRoute: { fontSize: 14, fontWeight: '700', color: COLORS.textPrimary },
   rideDate: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2 },
   rideRight: { alignItems: 'flex-end' },

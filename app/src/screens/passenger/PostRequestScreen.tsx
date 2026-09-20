@@ -159,7 +159,7 @@ export default function PostRequestScreen({ navigation, route }: any) {
             onSwap={() => { const t = from; setFrom(to); setTo(t); }}
           />
 
-          {/* Exact Pickup Point (optional) */}
+          {/* Exact Pickup Point (required) */}
           {!!from && (
             <>
               <Text style={styles.pinHint}>

@@ -95,6 +95,12 @@ export default function CnicVerificationScreen({ navigation }) {
               )}
               <DocRow label="CNIC Front" image={record.cnicFront} status={record.cnicStatus} />
               <DocRow label="CNIC Back" image={record.cnicBack} status={record.cnicStatus} />
+              {record.cnicRejectedReason && (
+                <View style={styles.rejectionCard}>
+                  <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
+                  <Text style={styles.rejectionText}>CNIC rejected: {record.cnicRejectedReason}. Resubmit from the verification screen.</Text>
+                </View>
+              )}
               <DocRow label="Selfie" image={record.selfieImage} status={record.selfieStatus} />
               {record.licenceNumber && (
                 <View style={styles.cnicNumberCard}>
@@ -103,10 +109,10 @@ export default function CnicVerificationScreen({ navigation }) {
                 </View>
               )}
               <DocRow label="Driving Licence" image={record.licenceImage} status={record.licenceStatus} />
-              {record.rejectedReason && (
+              {record.licenceRejectedReason && (
                 <View style={styles.rejectionCard}>
                   <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
-                  <Text style={styles.rejectionText}>{record.rejectedReason}</Text>
+                  <Text style={styles.rejectionText}>Licence rejected: {record.licenceRejectedReason}. Resubmit from the verification screen.</Text>
                 </View>
               )}
             </>

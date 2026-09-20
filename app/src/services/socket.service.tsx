@@ -2,7 +2,16 @@ import { io, Socket } from 'socket.io-client';
 import { AppState, AppStateStatus } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { SERVER_URL } from '../config/network';
-import { tokenStorage } from './api';
+import { tokenStorage, refreshAccessToken } from './api';
+
+// The access token is short-lived (15 min) so a normal REST 401 refreshes it
+// often enough in practice — but a long-haul ride (city-to-city, tens of
+// hours) can go a while with no REST calls at all while the socket itself
+// just sits connected. Refreshing well inside that window keeps whatever
+// token is sitting in storage fresh, so the *next* reconnect (sleep, a
+// dropped tower, backgrounding) never hands the server a token that's
+// already expired.
+const SILENT_REFRESH_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
 export interface LocationPayload {
   rideId: string;
@@ -24,6 +33,8 @@ class SocketService {
   private _appState: AppStateStatus = AppState.currentState;
   private _queuedEvents: { event: string; data: any }[] = [];
   private _connListeners: Set<(connected: boolean) => void> = new Set();
+  private _silentRefreshInterval: any = null;
+  private _refreshingAuth = false;
 
   private _emitConn(connected: boolean) {
     this._connListeners.forEach(cb => cb(connected));
@@ -86,6 +97,7 @@ class SocketService {
       });
       // Start heartbeat
       this._startHeartbeat();
+      this._startSilentRefresh();
 
       // ── Flush Queued Events ──
       this._flushQueue();
@@ -94,11 +106,20 @@ class SocketService {
 
     this.socket.on('connect_error', (err) => {
       console.warn('[Socket] Connection error:', err.message);
+      // A rejected handshake because the access token expired mid-ride —
+      // refresh it and let the normal reconnection loop retry with the
+      // fresh token, instead of failing forever on the same stale one.
+      const isAuthError = /token|auth/i.test(err.message || '');
+      if (isAuthError && !this._refreshingAuth) {
+        this._refreshingAuth = true;
+        refreshAccessToken().finally(() => { this._refreshingAuth = false; });
+      }
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('[Socket] Disconnected:', reason);
       this._stopHeartbeat();
+      this._stopSilentRefresh();
       this._emitConn(false);
     });
 
@@ -144,6 +165,24 @@ class SocketService {
     }
   }
 
+  // Proactively refreshes the access token every few minutes while connected
+  // — see SILENT_REFRESH_INTERVAL_MS for why this matters on long rides.
+  // refreshAccessToken() itself calls reconnectWithNewToken() on success, so
+  // there's nothing else to do here when it succeeds.
+  private _startSilentRefresh() {
+    this._stopSilentRefresh();
+    this._silentRefreshInterval = setInterval(() => {
+      refreshAccessToken().catch(() => {});
+    }, SILENT_REFRESH_INTERVAL_MS);
+  }
+
+  private _stopSilentRefresh() {
+    if (this._silentRefreshInterval) {
+      clearInterval(this._silentRefreshInterval);
+      this._silentRefreshInterval = null;
+    }
+  }
+
   // ── Emit with Queue (Auto-retry logic) ──
   emitWithQueue(event: string, data: any): void {
     if (this.socket?.connected) {
@@ -181,6 +220,13 @@ class SocketService {
 
   emitLocation(payload: LocationPayload): void {
     this.socket?.emit('location-update', payload);
+  }
+
+  // A confirmed passenger's own GPS, sent only while the driver's own feed
+  // has gone stale — the server only actually uses this when it agrees the
+  // driver's feed is stale, so an over-eager client can't override live data.
+  emitLocationFallback(payload: LocationPayload): void {
+    this.socket?.emit('location-update-fallback', payload);
   }
 
   // ── Tracked listener API ──────────────────────────────────────────────────

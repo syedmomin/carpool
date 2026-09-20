@@ -92,11 +92,6 @@ export default function ChatScreen({ route, navigation }) {
 
   useEffect(() => {
     fetchHistory();
-    socketService.connect();
-    socketService.socket?.emit('join-chat', { bookingId });
-
-    // Mark as read on entry
-    socketService.socket?.emit('read-messages', { bookingId });
 
     const handleNewMessage = (msg: any) => {
       setMessages(prev => [...prev, msg]);
@@ -119,12 +114,22 @@ export default function ChatScreen({ route, navigation }) {
       }
     };
 
-    socketService.on('new-message', handleNewMessage);
-    socketService.on('typing-start', handleTypingStart);
-    socketService.on('typing-stop', handleTypingStop);
-    socketService.on('messages-read', handleMessagesRead);
+    // socketService.on() silently drops the listener if the socket hasn't
+    // connected yet (this.socket is still null) — connect() must resolve first.
+    let cancelled = false;
+    (async () => {
+      await socketService.connect();
+      if (cancelled) return;
+      socketService.socket?.emit('join-chat', { bookingId });
+      socketService.socket?.emit('read-messages', { bookingId }); // mark as read on entry
+      socketService.on('new-message', handleNewMessage);
+      socketService.on('typing-start', handleTypingStart);
+      socketService.on('typing-stop', handleTypingStop);
+      socketService.on('messages-read', handleMessagesRead);
+    })();
 
     return () => {
+      cancelled = true;
       socketService.off('new-message');
       socketService.off('typing-start');
       socketService.off('typing-stop');

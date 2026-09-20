@@ -127,15 +127,23 @@ export default function NotificationsScreen({ navigation }) {
 
     // Refresh + auto-mark whenever any notification-creating event fires while open
     const onAnyNotif = () => fetchNotifs(1, true, true);
-    socketService.on('NOTIFICATION_NEW',   onAnyNotif);
-    socketService.on('BOOKING_REQUESTED',  onAnyNotif);
-    socketService.on('BOOKING_ACCEPTED',   onAnyNotif);
-    socketService.on('BOOKING_REJECTED',   onAnyNotif);
-    socketService.on('BOOKING_CANCELLED',  onAnyNotif);
-    socketService.on('RIDE_STARTED',       onAnyNotif);
-    socketService.on('RIDE_COMPLETED',     onAnyNotif);
+    // socketService.on() silently drops the listener if the socket hasn't
+    // connected yet — connect() must resolve first (no-op if already connected).
+    let cancelled = false;
+    (async () => {
+      await socketService.connect();
+      if (cancelled) return;
+      socketService.on('NOTIFICATION_NEW',   onAnyNotif);
+      socketService.on('BOOKING_REQUESTED',  onAnyNotif);
+      socketService.on('BOOKING_ACCEPTED',   onAnyNotif);
+      socketService.on('BOOKING_REJECTED',   onAnyNotif);
+      socketService.on('BOOKING_CANCELLED',  onAnyNotif);
+      socketService.on('RIDE_STARTED',       onAnyNotif);
+      socketService.on('RIDE_COMPLETED',     onAnyNotif);
+    })();
 
     return () => {
+      cancelled = true;
       socketService.off('NOTIFICATION_NEW',   onAnyNotif);
       socketService.off('BOOKING_REQUESTED',  onAnyNotif);
       socketService.off('BOOKING_ACCEPTED',   onAnyNotif);

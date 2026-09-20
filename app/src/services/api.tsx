@@ -73,7 +73,7 @@ export const setLogoutHandler = (handler) => { onLogout = handler; };
 // First caller refreshes; all others wait and reuse the result.
 let _refreshPromise: Promise<boolean> | null = null;
 
-async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<boolean> {
   if (_refreshPromise) return _refreshPromise;
 
   _refreshPromise = (async () => {
@@ -178,6 +178,11 @@ export const systemApi = {
   health: () => request('GET', '/health'),
 };
 
+// ─── Cities (single source of truth — backend City table) ────────────────────
+export const citiesApi = {
+  getAll: () => request('GET', '/cities'),
+};
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
   login: (phone, password) => request('POST', '/auth/login', { phone, password }),
@@ -199,9 +204,15 @@ export const ridesApi = {
   post: (rideData) => request('POST', '/rides', rideData),
   update: (rideId, updates) => request('PUT', `/rides/${rideId}`, updates),
   cancel: (rideId) => request('PATCH', `/rides/${rideId}/cancel`),
+  // Driver ends an IN_PROGRESS ride early — breakdown, accident, etc.
+  reportIncomplete: (rideId, reason) => request('PATCH', `/rides/${rideId}/report-incomplete`, { reason }),
   myRides: (page = 1, limit = 10) => request('GET', `/rides/mine?page=${page}&limit=${limit}`),
   updateStatus: (rideId, status) => request('PATCH', `/rides/${rideId}/status`, { status }),
   activeSession: () => request('GET', '/rides/active-session'),
+  // Driver-confirmation flow — see schedulers/index.ts on the backend.
+  getPendingConfirmation: () => request('GET', '/rides/pending-confirmation'),
+  confirmStatus: (rideId: string, action: 'update' | 'still_ongoing' | 'cancel', updates?: { date?: string; departureTime?: string }) =>
+    request('POST', `/rides/${rideId}/confirm-status`, { action, ...updates }),
 };
 
 // ─── Bookings ────────────────────────────────────────────────────────────────
@@ -221,6 +232,8 @@ export const bookingsApi = {
   accept: (bookingId) => request('POST', `/bookings/accept/${bookingId}`),
   addSeats: (bookingId, seats) => request('PATCH', `/bookings/${bookingId}/add-seats`, { seats }),
   reject: (bookingId) => request('POST', `/bookings/reject/${bookingId}`),
+  // Driver removes one passenger without cancelling the whole ride.
+  removeByDriver: (bookingId, reason) => request('PATCH', `/bookings/${bookingId}/remove`, { reason }),
   myBookings: (page = 1, limit = 10) => request('GET', `/bookings/mine?page=${page}&limit=${limit}`),
   getById: (bookingId) => request('GET', `/bookings/${bookingId}`),
 };
@@ -251,6 +264,8 @@ export const vehiclesApi = {
   delete: (vehicleId) => request('DELETE', `/vehicles/${vehicleId}`),
   setActive: (vehicleId) => request('POST', `/vehicles/${vehicleId}/activate`),
   myVehicles: () => request('GET', '/vehicles/mine'),
+  // Dashboard-only: the one active vehicle, not the whole list.
+  getActive: () => request('GET', '/vehicles/active'),
 };
 
 // ─── Notifications ───────────────────────────────────────────────────────────
@@ -323,6 +338,7 @@ export const chatApi = {
 export const trackingApi = {
   getRoute: (rideId: string) => request('GET', `/tracking/route/${rideId}`),
   getLatestLocation: (rideId: string) => request('GET', `/tracking/location/${rideId}`),
+  getShareLink: (rideId: string) => request('GET', `/tracking/share-link/${rideId}`),
 };
 
 // ─── Image Upload ─────────────────────────────────────────────────────────────
