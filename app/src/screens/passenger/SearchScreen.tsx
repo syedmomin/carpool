@@ -411,7 +411,7 @@ export default function SearchScreen({ navigation, route }) {
                 <Text style={styles.clearHistory}>Clear</Text>
               </Pressable>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
               {recentSearches.map((h, i) => (
                 <Pressable key={i} style={styles.recentCard} onPress={() => handleRecentPress(h)}>
                   <Ionicons name="time-outline" size={14} color={COLORS.gray} />
@@ -619,16 +619,19 @@ export default function SearchScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   searchContainer: { marginTop: 0, paddingHorizontal: 16 },
+  // Was padding:16 on every side plus the filter chips adding their own
+  // paddingBottom:12 on top of that — a 28px gap under the chip row alone.
+  // Tightened uniformly and dropped the double bottom padding.
   searchCard: {
-    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16,
+    backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 12,
     borderWidth: 1, borderColor: COLORS.border,
     shadowColor: 'rgba(15, 23, 42, 0.06)', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 16, elevation: 2,
     ...CURVE,
   },
-  searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginBottom: 16 },
+  searchBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, marginTop: 10, marginBottom: 10 },
   searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   filtersScroll: { flexDirection: 'row' },
-  filtersScrollContent: { paddingHorizontal: 0, paddingBottom: 12 },
+  filtersScrollContent: { paddingHorizontal: 0 },
   filterChip: {
     marginRight: 8,
     borderRadius: 20,
@@ -637,16 +640,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     ...CURVE,
   },
-  activeFiltersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8, paddingHorizontal: 16 },
+  // Horizontal gutter standardized to 16 everywhere on this screen (the
+  // results header/list were at 20 while the search card above was at 16 —
+  // that 4px mismatch is what made the ride cards below look misaligned
+  // against the search card, reading as "extra" side padding).
+  activeFiltersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6, paddingHorizontal: 16 },
   activePill: { backgroundColor: COLORS.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   activePillText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
   clearAllBtn: { paddingHorizontal: 10, paddingVertical: 4 },
   clearAllText: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
-  resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
+  resultsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
   resultsCount: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
   resultsRoute: { fontSize: 12, color: COLORS.gray },
   sortLabel: { fontSize: 12, color: COLORS.gray },
-  listContent: { paddingHorizontal: 20, paddingBottom: 24 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
   sortOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sortSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   sheetHandleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
@@ -673,7 +680,7 @@ const styles = StyleSheet.create({
   brandChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   brandChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   recentSection: { marginTop: 16, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 16 },
-  recentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 12 },
+  recentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
   recentTitle: { fontSize: 14, fontWeight: '800', color: COLORS.textPrimary },
   clearHistory: { fontSize: 12, color: COLORS.danger, fontWeight: '600' },
   recentCard: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 10 },
