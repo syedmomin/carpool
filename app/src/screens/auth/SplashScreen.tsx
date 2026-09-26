@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -10,23 +10,26 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Logo, FONTS, COLORS } from '../../components';
+import { Logo, FONTS, COLORS, GRADIENTS } from '../../components';
 import { useApp } from '../../context/AppContext';
 import { systemApi } from '../../services/api';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-// Logo scales to ~40% of screen width, clamped so it never gets too big/small.
-const LOGO_SIZE = Math.max(140, Math.min(SCREEN_W * 0.4, 180));
-const GLOW_SIZE = LOGO_SIZE * 2.4;
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+const FOOTER_LOGO_SIZE = Math.max(120, Math.min(SCREEN_W * 0.34, 160));
+
+// splash-bg.png is 864×1821 (a phone-shaped ~0.474 aspect), close enough to
+// most phone screens that resizeMode="cover" barely crops it — but every
+// vertical offset below was tuned by eye against ONE device height. Scaling
+// them by actual screen height (against an 800dp reference) keeps the logo/
+// loader/footer sitting at the same proportional spot on any screen, instead
+// of drifting up or down as device height changes.
+const VSCALE = SCREEN_H / 800;
+const vs = (n: number) => Math.round(n * VSCALE);
 
 // Minimum time the splash stays up so the loader animation is actually seen.
 // This is polish only — real readiness (below) still gates navigation.
 const MIN_SPLASH_MS = 1400;
 const HEALTH_RETRY_MS = 2500;
-
-// TEMP: splash design is being reviewed/edited — block auto-navigation so it
-// stays on screen instead of jumping to login. Flip back to false when done.
-const HOLD_FOR_DESIGN_REVIEW = true;
 
 // Neon scan progress bar
 const PROGRESS_TRACK_W = 160;
@@ -63,7 +66,6 @@ export default function SplashScreen({ navigation, onDone }) {
   // Dynamic readiness signals (no hardcoded navigation delay)
   const [backendReady, setBackendReady] = useState(false);
   const [minElapsed, setMinElapsed] = useState(false);
-  const [connecting, setConnecting] = useState(false); // shown only if it takes a while
 
   useEffect(() => {
     fadeOpacity.value = withTiming(1, { duration: 800 });
@@ -80,18 +82,14 @@ export default function SplashScreen({ navigation, onDone }) {
   useEffect(() => {
     let cancelled = false;
     let timer: any;
-    let attempts = 0;
 
     const ping = async () => {
       const { error } = await systemApi.health();
       if (cancelled) return;
       if (!error) {
-        setConnecting(false);
         setBackendReady(true);
         return;
       }
-      attempts += 1;
-      if (attempts >= 2) setConnecting(true); // surface a hint if it's slow/offline
       timer = setTimeout(ping, HEALTH_RETRY_MS);
     };
 
@@ -103,7 +101,6 @@ export default function SplashScreen({ navigation, onDone }) {
   // + minimum splash time elapsed. AppNavigator then routes to dashboard (if logged
   // in) or the auth screen automatically based on currentUser.
   useEffect(() => {
-    if (HOLD_FOR_DESIGN_REVIEW) return;
     if (navigated.current) return;
     if (!isLoading && backendReady && minElapsed) {
       navigated.current = true;
@@ -112,56 +109,46 @@ export default function SplashScreen({ navigation, onDone }) {
   }, [isLoading, backendReady, minElapsed]);
 
   return (
-    <LinearGradient
-      colors={['#060d24', '#0d1b4b', '#1a3585', '#0d1b4b']}
-      locations={[0, 0.35, 0.65, 1]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <ImageBackground
+      source={require('../../../assets/splash-bg.png')}
+      resizeMode="cover"
       style={styles.container}
     >
-      {/* Faint accent glow, top-right — echoes the logo's green half */}
-      <LinearGradient
-        colors={['rgba(46,204,113,0.16)', 'rgba(46,204,113,0)']}
-        style={styles.accentGlow}
-        pointerEvents="none"
-      />
-
-      {/* Bottom vignette — grounds the caption card, adds depth */}
-      <LinearGradient
-        colors={['rgba(6,10,28,0)', 'rgba(6,10,28,0.55)']}
-        style={styles.vignette}
-        pointerEvents="none"
-      />
-
       <Animated.View style={[styles.content, fadeStyle]}>
-        <View style={styles.logoContainer}>
-          <LinearGradient
-            colors={['rgba(26,115,232,0.4)', 'rgba(26,115,232,0.14)', 'rgba(26,115,232,0)']}
-            locations={[0, 0.5, 1]}
-            style={styles.glow}
-            pointerEvents="none"
-          />
-          <Logo variant="splash" size={LOGO_SIZE} />
-          <Text style={styles.tagline}>Har Safar Mein Sath</Text>
+        {/* Logo pinned near the top by a fixed offset — not flex-centered,
+            so its position is exact and doesn't shift as other elements
+            below it change size. */}
+        <View style={styles.logoSection}>
+          <Logo variant="splash" size={FOOTER_LOGO_SIZE} />
         </View>
 
-        {/* ── Center spacer ── */}
-        <View style={styles.loaderSection}>
-          <View style={styles.progressTrack}>
-            <Animated.View style={[styles.progressGlow, progressBarStyle]} />
-            <Animated.View style={[styles.progressSegment, progressBarStyle]} />
-          </View>
-          <Text style={styles.connectingText}>{connecting ? 'Connecting…' : 'Loading…'}</Text>
+        {/* Loader — its own fixed offset from the logo, independent of the
+            flex layout below (which was absorbing marginTop changes here
+            and masking them). Segment is now a gradient, not a flat fill. */}
+        <View style={styles.progressTrack}>
+          <Animated.View style={[styles.progressSegment, progressBarStyle]}>
+            <LinearGradient
+              colors={GRADIENTS.primary as any}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
         </View>
 
-        <View style={styles.captionCard}>
-          <View style={styles.captionIconChip}>
-            <Ionicons name="shield-checkmark" size={16} color="#4ade80" />
+        {/* Footer pinned to an absolute distance from the bottom — decoupled
+            from the flex column above so it can never be pushed around by
+            logo/loader spacing changes. */}
+        <View style={styles.footer}>
+          <View style={styles.captionCard}>
+            <View style={styles.captionIconChip}>
+              <Ionicons name="shield-checkmark" size={16} color={COLORS.primary} />
+            </View>
+            <Text style={styles.captionText}>CNIC-Verified Drivers. Ride With Confidence.</Text>
           </View>
-          <Text style={styles.captionText}>CNIC-Verified Drivers. Ride With Confidence.</Text>
         </View>
       </Animated.View>
-    </LinearGradient>
+    </ImageBackground>
   );
 }
 
@@ -171,108 +158,55 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  accentGlow: {
-    position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-  },
-  vignette: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '32%',
-  },
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: '22%',
-    paddingBottom: 20,
-    justifyContent: 'space-between',
+    paddingTop: vs(80),
   },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  glow: {
-    position: 'absolute',
-    width: GLOW_SIZE,
-    height: GLOW_SIZE,
-    borderRadius: GLOW_SIZE / 2,
-  },
-  tagline: {
-    color: '#9ec5ff',
-    fontSize: 14,
-    fontFamily: FONTS.medium,
-    letterSpacing: 0.3,
-    marginTop: 6,
-  },
-  // ── Neon scan progress bar, sits low, closer to the caption card ───
-  loaderSection: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 36,
-  },
+  logoSection: { alignItems: 'center' },
+  // ── Minimal flat progress indicator, no glow/blur ───────────────────
   progressTrack: {
     width: PROGRESS_TRACK_W,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.14)',
     overflow: 'hidden',
-  },
-  progressGlow: {
-    position: 'absolute',
-    width: PROGRESS_SEGMENT_W + 20,
-    height: 14,
-    top: -4.5,
-    left: -10,
-    borderRadius: 7,
-    backgroundColor: COLORS.primary,
-    opacity: 0.45,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 10,
+    marginTop: vs(450),
   },
   progressSegment: {
     position: 'absolute',
     width: PROGRESS_SEGMENT_W,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#bfe6ff',
+    height: 3,
+    borderRadius: 2,
+    overflow: 'hidden',
   },
-  connectingText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    letterSpacing: 0.5,
-    marginTop: 14,
+  // ── Footer: trust badge, pinned near the screen bottom ──────────────
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: vs(36),
+    alignItems: 'center',
   },
   captionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginBottom: 24,
     paddingVertical: 12,
     paddingHorizontal: 18,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   captionIconChip: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(74,222,128,0.16)',
+    backgroundColor: 'rgba(26,115,232,0.18)',
   },
   captionText: {
     color: '#ffffff',
