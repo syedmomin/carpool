@@ -4,13 +4,13 @@
     "slug": "chalparo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/light-logo.png",
+    "icon": "./assets/app-logo.png",
     "userInterfaceStyle": "light",
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#0d1b4b",
-        "foregroundImage": "./assets/dark-logo.png"
+        "foregroundImage": "./assets/app-logo.png"
       },
       "package": "com.chalparo.app",
       "permissions": [
@@ -32,7 +32,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/app-logo.png"
     },
     "plugins": [
       [
